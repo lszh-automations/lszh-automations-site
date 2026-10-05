@@ -376,28 +376,41 @@ select option{color:#111;background:#fff}
 }
 
 
-.ai-lab{background:linear-gradient(180deg,#07111f,#0a1830);color:#fff}
-.ai-lab .section-title p{color:rgba(255,255,255,.58)}
-.ai-lab .kicker{color:#9fc8ff}
+.ai-lab{position:relative;overflow:hidden;background:radial-gradient(circle at 80% 5%,rgba(79,128,255,.16),transparent 32%),linear-gradient(180deg,#07111f,#0a1830);color:#fff}
+.ai-lab:before{content:"";position:absolute;width:560px;height:560px;border-radius:50%;left:-280px;bottom:-300px;background:rgba(49,104,255,.08);filter:blur(20px);pointer-events:none}
+.ai-lab .section-title p{color:rgba(255,255,255,.6);max-width:720px;margin-left:auto;margin-right:auto}
+.ai-lab .kicker{color:#9fc8ff}.ai-head h2{font-size:clamp(38px,5vw,64px);letter-spacing:-.045em}
+.ai-livebar{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:20px}
+.ai-livebar span{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.58);font-size:11px;font-weight:750}
+.ai-livebar i{display:block;width:7px;height:7px;border-radius:50%;background:#71e29a;box-shadow:0 0 0 5px rgba(113,226,154,.08);animation:aiPulse 1.8s infinite}
 .ai-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-.ai-card{padding:28px;border-radius:22px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 50px rgba(0,0,0,.16)}
-.ai-card h3{font-size:22px;margin-bottom:8px}.ai-card>p{color:rgba(255,255,255,.55);font-size:14px}
-.ai-card textarea,.ai-card input[type="text"]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fff}
-.ai-card textarea{min-height:132px;resize:vertical}
-.ai-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
-.ai-example{border:0;background:transparent;color:#9fc8ff;font-size:12px;font-weight:700;cursor:pointer;padding:8px 0}
-.ai-result{display:none;margin-top:18px;padding:18px;border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}
-.ai-result.show{display:block}.ai-result h4{margin:0 0 8px;font-size:16px}.ai-result p{color:rgba(255,255,255,.62);font-size:13px;margin-bottom:12px}
-.ai-kv{display:grid;gap:8px}.ai-kv div{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-.ai-kv div:last-child{border-bottom:0}.ai-kv span{color:rgba(255,255,255,.42);font-size:11px;font-weight:800}.ai-kv strong{font-size:13px}
-.ai-steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ai-step{position:relative;padding:9px 11px;border-radius:10px;background:rgba(91,140,255,.12);border:1px solid rgba(91,140,255,.18);color:#d8e6ff;font-size:11px;font-weight:700}
-.ai-score{display:flex;align-items:center;gap:12px;margin:12px 0}.ai-score b{font-size:32px;letter-spacing:-.04em}.ai-score span{color:rgba(255,255,255,.5);font-size:11px}
-.ai-note{margin-top:12px;color:rgba(255,255,255,.36)!important;font-size:10px!important}
-.ai-file{padding:18px;border:1px dashed rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.03)}
-.ai-file input{display:block;margin-top:10px;color:rgba(255,255,255,.72)}
-.ai-privacy{margin-top:10px;color:rgba(255,255,255,.4);font-size:11px}
-.ai-flow{display:grid;gap:8px;margin-top:12px}.ai-flow .ai-step:after{content:"↓";display:block;text-align:center;margin-top:8px;color:rgba(255,255,255,.28)}.ai-flow .ai-step:last-child:after{display:none}
-@media(max-width:820px){.ai-grid{grid-template-columns:1fr}.ai-kv div{grid-template-columns:1fr;gap:2px}}
+.ai-card{position:relative;padding:28px;border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.09);box-shadow:0 22px 54px rgba(0,0,0,.18);transition:transform .25s ease,border-color .25s ease,background .25s ease}
+.ai-card:hover{transform:translateY(-3px);border-color:rgba(132,173,255,.24);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04))}
+.ai-cardtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.ai-num{font-size:11px;font-weight:900;color:rgba(255,255,255,.28);letter-spacing:.12em}.ai-tag{font-size:9px;letter-spacing:.14em;font-weight:900;color:#a9caff;padding:6px 8px;border-radius:999px;background:rgba(94,142,255,.1);border:1px solid rgba(94,142,255,.14)}
+.ai-card h3{font-size:23px;line-height:1.14;margin-bottom:9px;letter-spacing:-.02em}.ai-card>p{color:rgba(255,255,255,.56);font-size:13px;min-height:44px}
+.ai-card textarea,.ai-card input[type="text"]{background:rgba(2,8,18,.34);border-color:rgba(255,255,255,.11);color:#fff;transition:border-color .2s,box-shadow .2s}
+.ai-card textarea:focus,.ai-card input[type="text"]:focus{border-color:rgba(115,160,255,.55);box-shadow:0 0 0 4px rgba(91,140,255,.08);outline:none}
+.ai-card textarea{min-height:136px;resize:vertical}
+.ai-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}.ai-actions .btn{transition:transform .2s,opacity .2s}.ai-actions .btn:hover{transform:translateY(-1px)}.ai-actions .btn:disabled{opacity:.58;cursor:wait}
+.ai-example{border:0;background:transparent;color:#9fc8ff;font-size:12px;font-weight:750;cursor:pointer;padding:8px 0}.ai-example:hover{text-decoration:underline}
+.ai-result{display:none;margin-top:18px;padding:20px;border-radius:18px;background:linear-gradient(180deg,rgba(7,24,50,.92),rgba(6,19,39,.92));border:1px solid rgba(114,157,255,.18);box-shadow:inset 0 1px rgba(255,255,255,.025)}
+.ai-result.show{display:block;animation:aiReveal .36s ease both}.ai-result h4{margin:0 0 8px;font-size:17px;letter-spacing:-.015em}.ai-result p{color:rgba(255,255,255,.62);font-size:13px;margin-bottom:12px}
+.ai-result-status{display:flex;align-items:center;gap:8px;margin-bottom:13px;color:#92e4ae;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.ai-result-status:before{content:"✓";display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:rgba(113,226,154,.1);border:1px solid rgba(113,226,154,.18)}
+.ai-subhead{margin:16px 0 7px;color:rgba(255,255,255,.36);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.ai-kv{display:grid;gap:0}.ai-kv div{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.ai-kv div:last-child{border-bottom:0}.ai-kv span{color:rgba(255,255,255,.4);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.ai-kv strong{font-size:13px;line-height:1.45}
+.ai-steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ai-step{position:relative;padding:9px 11px;border-radius:10px;background:rgba(91,140,255,.11);border:1px solid rgba(91,140,255,.17);color:#dce9ff;font-size:11px;font-weight:720;line-height:1.35}
+.ai-score{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:14px;margin:13px 0}.ai-score b{font-size:36px;letter-spacing:-.055em}.ai-score span{display:block;color:rgba(255,255,255,.46);font-size:10px;font-weight:750}.ai-scorebar{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;margin-top:7px}.ai-scorebar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#80aaff,#8ce5b0);transform-origin:left;animation:aiBar .7s ease both}
+.ai-note{margin-top:13px;color:rgba(255,255,255,.4)!important;font-size:10px!important}
+.ai-file{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center;padding:18px;border:1px dashed rgba(255,255,255,.19);border-radius:15px;background:rgba(255,255,255,.025);cursor:pointer;transition:border-color .2s,background .2s}.ai-file:hover{border-color:rgba(129,171,255,.45);background:rgba(91,140,255,.05)}.ai-fileicon{grid-row:1/3;font-size:23px;color:#9fc8ff}.ai-file strong{font-size:13px}.ai-file>span:last-of-type{color:rgba(255,255,255,.4);font-size:10px;margin-top:3px}.ai-file input{display:none}
+.ai-privacy{margin-top:9px;color:rgba(255,255,255,.38);font-size:10px;line-height:1.45}
+.ai-flow{display:grid;gap:0;margin-top:8px}.ai-flow .ai-step{display:flex;align-items:center;min-height:39px;background:rgba(91,140,255,.08)}.ai-flow .ai-step:after{content:"↓";position:absolute;left:50%;bottom:-15px;z-index:2;color:rgba(166,195,255,.38)}.ai-flow .ai-step:not(:last-child){margin-bottom:13px}.ai-flow .ai-step:last-child:after{display:none}
+.ai-cta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:17px;padding-top:15px;border-top:1px solid rgba(255,255,255,.07)}.ai-cta span{font-size:11px;color:rgba(255,255,255,.44)}.ai-cta a{font-size:11px;font-weight:850;color:#b9d3ff;text-decoration:none}.ai-cta a:hover{text-decoration:underline}
+.ai-loading{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.58);font-size:12px}.ai-dots{display:flex;gap:4px}.ai-dots i{width:5px;height:5px;border-radius:50%;background:#9fc8ff;animation:aiDot 1s infinite}.ai-dots i:nth-child(2){animation-delay:.14s}.ai-dots i:nth-child(3){animation-delay:.28s}
+.ai-bottom{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:22px;padding:21px 23px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.075);color:rgba(255,255,255,.55);font-size:12px;line-height:1.55}.ai-bottom strong{color:#fff}.ai-bottom .btn{white-space:nowrap}
+@keyframes aiPulse{0%,100%{box-shadow:0 0 0 4px rgba(113,226,154,.08)}50%{box-shadow:0 0 0 8px rgba(113,226,154,.02)}}@keyframes aiReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes aiBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes aiDot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+@media(max-width:820px){.ai-grid{grid-template-columns:1fr}.ai-kv div{grid-template-columns:1fr;gap:3px}.ai-card>p{min-height:0}.ai-bottom{align-items:flex-start;flex-direction:column}.ai-bottom .btn{width:100%;text-align:center}.ai-head h2{font-size:42px}}
+
 
 </style>
 </head>
@@ -696,47 +709,64 @@ select option{color:#111;background:#fff}
 
 <section id="ki-live" class="section ai-lab">
   <div class="container">
-    <div class="section-title center">
+    <div class="section-title center ai-head">
       <span class="kicker">KI LIVE TESTEN</span>
-      <h2>Reden wir nicht darüber, was KI kann. Probieren Sie es aus.</h2>
-      <p>Vier kurze Demos zeigen, wie KI Informationen versteht, strukturiert und in konkrete Geschäftsprozesse übersetzt.</p>
+      <h2>Nicht erklären. Zeigen.</h2>
+      <p>Testen Sie mit Ihrem eigenen Beispiel, was KI in einem KMU-Prozess bereits heute verstehen und vorbereiten kann.</p>
+      <div class="ai-livebar">
+        <span><i></i> Live-Analyse</span>
+        <span>Keine vorbereiteten Antworten</span>
+        <span>Ihr Beispiel → konkreter Prozess</span>
+      </div>
     </div>
+
     <div class="ai-grid">
       <article class="ai-card">
+        <div class="ai-cardtop"><span class="ai-num">01</span><span class="ai-tag">AUFGABE</span></div>
         <h3>Was würden Sie gerne nie wieder selbst machen?</h3>
-        <p>Beschreiben Sie eine wiederkehrende Aufgabe. Die KI bewertet, wie gut sie sich automatisieren lässt.</p>
+        <p>Beschreiben Sie eine wiederkehrende Aufgabe. Die KI bewertet das Automationspotenzial und skizziert einen möglichen Ablauf.</p>
         <textarea id="aiTaskInput" placeholder="Zum Beispiel: Jeden Morgen übertrage ich Bestellungen aus E-Mails in Excel und schicke danach eine Bestätigung."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="task">Analysieren</button><button class="ai-example" type="button" data-ai-example="task">Beispiel einsetzen</button></div>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="task">Mit KI analysieren</button><button class="ai-example" type="button" data-ai-example="task">Beispiel einsetzen</button></div>
         <div class="ai-result" id="aiTaskResult" aria-live="polite"></div>
       </article>
 
       <article class="ai-card">
+        <div class="ai-cardtop"><span class="ai-num">02</span><span class="ai-tag">E-MAIL</span></div>
         <h3>Was versteht KI aus dieser E-Mail?</h3>
-        <p>Die Demo erkennt Anliegen, nächste Schritte und kann daraus direkt einen Workflow ableiten.</p>
+        <p>Aus einer Nachricht werden strukturierte Informationen, nächste Schritte und ein passender Antwortentwurf.</p>
         <textarea id="aiEmailInput" placeholder="Fügen Sie hier eine unvertrauliche Beispiel-E-Mail ein."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="email">E-Mail analysieren</button><button class="ai-example" type="button" data-ai-example="email">Beispiel einsetzen</button></div>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="email">E-Mail verstehen</button><button class="ai-example" type="button" data-ai-example="email">Beispiel einsetzen</button></div>
         <div class="ai-result" id="aiEmailResult" aria-live="polite"></div>
       </article>
 
       <article class="ai-card">
-        <h3>Dokument automatisch auslesen</h3>
-        <p>Laden Sie ein Test-PDF oder Bild hoch. Die KI zeigt, welche Informationen strukturiert weiterverarbeitet werden könnten.</p>
-        <div class="ai-file">
-          <strong>PDF, JPG oder PNG</strong>
+        <div class="ai-cardtop"><span class="ai-num">03</span><span class="ai-tag">DOKUMENT</span></div>
+        <h3>Ein Dokument. Strukturierte Daten.</h3>
+        <p>Laden Sie ein Test-PDF oder Bild hoch. Die KI liest erkennbare Geschäftsdaten aus und zeigt, was danach automatisch passieren könnte.</p>
+        <label class="ai-file" for="aiDocumentInput">
+          <span class="ai-fileicon">↥</span>
+          <strong>PDF, JPG oder PNG auswählen</strong>
+          <span id="aiFileName">Noch keine Datei ausgewählt</span>
           <input id="aiDocumentInput" type="file" accept=".pdf,image/png,image/jpeg">
-        </div>
+        </label>
         <div class="ai-privacy">Bitte nur Testdokumente ohne vertrauliche oder besonders schützenswerte Personendaten verwenden.</div>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" id="aiDocumentRun">Dokument analysieren</button></div>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" id="aiDocumentRun">Dokument mit KI lesen</button></div>
         <div class="ai-result" id="aiDocumentResult" aria-live="polite"></div>
       </article>
 
       <article class="ai-card">
-        <h3>Aus einer Idee wird ein Prozess</h3>
-        <p>Beschreiben Sie den gewünschten Ablauf. Die KI baut daraus einen verständlichen Automations-Workflow.</p>
+        <div class="ai-cardtop"><span class="ai-num">04</span><span class="ai-tag">WORKFLOW</span></div>
+        <h3>Aus einem Satz wird ein Prozess.</h3>
+        <p>Beschreiben Sie, was passieren soll. Die KI übersetzt Ihre Idee in einen verständlichen Automationsablauf.</p>
         <textarea id="aiWorkflowInput" placeholder="Zum Beispiel: Wenn ein Kunde das Formular ausfüllt, soll geprüft werden, ob er schon im CRM ist. Danach Termin erstellen, Bestätigung senden und Follow-up vormerken."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="workflow">Workflow erstellen</button><button class="ai-example" type="button" data-ai-example="workflow">Beispiel einsetzen</button></div>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="workflow">Workflow erzeugen</button><button class="ai-example" type="button" data-ai-example="workflow">Beispiel einsetzen</button></div>
         <div class="ai-result" id="aiWorkflowResult" aria-live="polite"></div>
       </article>
+    </div>
+
+    <div class="ai-bottom">
+      <div><strong>Das Spannende:</strong> Die Demo zeigt nur einen kleinen Ausschnitt. In einem echten Projekt können daraus Aktionen in E-Mail, CRM, Kalender, Buchhaltung oder Ihren bestehenden Systemen werden.</div>
+      <a class="btn btn-light" href="#kontakt">Eigenen Prozess prüfen lassen</a>
     </div>
   </div>
 </section>
@@ -1050,30 +1080,44 @@ const aiExamples={
   workflow:'Wenn ein Interessent unser Website-Formular ausfüllt, soll geprüft werden, ob die Firma bereits im CRM existiert. Danach soll ein Lead erstellt, ein Termin vorbereitet, eine Bestätigung gesendet und drei Tage später ein Follow-up ausgelöst werden.'
 };
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function aiLoading(text){
+  return '<div class="ai-loading"><span>'+esc(text)+'</span><span class="ai-dots"><i></i><i></i><i></i></span></div>';
+}
+function aiCta(){
+  return '<div class="ai-cta"><span>Das könnte direkt mit Ihren Systemen verbunden werden.</span><a href="#kontakt">Für meinen Betrieb prüfen →</a></div>';
+}
 function renderAiResult(el,r){
   if(!el)return;
-  let out='<h4>'+esc(r.title||'Analyse')+'</h4>';
+  let out='<div class="ai-result-status">Live-Analyse abgeschlossen</div><h4>'+esc(r.title||'Analyse')+'</h4>';
   if(r.summary)out+='<p>'+esc(r.summary)+'</p>';
-  if(Number.isFinite(Number(r.score)))out+='<div class="ai-score"><b>'+esc(r.score)+'%</b><span>geschätzte Automatisierbarkeit</span></div>';
+
+  if(Number.isFinite(Number(r.score))){
+    const score=Math.max(0,Math.min(100,Number(r.score)));
+    out+='<div class="ai-score"><b>'+esc(score)+'%</b><div><span>geschätzte Automatisierbarkeit</span><div class="ai-scorebar"><i style="width:'+score+'%"></i></div></div></div>';
+  }
   if(r.complexity||r.savings){
-    out+='<div class="ai-kv">';
+    out+='<div class="ai-subhead">Einschätzung</div><div class="ai-kv">';
     if(r.complexity)out+='<div><span>Komplexität</span><strong>'+esc(r.complexity)+'</strong></div>';
     if(r.savings)out+='<div><span>Potenzial</span><strong>'+esc(r.savings)+'</strong></div>';
     out+='</div>';
   }
   if(Array.isArray(r.fields)&&r.fields.length){
-    out+='<div class="ai-kv">'+r.fields.slice(0,8).map(x=>'<div><span>'+esc(x.label)+'</span><strong>'+esc(x.value)+'</strong></div>').join('')+'</div>';
+    out+='<div class="ai-subhead">Von der KI erkannt</div><div class="ai-kv">'+r.fields.slice(0,8).map(x=>'<div><span>'+esc(x.label)+'</span><strong>'+esc(x.value)+'</strong></div>').join('')+'</div>';
   }
+
   const steps=Array.isArray(r.steps)?r.steps:(Array.isArray(r.actions)?r.actions:[]);
   if(steps.length){
     const cls=r.type==='workflow'?'ai-flow':'ai-steps';
-    out+='<div class="'+cls+'">'+steps.slice(0,7).map(x=>'<span class="ai-step">'+esc(x)+'</span>').join('')+'</div>';
+    const heading=r.type==='document'?'Was jetzt automatisch passieren könnte':(r.type==='workflow'?'Möglicher automatisierter Ablauf':'So könnte die Automation arbeiten');
+    out+='<div class="ai-subhead">'+heading+'</div><div class="'+cls+'">'+steps.slice(0,7).map((x,i)=>'<span class="ai-step">'+(r.type==='workflow'?'<b style="opacity:.42;margin-right:7px">'+String(i+1).padStart(2,'0')+'</b>':'')+esc(x)+'</span>').join('')+'</div>';
   }
-  if(r.reply)out+='<div class="ai-kv" style="margin-top:12px"><div><span>Antwortentwurf</span><strong>'+esc(r.reply)+'</strong></div></div>';
-  if(r.benefit)out+='<p style="margin-top:12px"><strong>Nutzen:</strong> '+esc(r.benefit)+'</p>';
+  if(r.reply)out+='<div class="ai-subhead">Vorgeschlagene Antwort</div><div class="ai-kv"><div><span>E-Mail</span><strong>'+esc(r.reply)+'</strong></div></div>';
+  if(r.benefit)out+='<div class="ai-subhead">Nutzen</div><p>'+esc(r.benefit)+'</p>';
   if(r.warning)out+='<p class="ai-note">'+esc(r.warning)+'</p>';
   if(r.note)out+='<p class="ai-note">'+esc(r.note)+'</p>';
+  out+=aiCta();
   el.innerHTML=out;el.classList.add('show');
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 async function runAi(mode){
   const map={task:['aiTaskInput','aiTaskResult'],email:['aiEmailInput','aiEmailResult'],workflow:['aiWorkflowInput','aiWorkflowResult']};
@@ -1081,8 +1125,8 @@ async function runAi(mode){
   const input=document.getElementById(inputId),result=document.getElementById(resultId);
   const text=input?.value.trim()||'';
   if(text.length<8){result.innerHTML='<p>Bitte beschreiben Sie den Ablauf etwas genauer.</p>';result.classList.add('show');return;}
-  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='KI analysiert …';
-  result.innerHTML='<p>Die KI strukturiert Ihre Angaben …</p>';result.classList.add('show');
+  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='KI arbeitet …';
+  result.innerHTML=aiLoading(mode==='email'?'E-Mail wird verstanden':mode==='workflow'?'Prozess wird aufgebaut':'Aufgabe wird analysiert');result.classList.add('show');
   try{
     const resp=await fetch('/api/ai-demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,text})});
     if(!resp.ok)throw new Error();
@@ -1096,13 +1140,17 @@ document.querySelectorAll('[data-ai-example]').forEach(b=>b.addEventListener('cl
   const el=document.getElementById(id);if(el){el.value=aiExamples[mode]||'';el.focus();}
 }));
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
+document.getElementById('aiDocumentInput')?.addEventListener('change',e=>{
+  const file=e.target.files?.[0],label=document.getElementById('aiFileName');
+  if(label)label.textContent=file?file.name:'Noch keine Datei ausgewählt';
+});
 document.getElementById('aiDocumentRun')?.addEventListener('click',async()=>{
   const input=document.getElementById('aiDocumentInput'),result=document.getElementById('aiDocumentResult'),btn=document.getElementById('aiDocumentRun');
   const file=input?.files?.[0];
   if(!file){result.innerHTML='<p>Bitte wählen Sie zuerst ein Testdokument aus.</p>';result.classList.add('show');return;}
   if(file.size>4*1024*1024){result.innerHTML='<p>Die Demo unterstützt Dateien bis 4 MB.</p>';result.classList.add('show');return;}
-  const old=btn.textContent;btn.disabled=true;btn.textContent='Dokument wird analysiert …';
-  result.innerHTML='<p>Die KI liest das Dokument aus …</p>';result.classList.add('show');
+  const old=btn.textContent;btn.disabled=true;btn.textContent='KI liest …';
+  result.innerHTML=aiLoading('Dokument wird gelesen und strukturiert');result.classList.add('show');
   try{
     const dataUrl=await fileToDataUrl(file);
     const resp=await fetch('/api/ai-document',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,type:file.type,data:dataUrl})});
@@ -1111,7 +1159,6 @@ document.getElementById('aiDocumentRun')?.addEventListener('click',async()=>{
   }catch{result.innerHTML='<p>Das Dokument konnte gerade nicht analysiert werden.</p>';}
   finally{btn.disabled=false;btn.textContent=old;}
 });
-
 </script>
 </body>
 </html>

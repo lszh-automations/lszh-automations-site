@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 10000;
@@ -37,6 +38,28 @@ function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   try { return new URL(origin).host === req.headers.host; } catch { return false; }
+}
+function safeEqual(a,b) {
+  const aa=Buffer.from(String(a||'')), bb=Buffer.from(String(b||''));
+  return aa.length===bb.length && aa.length>0 && crypto.timingSafeEqual(aa,bb);
+}
+function parseCookies(req) {
+  const out={};
+  for (const part of String(req.headers.cookie||'').split(';')) {
+    const i=part.indexOf('=');
+    if(i>0) out[part.slice(0,i).trim()]=decodeURIComponent(part.slice(i+1).trim());
+  }
+  return out;
+}
+function hasPreviewAccess(req,res,urlObj) {
+  const expected=String(process.env.PREVIEW_TOKEN||'');
+  if(!expected) return false;
+  const supplied=urlObj.searchParams.get('preview');
+  if(supplied && safeEqual(supplied,expected)) {
+    res.setHeader('Set-Cookie',`lszh_preview=${encodeURIComponent(expected)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800`);
+    return true;
+  }
+  return safeEqual(parseCookies(req).lszh_preview,expected);
 }
 function send(res, code, body, type='application/json; charset=utf-8') {
   res.writeHead(code, {
@@ -102,6 +125,19 @@ function outputText(data) {
   }
   return parts.join('\n');
 }
+async function callMakeJson(target,payload,timeoutMs=35000) {
+  if(!target) return null;
+  const r=await fetch(target,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload),
+    signal:AbortSignal.timeout(timeoutMs)
+  });
+  const raw=await r.text();
+  if(!r.ok) throw new Error('make_upstream_'+r.status);
+  return cleanJsonText(raw);
+}
+
 async function callOpenAI(content, instructions) {
   const key=process.env.OPENAI_API_KEY;
   if(!key) return null;
@@ -167,7 +203,12 @@ async function handleAiDemo(req,res){
     const mode=['task','email','workflow'].includes(body.mode)?body.mode:'task';
     const text=String(body.text||'').trim().slice(0,6000);
     if(text.length<8) return send(res,400,JSON.stringify({error:'too_short'}));
-    let result=await callOpenAI([{type:'input_text',text}],promptFor(mode));
+    let result=null;
+    if(process.env.MAKE_AI_TEXT_WEBHOOK) {
+      result=await callMakeJson(process.env.MAKE_AI_TEXT_WEBHOOK,{mode,text});
+    } else {
+      result=await callOpenAI([{type:'input_text',text}],promptFor(mode));
+    }
     if(!result) result=demoFallback(mode,text);
     return send(res,200,JSON.stringify({ok:true,result}));
   }catch(e){
@@ -186,23 +227,33 @@ async function handleAiDocument(req,res){
     const data=String(body.data||'');
     const allowed=['image/png','image/jpeg','application/pdf'];
     if(!allowed.includes(type) || !data.startsWith('data:')) return send(res,400,JSON.stringify({error:'unsupported_file'}));
-    if(!process.env.OPENAI_API_KEY){
-      return send(res,200,JSON.stringify({ok:true,result:{
-        type:'document',title:'Dokument erkannt',summary:'Die Live-Demo kann Rechnungen, Belege und ähnliche Geschäftsdokumente strukturiert auslesen.',
-        fields:[
-          {label:'Datei',value:name},{label:'Dokumenttyp',value:type==='application/pdf'?'PDF':'Bild'},
-          {label:'Mögliche Extraktion',value:'Firma, Datum, Betrag, Referenz, Fälligkeit und weitere Felder'}
-        ],
-        actions:['Daten prüfen','Buchhaltung/CRM automatisch befüllen','Dokument regelbasiert ablegen'],
-        note:'Demo-Modus: Für die echte Dokumentanalyse wird vor der Veröffentlichung ein serverseitiger KI-Zugang aktiviert.'
-      }}));
+    const base64=data.includes(',')?data.slice(data.indexOf(',')+1):'';
+    if(!base64) return send(res,400,JSON.stringify({error:'invalid_file'}));
+
+    const makeTarget=type==='application/pdf'
+      ? process.env.MAKE_AI_PDF_WEBHOOK
+      : process.env.MAKE_AI_IMAGE_WEBHOOK;
+
+    let result=null;
+    if(makeTarget) {
+      result=await callMakeJson(makeTarget,{name,type,data:base64},45000);
+    } else if(process.env.OPENAI_API_KEY) {
+      const instructions=`Du bist die Dokument-Demo von LSZH Automations für Schweizer KMU. Extrahiere nur klar erkennbare Daten. Keine erfundenen Werte. Antworte ausschliesslich als gültiges JSON ohne Markdown im Schema {"type":"document","title":"...","summary":"...","fields":[{"label":"...","value":"..."}],"actions":["maximal 4 sinnvolle Automationsschritte"],"warning":"optional, falls etwas unklar ist"}.`;
+      const filePart=type==='application/pdf'
+        ? {type:'input_file',file_data:base64,filename:name}
+        : {type:'input_image',image_url:data,detail:'auto'};
+      result=await callOpenAI([{type:'input_text',text:'Analysiere dieses Geschäftsdokument und zeige, welche Daten automatisch weiterverarbeitet werden könnten.'},filePart],instructions);
     }
-    const instructions=`Du bist die Dokument-Demo von LSZH Automations für Schweizer KMU. Extrahiere nur klar erkennbare Daten. Keine erfundenen Werte. Antworte ausschliesslich als gültiges JSON ohne Markdown im Schema {"type":"document","title":"...","summary":"...","fields":[{"label":"...","value":"..."}],"actions":["maximal 4 sinnvolle Automationsschritte"],"warning":"optional, falls etwas unklar ist"}.`;
-    const filePart=type==='application/pdf'
-      ? {type:'input_file',file_data:data.split(',')[1],filename:name}
-      : {type:'input_image',image_url:data,detail:'auto'};
-    const content=[{type:'input_text',text:'Analysiere dieses Geschäftsdokument und zeige, welche Daten automatisch weiterverarbeitet werden könnten.'},filePart];
-    const result=await callOpenAI(content,instructions);
+
+    if(!result) {
+      result={
+        type:'document',title:'Dokument erkannt',
+        summary:'Die Live-Demo kann Rechnungen, Belege und ähnliche Geschäftsdokumente strukturiert auslesen.',
+        fields:[{label:'Datei',value:name},{label:'Dokumenttyp',value:type==='application/pdf'?'PDF':'Bild'}],
+        actions:['Daten prüfen','Buchhaltung/CRM automatisch befüllen','Dokument regelbasiert ablegen'],
+        note:'Demo-Modus: Die Live-KI ist vorübergehend nicht verbunden.'
+      };
+    }
     return send(res,200,JSON.stringify({ok:true,result}));
   }catch(e){
     if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
@@ -227,13 +278,24 @@ function staticFile(req, res) {
   });
 }
 const server=http.createServer(async (req,res)=>{
-  if (String(process.env.SITE_PRIVATE || '').toLowerCase() === 'true') {
-    return send(res, 503, 'LSZH Automations ist vorübergehend nicht öffentlich verfügbar.', 'text/plain; charset=utf-8');
+  let urlObj;
+  try { urlObj=new URL(req.url,'http://local'); }
+  catch { return send(res,400,'Bad request','text/plain; charset=utf-8'); }
+  const pathname=urlObj.pathname;
+  const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
+
+  if(sitePrivate) {
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Cache-Control','no-store');
+    if(!hasPreviewAccess(req,res,urlObj)) {
+      return send(res,503,'LSZH Automations ist vorübergehend nicht öffentlich verfügbar.','text/plain; charset=utf-8');
+    }
   }
-  if (req.method==='POST' && req.url==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
-  if (req.method==='POST' && req.url==='/api/onboarding') return proxy(req,res,'MAKE_ONBOARDING_WEBHOOK');
-  if (req.method==='POST' && req.url==='/api/ai-demo') return handleAiDemo(req,res);
-  if (req.method==='POST' && req.url==='/api/ai-document') return handleAiDocument(req,res);
+
+  if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
+  if (req.method==='POST' && pathname==='/api/onboarding') return proxy(req,res,'MAKE_ONBOARDING_WEBHOOK');
+  if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
+  if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);
   return send(res,405,JSON.stringify({error:'method_not_allowed'}));
 });

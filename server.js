@@ -62,14 +62,17 @@ function hasPreviewAccess(req,res,urlObj) {
   return safeEqual(parseCookies(req).lszh_preview,expected);
 }
 function send(res, code, body, type='application/json; charset=utf-8') {
-  res.writeHead(code, {
+  const headers={
     'Content-Type': type,
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-Frame-Options': 'DENY',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Cache-Control': type.startsWith('application/json') ? 'no-store' : 'public, max-age=300'
-  });
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+  };
+  if(!res.hasHeader('Cache-Control')) {
+    headers['Cache-Control']=type.startsWith('application/json') ? 'no-store' : 'public, max-age=300';
+  }
+  res.writeHead(code, headers);
   res.end(body);
 }
 function readJson(req, maxBytes=MAX_BODY) {

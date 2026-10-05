@@ -375,6 +375,30 @@ select option{color:#111;background:#fff}
   border:1px solid #f1d8a7;color:#805b1f;font-size:12px
 }
 
+
+.ai-lab{background:linear-gradient(180deg,#07111f,#0a1830);color:#fff}
+.ai-lab .section-title p{color:rgba(255,255,255,.58)}
+.ai-lab .kicker{color:#9fc8ff}
+.ai-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.ai-card{padding:28px;border-radius:22px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 50px rgba(0,0,0,.16)}
+.ai-card h3{font-size:22px;margin-bottom:8px}.ai-card>p{color:rgba(255,255,255,.55);font-size:14px}
+.ai-card textarea,.ai-card input[type="text"]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fff}
+.ai-card textarea{min-height:132px;resize:vertical}
+.ai-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.ai-example{border:0;background:transparent;color:#9fc8ff;font-size:12px;font-weight:700;cursor:pointer;padding:8px 0}
+.ai-result{display:none;margin-top:18px;padding:18px;border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}
+.ai-result.show{display:block}.ai-result h4{margin:0 0 8px;font-size:16px}.ai-result p{color:rgba(255,255,255,.62);font-size:13px;margin-bottom:12px}
+.ai-kv{display:grid;gap:8px}.ai-kv div{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.ai-kv div:last-child{border-bottom:0}.ai-kv span{color:rgba(255,255,255,.42);font-size:11px;font-weight:800}.ai-kv strong{font-size:13px}
+.ai-steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ai-step{position:relative;padding:9px 11px;border-radius:10px;background:rgba(91,140,255,.12);border:1px solid rgba(91,140,255,.18);color:#d8e6ff;font-size:11px;font-weight:700}
+.ai-score{display:flex;align-items:center;gap:12px;margin:12px 0}.ai-score b{font-size:32px;letter-spacing:-.04em}.ai-score span{color:rgba(255,255,255,.5);font-size:11px}
+.ai-note{margin-top:12px;color:rgba(255,255,255,.36)!important;font-size:10px!important}
+.ai-file{padding:18px;border:1px dashed rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.03)}
+.ai-file input{display:block;margin-top:10px;color:rgba(255,255,255,.72)}
+.ai-privacy{margin-top:10px;color:rgba(255,255,255,.4);font-size:11px}
+.ai-flow{display:grid;gap:8px;margin-top:12px}.ai-flow .ai-step:after{content:"↓";display:block;text-align:center;margin-top:8px;color:rgba(255,255,255,.28)}.ai-flow .ai-step:last-child:after{display:none}
+@media(max-width:820px){.ai-grid{grid-template-columns:1fr}.ai-kv div{grid-template-columns:1fr;gap:2px}}
+
 </style>
 </head>
 <body>
@@ -398,7 +422,7 @@ select option{color:#111;background:#fff}
       <span class="brand-copy"><strong>LSZH Automations</strong><span>AUTOMATION FÜR SCHWEIZER KMU</span></span>
     </a>
     <nav class="desktop-nav">
-      <a href="#leistungen">Leistungen</a>
+      <a href="#leistungen">Leistungen</a><a href="#ki-live">KI live</a>
       <a href="#beispiel">Beispiel</a>
       <a href="#kmu">KMU-Fokus</a>
       <a href="#ablauf">Ablauf</a>
@@ -669,6 +693,54 @@ select option{color:#111;background:#fff}
   </div>
 </section>
 
+
+<section id="ki-live" class="section ai-lab">
+  <div class="container">
+    <div class="section-title center">
+      <span class="kicker">KI LIVE TESTEN</span>
+      <h2>Reden wir nicht darüber, was KI kann. Probieren Sie es aus.</h2>
+      <p>Vier kurze Demos zeigen, wie KI Informationen versteht, strukturiert und in konkrete Geschäftsprozesse übersetzt.</p>
+    </div>
+    <div class="ai-grid">
+      <article class="ai-card">
+        <h3>Was würden Sie gerne nie wieder selbst machen?</h3>
+        <p>Beschreiben Sie eine wiederkehrende Aufgabe. Die KI bewertet, wie gut sie sich automatisieren lässt.</p>
+        <textarea id="aiTaskInput" placeholder="Zum Beispiel: Jeden Morgen übertrage ich Bestellungen aus E-Mails in Excel und schicke danach eine Bestätigung."></textarea>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="task">Analysieren</button><button class="ai-example" type="button" data-ai-example="task">Beispiel einsetzen</button></div>
+        <div class="ai-result" id="aiTaskResult" aria-live="polite"></div>
+      </article>
+
+      <article class="ai-card">
+        <h3>Was versteht KI aus dieser E-Mail?</h3>
+        <p>Die Demo erkennt Anliegen, nächste Schritte und kann daraus direkt einen Workflow ableiten.</p>
+        <textarea id="aiEmailInput" placeholder="Fügen Sie hier eine unvertrauliche Beispiel-E-Mail ein."></textarea>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="email">E-Mail analysieren</button><button class="ai-example" type="button" data-ai-example="email">Beispiel einsetzen</button></div>
+        <div class="ai-result" id="aiEmailResult" aria-live="polite"></div>
+      </article>
+
+      <article class="ai-card">
+        <h3>Dokument automatisch auslesen</h3>
+        <p>Laden Sie ein Test-PDF oder Bild hoch. Die KI zeigt, welche Informationen strukturiert weiterverarbeitet werden könnten.</p>
+        <div class="ai-file">
+          <strong>PDF, JPG oder PNG</strong>
+          <input id="aiDocumentInput" type="file" accept=".pdf,image/png,image/jpeg">
+        </div>
+        <div class="ai-privacy">Bitte nur Testdokumente ohne vertrauliche oder besonders schützenswerte Personendaten verwenden.</div>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" id="aiDocumentRun">Dokument analysieren</button></div>
+        <div class="ai-result" id="aiDocumentResult" aria-live="polite"></div>
+      </article>
+
+      <article class="ai-card">
+        <h3>Aus einer Idee wird ein Prozess</h3>
+        <p>Beschreiben Sie den gewünschten Ablauf. Die KI baut daraus einen verständlichen Automations-Workflow.</p>
+        <textarea id="aiWorkflowInput" placeholder="Zum Beispiel: Wenn ein Kunde das Formular ausfüllt, soll geprüft werden, ob er schon im CRM ist. Danach Termin erstellen, Bestätigung senden und Follow-up vormerken."></textarea>
+        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="workflow">Workflow erstellen</button><button class="ai-example" type="button" data-ai-example="workflow">Beispiel einsetzen</button></div>
+        <div class="ai-result" id="aiWorkflowResult" aria-live="polite"></div>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section id="ablauf" class="section process">
   <div class="container">
     <div class="section-title center"><span class="kicker">ABLAUF</span><h2>Von der Idee zur laufenden Automation.</h2><p>Ein klarer Prozess, ohne unnötige Umwege.</p></div>
@@ -794,7 +866,7 @@ select option{color:#111;background:#fff}
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>
-    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#beispiel">Beispiel</a><a href="#kmu">KMU-Fokus</a><a href="#kontakt">Kontakt</a></div>
+    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#ki-live">KI live</a><a href="#beispiel">Beispiel</a><a href="#kmu">KMU-Fokus</a><a href="#kontakt">Kontakt</a></div>
     <div class="footer-meta"><span>© <span id="year"></span> LSZH Automations</span><span>ein Geschäftsbereich der LSZH Invest GmbH</span><span>Schweiz</span></div>
     <div class="legal-row">
       <button type="button" data-legal="impressum">Impressum</button>
@@ -966,6 +1038,75 @@ document.addEventListener('keydown',e=>{
     legalModal.classList.remove('open');
     legalModal.setAttribute('aria-hidden','true');
   }
+});
+
+
+const aiExamples={
+  task:'Jeden Morgen kommen Bestellungen per E-Mail. Ich kopiere Name, Artikel und Menge in Excel, prüfe den Lagerbestand und schicke dem Kunden eine Bestätigung.',
+  email:'Guten Tag, könnten Sie uns bitte eine Offerte für den Austausch von drei Lavabos erstellen? Wenn möglich nächste Woche. Freundliche Grüsse, Max Muster',
+  workflow:'Wenn ein Interessent unser Website-Formular ausfüllt, soll geprüft werden, ob die Firma bereits im CRM existiert. Danach soll ein Lead erstellt, ein Termin vorbereitet, eine Bestätigung gesendet und drei Tage später ein Follow-up ausgelöst werden.'
+};
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function renderAiResult(el,r){
+  if(!el)return;
+  let out='<h4>'+esc(r.title||'Analyse')+'</h4>';
+  if(r.summary)out+='<p>'+esc(r.summary)+'</p>';
+  if(Number.isFinite(Number(r.score)))out+='<div class="ai-score"><b>'+esc(r.score)+'%</b><span>geschätzte Automatisierbarkeit</span></div>';
+  if(r.complexity||r.savings){
+    out+='<div class="ai-kv">';
+    if(r.complexity)out+='<div><span>Komplexität</span><strong>'+esc(r.complexity)+'</strong></div>';
+    if(r.savings)out+='<div><span>Potenzial</span><strong>'+esc(r.savings)+'</strong></div>';
+    out+='</div>';
+  }
+  if(Array.isArray(r.fields)&&r.fields.length){
+    out+='<div class="ai-kv">'+r.fields.slice(0,8).map(x=>'<div><span>'+esc(x.label)+'</span><strong>'+esc(x.value)+'</strong></div>').join('')+'</div>';
+  }
+  const steps=Array.isArray(r.steps)?r.steps:(Array.isArray(r.actions)?r.actions:[]);
+  if(steps.length){
+    const cls=r.type==='workflow'?'ai-flow':'ai-steps';
+    out+='<div class="'+cls+'">'+steps.slice(0,7).map(x=>'<span class="ai-step">'+esc(x)+'</span>').join('')+'</div>';
+  }
+  if(r.reply)out+='<div class="ai-kv" style="margin-top:12px"><div><span>Antwortentwurf</span><strong>'+esc(r.reply)+'</strong></div></div>';
+  if(r.benefit)out+='<p style="margin-top:12px"><strong>Nutzen:</strong> '+esc(r.benefit)+'</p>';
+  if(r.warning)out+='<p class="ai-note">'+esc(r.warning)+'</p>';
+  if(r.note)out+='<p class="ai-note">'+esc(r.note)+'</p>';
+  el.innerHTML=out;el.classList.add('show');
+}
+async function runAi(mode){
+  const map={task:['aiTaskInput','aiTaskResult'],email:['aiEmailInput','aiEmailResult'],workflow:['aiWorkflowInput','aiWorkflowResult']};
+  const [inputId,resultId]=map[mode]||[];
+  const input=document.getElementById(inputId),result=document.getElementById(resultId);
+  const text=input?.value.trim()||'';
+  if(text.length<8){result.innerHTML='<p>Bitte beschreiben Sie den Ablauf etwas genauer.</p>';result.classList.add('show');return;}
+  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='KI analysiert …';
+  result.innerHTML='<p>Die KI strukturiert Ihre Angaben …</p>';result.classList.add('show');
+  try{
+    const resp=await fetch('/api/ai-demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,text})});
+    if(!resp.ok)throw new Error();
+    const data=await resp.json();renderAiResult(result,data.result||{});
+  }catch{result.innerHTML='<p>Die Live-Demo ist gerade nicht verfügbar. Bitte versuchen Sie es später erneut.</p>';}
+  finally{btn.disabled=false;btn.textContent=old;}
+}
+document.querySelectorAll('[data-ai-run]').forEach(b=>b.addEventListener('click',()=>runAi(b.dataset.aiRun)));
+document.querySelectorAll('[data-ai-example]').forEach(b=>b.addEventListener('click',()=>{
+  const mode=b.dataset.aiExample,id={task:'aiTaskInput',email:'aiEmailInput',workflow:'aiWorkflowInput'}[mode];
+  const el=document.getElementById(id);if(el){el.value=aiExamples[mode]||'';el.focus();}
+}));
+function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
+document.getElementById('aiDocumentRun')?.addEventListener('click',async()=>{
+  const input=document.getElementById('aiDocumentInput'),result=document.getElementById('aiDocumentResult'),btn=document.getElementById('aiDocumentRun');
+  const file=input?.files?.[0];
+  if(!file){result.innerHTML='<p>Bitte wählen Sie zuerst ein Testdokument aus.</p>';result.classList.add('show');return;}
+  if(file.size>4*1024*1024){result.innerHTML='<p>Die Demo unterstützt Dateien bis 4 MB.</p>';result.classList.add('show');return;}
+  const old=btn.textContent;btn.disabled=true;btn.textContent='Dokument wird analysiert …';
+  result.innerHTML='<p>Die KI liest das Dokument aus …</p>';result.classList.add('show');
+  try{
+    const dataUrl=await fileToDataUrl(file);
+    const resp=await fetch('/api/ai-document',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,type:file.type,data:dataUrl})});
+    if(!resp.ok)throw new Error();
+    const data=await resp.json();renderAiResult(result,data.result||{});
+  }catch{result.innerHTML='<p>Das Dokument konnte gerade nicht analysiert werden.</p>';}
+  finally{btn.disabled=false;btn.textContent=old;}
 });
 
 </script>

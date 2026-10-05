@@ -83,6 +83,9 @@ function staticFile(req, res) {
   });
 }
 const server=http.createServer(async (req,res)=>{
+  if (String(process.env.SITE_PRIVATE || '').toLowerCase() === 'true') {
+    return send(res, 503, 'LSZH Automations ist vorübergehend nicht öffentlich verfügbar.', 'text/plain; charset=utf-8');
+  }
   if (req.method==='POST' && req.url==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
   if (req.method==='POST' && req.url==='/api/onboarding') return proxy(req,res,'MAKE_ONBOARDING_WEBHOOK');
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);

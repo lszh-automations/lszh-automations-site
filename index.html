@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="LSZH Automations entwickelt hochwertige Automationen für Schweizer KMU – weniger Administration, klarere Abläufe, mehr Zeit fürs Kerngeschäft.">
+<title>LSZH Automations | Automationen für Schweizer KMU</title>
+<style>
+:root{
+  --navy:#06101d; --navy2:#0a1728; --navy3:#10233b;
+  --blue:#5b8cff; --cyan:#74d8ff; --violet:#8e72ff; --green:#43d89e;
+  --ink:#0f1726; --muted:#68768a; --soft:#f4f7fb; --line:#dfe7f2;
+  --white:#fff; --radius:22px; --shadow:0 30px 80px rgba(7,16,29,.14);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--soft);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased
+}
+a{color:inherit;text-decoration:none}
+button,input,textarea{font:inherit}
+.container{width:min(1180px,calc(100% - 40px));margin:0 auto}
+header{
+  position:sticky;top:0;z-index:1000;background:rgba(6,16,29,.84);
+  backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06)
+}
+.nav{height:82px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
+.brand{display:inline-flex;align-items:center;gap:12px;width:max-content}
+.logo{width:42px;height:42px;filter:drop-shadow(0 10px 20px rgba(91,140,255,.25))}
+.brand-copy{display:grid;line-height:1.05}
+.brand-copy strong{color:#fff;font-family:Manrope,sans-serif;font-size:16px}
+.brand-copy span{color:rgba(255,255,255,.46);font-size:9px;letter-spacing:.18em;margin-top:4px}
+.desktop-nav{display:flex;gap:32px;color:rgba(255,255,255,.76);font-size:13px;font-weight:600}
+.desktop-nav a:hover{color:#fff}
+.nav-cta{
+  justify-self:end;display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;
+  border-radius:11px;background:#fff;color:var(--navy);font-size:13px;font-weight:700;transition:.2s ease
+}
+.nav-cta:hover{transform:translateY(-1px)}
+.menu{display:none;justify-self:end;border:0;background:transparent;color:#fff;font-size:26px}
+.mobile{display:none;flex-direction:column;gap:14px;padding:0 20px 20px;color:rgba(255,255,255,.82);font-weight:600}
+
+.hero{
+  position:relative;overflow:hidden;padding:92px 0 78px;color:#fff;
+  background:
+   radial-gradient(circle at 8% 12%,rgba(116,216,255,.14),transparent 28%),
+   radial-gradient(circle at 88% 18%,rgba(142,114,255,.16),transparent 29%),
+   linear-gradient(180deg,#06101d 0%,#081526 100%)
+}
+.hero:after{
+  content:"";position:absolute;inset:auto -10% -180px -10%;height:300px;
+  background:radial-gradient(ellipse at center,rgba(91,140,255,.10),transparent 65%);pointer-events:none
+}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:58px;align-items:center}
+.eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:28px;color:rgba(255,255,255,.70);font-size:12px;font-weight:700}
+.eyebrow i{width:30px;height:2px;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--violet))}
+h1,h2,h3,p{margin-top:0}
+h1{
+  margin-bottom:26px;font-family:Manrope,sans-serif;font-size:clamp(50px,5.45vw,74px);
+  line-height:.95;letter-spacing:-.064em
+}
+h1 span{
+  display:block;background:linear-gradient(90deg,#8bd3ff 0%,#91a8ff 50%,#c3a0ff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent
+}
+.hero-lead{max-width:640px;color:rgba(255,255,255,.67);font-size:18px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin:34px 0 28px}
+.btn{
+  min-height:50px;padding:0 22px;border:0;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;
+  font-weight:700;cursor:pointer;transition:.2s ease
+}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;box-shadow:0 14px 30px rgba(91,140,255,.24)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 18px 38px rgba(91,140,255,.31)}
+.btn-secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff}
+.btn-secondary:hover{background:rgba(255,255,255,.10)}
+.trust{display:flex;flex-wrap:wrap;gap:10px 22px;color:rgba(255,255,255,.50);font-size:12px;font-weight:600}
+.trust span:before{content:"•";color:var(--green);margin-right:8px}
+
+.hero-board{position:relative;max-width:570px;margin-left:auto;width:100%}
+.board{
+  overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.1);
+  background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035));
+  backdrop-filter:blur(16px);box-shadow:0 35px 80px rgba(0,0,0,.32)
+}
+.board-top{height:66px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
+.board-label small,.flow-copy small,.result small,.float small{display:block;color:rgba(255,255,255,.38);font-size:9px;font-weight:800;letter-spacing:.13em}
+.board-label strong{display:block;color:#fff;font-size:14px;margin-top:2px}
+.live{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.65);font-size:11px;font-weight:700}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 5px rgba(67,216,158,.12)}
+.flow{padding:26px}
+.flow-row{display:grid;grid-template-columns:48px 1fr auto;gap:16px;align-items:center}
+.node{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}
+.n1{background:linear-gradient(135deg,#4f8cff,#68d0ff);box-shadow:0 12px 24px rgba(79,140,255,.25)}
+.n2{background:linear-gradient(135deg,#7b62ff,#aa7cff);box-shadow:0 12px 24px rgba(123,98,255,.23)}
+.n3{background:linear-gradient(135deg,#2cc98a,#61e1b6);box-shadow:0 12px 24px rgba(44,201,138,.21)}
+.flow-copy strong{display:block;color:#fff;font-size:14px}
+.flow-copy span{display:block;color:rgba(255,255,255,.50);font-size:11px;margin-top:2px}
+.badge{padding:6px 10px;border-radius:999px;font-size:10px;font-weight:800}
+.b1{background:rgba(91,140,255,.14);color:#aac7ff}
+.b2{background:rgba(142,114,255,.14);color:#cabdff}
+.b3{background:rgba(67,216,158,.14);color:#a1efd1}
+.connector{width:2px;height:27px;margin:7px 0 7px 23px;background:linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04))}
+.result{margin:0 22px 22px;padding:16px;border-radius:17px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06)}
+.result strong{color:#fff;font-size:14px}.result>span{color:rgba(255,255,255,.52);font-size:11px}
+.float{display:none}
+.float strong{color:#fff;font-size:12px;white-space:nowrap}.f1{}.f2{}
+
+.signal{background:#fff;border-bottom:1px solid var(--line)}
+.signal-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.signal-grid div{padding:28px 26px;border-right:1px solid var(--line)}
+.signal-grid div:first-child{padding-left:0}.signal-grid div:last-child{border-right:0}
+.signal-grid strong{display:block;font-size:18px;letter-spacing:-.02em}.signal-grid span{color:var(--muted);font-size:12px}
+
+.section{padding:104px 0}
+.section-light{background:linear-gradient(180deg,#f9fbff 0%,#f3f7fc 100%)}
+.section-title{max-width:820px;margin-bottom:48px}
+.section-title.split{max-width:none;display:grid;grid-template-columns:1.15fr .85fr;gap:78px;align-items:end}
+.section-title.split p{margin-bottom:8px}
+.section-title.center{text-align:center;margin-left:auto;margin-right:auto}
+.kicker{display:inline-block;margin-bottom:15px;color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.16em}
+.section-title h2,.benefit-copy h2,.contact-copy h2{
+  margin-bottom:18px;font-family:Manrope,sans-serif;font-size:clamp(34px,4vw,54px);line-height:1.08;letter-spacing:-.045em
+}
+.section-title p,.benefit-copy p,.contact-copy p{color:var(--muted);font-size:17px}
+
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.service{
+  padding:30px;border-radius:22px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 34px rgba(15,23,38,.05)
+}
+.service:nth-child(1){border-top:3px solid #73a1ff}.service:nth-child(2){border-top:3px solid #9a84ff}.service:nth-child(3){border-top:3px solid #58d9a6}
+.service-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:42px}
+.service-top>span:first-child{color:var(--blue);font-size:12px;font-weight:800}
+.pill{padding:7px 10px;border-radius:999px;background:#f0f4fa;color:#6e7d91;font-size:10px;font-weight:800}
+.service h3{font-size:21px;line-height:1.25;letter-spacing:-.025em;margin-bottom:12px}
+.service p{color:var(--muted);font-size:14px}
+.service-list{display:grid;gap:8px;margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.service-list span{position:relative;padding-left:17px;color:#59697f;font-size:13px}
+.service-list span:before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan))}
+
+.case{
+  background:#fff
+}
+.case-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:78px;align-items:center}
+.case-copy h2{font-family:Manrope,sans-serif;font-size:clamp(34px,4vw,50px);line-height:1.08;letter-spacing:-.045em;margin-bottom:18px}
+.case-copy p{color:var(--muted);font-size:17px}
+.case-card{border:1px solid var(--line);border-radius:24px;padding:28px;background:linear-gradient(180deg,#fff,#f8fbff);box-shadow:var(--shadow)}
+.case-head{display:flex;justify-content:space-between;gap:20px;align-items:center;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.case-head div small{display:block;color:#8491a4;font-size:10px;font-weight:800;letter-spacing:.12em}.case-head div strong{display:block;font-size:16px;margin-top:3px}
+.case-head>span{padding:7px 10px;border-radius:999px;background:#ecf4ff;color:#4f6fa5;font-size:10px;font-weight:800}
+.case-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center;padding:28px 0}
+.case-step{min-height:120px;padding:18px;border-radius:16px;background:#f4f7fb;border:1px solid #e3eaf3}
+.case-step span{display:block;color:var(--blue);font-size:11px;font-weight:800;margin-bottom:10px}.case-step strong{font-size:13px}.case-step p{font-size:11px;color:var(--muted);margin:6px 0 0}
+.arrow{color:#9eabba;font-size:20px}
+.case-result{padding:18px;border-radius:16px;background:linear-gradient(135deg,#edf5ff,#f3efff);display:flex;justify-content:space-between;gap:20px;align-items:center}
+.case-result strong{font-size:14px}.case-result span{font-size:11px;color:#61718a}
+
+.industry{
+  background:
+    radial-gradient(circle at 18% 0%,rgba(91,140,255,.12),transparent 28%),
+    radial-gradient(circle at 82% 10%,rgba(142,114,255,.12),transparent 25%),
+    linear-gradient(180deg,#07111f,#09172a)
+}
+.industry .kicker{color:#9fc8ff}.industry .section-title h2{color:#fff}.industry .section-title p{color:rgba(255,255,255,.56)}
+.industry-list{display:grid;gap:16px}
+.industry-card{position:relative;overflow:hidden;padding:28px 30px;display:grid;grid-template-columns:60px 1fr;gap:24px;border-radius:20px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
+.industry-card:before{content:"";position:absolute;left:0;top:0;width:4px;height:100%}
+.industry-card:nth-child(1):before{background:linear-gradient(#f178b6,#8e72ff)}
+.industry-card:nth-child(2):before{background:linear-gradient(#5b8cff,#74d8ff)}
+.industry-card:nth-child(3):before{background:linear-gradient(#43d89e,#91e6c5)}
+.industry-num{color:rgba(255,255,255,.34);font-size:12px;font-weight:800}
+.industry-card span{display:inline-block;margin-bottom:8px;color:#95bfff;font-size:10px;font-weight:800;letter-spacing:.13em}
+.industry-card h3{color:#fff;font-size:22px;letter-spacing:-.025em;margin-bottom:8px}
+.industry-card p{max-width:780px;color:rgba(255,255,255,.56);font-size:14px;margin-bottom:0}
+
+.benefit{background:#fff}
+.benefit-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:92px}
+.benefit-list{display:grid}
+.benefit-item{display:grid;grid-template-columns:54px 1fr;gap:18px;padding:24px 0;border-bottom:1px solid var(--line)}
+.benefit-item:first-child{padding-top:0}.benefit-item>span{color:var(--blue);font-size:12px;font-weight:800}
+.benefit-item strong{display:block;font-size:16px;margin-bottom:5px}.benefit-item p{margin:0;color:var(--muted);font-size:13px}
+
+.process{background:linear-gradient(180deg,#f2f6fc,#edf3fa)}
+.process-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.process-grid article{padding:28px;border-radius:18px;background:rgba(255,255,255,.78);border:1px solid #d8e2ef}
+.process-num{width:38px;height:38px;display:grid;place-items:center;margin-bottom:50px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;font-size:11px;font-weight:800}
+.process-grid h3{font-size:21px;margin-bottom:10px}.process-grid p{color:var(--muted);font-size:13px;margin-bottom:0}
+
+.contact{
+  background:
+    radial-gradient(circle at 14% 0%,rgba(91,140,255,.16),transparent 26%),
+    radial-gradient(circle at 90% 20%,rgba(142,114,255,.14),transparent 24%),
+    linear-gradient(180deg,#06101d,#091425)
+}
+.contact-card{padding:56px;display:grid;grid-template-columns:.9fr 1.1fr;gap:72px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.09);box-shadow:0 30px 70px rgba(0,0,0,.24)}
+.contact-copy{color:#fff}.contact-copy .kicker{color:#9fc8ff}.contact-copy p{color:rgba(255,255,255,.58)}
+.contact-points{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.contact-points span{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:11px;font-weight:700}
+form{display:grid;gap:16px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:grid;gap:7px;color:rgba(255,255,255,.76);font-size:12px;font-weight:700}.optional{display:inline;color:rgba(255,255,255,.38);font-size:10px;font-weight:600;margin-left:6px}
+input,textarea{width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.12);border-radius:12px;outline:none;background:rgba(255,255,255,.055);color:#fff}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,.30)}
+input:focus,textarea:focus{border-color:rgba(124,197,255,.62);box-shadow:0 0 0 3px rgba(91,140,255,.12)}
+textarea{resize:vertical}.full{width:100%}.form-note{margin:0;color:rgba(255,255,255,.42);font-size:11px}
+
+footer{padding:42px 0;background:#040c16;color:rgba(255,255,255,.48);border-top:1px solid rgba(255,255,255,.06)}
+.footer-grid{display:grid;grid-template-columns:1.4fr .6fr .8fr;gap:40px}
+.footer-grid p{margin:14px 0 0;font-size:13px}.footer-links,.footer-meta{display:grid;align-content:start;gap:9px;font-size:12px}.footer-links a:hover{color:#fff}
+
+@media(max-width:980px){
+ .nav{grid-template-columns:1fr auto}.desktop-nav,.nav-cta{display:none}.menu{display:block}.mobile.open{display:flex}
+ .hero-grid,.section-title.split,.case-grid,.benefit-grid,.contact-card{grid-template-columns:1fr;gap:46px}
+ .services{grid-template-columns:1fr}.process-grid{grid-template-columns:1fr 1fr}.f1{}.f2{}
+}
+@media(max-width:700px){
+ .container{width:min(100% - 28px,1180px)}.hero{padding:70px 0 64px}h1{font-size:43px}.section{padding:76px 0}
+ .signal-grid{grid-template-columns:1fr 1fr}.signal-grid div:first-child{padding-left:26px}.flow-row{grid-template-columns:48px 1fr}.badge,.float{display:none}
+ .case-flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.industry-card{grid-template-columns:1fr}.process-grid{grid-template-columns:1fr}
+ .contact-card{padding:34px 22px}.field-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr;gap:26px}
+}
+
+.hero-scroll-hint{
+  position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.34);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase
+}
+.hero-scroll-hint i{width:18px;height:1px;background:rgba(255,255,255,.28)}
+
+
+/* V10 conversion additions */
+.usecases-section{
+  background:linear-gradient(180deg,#ffffff 0%,#f7faff 100%);
+}
+.usecases-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+.usecase-card{
+  padding:26px;
+  border-radius:20px;
+  background:#fff;
+  border:1px solid var(--line);
+  box-shadow:0 14px 30px rgba(15,23,38,.045);
+}
+.usecase-icon{
+  width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
+  margin-bottom:26px;font-size:15px;font-weight:800;color:#fff
+}
+.uc1{background:linear-gradient(135deg,#4f8cff,#70d0ff)}
+.uc2{background:linear-gradient(135deg,#7f65ff,#ae7cff)}
+.uc3{background:linear-gradient(135deg,#2cc98a,#62e0b5)}
+.uc4{background:linear-gradient(135deg,#f078b3,#aa78ff)}
+.uc5{background:linear-gradient(135deg,#3ea1e8,#5b8cff)}
+.uc6{background:linear-gradient(135deg,#e8a343,#f06f79)}
+.usecase-card h3{font-size:18px;line-height:1.28;margin-bottom:9px}
+.usecase-card p{margin:0;color:var(--muted);font-size:13px}
+
+.potential-section{
+  background:linear-gradient(180deg,#eff5fc 0%,#eaf1f9 100%);
+}
+.potential-grid{
+  display:grid;grid-template-columns:.9fr 1.1fr;gap:84px;align-items:start
+}
+.potential-copy h2{
+  font-family:Manrope,sans-serif;font-size:clamp(34px,4vw,52px);
+  line-height:1.08;letter-spacing:-.045em;margin-bottom:18px
+}
+.potential-copy p{color:var(--muted);font-size:17px}
+.signal-list{display:grid;gap:12px}
+.signal-item{
+  display:grid;grid-template-columns:42px 1fr;gap:16px;align-items:start;
+  padding:18px 20px;border-radius:16px;background:rgba(255,255,255,.74);
+  border:1px solid #d9e3ef
+}
+.signal-item span{
+  width:36px;height:36px;display:grid;place-items:center;border-radius:11px;
+  background:linear-gradient(135deg,#5b8cff,#8e72ff);color:#fff;font-size:11px;font-weight:800
+}
+.signal-item strong{display:block;font-size:14px;margin-bottom:3px}
+.signal-item p{margin:0;color:var(--muted);font-size:12px}
+
+.faq-section{background:#fff}
+.faq-wrap{max-width:880px;margin:0 auto}
+.faq-list{display:grid;gap:12px;margin-top:38px}
+.faq-item{
+  border:1px solid var(--line);border-radius:16px;background:#fff;overflow:hidden
+}
+.faq-question{
+  width:100%;padding:20px 22px;border:0;background:#fff;color:var(--ink);
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  text-align:left;font-weight:700;cursor:pointer
+}
+.faq-question span:last-child{
+  flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;
+  border-radius:9px;background:#f1f5fb;color:#64748b;font-size:18px;transition:.2s ease
+}
+.faq-answer{
+  display:none;padding:0 22px 20px;color:var(--muted);font-size:14px
+}
+.faq-item.open .faq-answer{display:block}
+.faq-item.open .faq-question span:last-child{transform:rotate(45deg)}
+
+.micro-cta{
+  margin-top:34px;padding:26px 28px;border-radius:20px;
+  display:flex;justify-content:space-between;gap:30px;align-items:center;
+  background:linear-gradient(135deg,#0d1c32 0%,#132643 100%);
+  color:#fff;border:1px solid rgba(255,255,255,.05)
+}
+.micro-cta strong{display:block;font-size:18px;margin-bottom:4px}
+.micro-cta p{margin:0;color:rgba(255,255,255,.58);font-size:13px}
+.micro-cta .btn{flex:0 0 auto}
+
+.contact-form .select-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px
+}
+select{
+  width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;outline:none;background:rgba(255,255,255,.055);color:#fff
+}
+select option{color:#111;background:#fff}
+
+.footer-note{
+  margin-top:18px;color:rgba(255,255,255,.34);font-size:11px;max-width:420px
+}
+
+@media(max-width:980px){
+  .usecases-grid{grid-template-columns:1fr 1fr}
+  .potential-grid{grid-template-columns:1fr;gap:44px}
+}
+@media(max-width:700px){
+  .usecases-grid{grid-template-columns:1fr}
+  .micro-cta{flex-direction:column;align-items:flex-start}
+  .contact-form .select-row{grid-template-columns:1fr}
+}
+
+
+.legal-row{
+  grid-column:1 / -1;
+  display:flex;align-items:center;gap:10px;
+  padding-top:22px;margin-top:4px;
+  border-top:1px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.34);font-size:11px
+}
+.legal-row button{
+  padding:0;border:0;background:transparent;color:rgba(255,255,255,.50);
+  cursor:pointer;font:inherit
+}
+.legal-row button:hover{color:#fff}
+
+.legal-modal{
+  position:fixed;inset:0;z-index:2000;display:none;
+  align-items:center;justify-content:center;padding:24px
+}
+.legal-modal.open{display:flex}
+.legal-backdrop{
+  position:absolute;inset:0;background:rgba(2,8,18,.72);backdrop-filter:blur(8px)
+}
+.legal-dialog{
+  position:relative;z-index:1;width:min(720px,100%);max-height:min(760px,88vh);
+  overflow:auto;padding:34px;border-radius:22px;background:#fff;color:var(--ink);
+  box-shadow:0 30px 90px rgba(0,0,0,.35)
+}
+.legal-close{
+  position:absolute;right:18px;top:16px;width:34px;height:34px;border:0;border-radius:10px;
+  background:#f1f5fa;color:#64748b;font-size:22px;cursor:pointer
+}
+.legal-dialog h2{
+  margin:0 40px 18px 0;font-family:Manrope,sans-serif;font-size:30px;letter-spacing:-.03em
+}
+.legal-dialog h3{margin-top:26px;margin-bottom:8px;font-size:15px}
+.legal-dialog p,.legal-dialog li{color:#5f6f84;font-size:13px}
+.legal-placeholder{
+  margin-top:20px;padding:14px 16px;border-radius:12px;background:#fff7e8;
+  border:1px solid #f1d8a7;color:#805b1f;font-size:12px
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container nav">
+    <a class="brand" href="#top">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#74d8ff"/>
+            <stop offset="55%" stop-color="#5b8cff"/>
+            <stop offset="100%" stop-color="#8e72ff"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g)"/>
+        <path d="M18 18h9v21h19v8H18V18z" fill="white"/>
+        <circle cx="45" cy="20" r="4" fill="white" opacity=".95"/>
+        <path d="M41 20H31" stroke="white" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      <span class="brand-copy"><strong>LSZH Automations</strong><span>AUTOMATION FÜR SCHWEIZER KMU</span></span>
+    </a>
+    <nav class="desktop-nav">
+      <a href="#leistungen">Leistungen</a>
+      <a href="#beispiel">Beispiel</a>
+      <a href="#kmu">KMU-Fokus</a>
+      <a href="#ablauf">Ablauf</a>
+    </nav>
+    <a class="nav-cta" href="#kontakt">Projekt besprechen</a>
+    <button class="menu" aria-label="Menü öffnen" aria-expanded="false">☰</button>
+  </div>
+  <nav class="mobile">
+    <a href="#leistungen">Leistungen</a>
+    <a href="#beispiel">Beispiel</a>
+    <a href="#kmu">KMU-Fokus</a>
+    <a href="#ablauf">Ablauf</a>
+    <a href="#kontakt">Projekt besprechen</a>
+  </nav>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow"><i></i> Automationen für Schweizer KMU</div>
+      <h1>Weniger Administration.<span>Mehr Zeit fürs Geschäft.</span></h1>
+      <p class="hero-lead">LSZH Automations verbindet Ihre bestehenden Systeme und automatisiert wiederkehrende Abläufe – damit Ihr Betrieb schneller reagiert, sauberer arbeitet und mehr Zeit fürs Kerngeschäft gewinnt.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#kontakt">Kostenloses Erstgespräch</a>
+        <a class="btn btn-secondary" href="#beispiel">Beispiel ansehen</a>
+      </div>
+      <div class="trust">
+        <span>Schweizer Fokus</span><span>Individuell umgesetzt</span><span>Verständlich & skalierbar</span>
+      </div>
+    </div>
+
+    <div class="hero-board">
+      <div class="board">
+        <div class="board-top">
+          <div class="board-label"><small>LSZH SYSTEM</small><strong>Anfrage-Automation</strong></div>
+          <div class="live"><i></i> aktiv</div>
+        </div>
+        <div class="flow">
+          <div class="flow-row">
+            <div class="node n1">01</div>
+            <div class="flow-copy"><small>EINGANG</small><strong>Neue Anfrage</strong><span>Formular, E-Mail oder Datenbank</span></div>
+            <span class="badge b1">Neu</span>
+          </div>
+          <div class="connector"></div>
+          <div class="flow-row">
+            <div class="node n2">02</div>
+            <div class="flow-copy"><small>VERARBEITUNG</small><strong>Prüfen & zuordnen</strong><span>Daten strukturiert verarbeiten</span></div>
+            <span class="badge b2">Auto</span>
+          </div>
+          <div class="connector"></div>
+          <div class="flow-row">
+            <div class="node n3">03</div>
+            <div class="flow-copy"><small>AKTION</small><strong>Follow-up auslösen</strong><span>Zum richtigen Zeitpunkt</span></div>
+            <span class="badge b3">Erledigt</span>
+          </div>
+        </div>
+        <div class="result"><div><small>RESULTAT</small><strong>Routine läuft im Hintergrund</strong></div><span>mehr Fokus im Alltag</span></div>
+      </div>
+</div>
+  </div>
+  <div class="hero-scroll-hint"><i></i> Lösungen entdecken <i></i></div>
+</section>
+
+<section class="signal">
+  <div class="container signal-grid">
+    <div><strong>Weniger</strong><span>manuelle Routine</span></div>
+    <div><strong>Schneller</strong><span>auf Kunden reagieren</span></div>
+    <div><strong>Sauberer</strong><span>Daten und Prozesse führen</span></div>
+    <div><strong>Skalierbarer</strong><span>ohne unnötige Komplexität</span></div>
+  </div>
+</section>
+
+<section id="leistungen" class="section section-light">
+  <div class="container">
+    <div class="section-title split">
+      <div><span class="kicker">LEISTUNGEN</span><h2>Automation soll nicht beeindrucken. Sie soll Arbeit abnehmen.</h2></div>
+      <p>Wir starten bei einem konkreten Engpass und bauen genau den Prozess, der Ihr Unternehmen im Alltag spürbar entlastet.</p>
+    </div>
+    <div class="services">
+      <article class="service">
+        <div class="service-top"><span>01</span><span class="pill">Kundenprozesse</span></div>
+        <h3>Anfragen automatisch erfassen</h3>
+        <p>Neue Kundenanfragen werden aufgenommen, strukturiert und in den richtigen Prozess weitergeleitet.</p>
+        <div class="service-list"><span>Formulare & E-Mail</span><span>Lead-Erfassung</span><span>Datenprüfung</span></div>
+      </article>
+      <article class="service">
+        <div class="service-top"><span>02</span><span class="pill">Follow-ups</span></div>
+        <h3>Offerten konsequent nachfassen</h3>
+        <p>Offene Kontakte und Angebote werden zum richtigen Zeitpunkt erinnert und wieder aufgenommen.</p>
+        <div class="service-list"><span>Offerten-Follow-up</span><span>Terminerinnerungen</span><span>Status-Logik</span></div>
+      </article>
+      <article class="service">
+        <div class="service-top"><span>03</span><span class="pill">Administration</span></div>
+        <h3>Dokumente und interne Abläufe vereinfachen</h3>
+        <p>Informationen werden erfasst, verarbeitet und automatisch dort bereitgestellt, wo sie gebraucht werden.</p>
+        <div class="service-list"><span>Dokumentenerfassung</span><span>Interne Meldungen</span><span>Auswertungen</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section usecases-section">
+  <div class="container">
+    <div class="section-title">
+      <span class="kicker">TYPISCHE AUTOMATIONEN</span>
+      <h2>Überall dort, wo sich Arbeit wiederholt, kann Automation ansetzen.</h2>
+      <p>Die Möglichkeiten sind nicht auf eine Branche beschränkt. Entscheidend ist, ob ein Ablauf heute regelmässig Zeit kostet, Informationen mehrfach erfasst werden oder Aufgaben leicht vergessen gehen.</p>
+    </div>
+
+    <div class="usecases-grid">
+      <article class="usecase-card">
+        <div class="usecase-icon uc1">01</div>
+        <h3>Anfragen & Leads</h3>
+        <p>Anfragen automatisch erfassen, kategorisieren, zustellen und den nächsten Schritt auslösen.</p>
+      </article>
+
+      <article class="usecase-card">
+        <div class="usecase-icon uc2">02</div>
+        <h3>Offerten & Follow-ups</h3>
+        <p>Offene Angebote überwachen, Nachfasszeitpunkte erkennen und Follow-ups zuverlässig vorbereiten.</p>
+      </article>
+
+      <article class="usecase-card">
+        <div class="usecase-icon uc3">03</div>
+        <h3>Termine & Erinnerungen</h3>
+        <p>Termine koordinieren, Erinnerungen versenden und interne Aufgaben automatisch anstossen.</p>
+      </article>
+
+      <article class="usecase-card">
+        <div class="usecase-icon uc4">04</div>
+        <h3>Dokumente & Belege</h3>
+        <p>Dokumente erfassen, Informationen auslesen, richtig ablegen und an zuständige Personen weitergeben.</p>
+      </article>
+
+      <article class="usecase-card">
+        <div class="usecase-icon uc5">05</div>
+        <h3>Daten & Auswertungen</h3>
+        <p>Daten aus verschiedenen Quellen zusammenführen und Berichte oder Übersichten automatisch aktualisieren.</p>
+      </article>
+
+      <article class="usecase-card">
+        <div class="usecase-icon uc6">06</div>
+        <h3>Interne Abläufe</h3>
+        <p>Freigaben, Übergaben, Statusänderungen und wiederkehrende Aufgaben sauber miteinander verbinden.</p>
+      </article>
+    </div>
+
+    <div class="micro-cta">
+      <div>
+        <strong>Sie haben einen anderen wiederkehrenden Ablauf?</strong>
+        <p>Sehr wahrscheinlich lässt sich auch dieser prüfen und sinnvoll vereinfachen.</p>
+      </div>
+      <a href="#kontakt" class="btn btn-primary">Ablauf prüfen lassen</a>
+    </div>
+  </div>
+</section>
+
+
+<section id="beispiel" class="section case">
+  <div class="container case-grid">
+    <div class="case-copy">
+      <span class="kicker">PRAXISBEISPIEL</span>
+      <h2>Aus einer offenen Offerte wird ein sauberer Follow-up-Prozess.</h2>
+      <p>Der Betrieb muss nicht mehr täglich Listen prüfen oder daran denken, wann ein Kunde erneut kontaktiert werden sollte. Der nächste Schritt wird automatisch vorbereitet oder ausgelöst.</p>
+    </div>
+    <div class="case-card">
+      <div class="case-head"><div><small>BEISPIEL-WORKFLOW</small><strong>Offerten-Follow-up</strong></div><span>Automatisiert</span></div>
+      <div class="case-flow">
+        <div class="case-step"><span>01</span><strong>Offerte offen</strong><p>Status und Datum werden geprüft.</p></div>
+        <div class="arrow">→</div>
+        <div class="case-step"><span>02</span><strong>Frist erreicht</strong><p>System erkennt den nächsten Schritt.</p></div>
+        <div class="arrow">→</div>
+        <div class="case-step"><span>03</span><strong>Follow-up</strong><p>Nachricht oder Aufgabe wird ausgelöst.</p></div>
+      </div>
+      <div class="case-result"><strong>Keine offenen Chancen im Alltag übersehen.</strong><span>ohne tägliche manuelle Kontrolle</span></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="kmu" class="section industry">
+  <div class="container">
+    <div class="section-title">
+      <span class="kicker">FÜR SCHWEIZER KMU</span>
+      <h2>Gebaut für Unternehmen, in denen täglich viel koordiniert werden muss.</h2>
+      <p>LSZH Automations richtet sich nicht nur an einzelne Branchen, sondern an Schweizer KMU allgemein – überall dort, wo Anfragen, Termine, Dokumente, Aufgaben oder Follow-ups Zeit kosten.</p>
+    </div>
+
+    <div class="industry-list">
+      <article class="industry-card">
+        <div class="industry-num">01</div>
+        <div>
+          <span>DIENSTLEISTUNG & BERATUNG</span>
+          <h3>Anfragen, Kundendaten und Kommunikation strukturieren</h3>
+          <p>Ideal für Unternehmen, die viele Anfragen erhalten und ihre Kommunikation, Follow-ups und internen Abläufe professioneller organisieren möchten.</p>
+        </div>
+      </article>
+
+      <article class="industry-card">
+        <div class="industry-num">02</div>
+        <div>
+          <span>HANDWERK, SERVICE & BETRIEB</span>
+          <h3>Offerten, Aufträge und interne Übergaben besser steuern</h3>
+          <p>Wenn Offerten, Rückmeldungen, Termine oder Zuständigkeiten im Alltag schnell unübersichtlich werden, schafft Automation klare Abläufe.</p>
+        </div>
+      </article>
+
+      <article class="industry-card">
+        <div class="industry-num">03</div>
+        <div>
+          <span>HANDEL, BÜRO & VERWALTUNG</span>
+          <h3>Dokumente, Informationen und Routineaufgaben reduzieren</h3>
+          <p>Für KMU, die Zeit bei Administration, Datenerfassung, Dokumentenverarbeitung und wiederkehrenden Aufgaben sparen möchten.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<section class="section benefit">
+  <div class="container benefit-grid">
+    <div class="benefit-copy">
+      <span class="kicker">WARUM LSZH</span>
+      <h2>Technik im Hintergrund. Klarheit im Vordergrund.</h2>
+      <p>Gute Automation fühlt sich nicht kompliziert an. Sie funktioniert zuverlässig, spart Zeit und fügt sich sauber in den Arbeitsalltag eines KMU ein.</p>
+    </div>
+    <div class="benefit-list">
+      <div class="benefit-item"><span>01</span><div><strong>Bestehende Systeme sinnvoll nutzen</strong><p>Wir verbinden, was bereits funktioniert, statt unnötig alles zu ersetzen.</p></div></div>
+      <div class="benefit-item"><span>02</span><div><strong>Klein starten, professionell erweitern</strong><p>Erst ein klarer Prozess, danach weitere Automationen auf einer stabilen Basis.</p></div></div>
+      <div class="benefit-item"><span>03</span><div><strong>Verständlich statt unnötig technisch</strong><p>Sie wissen, was Ihr System macht und welchen konkreten Nutzen es bringt.</p></div></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section potential-section">
+  <div class="container potential-grid">
+    <div class="potential-copy">
+      <span class="kicker">WO LOHNT SICH AUTOMATION?</span>
+      <h2>Oft erkennt man gute Automationspotenziale an denselben Mustern.</h2>
+      <p>Wenn einer oder mehrere dieser Punkte im Alltag regelmässig vorkommen, lohnt sich eine genauere Analyse.</p>
+    </div>
+
+    <div class="signal-list">
+      <div class="signal-item">
+        <span>01</span>
+        <div><strong>Informationen werden mehrfach übertragen</strong><p>Daten werden aus E-Mails, Formularen oder Dokumenten immer wieder manuell kopiert.</p></div>
+      </div>
+      <div class="signal-item">
+        <span>02</span>
+        <div><strong>Aufgaben hängen vom Erinnern einzelner Personen ab</strong><p>Follow-ups, Rückmeldungen oder Fristen funktionieren nur, wenn jemand aktiv daran denkt.</p></div>
+      </div>
+      <div class="signal-item">
+        <span>03</span>
+        <div><strong>Der gleiche Ablauf wiederholt sich ständig</strong><p>Mehrere Schritte laufen bei jeder Anfrage, jedem Auftrag oder jedem Dokument nahezu identisch ab.</p></div>
+      </div>
+      <div class="signal-item">
+        <span>04</span>
+        <div><strong>Informationen liegen in verschiedenen Systemen</strong><p>Mitarbeitende müssen zwischen E-Mail, Tabellen, Kalendern und anderen Tools hin- und herwechseln.</p></div>
+      </div>
+      <div class="signal-item">
+        <span>05</span>
+        <div><strong>Der Überblick kostet mehr Zeit als die eigentliche Arbeit</strong><p>Statuslisten, Kontrollen oder manuelle Zusammenfassungen müssen laufend gepflegt werden.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ablauf" class="section process">
+  <div class="container">
+    <div class="section-title center"><span class="kicker">ABLAUF</span><h2>Von der Idee zur laufenden Automation.</h2><p>Ein klarer Prozess, ohne unnötige Umwege.</p></div>
+    <div class="process-grid">
+      <article><span class="process-num">01</span><h3>Verstehen</h3><p>Wir analysieren den heutigen Ablauf und identifizieren die grössten Zeitfresser.</p></article>
+      <article><span class="process-num">02</span><h3>Konzipieren</h3><p>Wir definieren eine schlanke Lösung, die genau zum Betrieb passt.</p></article>
+      <article><span class="process-num">03</span><h3>Umsetzen</h3><p>Die Automation wird gebaut, getestet und mit echten Fällen abgestimmt.</p></article>
+      <article><span class="process-num">04</span><h3>Erweitern</h3><p>Wenn die Basis funktioniert, werden weitere Prozesse gezielt ergänzt.</p></article>
+    </div>
+  </div>
+</section>
+
+
+<section class="section faq-section">
+  <div class="container faq-wrap">
+    <div class="section-title center">
+      <span class="kicker">HÄUFIGE FRAGEN</span>
+      <h2>Automation muss nicht kompliziert sein.</h2>
+      <p>Die wichtigsten Fragen, bevor wir gemeinsam einen Prozess anschauen.</p>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Müssen wir unsere bestehenden Programme ersetzen?</span><span>+</span></button>
+        <div class="faq-answer">In vielen Fällen nicht. Unser Ansatz ist zuerst zu prüfen, welche bestehenden Systeme sinnvoll miteinander verbunden und welche Abläufe darauf aufgebaut werden können.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Muss gleich der ganze Betrieb automatisiert werden?</span><span>+</span></button>
+        <div class="faq-answer">Nein. Meist ist es sinnvoller, mit einem klar abgegrenzten Prozess zu starten, diesen sauber zu testen und danach schrittweise zu erweitern.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Ist künstliche Intelligenz immer notwendig?</span><span>+</span></button>
+        <div class="faq-answer">Nein. Viele wertvolle Automationen funktionieren vollständig regelbasiert. KI kommt nur dort zum Einsatz, wo sie für den konkreten Ablauf einen echten Nutzen bringt.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Wie wird mit sensiblen Unternehmensdaten umgegangen?</span><span>+</span></button>
+        <div class="faq-answer">Datenschutz und Zugriffsrechte müssen bereits beim Aufbau berücksichtigt werden. Welche Systeme und Daten verarbeitet werden, wird deshalb vor der Umsetzung gemeinsam geklärt.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Was passiert, wenn sich unser Prozess später ändert?</span><span>+</span></button>
+        <div class="faq-answer">Eine gute Lösung wird so aufgebaut, dass sie nachvollziehbar bleibt und später angepasst oder erweitert werden kann, statt zu einem unübersichtlichen Einzelsystem zu werden.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="kontakt" class="section contact">
+  <div class="container contact-card">
+    <div class="contact-copy">
+      <span class="kicker">PROJEKT BESPRECHEN</span>
+      <h2>Welchen Prozess möchten Sie vereinfachen?</h2>
+      <p>Beschreiben Sie Ihr konkretes Problem und wie der Ablauf heute funktioniert. So können wir Ihre Anfrage bereits vor dem Gespräch gezielt beurteilen.</p>
+      <div class="contact-points"><span>Unverbindlich</span><span>Auf Ihr Problem fokussiert</span><span>Für Schweizer KMU</span></div>
+    </div>
+    <form id="contactForm" class="contact-form">
+      <div class="field-grid">
+        <label>Name<input type="text" name="name" placeholder="Max Muster" required></label>
+        <label>Firma<input type="text" name="company" placeholder="Muster AG" required></label>
+      </div>
+      <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required></label>
+      <label>Was möchten Sie automatisieren oder verbessern?
+        <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
+      </label>
+      <label>Wie läuft dieser Prozess heute ab?
+        <textarea name="current_process" rows="4" placeholder="Zum Beispiel: Anfrage per E-Mail → Daten in Excel eintragen → Offerte erstellen → später manuell nachfassen." required></textarea>
+      </label>
+      <label>Welche Programme oder Systeme sind beteiligt?
+        <textarea name="systems" rows="3" placeholder="Zum Beispiel: Outlook, Excel, Bexio, Abacus, Microsoft 365 ..." required></textarea>
+      </label>
+      <div class="select-row">
+        <label>Was ist das grösste Problem?
+          <select name="main_problem" required>
+            <option value="">Bitte wählen</option>
+            <option>Hoher Zeitaufwand</option>
+            <option>Repetitive Arbeit</option>
+            <option>Fehler</option>
+            <option>Aufgaben werden vergessen</option>
+            <option>Langsame Bearbeitung</option>
+            <option>Fehlende Übersicht</option>
+            <option>Doppelte Dateneingabe</option>
+            <option>Anderes</option>
+          </select>
+        </label>
+        <label>Wie häufig läuft dieser Prozess ab?
+          <select name="frequency" required>
+            <option value="">Bitte wählen</option>
+            <option>Mehrmals täglich</option>
+            <option>Täglich</option>
+            <option>Mehrmals pro Woche</option>
+            <option>Wöchentlich</option>
+            <option>Monatlich</option>
+            <option>Unregelmässig</option>
+          </select>
+        </label>
+      </div>
+      <label>Was wäre für Sie die ideale Lösung? <span class="optional">Optional</span>
+        <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Neue Anfragen automatisch erfassen, bestätigen und dem richtigen Mitarbeiter zuweisen."></textarea>
+      </label>
+      <button class="btn btn-primary full" type="submit">Anfrage senden</button>
+      <p id="formNote" class="form-note">Ihre Angaben werden sicher an LSZH Automations übermittelt.</p>
+    
+    <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+      <label>Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+    </div>
+</form>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container footer-grid">
+    <div>
+      <a class="brand" href="#top">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+          <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#74d8ff"/><stop offset="55%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#8e72ff"/></linearGradient></defs>
+          <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g2)"/><path d="M18 18h9v21h19v8H18V18z" fill="white"/><circle cx="45" cy="20" r="4" fill="white" opacity=".95"/><path d="M41 20H31" stroke="white" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+        </svg>
+        <span class="brand-copy"><strong>LSZH Automations</strong><span>AUTOMATION FÜR SCHWEIZER KMU</span></span>
+      </a>
+      <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
+    </div>
+    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#beispiel">Beispiel</a><a href="#kmu">KMU-Fokus</a><a href="#kontakt">Kontakt</a></div>
+    <div class="footer-meta"><span>© <span id="year"></span> LSZH Automations</span><span>ein Geschäftsbereich der LSZH Invest GmbH</span><span>Schweiz</span></div>
+    <div class="legal-row">
+      <button type="button" data-legal="impressum">Impressum</button>
+      <span>•</span>
+      <button type="button" data-legal="datenschutz">Datenschutz</button>
+    </div>
+  </div>
+</footer>
+
+
+<div class="legal-modal" id="legalModal" aria-hidden="true">
+  <div class="legal-backdrop" data-close-legal></div>
+  <div class="legal-dialog" role="dialog" aria-modal="true" aria-labelledby="legalTitle">
+    <button class="legal-close" type="button" aria-label="Schliessen" data-close-legal>×</button>
+    <div id="legalContent"></div>
+  </div>
+</div>
+
+<script>
+const menuButton=document.querySelector('.menu');
+const mobile=document.querySelector('.mobile');
+menuButton?.addEventListener('click',()=>{const open=mobile.classList.toggle('open');menuButton.setAttribute('aria-expanded',String(open));});
+mobile?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.classList.remove('open');menuButton.setAttribute('aria-expanded','false');}));
+document.getElementById('year').textContent=new Date().getFullYear();
+const form=document.getElementById('contactForm'),note=document.getElementById('formNote');
+
+form?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const button=form.querySelector('button[type="submit"]');
+  const original=button.textContent;
+  button.disabled=true;
+  button.textContent='Wird gesendet …';
+  note.textContent='';
+
+  const payload=Object.fromEntries(new FormData(form).entries());
+  if(payload.website) return;
+  delete payload.website;
+  payload.source='LSZH Automations Website';
+  payload.submitted_at=new Date().toISOString();
+
+  try{
+    const response=await fetch('/api/lead',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+
+    if(!response.ok) throw new Error('HTTP '+response.status);
+
+    form.reset();
+    note.textContent='Vielen Dank. Ihre Anfrage wurde erfolgreich übermittelt.';
+    note.style.color='#9becce';
+  }catch(error){
+    note.textContent='Die Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.';
+    note.style.color='#ffaaa8';
+  }finally{
+    button.disabled=false;
+    button.textContent=original;
+  }
+});
+
+document.querySelectorAll('.faq-question').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const item=button.closest('.faq-item');
+    const wasOpen=item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if(!wasOpen)item.classList.add('open');
+  });
+});
+
+
+const legalModal=document.getElementById('legalModal');
+const legalContent=document.getElementById('legalContent');
+
+const legalTexts={
+  impressum:`
+    <h2>Impressum</h2>
+    <p><strong>LSZH Automations</strong><br>
+    ein Geschäftsbereich der<br>
+    <strong>LSZH Invest GmbH</strong></p>
+
+    <p>
+      Rummelmatt 8<br>
+      5610 Wohlen AG<br>
+      Schweiz
+    </p>
+
+    <h3>Unternehmensangaben</h3>
+    <p>
+      Rechtsform: Gesellschaft mit beschränkter Haftung (GmbH)<br>
+      UID: CHE-369.474.125<br>
+      Handelsregister-Nr.: CH-400.4.454.138-6<br>
+      Handelsregisteramt: Kanton Aargau
+    </p>
+
+    <h3>Kontakt</h3>
+    <p>Für allgemeine Anfragen können Sie das Kontaktformular auf dieser Website verwenden oder uns postalisch unter der oben genannten Adresse kontaktieren.</p>
+
+    <h3>Verantwortlich für den Inhalt</h3>
+    <p>LSZH Invest GmbH</p>
+  `,
+  datenschutz:`
+    <h2>Datenschutzerklärung</h2>
+    <p><strong>Stand: 5. Oktober 2026</strong></p>
+
+    <h3>1. Verantwortlicher</h3>
+    <p>
+      LSZH Invest GmbH<br>
+      handelnd unter der Bezeichnung LSZH Automations<br>
+      Rummelmatt 8<br>
+      5610 Wohlen AG<br>
+      Schweiz
+    </p>
+    <p>Datenschutzanfragen können über das Kontaktformular dieser Website oder postalisch an die oben genannte Adresse gerichtet werden.</p>
+
+    <h3>2. Welche Daten wir über diese Website bearbeiten</h3>
+    <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
+    <p>Wir verwenden diese Angaben ausschliesslich zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit.</p>
+
+    <h3>3. Eingesetzte Dienstleister</h3>
+    <p>Zur technischen Verarbeitung von Anfragen setzen wir insbesondere folgende Kategorien von Dienstleistern ein:</p>
+    <ul>
+      <li><strong>Make</strong> zur technischen Übermittlung und Automatisierung der Formulardaten,</li>
+      <li><strong>Airtable</strong> zur strukturierten Speicherung und Verwaltung von Anfragen und Projektinformationen,</li>
+      <li><strong>Google / Gmail</strong> für interne Benachrichtigungen und geschäftliche Kommunikation.</li>
+    </ul>
+    <p>Diese Anbieter bearbeiten Daten im Rahmen der von uns eingesetzten Dienste und ihrer jeweiligen vertraglichen und datenschutzrechtlichen Regelungen.</p>
+
+    <h3>4. Bekanntgabe ins Ausland</h3>
+    <p>Bei der Nutzung internationaler Cloud- und Kommunikationsdienste können Personendaten auch ausserhalb der Schweiz bearbeitet werden, insbesondere in Staaten der Europäischen Union bzw. des Europäischen Wirtschaftsraums und in den USA. Soweit erforderlich, stützen wir solche Übermittlungen auf einen Angemessenheitsbeschluss oder auf gesetzlich vorgesehene Garantien, insbesondere anerkannte Standarddatenschutzklauseln.</p>
+
+    <h3>5. Aufbewahrung</h3>
+    <p>Wir bewahren Personendaten nur so lange auf, wie dies für die Bearbeitung der Anfrage, eine mögliche Geschäftsbeziehung, vertragliche Pflichten oder gesetzliche Aufbewahrungspflichten erforderlich ist. Nicht mehr benötigte Daten werden gelöscht oder anonymisiert, soweit keine Pflicht oder ein berechtigter Grund zur weiteren Aufbewahrung besteht.</p>
+
+    <h3>6. Datensicherheit</h3>
+    <p>Wir treffen angemessene technische und organisatorische Massnahmen, um Personendaten vor Verlust, unbefugtem Zugriff, Veränderung oder unzulässiger Weitergabe zu schützen. Zugriffe auf eingesetzte Systeme werden soweit möglich auf die für den jeweiligen Zweck erforderlichen Berechtigungen beschränkt.</p>
+
+    <h3>7. Cookies und Tracking</h3>
+    <p>Diese Version der Website verwendet keine Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Das Kontaktformular übermittelt Daten erst, wenn Sie es aktiv absenden.</p>
+
+    <h3>8. Ihre Rechte</h3>
+    <p>Im Rahmen des anwendbaren Schweizer Datenschutzrechts können Sie insbesondere Auskunft über die Bearbeitung Ihrer Personendaten verlangen und, soweit die gesetzlichen Voraussetzungen erfüllt sind, die Berichtigung, Herausgabe oder Löschung Ihrer Daten verlangen bzw. einer bestimmten Bearbeitung widersprechen.</p>
+
+    <h3>9. Kundenprojekte und Auftragsbearbeitung</h3>
+    <p>Wenn LSZH Automations im Rahmen eines Kundenprojekts Personendaten im Auftrag eines Kunden bearbeitet, werden die projektbezogenen Datenschutzpflichten und eingesetzten Unterauftragsbearbeiter bei Bedarf zusätzlich vertraglich geregelt.</p>
+
+    <h3>10. Änderungen</h3>
+    <p>Wir können diese Datenschutzerklärung anpassen, wenn sich unsere Datenbearbeitungen, eingesetzten Dienste oder rechtlichen Anforderungen ändern. Es gilt die jeweils auf dieser Website veröffentlichte Fassung.</p>
+  `
+};
+
+document.querySelectorAll('[data-legal]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    legalContent.innerHTML=legalTexts[button.dataset.legal] || '';
+    legalModal.classList.add('open');
+    legalModal.setAttribute('aria-hidden','false');
+  });
+});
+
+document.querySelectorAll('[data-close-legal]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    legalModal.classList.remove('open');
+    legalModal.setAttribute('aria-hidden','true');
+  });
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && legalModal?.classList.contains('open')){
+    legalModal.classList.remove('open');
+    legalModal.setAttribute('aria-hidden','true');
+  }
+});
+
+</script>
+</body>
+</html>

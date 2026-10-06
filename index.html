@@ -875,10 +875,7 @@ select option{color:#111;background:#fff}
       </label>
       <button class="btn btn-primary full" type="submit">Anfrage senden</button>
       <p id="formNote" class="form-note">Ihre Angaben werden sicher an LSZH Automations übermittelt.</p>
-    
-    <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true">
-      <label>Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
-    </div>
+
 </form>
   </div>
 </section>
@@ -932,8 +929,6 @@ form?.addEventListener('submit',async e=>{
   note.textContent='';
 
   const payload=Object.fromEntries(new FormData(form).entries());
-  if(payload.website) return;
-  delete payload.website;
   payload.source='LSZH Automations Website';
   payload.submitted_at=new Date().toISOString();
 

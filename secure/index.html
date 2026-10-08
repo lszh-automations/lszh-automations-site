@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Sichere Übermittlung | LSZH Automations</title>
+<style>
+:root{--navy:#06101d;--navy2:#0a1728;--blue:#5b8cff;--cyan:#74d8ff;--ink:#0f1726;--muted:#68768a;--soft:#f4f7fb;--line:#dfe7f2;--white:#fff;--green:#43d89e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,var(--navy),var(--navy2));color:var(--white);min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;padding:36px 22px 64px}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:grid;place-items:center;font-weight:800}.brand small{display:block;color:#9fb0c6;font-size:11px;letter-spacing:.08em;margin-top:2px}
+main{margin-top:70px}.kicker{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.13em}.title{font-size:clamp(34px,6vw,58px);line-height:1.02;margin:12px 0 16px}.lead{font-size:18px;line-height:1.6;color:#c6d3e3;max-width:680px}
+.panel{margin-top:34px;padding-top:26px;border-top:1px solid rgba(255,255,255,.16)}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}.meta div{border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:10px}.meta span{display:block;color:#8ea1b9;font-size:12px;margin-bottom:5px}.meta strong{font-size:16px}
+label{display:block;font-size:14px;font-weight:700;margin-bottom:8px}textarea{width:100%;min-height:150px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:#0b192a;color:#fff;padding:16px;font:inherit;resize:vertical;outline:none}textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(91,140,255,.15)}
+button{margin-top:16px;width:100%;border:0;border-radius:12px;padding:14px 18px;background:linear-gradient(135deg,var(--blue),#7a70ff);color:#fff;font:inherit;font-weight:800;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+.hint{margin-top:14px;color:#9fb0c6;font-size:13px;line-height:1.55}.status{margin-top:18px;font-size:14px;min-height:22px}.ok{color:#9becce}.err{color:#ffaaa8}.done{margin-top:30px;padding-top:24px;border-top:1px solid rgba(255,255,255,.16)}.done h2{font-size:28px;margin:0 0 10px}.done p{color:#c6d3e3;line-height:1.6}
+footer{margin-top:64px;color:#788ca5;font-size:12px}.hidden{display:none}
+@media(max-width:620px){.meta{grid-template-columns:1fr}main{margin-top:48px}.wrap{padding:26px 18px 48px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="brand" href="/"><div class="logo">L</div><div><strong>LSZH Automations</strong><small>AUTOMATION FÜR SCHWEIZER KMU</small></div></a>
+<main>
+<div class="kicker">SICHERE ÜBERMITTLUNG</div>
+<h1 class="title">Zugang sicher übermitteln.</h1>
+<p class="lead">Diese Seite ist ausschliesslich für die einmalige Übermittlung eines für die Automation benötigten API-Schlüssels oder technischen Secrets bestimmt.</p>
+
+<section id="loading" class="panel"><p>Transfer wird geprüft …</p></section>
+<section id="formPanel" class="panel hidden">
+  <div class="meta"><div><span>Unternehmen</span><strong id="company">–</strong></div><div><span>System</span><strong id="system">–</strong></div></div>
+  <form id="form">
+    <label for="secret">API-Key / technisches Secret</label>
+    <textarea id="secret" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Hier einfügen" required></textarea>
+    <button id="submit" type="submit">Sicher übermitteln</button>
+    <p class="hint">Bitte übermitteln Sie hier <strong>keine normalen Benutzerpasswörter, Recovery-Codes oder MFA-Codes</strong>. Der Inhalt wird vor der Speicherung verschlüsselt und nach dem einmaligen Abruf durch LSZH Automations gelöscht.</p>
+    <div id="status" class="status"></div>
+  </form>
+</section>
+<section id="done" class="done hidden"><h2>Übermittlung abgeschlossen.</h2><p>Vielen Dank. Das Secret wurde verschlüsselt hinterlegt. Dieser Link kann nicht erneut zur Übermittlung verwendet werden.</p></section>
+<section id="invalid" class="done hidden"><h2>Link nicht verfügbar.</h2><p>Der Link ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte wenden Sie sich an LSZH Automations, wenn Sie einen neuen Transfer-Link benötigen.</p></section>
+</main>
+<footer>LSZH Automations · ein Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG</footer>
+</div>
+<script>
+const token=(location.hash||'').slice(1);
+const $=id=>document.getElementById(id);
+history.replaceState(null,'',location.pathname+location.search);
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(j.error||'request_failed'),{status:r.status});return j}
+async function init(){
+  if(!token){$('loading').classList.add('hidden');$('invalid').classList.remove('hidden');return}
+  try{
+    const j=await post('/api/secure/status',{token});
+    $('company').textContent=j.company||'–';$('system').textContent=j.system||'–';
+    $('loading').classList.add('hidden');$('formPanel').classList.remove('hidden');
+  }catch{$('loading').classList.add('hidden');$('invalid').classList.remove('hidden')}
+}
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();const secret=$('secret').value;const btn=$('submit');if(!secret.trim())return;
+  btn.disabled=true;btn.textContent='Wird sicher übermittelt …';$('status').textContent='';
+  try{await post('/api/secure/submit',{token,secret});$('secret').value='';$('formPanel').classList.add('hidden');$('done').classList.remove('hidden')}
+  catch(err){$('status').textContent=err.status===404?'Der Link ist nicht mehr gültig.':'Die Übermittlung ist gerade nicht möglich. Bitte versuchen Sie es erneut.';$('status').className='status err';btn.disabled=false;btn.textContent='Sicher übermitteln'}
+});
+init();
+</script>
+</body></html>

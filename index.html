@@ -1000,7 +1000,7 @@ const legalTexts={
   `,
   datenschutz:`
     <h2>Datenschutzerklärung</h2>
-    <p><strong>Stand: 5. Oktober 2026</strong></p>
+    <p><strong>Stand: 9. Oktober 2026</strong></p>
 
     <h3>1. Verantwortlicher</h3>
     <p>
@@ -1021,7 +1021,8 @@ const legalTexts={
     <ul>
       <li><strong>Make</strong> zur technischen Übermittlung und Automatisierung der Formulardaten,</li>
       <li><strong>Airtable</strong> zur strukturierten Speicherung und Verwaltung von Anfragen und Projektinformationen,</li>
-      <li><strong>Google / Gmail</strong> für interne Benachrichtigungen und geschäftliche Kommunikation.</li>
+      <li><strong>Google / Gmail</strong> für interne Benachrichtigungen und geschäftliche Kommunikation,</li>
+      <li><strong>Render</strong> für den Betrieb dieser Website und die serverseitige Verarbeitung der Secure-Transfer-Funktion.</li>
     </ul>
     <p>Diese Anbieter bearbeiten Daten im Rahmen der von uns eingesetzten Dienste und ihrer jeweiligen vertraglichen und datenschutzrechtlichen Regelungen.</p>
 
@@ -1037,16 +1038,20 @@ const legalTexts={
     <h3>7. KI-Live-Demos</h3>
     <p>Für die freiwillig nutzbaren KI-Live-Demos werden die von Ihnen eingegebenen Texte bzw. hochgeladenen Testdokumente technisch über Make an einen KI-Dienst von OpenAI übermittelt, damit die gewünschte Analyse erstellt werden kann. LSZH Automations legt diese Inhalte nicht zusätzlich als eigene Website-Datenbank ab; im Rahmen der technischen Verarbeitung können jedoch Ausführungs- oder Dienstprotokolle bei den eingesetzten Anbietern entstehen und gemäss deren Einstellungen bzw. Aufbewahrungsregeln verarbeitet werden. Verwenden Sie in der öffentlichen Demo deshalb keine vertraulichen Informationen, Geschäftsgeheimnisse oder besonders schützenswerten Personendaten.</p>
 
-    <h3>8. Cookies und Tracking</h3>
+    <h3>8. Sichere Übermittlung technischer Zugangsdaten</h3>
+    <p>Für Kundenprojekte kann LSZH Automations einen zeitlich begrenzten Secure-Transfer-Link bereitstellen, über den beispielsweise ein dedizierter API-Schlüssel oder ein anderes technisches Secret übermittelt werden kann. Das eingegebene Secret wird auf dem LSZH-Webserver vor der Speicherung mit einem serverseitig verwahrten Schlüssel verschlüsselt. An Make und Airtable werden nur die verschlüsselte Nutzlast sowie notwendige Metadaten wie Unternehmen, System, Status und Ablaufzeitpunkt übermittelt. Der verwendete Kunden-Link wird nicht im Klartext gespeichert, sondern nur in Form eines kryptografischen Hashwerts.</p>
+    <p>Nach dem einmaligen Abruf durch LSZH Automations wird die verschlüsselte Nutzlast aus der Transfer-Ablage gelöscht; zurück bleiben nur administrative Nachweisdaten zum Transfer. Die Funktion ist nicht für normale Benutzerpasswörter, Recovery-Codes oder MFA-Codes vorgesehen.</p>
+
+    <h3>9. Cookies und Tracking</h3>
     <p>Diese Version der Website verwendet keine Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Das Kontaktformular und die KI-Demos übermitteln Daten erst, wenn Sie die jeweilige Funktion aktiv auslösen.</p>
 
-    <h3>9. Ihre Rechte</h3>
+    <h3>10. Ihre Rechte</h3>
     <p>Im Rahmen des anwendbaren Schweizer Datenschutzrechts können Sie insbesondere Auskunft über die Bearbeitung Ihrer Personendaten verlangen und, soweit die gesetzlichen Voraussetzungen erfüllt sind, die Berichtigung, Herausgabe oder Löschung Ihrer Daten verlangen bzw. einer bestimmten Bearbeitung widersprechen.</p>
 
-    <h3>10. Kundenprojekte und Auftragsbearbeitung</h3>
+    <h3>11. Kundenprojekte und Auftragsbearbeitung</h3>
     <p>Wenn LSZH Automations im Rahmen eines Kundenprojekts Personendaten im Auftrag eines Kunden bearbeitet, werden die projektbezogenen Datenschutzpflichten und eingesetzten Unterauftragsbearbeiter bei Bedarf zusätzlich vertraglich geregelt.</p>
 
-    <h3>11. Änderungen</h3>
+    <h3>12. Änderungen</h3>
     <p>Wir können diese Datenschutzerklärung anpassen, wenn sich unsere Datenbearbeitungen, eingesetzten Dienste oder rechtlichen Anforderungen ändern. Es gilt die jeweils auf dieser Website veröffentlichte Fassung.</p>
   `
 };

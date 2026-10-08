@@ -401,6 +401,9 @@ async function handleSecureAdminCreate(req,res) {
   if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
   if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
   if(secureRateLimited(req,10)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  if(!secureConfigured()) return send(res,503,JSON.stringify({error:'not_configured'}));
+  try { secureTransferKey(); }
+  catch { return send(res,503,JSON.stringify({error:'invalid_encryption_key'})); }
   try {
     const body=await readJson(req);
     const company=String(body.company||'').trim().slice(0,160);
@@ -444,8 +447,17 @@ async function handleSecureAdminCreate(req,res) {
       link:'https://www.lszh-automations.ch/secure/#'+rawToken
     }));
   } catch(e) {
-    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
-    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    const code=String(e?.message||'unknown');
+    // Only log coarse failure categories. Never log customer data, tokens or secret values.
+    console.error('[secure-transfer-create]', /^secure_upstream_\d{3}$/.test(code) ? code : (e?.name==='TimeoutError' ? 'timeout' : 'server_or_network_error'));
+    if(code==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(code==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    const upstream=/^secure_upstream_(\d{3})$/.exec(code);
+    if(upstream) return send(res,502,JSON.stringify({error:'make_gateway_failed',upstream_status:Number(upstream[1])}));
+    if(code==='secure_not_configured') return send(res,503,JSON.stringify({error:'not_configured'}));
+    if(code==='secure_upstream_not_ready') return send(res,502,JSON.stringify({error:'make_invalid_response'}));
+    if(e?.name==='TimeoutError'||e?.name==='AbortError') return send(res,504,JSON.stringify({error:'make_timeout'}));
+    if(code==='fetch failed') return send(res,502,JSON.stringify({error:'make_unreachable'}));
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }

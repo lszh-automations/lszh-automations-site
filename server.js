@@ -12,6 +12,10 @@ const MAX_REQUESTS = 12;
 const AI_MAX_REQUESTS = 8;
 const buckets = new Map();
 const aiBuckets = new Map();
+const secureBuckets = new Map();
+const secureConsumedLocal = new Map();
+const SECURE_SECRET_MAX = 24 * 1024;
+const SECURE_ADMIN_TTL_MS = 20 * 60 * 1000;
 
 const mime = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -33,6 +37,7 @@ function rateLimitedIn(map, req, max) {
 }
 function rateLimited(req) { return rateLimitedIn(buckets, req, MAX_REQUESTS); }
 function aiRateLimited(req) { return rateLimitedIn(aiBuckets, req, AI_MAX_REQUESTS); }
+function secureRateLimited(req, max=8) { return rateLimitedIn(secureBuckets, req, max); }
 
 function sameOrigin(req) {
   const origin = req.headers.origin;
@@ -265,11 +270,329 @@ async function handleAiDocument(req,res){
   }
 }
 
+
+function secureConfigured() {
+  return Boolean(
+    process.env.SECURE_TRANSFER_KEY_B64URL &&
+    process.env.SECURE_ADMIN_AUTH_KEY &&
+    process.env.SECURE_ADMIN_EMAIL &&
+    process.env.MAKE_SECURE_ADMIN_WEBHOOK &&
+    process.env.MAKE_SECURE_PUBLIC_WEBHOOK
+  );
+}
+function secureTransferKey() {
+  const key=Buffer.from(String(process.env.SECURE_TRANSFER_KEY_B64URL||''),'base64url');
+  if(key.length!==32) throw new Error('secure_key_invalid');
+  return key;
+}
+function secureTokenHash(token) {
+  return crypto.createHash('sha256').update(String(token),'utf8').digest('hex');
+}
+function validTransferToken(token) {
+  return typeof token==='string' && token.length>=32 && token.length<=180 && /^[A-Za-z0-9_-]+$/.test(token);
+}
+function validTransferId(id) {
+  return typeof id==='string' && id.length>=8 && id.length<=80 && /^[A-Z0-9_-]+$/i.test(id);
+}
+function encryptSecureValue(value, tokenHash) {
+  const iv=crypto.randomBytes(12);
+  const cipher=crypto.createCipheriv('aes-256-gcm',secureTransferKey(),iv);
+  cipher.setAAD(Buffer.from(String(tokenHash),'utf8'));
+  const ciphertext=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);
+  return {
+    ciphertext:ciphertext.toString('base64url'),
+    iv:iv.toString('base64url'),
+    auth_tag:cipher.getAuthTag().toString('base64url')
+  };
+}
+function decryptSecureValue(payload) {
+  const decipher=crypto.createDecipheriv(
+    'aes-256-gcm',
+    secureTransferKey(),
+    Buffer.from(String(payload.iv||''),'base64url')
+  );
+  decipher.setAAD(Buffer.from(String(payload.token_hash||''),'utf8'));
+  decipher.setAuthTag(Buffer.from(String(payload.auth_tag||''),'base64url'));
+  return Buffer.concat([
+    decipher.update(Buffer.from(String(payload.ciphertext||''),'base64url')),
+    decipher.final()
+  ]).toString('utf8');
+}
+function createSecureAdminToken() {
+  const body=Buffer.from(JSON.stringify({
+    sub:String(process.env.SECURE_ADMIN_EMAIL||'').toLowerCase(),
+    exp:Date.now()+SECURE_ADMIN_TTL_MS,
+    nonce:crypto.randomBytes(12).toString('base64url')
+  })).toString('base64url');
+  const sig=crypto.createHmac('sha256',String(process.env.SECURE_ADMIN_AUTH_KEY||''))
+    .update(body).digest('base64url');
+  return body+'.'+sig;
+}
+function verifySecureAdminToken(token) {
+  try {
+    const parts=String(token||'').split('.');
+    if(parts.length!==2) return false;
+    const expected=crypto.createHmac('sha256',String(process.env.SECURE_ADMIN_AUTH_KEY||''))
+      .update(parts[0]).digest('base64url');
+    if(!safeEqual(parts[1],expected)) return false;
+    const data=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));
+    return data &&
+      String(data.sub||'').toLowerCase()===String(process.env.SECURE_ADMIN_EMAIL||'').toLowerCase() &&
+      Number(data.exp)>Date.now() &&
+      Number(data.exp)<Date.now()+(SECURE_ADMIN_TTL_MS+60*1000);
+  } catch { return false; }
+}
+function secureAdminAuthorized(req) {
+  return verifySecureAdminToken(req.headers['x-lszh-admin-token']);
+}
+function sleep(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
+async function callSecureMake(envName,payload,{expectJson=false,retries=0}={}) {
+  const target=process.env[envName];
+  if(!target) throw new Error('secure_not_configured');
+  let last='';
+  for(let attempt=0;attempt<=retries;attempt++){
+    const r=await fetch(target,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+      signal:AbortSignal.timeout(15000)
+    });
+    last=await r.text();
+    if(!r.ok) throw new Error('secure_upstream_'+r.status);
+    if(!expectJson) {
+      try { return cleanJsonText(last); } catch { return {accepted:true}; }
+    }
+    try { return cleanJsonText(last); } catch {}
+    if(attempt<retries) await sleep(250*(attempt+1));
+  }
+  throw new Error('secure_upstream_not_ready');
+}
+function secureRecords(data) {
+  if(Array.isArray(data?.records)) return data.records;
+  if(Array.isArray(data?.body?.records)) return data.body.records;
+  return [];
+}
+async function secureStatusByHash(tokenHash,retries=2) {
+  const data=await callSecureMake('MAKE_SECURE_PUBLIC_WEBHOOK',
+    {action:'status',token_hash:tokenHash},{expectJson:true,retries});
+  return secureRecords(data)[0] || null;
+}
+function secureField(record,name) {
+  return record?.fields?.[name] ?? record?.cellValuesByFieldId?.[name] ?? null;
+}
+async function handleSecureAdminLogin(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(secureRateLimited(req,3)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  if(!secureConfigured()) return send(res,503,JSON.stringify({error:'not_configured'}));
+  try {
+    const token=createSecureAdminToken();
+    const base='https://www.lszh-automations.ch/secure-admin/#'+token;
+    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{
+      action:'login_email',
+      email:String(process.env.SECURE_ADMIN_EMAIL),
+      link:base
+    });
+    return send(res,200,JSON.stringify({ok:true}));
+  } catch {
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureAdminCreate(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
+  if(secureRateLimited(req,10)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try {
+    const body=await readJson(req);
+    const company=String(body.company||'').trim().slice(0,160);
+    const system=String(body.system||'').trim().slice(0,120);
+    const email=String(body.email||'').trim().slice(0,180);
+    const note=String(body.note||'').trim().slice(0,1200);
+    const ttl=Math.min(72,Math.max(1,Number(body.ttl_hours)||24));
+    if(!company || !system || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return send(res,400,JSON.stringify({error:'invalid_fields'}));
+
+    const rawToken=crypto.randomBytes(32).toString('base64url');
+    const tokenHash=secureTokenHash(rawToken);
+    const transferId='ST-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
+    const expiresAt=new Date(Date.now()+ttl*60*60*1000).toISOString();
+
+    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{
+      action:'create',
+      transfer_id:transferId,
+      company,system,email,
+      token_hash:tokenHash,
+      expires_at:expiresAt,
+      note
+    });
+
+    // The Make webhook may acknowledge before its Airtable write is visible.
+    // A short read-only poll makes the generated link less likely to be opened too early.
+    let ready=false;
+    for(let i=0;i<4;i++){
+      try {
+        const r=await secureStatusByHash(tokenHash,1);
+        if(r){ ready=true; break; }
+      } catch {}
+      await sleep(250*(i+1));
+    }
+
+    return send(res,200,JSON.stringify({
+      ok:true,
+      transfer_id:transferId,
+      expires_at:expiresAt,
+      ready,
+      link:'https://www.lszh-automations.ch/secure/#'+rawToken
+    }));
+  } catch(e) {
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureAdminList(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
+  try {
+    const data=await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{action:'list'},{expectJson:true,retries:3});
+    const records=secureRecords(data).map(r=>{
+      const f=r.fields||{};
+      const expires=f['Läuft ab']||null;
+      let status=f.Status||'';
+      if(status==='Offen' && expires && new Date(expires).getTime()<=Date.now()) status='Abgelaufen';
+      return {
+        transfer_id:f['Transfer-ID']||'',
+        company:f.Firma||'',
+        system:f.System||'',
+        email:f['E-Mail']||'',
+        status,
+        expires_at:expires,
+        created_at:f['Erstellt am']||null,
+        submitted_at:f['Übermittelt am']||null,
+        retrieved_at:f['Abgerufen am']||null,
+        note:f.Hinweis||''
+      };
+    });
+    return send(res,200,JSON.stringify({ok:true,records}));
+  } catch {
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureAdminRetrieve(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
+  if(secureRateLimited(req,10)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try {
+    const body=await readJson(req);
+    const transferId=String(body.transfer_id||'').trim();
+    if(!validTransferId(transferId)) return send(res,400,JSON.stringify({error:'invalid_transfer'}));
+    const localUntil=secureConsumedLocal.get(transferId)||0;
+    if(localUntil>Date.now()) return send(res,410,JSON.stringify({error:'already_retrieved'}));
+
+    const data=await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',
+      {action:'retrieve',transfer_id:transferId},{expectJson:true,retries:3});
+    if(!data?.ciphertext || !data?.iv || !data?.auth_tag || !data?.token_hash)
+      return send(res,404,JSON.stringify({error:'not_available'}));
+
+    const secret=decryptSecureValue(data);
+    secureConsumedLocal.set(transferId,Date.now()+15*60*1000);
+
+    // Delete the encrypted payload immediately after a successful decrypt.
+    // This call carries metadata only; plaintext never leaves this server.
+    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{action:'consume',transfer_id:transferId});
+
+    return send(res,200,JSON.stringify({ok:true,transfer_id:transferId,secret}));
+  } catch(e) {
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureAdminRevoke(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
+  try {
+    const body=await readJson(req);
+    const transferId=String(body.transfer_id||'').trim();
+    if(!validTransferId(transferId)) return send(res,400,JSON.stringify({error:'invalid_transfer'}));
+    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{action:'revoke',transfer_id:transferId});
+    return send(res,200,JSON.stringify({ok:true}));
+  } catch {
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureStatus(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(secureRateLimited(req,12)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try {
+    const body=await readJson(req);
+    const token=String(body.token||'');
+    if(!validTransferToken(token)) return send(res,404,JSON.stringify({error:'invalid_or_expired'}));
+    const record=await secureStatusByHash(secureTokenHash(token),3);
+    if(!record) return send(res,404,JSON.stringify({error:'invalid_or_expired'}));
+    const f=record.fields||{};
+    return send(res,200,JSON.stringify({
+      ok:true,
+      transfer_id:f['Transfer-ID']||'',
+      company:f.Firma||'',
+      system:f.System||'',
+      expires_at:f['Läuft ab']||null
+    }));
+  } catch {
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+async function handleSecureSubmit(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(secureRateLimited(req,6)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try {
+    const body=await readJson(req,SECURE_SECRET_MAX+8192);
+    const token=String(body.token||'');
+    let secret=String(body.secret||'');
+    if(!validTransferToken(token)) return send(res,404,JSON.stringify({error:'invalid_or_expired'}));
+    if(!secret || Buffer.byteLength(secret,'utf8')>SECURE_SECRET_MAX)
+      return send(res,400,JSON.stringify({error:'invalid_secret'}));
+
+    const tokenHash=secureTokenHash(token);
+    const record=await secureStatusByHash(tokenHash,3);
+    if(!record) return send(res,404,JSON.stringify({error:'invalid_or_expired'}));
+
+    const encrypted=encryptSecureValue(secret,tokenHash);
+    secret='';
+    body.secret='';
+
+    await callSecureMake('MAKE_SECURE_PUBLIC_WEBHOOK',{
+      action:'submit',
+      token_hash:tokenHash,
+      ciphertext:encrypted.ciphertext,
+      iv:encrypted.iv,
+      auth_tag:encrypted.auth_tag,
+      submitted_at:new Date().toISOString()
+    });
+
+    return send(res,200,JSON.stringify({ok:true}));
+  } catch(e) {
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+
 function staticFile(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
+  if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
+  if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
+  if (pathname.startsWith('/secure/')) {
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
+  if (pathname.startsWith('/secure-admin/')) {
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
   let file = path.normalize(path.join(ROOT, pathname));
   if (!file.startsWith(ROOT)) return send(res,403,'Forbidden','text/plain');
   fs.stat(file, (err, st) => {
@@ -299,6 +622,13 @@ const server=http.createServer(async (req,res)=>{
   if (req.method==='POST' && pathname==='/api/onboarding') return proxy(req,res,'MAKE_ONBOARDING_WEBHOOK');
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/submit') return handleSecureSubmit(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/admin/request-login') return handleSecureAdminLogin(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/admin/create') return handleSecureAdminCreate(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/admin/list') return handleSecureAdminList(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/admin/retrieve') return handleSecureAdminRetrieve(req,res);
+  if (req.method==='POST' && pathname==='/api/secure/admin/revoke') return handleSecureAdminRevoke(req,res);
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);
   return send(res,405,JSON.stringify({error:'method_not_allowed'}));
 });

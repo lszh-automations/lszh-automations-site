@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Secure Transfer Admin | LSZH Automations</title>
+<style>
+:root{--navy:#06101d;--navy2:#0a1728;--blue:#5b8cff;--cyan:#74d8ff;--ink:#0f1726;--muted:#68768a;--soft:#f4f7fb;--line:#dfe7f2;--white:#fff;--green:#43d89e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:var(--soft);min-height:100vh}.top{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:28px 24px}.topin{max-width:1080px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:18px}.brand{font-weight:800}.brand small{display:block;color:#9fb0c6;font-weight:500;margin-top:3px}
+.wrap{max-width:1080px;margin:0 auto;padding:42px 24px 70px}.hero h1{font-size:42px;margin:0 0 10px}.hero p{color:var(--muted);font-size:17px;line-height:1.6;max-width:740px}
+.section{margin-top:42px;border-top:1px solid var(--line);padding-top:28px}.section h2{font-size:23px;margin:0 0 18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.full{grid-column:1/-1}label{display:block;font-size:13px;font-weight:800;margin-bottom:7px}input,textarea,select{width:100%;border:1px solid #cad5e3;border-radius:10px;background:#fff;padding:12px 13px;font:inherit;outline:none}input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(91,140,255,.12)}textarea{min-height:90px;resize:vertical}
+button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--navy);color:#fff}.primary{background:linear-gradient(135deg,var(--blue),#796fff)}.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.danger{background:#fff;color:#a33;border:1px solid #efcaca}.actions{display:flex;gap:9px;flex-wrap:wrap}
+.result{margin-top:16px;padding:15px 0;border-top:1px solid var(--line)}.linkrow{display:flex;gap:10px}.linkrow input{font-family:ui-monospace,monospace}.login{text-align:center;max-width:560px;margin:90px auto}.login h1{font-size:42px}.login p{color:var(--muted);line-height:1.6}.status{margin-top:12px;font-size:13px}.ok{color:#177a51}.err{color:#a33}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}th{color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}.pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#eef2f7;font-weight:700}.secretbox{margin-top:14px;padding:18px;background:var(--navy);color:#fff;border-radius:12px}.secretbox pre{white-space:pre-wrap;word-break:break-all;margin:12px 0;font-size:14px}.hidden{display:none}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.tablewrap{overflow-x:auto}.hero h1,.login h1{font-size:34px}}
+</style>
+</head>
+<body>
+<div class="top"><div class="topin"><div class="brand">LSZH Automations<small>Secure Transfer Admin</small></div><button id="logout" class="ghost hidden">Abmelden</button></div></div>
+<div class="wrap">
+<section id="login" class="login hidden"><h1>Sicherer Admin-Zugang</h1><p>Der interne Bereich ist nicht öffentlich zugänglich. Fordere einen kurz gültigen Login-Link an deine LSZH-E-Mail-Adresse an.</p><button id="requestLogin" class="primary">Login-Link per E-Mail senden</button><div id="loginStatus" class="status"></div></section>
+<main id="app" class="hidden">
+<div class="hero"><h1>Secure Transfers</h1><p>Erzeuge einmalige Kundenlinks, überwache den Status und rufe ein übermitteltes Secret genau einmal ab. Klartext-Secrets werden nicht in Airtable gespeichert.</p></div>
+<section class="section"><h2>Neuen Transfer erstellen</h2>
+<form id="createForm"><div class="grid">
+<div><label>Firma</label><input name="company" required placeholder="Muster AG"></div>
+<div><label>System</label><input name="system" required placeholder="Bexio"></div>
+<div><label>Kunden-E-Mail</label><input name="email" type="email" required placeholder="name@firma.ch"></div>
+<div><label>Gültigkeit</label><select name="ttl_hours"><option value="24">24 Stunden</option><option value="12">12 Stunden</option><option value="48">48 Stunden</option><option value="72">72 Stunden</option></select></div>
+<div class="full"><label>Hinweis intern</label><textarea name="note" placeholder="z. B. API-Key für Rechnungszugriff"></textarea></div>
+</div><div class="actions" style="margin-top:16px"><button class="primary" type="submit">Sicheren Link erzeugen</button></div></form>
+<div id="createResult" class="result hidden"><label>Kundenlink</label><div class="linkrow"><input id="createdLink" readonly><button id="copyLink" type="button">Kopieren</button></div><div id="createMeta" class="status ok"></div></div>
+</section>
+<section class="section"><div style="display:flex;justify-content:space-between;align-items:center;gap:14px"><h2>Transfers</h2><button id="refresh" class="ghost">Aktualisieren</button></div>
+<div class="tablewrap"><table><thead><tr><th>Firma / System</th><th>Status</th><th>Ablauf</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div id="listStatus" class="status"></div>
+</section>
+</main>
+</div>
+<script>
+const $=id=>document.getElementById(id);let adminToken='';
+const hash=(location.hash||'').slice(1);if(hash){sessionStorage.setItem('lszh_secure_admin',hash);history.replaceState(null,'',location.pathname)}
+adminToken=sessionStorage.getItem('lszh_secure_admin')||'';
+async function post(url,body,auth=true){const headers={'Content-Type':'application/json'};if(auth&&adminToken)headers['X-LSZH-Admin-Token']=adminToken;const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body||{})});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(j.error||'request_failed'),{status:r.status});return j}
+function showLogin(){ $('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden') }
+function showApp(){ $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');loadList() }
+$('requestLogin').onclick=async()=>{const b=$('requestLogin');b.disabled=true;b.textContent='Wird gesendet …';try{await post('/api/secure/admin/request-login',{},false);$('loginStatus').textContent='Login-Link wurde an deine LSZH-Adresse gesendet.';$('loginStatus').className='status ok'}catch{$('loginStatus').textContent='Login-Link konnte nicht gesendet werden.';$('loginStatus').className='status err'}finally{b.disabled=false;b.textContent='Login-Link per E-Mail senden'}};
+$('logout').onclick=()=>{sessionStorage.removeItem('lszh_secure_admin');adminToken='';showLogin()};
+$('createForm').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const body=Object.fromEntries(fd.entries());try{const j=await post('/api/secure/admin/create',body);$('createdLink').value=j.link;$('createMeta').textContent='Transfer '+j.transfer_id+' · gültig bis '+new Date(j.expires_at).toLocaleString('de-CH');$('createResult').classList.remove('hidden');e.currentTarget.reset();loadList()}catch(err){if(err.status===401){showLogin();return}alert('Transfer konnte nicht erstellt werden.')}});
+$('copyLink').onclick=async()=>{await navigator.clipboard.writeText($('createdLink').value);$('copyLink').textContent='Kopiert';setTimeout(()=>$('copyLink').textContent='Kopieren',1200)};
+$('refresh').onclick=loadList;
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function loadList(){try{const j=await post('/api/secure/admin/list',{});const rows=j.records||[];$('rows').innerHTML=rows.map(r=>`<tr><td><strong>${esc(r.company)}</strong><br>${esc(r.system)}<br><span style="color:#68768a">${esc(r.transfer_id)}</span></td><td><span class="pill">${esc(r.status)}</span></td><td>${r.expires_at?new Date(r.expires_at).toLocaleString('de-CH'):'–'}</td><td><div class="actions">${r.status==='Übermittelt'?'<button data-get="'+esc(r.transfer_id)+'">Einmal abrufen</button>':''}${r.status==='Offen'||r.status==='Übermittelt'?'<button class="danger" data-revoke="'+esc(r.transfer_id)+'">Widerrufen</button>':''}</div></td></tr>`).join('')||'<tr><td colspan="4">Noch keine Transfers.</td></tr>';$('listStatus').textContent='';bindRows()}catch(err){if(err.status===401){sessionStorage.removeItem('lszh_secure_admin');adminToken='';showLogin()}else $('listStatus').textContent='Liste konnte nicht geladen werden.'}}
+function bindRows(){document.querySelectorAll('[data-get]').forEach(b=>b.onclick=()=>retrieve(b.dataset.get));document.querySelectorAll('[data-revoke]').forEach(b=>b.onclick=()=>revoke(b.dataset.revoke))}
+async function retrieve(id){if(!confirm('Das Secret wird jetzt genau einmal angezeigt und danach aus dem Speicher gelöscht. Fortfahren?'))return;try{const j=await post('/api/secure/admin/retrieve',{transfer_id:id});const box=document.createElement('div');box.className='secretbox';box.innerHTML='<strong>Einmaliger Abruf · '+esc(id)+'</strong><pre>'+esc(j.secret)+'</pre><button type="button">Secret kopieren</button>';box.querySelector('button').onclick=async()=>{await navigator.clipboard.writeText(j.secret);box.querySelector('button').textContent='Kopiert'};$('rows').closest('.tablewrap').after(box);loadList()}catch(err){alert(err.status===410?'Dieses Secret wurde bereits abgerufen.':'Secret ist nicht verfügbar.');loadList()}}
+async function revoke(id){if(!confirm('Transfer wirklich widerrufen? Ein eventuell gespeichertes verschlüsseltes Secret wird gelöscht.'))return;try{await post('/api/secure/admin/revoke',{transfer_id:id});loadList()}catch{alert('Widerruf nicht möglich.')}}
+if(adminToken){post('/api/secure/admin/list',{}).then(showApp).catch(showLogin)}else showLogin();
+</script>
+</body></html>

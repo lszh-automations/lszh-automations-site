@@ -275,6 +275,7 @@ async function handleAiDocument(req,res){
 function secureConfigured() {
   return Boolean(
     process.env.SECURE_TRANSFER_KEY_B64URL &&
+    process.env.SECURE_MAKE_GATEWAY_AUTH &&
     process.env.SECURE_ADMIN_AUTH_KEY &&
     process.env.SECURE_ADMIN_EMAIL &&
     process.env.MAKE_SECURE_ADMIN_WEBHOOK &&
@@ -373,6 +374,14 @@ async function callSecureMake(envName,payload,{expectJson=false,retries=0}={}) {
   }
   throw new Error('secure_upstream_not_ready');
 }
+// A plain 200/Accepted response is not proof of execution or data persistence.
+async function confirmedSecureWrite(envName, payload) {
+  const response=await callSecureMake(envName,payload,{expectJson:true});
+  if(response?.ok!==true ||
+     (payload.transfer_id && response.transfer_id!==payload.transfer_id))
+    throw new Error('secure_write_not_confirmed');
+  return response;
+}
 function secureRecords(data) {
   if(Array.isArray(data?.records)) return data.records;
   if(Array.isArray(data?.body?.records)) return data.body.records;
@@ -393,7 +402,7 @@ async function handleSecureAdminLogin(req,res) {
   try {
     const token=createSecureAdminToken();
     const base='https://www.lszh-automations.ch/secure-admin/#'+token;
-    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{
+    await confirmedSecureWrite('MAKE_SECURE_ADMIN_WEBHOOK',{
       action:'login_email',
       email:String(process.env.SECURE_ADMIN_EMAIL),
       link:base
@@ -425,7 +434,7 @@ async function handleSecureAdminCreate(req,res) {
     const transferId='ST-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
     const expiresAt=new Date(Date.now()+ttl*60*60*1000).toISOString();
 
-    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{
+    await confirmedSecureWrite('MAKE_SECURE_ADMIN_WEBHOOK',{
       action:'create',
       transfer_id:transferId,
       company,system,email,
@@ -545,7 +554,7 @@ async function handleSecureAdminRevoke(req,res) {
     const body=await readJson(req);
     const transferId=String(body.transfer_id||'').trim();
     if(!validTransferId(transferId)) return send(res,400,JSON.stringify({error:'invalid_transfer'}));
-    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{action:'revoke',transfer_id:transferId});
+    await confirmedSecureWrite('MAKE_SECURE_ADMIN_WEBHOOK',{action:'revoke',transfer_id:transferId});
     return send(res,200,JSON.stringify({ok:true}));
   } catch {
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
@@ -591,7 +600,7 @@ async function handleSecureSubmit(req,res) {
     secret='';
     body.secret='';
 
-    await callSecureMake('MAKE_SECURE_PUBLIC_WEBHOOK',{
+    await confirmedSecureWrite('MAKE_SECURE_PUBLIC_WEBHOOK',{
       action:'submit',
       token_hash:tokenHash,
       ciphertext:encrypted.ciphertext,

@@ -87,7 +87,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     <p class="intro">Bitte ergänzen Sie die folgenden Angaben zu Ihrem Projekt. Wir fragen nur Informationen ab, die wir für die technische Umsetzung, Tests und Freigabe benötigen.</p>
 
     <div class="notice">
-      <strong>Wichtig:</strong> Bitte tragen Sie hier keine Passwörter, API-Schlüssel, Recovery-Codes oder andere geheime Zugangsdaten ein. Notwendige Verbindungen richten wir später über sichere Freigaben bzw. OAuth gemeinsam ein.
+      <strong>Wichtig:</strong> Bitte tragen Sie hier keine Passwörter, API-Schlüssel, Recovery-Codes oder andere geheime Zugangsdaten ein. Für erforderliche Verbindungen nutzen wir bevorzugt eine direkte Freigabe oder OAuth. Falls später eine getrennte Übermittlung nötig ist, stellen wir nach Prüfung des Projekts einen gesonderten, zeitlich begrenzten Link zur Verfügung.
     </div>
 
     <form id="onboardingForm" data-make-webhook="/api/onboarding">
@@ -183,7 +183,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
         <label>Welche Systeme oder Konten müssen voraussichtlich verbunden werden?
           <textarea name="connections" placeholder="z. B. Outlook-Postfach, ERP, Google Drive ..."></textarea>
-          <span class="help">Keine Passwörter oder Schlüssel eingeben.</span>
+          <span class="help">Bitte nur Systemnamen nennen. Vertrauliche Zugangsdaten werden nicht in diesem Formular erfasst.</span>
         </label>
       </div>
 
@@ -275,7 +275,7 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     if (!response.ok) throw new Error('HTTP ' + response.status);
 
     form.reset();
-    status.textContent = 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt.';
+    status.textContent = 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
     status.style.color = '#16794b';
   } catch (err) {
     status.textContent = 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';

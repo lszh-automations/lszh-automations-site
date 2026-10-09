@@ -352,9 +352,14 @@ async function callSecureMake(envName,payload,{expectJson=false,retries=0}={}) {
   if(!target) throw new Error('secure_not_configured');
   let last='';
   for(let attempt=0;attempt<=retries;attempt++){
+    const makeHeaders={'Content-Type':'application/json'};
+    const webhookKey=String(process.env.SECURE_MAKE_GATEWAY_AUTH||'');
+    // Make validates this header when API Key authentication is enabled on its webhook.
+    // Never include the API key in the payload, source repository or application logs.
+    if(webhookKey) makeHeaders['x-make-apikey']=webhookKey;
     const r=await fetch(target,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:makeHeaders,
       body:JSON.stringify(payload),
       signal:AbortSignal.timeout(15000)
     });

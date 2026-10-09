@@ -14,6 +14,7 @@ const buckets = new Map();
 const aiBuckets = new Map();
 const secureBuckets = new Map();
 const secureConsumedLocal = new Map();
+const secureRetrieving = new Set();
 const SECURE_SECRET_MAX = 24 * 1024;
 const SECURE_ADMIN_TTL_MS = 20 * 60 * 1000;
 
@@ -493,28 +494,42 @@ async function handleSecureAdminRetrieve(req,res) {
   if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
   if(!secureAdminAuthorized(req)) return send(res,401,JSON.stringify({error:'unauthorized'}));
   if(secureRateLimited(req,10)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  let transferId='';
   try {
     const body=await readJson(req);
-    const transferId=String(body.transfer_id||'').trim();
+    transferId=String(body.transfer_id||'').trim();
     if(!validTransferId(transferId)) return send(res,400,JSON.stringify({error:'invalid_transfer'}));
     const localUntil=secureConsumedLocal.get(transferId)||0;
     if(localUntil>Date.now()) return send(res,410,JSON.stringify({error:'already_retrieved'}));
+    if(localUntil) secureConsumedLocal.delete(transferId);
+    // Prevent two concurrent retrievals on this single-instance web service.
+    if(secureRetrieving.has(transferId))
+      return send(res,409,JSON.stringify({error:'retrieval_in_progress'}));
+    secureRetrieving.add(transferId);
+    try {
+      const data=await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',
+        {action:'retrieve',transfer_id:transferId},{expectJson:true,retries:3});
+      if(!data?.ciphertext || !data?.iv || !data?.auth_tag || !data?.token_hash)
+        return send(res,404,JSON.stringify({error:'not_available'}));
 
-    const data=await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',
-      {action:'retrieve',transfer_id:transferId},{expectJson:true,retries:3});
-    if(!data?.ciphertext || !data?.iv || !data?.auth_tag || !data?.token_hash)
-      return send(res,404,JSON.stringify({error:'not_available'}));
-
-    const secret=decryptSecureValue(data);
-    secureConsumedLocal.set(transferId,Date.now()+15*60*1000);
-
-    // Delete the encrypted payload immediately after a successful decrypt.
-    // This call carries metadata only; plaintext never leaves this server.
-    await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',{action:'consume',transfer_id:transferId});
-
-    return send(res,200,JSON.stringify({ok:true,transfer_id:transferId,secret}));
+      // Decrypt before consuming: invalid or changed encryption keys must not destroy data.
+      const secret=decryptSecureValue(data);
+      // An explicit, matching acknowledgement is required; a generic Make 200 is not enough.
+      const consumed=await callSecureMake('MAKE_SECURE_ADMIN_WEBHOOK',
+        {action:'consume',transfer_id:transferId},{expectJson:true});
+      if(consumed?.ok!==true || consumed?.transfer_id!==transferId)
+        throw new Error('secure_consume_not_confirmed');
+      secureConsumedLocal.set(transferId,Date.now()+15*60*1000);
+      return send(res,200,JSON.stringify({ok:true,transfer_id:transferId,secret}));
+    } finally {
+      secureRetrieving.delete(transferId);
+    }
   } catch(e) {
-    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    const code=String(e?.message||'unknown');
+    // Never log the token or the plaintext secret.
+    console.error('[secure-transfer-retrieve]', code==='secure_consume_not_confirmed' ? code : 'retrieve_failed');
+    if(code==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(code==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }

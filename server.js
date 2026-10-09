@@ -28,8 +28,8 @@ function clientIp(req) {
   const xf = req.headers['x-forwarded-for'];
   return (Array.isArray(xf) ? xf[0] : (xf || '')).split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
 }
-function rateLimitedIn(map, req, max) {
-  const now = Date.now(), ip = clientIp(req);
+function rateLimitedIn(map, req, max, namespace='') {
+  const now = Date.now(), ip = namespace+'|'+clientIp(req);
   const b = map.get(ip);
   if (!b || now - b.start > WINDOW_MS) { map.set(ip, {start: now, count: 1}); return false; }
   b.count += 1;
@@ -37,7 +37,7 @@ function rateLimitedIn(map, req, max) {
 }
 function rateLimited(req) { return rateLimitedIn(buckets, req, MAX_REQUESTS); }
 function aiRateLimited(req) { return rateLimitedIn(aiBuckets, req, AI_MAX_REQUESTS); }
-function secureRateLimited(req, max=8) { return rateLimitedIn(secureBuckets, req, max); }
+function secureRateLimited(req, max=8) { return rateLimitedIn(secureBuckets, req, max, String(req.url||'').split('?')[0]); }
 
 function sameOrigin(req) {
   const origin = req.headers.origin;

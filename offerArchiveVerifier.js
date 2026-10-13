@@ -25,8 +25,11 @@ function decodeCredentials(encoded){
 module.exports=function createOfferArchiveVerifier(options={}){
   const fetcher=options.fetcher||fetch;
   let cached=null;
+  let pending=null;
   async function accessToken(){
     if(cached && cached.expires>Date.now()+60000)return cached.token;
+    if(pending)return pending;
+    pending=(async()=>{
     const creds=decodeCredentials(process.env.OFFER_DRIVE_SA_B64||'');
     const now=Math.floor(Date.now()/1000);
     const header=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT'})).toString('base64url');
@@ -49,6 +52,8 @@ module.exports=function createOfferArchiveVerifier(options={}){
     if(!v.access_token||!Number.isFinite(Number(v.expires_in)))throw Error('archive_auth_invalid');
     cached={token:v.access_token,expires:Date.now()+Math.min(3300,Number(v.expires_in))*1000};
     return cached.token;
+    })();
+    try {return await pending;} finally {pending=null;}
   }
   async function driveGet(id,query){
     if(!ID_RE.test(String(id||'')))throw Error('archive_id_invalid');

@@ -63,8 +63,8 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 <div class="data"><span>Gültig bis</span><strong id="validUntil"></strong></div>
 </div>
 <h2>1. Dokumente herunterladen und prüfen</h2>
-<a id="quotePdf" class="doc" target="_blank" rel="noopener noreferrer" download><span><strong>Offerte als PDF</strong><small>Leistungsumfang, Preise und Zahlungsmodell</small></span><i>↗</i></a>
-<a id="termsPdf" class="doc" target="_blank" rel="noopener noreferrer" download><span><strong>Projektbedingungen als PDF</strong><small id="termsVersion"></small></span><i>↗</i></a>
+<a id="quotePdf" class="doc" href="#" download><span><strong>Offerte als PDF</strong><small>Leistungsumfang, Preise und Zahlungsmodell</small></span><i>↗</i></a>
+<a id="termsPdf" class="doc" href="#" download><span><strong>Projektbedingungen als PDF</strong><small id="termsVersion"></small></span><i>↗</i></a>
 <h2>2. Wer nimmt die Offerte an?</h2>
 <form id="acceptForm">
 <label class="field" for="person">Vor- und Nachname</label>
@@ -102,7 +102,6 @@ history.replaceState(null,'',location.pathname);
 function setMessage(value,kind){message.textContent=value;message.className='banner'+(kind?' '+kind:'');message.classList.remove('hidden');}
 function money(value){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(Number(value)||0);}
 function txt(id,value){document.getElementById(id).textContent=String(value??'');}
-function safeLink(value){try{const url=new URL(value);return url.protocol==='https:'?url.href:null;}catch{return null;}}
 function showOffer(o){
 current=o;
 txt('number',o.number);txt('company',o.company);txt('service',o.service);
@@ -111,12 +110,44 @@ txt('payment',o.payment_model);
 const date=String(o.valid_until||'').split('-');
 txt('validUntil',date.length===3?date[2]+'.'+date[1]+'.'+date[0]:o.valid_until);
 txt('termsVersion','Vertragsversion '+o.terms_version);
-const q=safeLink(o.quote_pdf),t=safeLink(o.terms_pdf);
-if(!q||!t){setMessage('Die PDF-Dokumente sind derzeit nicht verfügbar. Bitte kontaktieren Sie uns.','error');return;}
-document.getElementById('quotePdf').href=q;
-document.getElementById('termsPdf').href=t;
 review.classList.remove('hidden');
 message.classList.add('hidden');
+}
+async function downloadVerifiedPdf(which){
+  if(demo){
+    setMessage('Dies ist eine Designvorschau. Es gibt keine echten Vertragsdokumente.','');
+    return;
+  }
+  if(!current || !/^[A-Za-z0-9_-]{32,80}$/.test(code))return;
+  const link=document.getElementById(which==='quote'?'quotePdf':'termsPdf');
+  link.setAttribute('aria-busy','true');
+  try{
+    const r=await fetch('/api/offer/document',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,which}),cache:'no-store',credentials:'same-origin'
+    });
+    if(!r.ok){
+      let payload={};try{payload=await r.json();}catch{}
+      throw new Error(payload.error||'archive_unavailable');
+    }
+    const blob=await r.blob();
+    if(blob.type!=='application/pdf'||blob.size<8)throw new Error('archive_unavailable');
+    const objectUrl=URL.createObjectURL(blob);
+    const name=(which==='quote'?'LSZH_Offerte_'+current.number:
+      'LSZH_Projektbedingungen_'+current.terms_version).replace(/[^A-Za-z0-9_.-]/g,'_');
+    const anchor=document.createElement('a');
+    anchor.href=objectUrl;anchor.download=name+'.pdf';
+    document.body.appendChild(anchor);
+    anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+  }catch(error){
+    setMessage(errors[error.message]||errors.archive_unavailable,'error');
+  }finally{link.removeAttribute('aria-busy');}
+}
+for(const [id,which] of [['quotePdf','quote'],['termsPdf','terms']]){
+  document.getElementById(id).addEventListener('click',e=>{
+    e.preventDefault();downloadVerifiedPdf(which);
+  });
 }
 async function request(path,payload){
 const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin'});
@@ -129,6 +160,8 @@ not_available:'Die Online-Annahme ist noch nicht freigeschaltet. Sie können uns
 invalid_or_expired:'Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte fordern Sie bei uns einen neuen Link an.',
 already_accepted_or_expired:'Diese Offerte kann nicht mehr angenommen werden. Möglicherweise ist sie bereits angenommen oder abgelaufen.',
 document_changed:'Die Dokumente wurden zwischenzeitlich geändert. Bitte laden Sie die Seite über den ursprünglichen Offertenlink erneut.',
+archive_changed:'Die archivierten Dokumente stimmen nicht mehr mit den vereinbarten Versionen überein. Bitte kontaktieren Sie uns.',
+archive_unavailable:'Die gesicherten Dokumente sind vorübergehend nicht abrufbar. Bitte kontaktieren Sie uns.',
 email_mismatch:'Bitte verwenden Sie die E-Mail-Adresse, an welche die Offerte verschickt wurde.',
 consent_required:'Bitte bestätigen Sie beide Erklärungen.',
 invalid_identity:'Bitte überprüfen Sie Ihren Namen und Ihre geschäftliche E-Mail-Adresse.',
@@ -140,7 +173,6 @@ if(demo){
 showOffer({number:'MUSTER-2026-001',company:'Muster KMU AG',service:'Automatisierter Anfrageprozess',
 once:1490,monthly:149,payment_model:'50 % bei Auftrag / 50 % nach Abnahme',
 valid_until:'2026-11-30',terms_version:'ENTWURF – nicht freigegeben',
-quote_pdf:'https://example.com/muster-offerte.pdf',terms_pdf:'https://example.com/muster-bedingungen.pdf',
 quote_sha256:'',terms_sha256:''});
 setMessage('Nur eine unverbindliche Designvorschau. Es wird kein Vertrag abgeschlossen.','');
 button.disabled=true;

@@ -33,8 +33,11 @@ const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
   if(f['Vertragsunterlagen versendet']!==true)fail('Vertragsunterlagen nicht als versendet bestätigt');
   if(f['Vertragsunterlagen akzeptiert']===true || f['Online-Annahme Zeitstempel'])fail('bereits angenommen');
   if(f['Projektbedingungen Version']!==termsVersion)fail('Vertragsversion stimmt nicht überein');
-  if(!validLink(f['Online-Annahme Offerten-PDF']) || !validLink(f['Online-Annahme Bedingungen-PDF']))
-    fail('PDF-Archivlinks fehlen oder sind nicht HTTPS');
+  if(!/^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Offerten Drive ID']||'')) ||
+     !/^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Bedingungen Drive ID']||'')))
+    fail('beide privaten Drive-Archiv-IDs müssen vorhanden sein');
+  if(f['Online-Annahme Offerten-Archivstatus']!=='VERIFIZIERT' || !f['Online-Annahme Offerten-Archivprüfung am'])
+    fail('Offerte ist noch nicht als verifiziert archiviert');
   if(!SHA.test(String(f['Online-Annahme Offerten-SHA256']||'')) ||
      !SHA.test(String(f['Online-Annahme Bedingungen-SHA256']||'')))
     fail('geprüfte SHA-256-Dokument-Hashes fehlen');

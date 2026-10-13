@@ -122,6 +122,7 @@ async function proxy(req, res, envName) {
 
 // Onboarding links are issued only after an accepted offer.
 // Never allow untrusted input into Make's Airtable filter formula.
+const onboardingSubmissionCache = new Map();
 async function handleCustomerOnboarding(req,res) {
   if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
   if(rateLimited(req)) return send(res,429,JSON.stringify({error:'rate_limited'}));
@@ -139,18 +140,39 @@ async function handleCustomerOnboarding(req,res) {
     if(!String(payload.company||'').trim() || !String(payload.contact_email||'').includes('@') ||
        !String(payload.make_account_status||'').trim() || !String(payload.make_invitation_status||'').trim())
       return send(res,400,JSON.stringify({error:'invalid_fields'}));
-    const result=await fetch(target,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
-    });
-    if(!result.ok) return send(res,502,JSON.stringify({error:'upstream_failed'}));
-    let answer=null;
-    try { answer=JSON.parse(await result.text()); } catch {}
-    // Make only returns this acknowledgement after saving and sending the confirmation.
-    // A default webhook "Accepted" without a response means invalid/duplicate or unfinished.
-    if(answer?.ok!==true || typeof answer?.record_id!=='string' || !/^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
-      return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
-    return send(res,200,JSON.stringify({ok:true}));
+    // Block quick repeated submissions without keeping the one-time token in memory.
+    // Make remains the durable duplicate check; this local cache is only a short-lived guard.
+    const requestKey=crypto.createHash('sha256').update(token).digest('hex');
+    const now=Date.now();
+    if((onboardingSubmissionCache.get(requestKey)||0)>now)
+      return send(res,409,JSON.stringify({error:'already_submitted_or_processing'}));
+    if(onboardingSubmissionCache.size>1000)
+      for(const [key,until] of onboardingSubmissionCache) if(until<=now) onboardingSubmissionCache.delete(key);
+    onboardingSubmissionCache.set(requestKey,now+120000);
+    try {
+      const result=await fetch(target,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
+      });
+      if(!result.ok) {
+        onboardingSubmissionCache.delete(requestKey);
+        return send(res,502,JSON.stringify({error:'upstream_failed'}));
+      }
+      let answer=null;
+      try { answer=JSON.parse(await result.text()); } catch {}
+      // Make may acknowledge the webhook while later modules still run.
+      // Report confirmed success only with the explicit saved-record receipt.
+      if(answer?.ok===true && typeof answer?.record_id==='string' &&
+         /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
+        return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+      if(answer?.duplicate===true || answer?.error==='already_submitted')
+        return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
+      // 202 is intentionally NOT a claim that Airtable has saved the submission.
+      return send(res,202,JSON.stringify({ok:true,pending:true}));
+    } catch(err) {
+      onboardingSubmissionCache.delete(requestKey);
+      throw err;
+    }
   } catch(e){
     if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
     if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));

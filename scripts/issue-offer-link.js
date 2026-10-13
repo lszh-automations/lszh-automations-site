@@ -29,6 +29,7 @@ const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
   const response=await fetch(path,{headers,signal:AbortSignal.timeout(15000)});
   if(!response.ok)fail('Offerte nicht lesbar');
   const record=await response.json(),f=record.fields||{};
+  if(f['Online-Annahme rechtlich freigegeben']!==true)fail('juristische Freigabe fehlt');
   if(f.Status!=='Versendet')fail('Offerte noch nicht versendet oder bereits angenommen');
   if(f['Vertragsunterlagen versendet']!==true)fail('Vertragsunterlagen nicht als versendet bestätigt');
   if(f['Vertragsunterlagen akzeptiert']===true || f['Online-Annahme Zeitstempel'])fail('bereits angenommen');

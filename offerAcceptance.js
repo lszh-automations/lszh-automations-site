@@ -69,6 +69,9 @@ module.exports = function createOfferAcceptance(deps) {
       && validUrl(f['Online-Annahme Bedingungen-PDF'])
       && HASH_RE.test(String(f['Online-Annahme Offerten-SHA256'] || ''))
       && HASH_RE.test(String(f['Online-Annahme Bedingungen-SHA256'] || ''))
+      && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Offerten Drive ID'] || ''))
+      && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Bedingungen Drive ID'] || ''))
+      && Boolean(f['Online-Annahme Link gesendet am'])
       && typeof f.Offertennummer === 'string' && f.Offertennummer.length > 0;
   }
   function first(value) {

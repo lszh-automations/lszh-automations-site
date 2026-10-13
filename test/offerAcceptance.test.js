@@ -20,7 +20,10 @@ const baseRecord={id:'recABCDEFGHIJKLMN',fields:{
   'Online-Annahme Offerten-PDF':'https://example.com/frozen-offer.pdf',
   'Online-Annahme Bedingungen-PDF':'https://example.com/frozen-terms.pdf',
   'Online-Annahme Offerten-SHA256':H,
-  'Online-Annahme Bedingungen-SHA256':K
+  'Online-Annahme Bedingungen-SHA256':K,
+  'Online-Annahme Offerten Drive ID':'1ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef',
+  'Online-Annahme Bedingungen Drive ID':'1BCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef',
+  'Online-Annahme Link gesendet am':'2026-10-13T17:00:00.000Z'
 }};
 function make(handler){
   const api=create({send:(res,status,body)=>{res.code=status;res.body=JSON.parse(body);},

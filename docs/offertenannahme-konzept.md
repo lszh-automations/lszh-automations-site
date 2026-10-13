@@ -175,3 +175,14 @@ Diese Angaben **ersetzen die alten STAGING-Ordner-IDs im privaten Google-Konto i
 - **Noch offen:** Die 20 neu hochgeladenen Rechnungen sind nach Gesamtzahl vorhanden, aber der vollständige Einzelabgleich sämtlicher SHA-256-Werte ist nach Blockierung einer umfangreichen Metadaten-Auswertung nicht abgeschlossen. Daher alte Google-Docs-Originale **noch nicht löschen**.
 - Die nur lesenden Make-Testszenarien `7943019` und `7943290` wurden nach den Prüfabfragen deaktiviert; keine produktive Freigabe.
 - Airtable Projektprotokoll: `reczfR3liqH18t0vI`.
+
+## Trennung von Altbestand und Echtbetrieb – 13.10.2026
+
+- **Altbestand unverändert:** Bestehende Offerten-/Rechnungsdesigns, Test- und Altdokumente verbleiben in den bisherigen Migrations-/Altbestandsordnern. Keine automatische Verschiebung oder Löschung.
+- **Neuer privater Echtbetrieb-Hauptordner** im Geschäftskonto `lars@lszh-automations.ch`: `1DLMOfKWMtGqTYs1MdifJo8us7cTFrUUz`. Dieser liegt getrennt vom STAGING- und Altarchiv.
+- Echter Offertenordner `1CIS56vd3A8KHpoupgWVQNe4vHP9udp5A`, echter Rechnungsordner `1aHgvFaY68W_BfRrniY_TvGgKDogBIIK2`.
+- In Airtable Offerten (`tbljeIUoD7wwKuSmS`) Freigabe-Checkbox `Echtbetrieb – kein Test` (`fldOe2lL8inXnOWwi`), Rechnungen (`tbl1jxu0ohCylb8cu`) dieselbe Checkbox (`fldjgWc03qfc5FpUc`). Default unchecked; alte Testeinträge bleiben ausgeschlossen. Wichtig: Die Checkbox ist eine **manuelle Kennzeichnung, kein automatisches Erkennungsverfahren**.
+- Make Offerten `7835460`: Suchformel `AND({Offertenversand bereit}='JA',{Echtbetrieb – kein Test}=1)` und Google Docs Modul 3 / Google Drive PDF Modul 7 zeigen in den neuen echten Offertenordner. Der Hash-/Schreibschutzprozess bleibt unverändert.
+- Make Rechnungen `7781492`: Suchformel `AND({Rechnungsversand bereit}='JA',{Echtbetrieb – kein Test}=1)` und Google Docs Modul 3 im neuen echten Rechnungsordner. **Neues Modul 7** `google-drive:uploadAFile` archiviert die Rechnungs-PDF nach Export-Modul 4 und **vor** Mail-Modul 5; das Mailmodul prüft `{{7.id}}` und `{{7.mimeType}}=application/pdf`. Noch nicht im Produktivlauf getestet.
+- Beide produktiven Szenarien und die einmalige Ordnererstellung `7943536` sind nach Änderungen **inaktiv**. Keine Kundenmails oder Online-Annahmen ausgelöst. Wichtige Vorbedingung: vollständiger Schweizer QR-Zahlteil und IBAN sind noch nicht eingerichtet, keine Rechnungen produktiv senden.
+- Airtable-Projektprotokoll `recaGlu60OjVSCmHx`.

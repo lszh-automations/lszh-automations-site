@@ -1,0 +1,28 @@
+name: Offer acceptance checks
+on:
+  pull_request:
+    paths:
+      - 'offerAcceptance.js'
+      - 'test/offerAcceptance.test.js'
+      - 'server.js'
+      - 'package.json'
+      - '.github/workflows/offer-acceptance-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check server.js
+          node --check offerAcceptance.js
+          node --check scripts/issue-offer-link.js
+          node --check test/offerAcceptance.test.js
+      - name: Unit tests
+        run: npm test

@@ -17,8 +17,7 @@ module.exports = function createOfferAcceptance(deps) {
     return process.env.OFFER_ACCEPTANCE_ENABLED === 'true'
       && version.length > 0 && !/entwurf|draft|0\.9/i.test(version)
       && Boolean(process.env.OFFER_AIRTABLE_PAT)
-      && Boolean(process.env.OFFER_PROOF_SALT)
-      && Boolean(process.env.OFFER_CONFIRMATION_WEBHOOK);
+      && Boolean(process.env.OFFER_PROOF_SALT);
   }
   function reply(res, status, data) {
     return send(res, status, JSON.stringify(data));
@@ -166,21 +165,10 @@ module.exports = function createOfferAcceptance(deps) {
         signal:AbortSignal.timeout(15000)
       });
       if(!r.ok) throw Error('write_failed');
-      let mailPending=false;
-      try {
-        const response=await fetch(process.env.OFFER_CONFIRMATION_WEBHOOK,{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            event:'online_offer_accepted',record_id:record.id,
-            offer_number:offer.number,company:offer.company,
-            name,email,accepted_at_utc:timestamp,
-            terms_version:offer.terms_version,
-            quote_pdf:offer.quote_pdf,terms_pdf:offer.terms_pdf
-          }),signal:AbortSignal.timeout(15000)
-        });
-        mailPending=!response.ok;
-      } catch { mailPending=true; }
-      return reply(res,200,{ok:true,confirmed:true,offer_number:offer.number,confirmation_email_pending:mailPending});
+      // Scheduled Make scenario 7940220 independently retrieves the accepted
+      // Airtable record, creates a PDF proof, and sends three PDF attachments.
+      // Accepting the offer does NOT depend on email delivery.
+      return reply(res,200,{ok:true,confirmed:true,offer_number:offer.number,confirmation_email_pending:true});
     } catch(err) {
       return reply(res,502,{error:'temporarily_unavailable'});
     } finally {

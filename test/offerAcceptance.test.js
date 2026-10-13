@@ -6,6 +6,7 @@ const token='A'.repeat(43);
 const H='a'.repeat(64), K='b'.repeat(64);
 const baseRecord={id:'recABCDEFGHIJKLMN',fields:{
   Status:'Versendet',
+  'Online-Annahme rechtlich freigegeben':true,
   Offertennummer:'TEST-001',
   'Vertragsunterlagen versendet':true,
   'Vertragsunterlagen akzeptiert':false,

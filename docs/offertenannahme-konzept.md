@@ -137,3 +137,21 @@ Projektbedingungen v1.0 RC1 sind als lokale vierseitige PDF- und Word-Freigabeen
 Airtable Feld `Online-Annahme rechtlich freigegeben` wurde in Offerten ergänzt (Checkbox, zunächst nicht gesetzt). Sowohl Make-Szenario 7940261 für persönliche Offertenlinks als auch 7940220 für die Bestätigungsmail verlangen `=1`. Der Server lehnt in `offerAcceptance.js` die Annahme ohne `true` ab und das interne `scripts/issue-offer-link.js` verweigert die Link-Ausstellung ohne diesen Status.
 
 VOR FREIGABE OFFEN: juristische Prüfung, finale PDF v1.0 mit echter SHA-256, gültige Archiv-Datei-ID für die Projektbedingungen, Render Read-only Drive Dienstkonto, Datenaufbewahrung/Backup, verifizierte Berechtigungen der Make-Verbindungen, E2E-Test mit fiktiven Kunden und anschliessende dokumentierte Betriebsfreigabe. Die Google-Drive-Sperre ist keine WORM-Garantie.
+
+## Google-Geschäftskonto – verbindliche Speicher- und Versandkonfiguration (13.10.2026)
+
+Diese Angaben **ersetzen die alten STAGING-Ordner-IDs im privaten Google-Konto in früheren Abschnitten dieser Datei**. Die alten IDs bleiben hier ausschliesslich als historische Verweise auf nicht migrierten Altbestand; sie dürfen nicht erneut in Make-Module kopiert werden.
+
+- Google-Konto/Identität: `lars@lszh-automations.ch`.
+- Google Drive Verbindung in Make: `11904271`; neues geschäftliches STAGING-Archiv `1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in`.
+- Geschäftliches Archiv Offerten-PDF: `1COIjnGZDK1XCPXNBNikHw-7eUKfjNXgU`.
+- Geschäftliches Archiv Projektbedingungen: `1o9ADwrIAuhEtP7Mv7tDCY9-OkNpCxX3I`.
+- Geschäftliches Archiv Annahmenachweise: `1Q8ws0VjPeDSOYhKrx5a6I5_uhzRM2zN7`.
+- Geschäftlicher Testordner: `1gId6LLMy7b1PdbjZ0v_3zbETA-K-Q-AJ`.
+- Google Docs Verbindung in Make: `11905001`, für Erzeugung von Offerten, Rechnungen und Annahmenachweisen. Quelldokumente werden derzeit in der geschäftlichen STAGING-Archiv-Wurzel erzeugt, nicht mehr im alten Privatordner.
+- Gmail Verbindung in Make: `11904991`; über Gmail API verifiziert: Login ist `lars@lszh-automations.ch`, `info@lszh-automations.ch` ist ein akzeptierter Standard-Sendealias. Damit ist `info@lszh-automations.ch` als From-Adresse zulässig.
+- Die relevante Verbindung wurde in **14 LSZH-Szenarien** auf das Geschäftskonto umgestellt (Angebote, Annahme, Rechnungen, Onboarding, Website, Follow-ups sowie Designvorschau). Anschliessende statische Prüfung ergab **keine alten Google/Gmail Verbindungs-IDs** in diesen 14 Szenarien; sie blieben inactive.
+- Isolierter echter Google-Docs-Test (Make `7942502`) erfolgreich: Google Doc im Geschäftskonto erzeugt, als PDF exportiert, im geschäftlichen Testordner archiviert, PDF erneut gelesen; Drive PDF `1TAEeHE4Jj99_PgQE13uTRGYXkrEraBd0`, 36'810 Bytes, SHA-256 `2b89fbfb9ea0b0ad49b089176831bc47a1a98a0c1c0147fdf90cea5fe74c1852`.
+- Isolierter echter Gmail-API-Test (Make `7942515`) erfolgreich, **keine Mail gesendet**; Profil und akzeptierter Sendealias geprüft.
+- **Altbestand aus persönlichem Drive** (`lars.schulthess10@gmail.com`) ist noch vorhanden, nicht automatisch migriert oder gelöscht. Bei Migration erst vollständige Geschäftskonto-Kopie einschliesslich Prüfsummen verifizieren und anschliessend den Altbestand bewusst, kontrolliert bereinigen. Nie persönliche Drive-Freigaben oder Verbindungen für neue Kundenprozesse verwenden.
+- Die produktive Online-Annahme, alle Sendeszenarien und die juristische Freigabe bleiben deaktiviert. Tests beweisen die Geschäftskonto-Verbindungen, **nicht** den gesamten rechtssicheren Vertragsabschluss.

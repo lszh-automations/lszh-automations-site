@@ -23,12 +23,15 @@ const baseRecord={id:'recABCDEFGHIJKLMN',fields:{
   'Online-Annahme Bedingungen-SHA256':K,
   'Online-Annahme Offerten Drive ID':'1ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef',
   'Online-Annahme Bedingungen Drive ID':'1BCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef',
-  'Online-Annahme Link gesendet am':'2026-10-13T17:00:00.000Z'
+  'Online-Annahme Link gesendet am':'2026-10-13T17:00:00.000Z',
+  'Online-Annahme Offerten-Archivstatus':'VERIFIZIERT',
+  'Online-Annahme Offerten-Archivprüfung am':'2026-10-13T17:00:00.000Z'
 }};
-function make(handler){
+function make(handler,verifier={verify:async()=>true,pdf:async()=>Buffer.from('%PDF-1.4\nunit-test')}){
   const api=create({send:(res,status,body)=>{res.code=status;res.body=JSON.parse(body);},
-    readJson:async req=>req.body,sameOrigin:()=>true,rateLimited:()=>false,clientIp:()=> '192.0.2.1'});
-  const res={setHeader(){}};
+    readJson:async req=>req.body,sameOrigin:()=>true,rateLimited:()=>false,clientIp:()=> '192.0.2.1',
+    archiveVerifier:verifier});
+  const res={setHeader(){},writeHead(code,headers){this.code=code;this.headers=headers;},end(bytes){this.bytes=bytes;}};
   return handler(api,{body:{},headers:{'user-agent':'UnitTest/1.0'}},res);
 }
 function initEnv() {
@@ -36,6 +39,7 @@ function initEnv() {
   process.env.OFFER_TERMS_APPROVED_VERSION='v1.0';
   process.env.OFFER_AIRTABLE_PAT='fake-test-token';
   process.env.OFFER_PROOF_SALT='fake-test-salt';
+  process.env.OFFER_DRIVE_SA_B64='fake-base64-creds';
   process.env.OFFER_CONFIRMATION_WEBHOOK='https://example.net/make-hook';
 }
 const original=global.fetch;
@@ -116,4 +120,49 @@ test('reject already accepted quote',async()=>{
   const res=await make(async(api,req,r)=>{req.body={code:token};await api.preview(req,r);return r;});
   assert.equal(res.code,404);
   global.fetch=original;
+});
+
+test('block preview when archived bytes have changed',async()=>{
+  initEnv();
+  global.fetch=async()=>Response.json({records:[baseRecord]});
+  const res=await make(async(api,req,r)=>{req.body={code:token};await api.preview(req,r);return r;},
+    {verify:async()=>false,pdf:async()=>{throw Error('must not download');}});
+  assert.equal(res.code,409);
+  assert.equal(res.body.error,'archive_changed');
+});
+test('block acceptance before Airtable PATCH if archived hash does not match',async()=>{
+  initEnv();
+  let writes=0;
+  global.fetch=async(url,options={})=>{
+    if(options.method==='PATCH')writes++;
+    return Response.json({records:[baseRecord]});
+  };
+  const res=await make(async(api,req,r)=>{
+    req.body={code:token,name:'Test Person',email:'test@example.com',
+      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+    await api.accept(req,r);return r;
+  },{verify:async()=>false});
+  assert.equal(res.code,409);
+  assert.equal(writes,0);
+});
+test('download PDF only through valid scoped offer token',async()=>{
+  initEnv();
+  global.fetch=async()=>Response.json({records:[baseRecord]});
+  const res=await make(async(api,req,r)=>{
+    req.body={code:token,which:'quote'};
+    await api.document(req,r);return r;
+  });
+  assert.equal(res.code,200);
+  assert.equal(res.headers['Content-Type'],'application/pdf');
+  assert.ok(res.bytes.subarray(0,5).toString()==='%PDF-');
+  assert.match(res.headers['Content-Disposition'],/TEST-001.pdf/);
+});
+test('reject document requests with invalid kind',async()=>{
+  initEnv();
+  global.fetch=async()=>{throw Error('unexpected external network');};
+  const res=await make(async(api,req,r)=>{
+    req.body={code:token,which:'internal'};
+    await api.document(req,r);return r;
+  });
+  assert.equal(res.code,404);
 });

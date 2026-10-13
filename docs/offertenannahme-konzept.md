@@ -186,3 +186,11 @@ Diese Angaben **ersetzen die alten STAGING-Ordner-IDs im privaten Google-Konto i
 - Make Rechnungen `7781492`: Suchformel `AND({Rechnungsversand bereit}='JA',{Echtbetrieb – kein Test}=1)` und Google Docs Modul 3 im neuen echten Rechnungsordner. **Neues Modul 7** `google-drive:uploadAFile` archiviert die Rechnungs-PDF nach Export-Modul 4 und **vor** Mail-Modul 5; das Mailmodul prüft `{{7.id}}` und `{{7.mimeType}}=application/pdf`. Noch nicht im Produktivlauf getestet.
 - Beide produktiven Szenarien und die einmalige Ordnererstellung `7943536` sind nach Änderungen **inaktiv**. Keine Kundenmails oder Online-Annahmen ausgelöst. Wichtige Vorbedingung: vollständiger Schweizer QR-Zahlteil und IBAN sind noch nicht eingerichtet, keine Rechnungen produktiv senden.
 - Airtable-Projektprotokoll `recaGlu60OjVSCmHx`.
+
+## Bankverbindung und QR-Rechnung – 14.10.2026
+
+- **Neu erfasste Firmen-IBAN (AKB):** `CH51 0076 1648 6076 7200 2`. Die IBAN ist formal geprüft (MOD-97 = 1); die Bankkennung `00761` entspricht AKB / Clearing `761`. Kontoinhaberschaft folgt aus dem Nutzerscreenshot, nicht aus einer unabhängigen Bankauskunft.
+- In Airtable Betriebskonfiguration `tblYbOEogWvHBGYEL`, Datensatz `recWd3YSlIJMrsiVk`, wurde `IBAN` aktualisiert und der Hinweis `Aargauische Kantonalbank (AKB), Zahlung an LSZH Invest GmbH, Rechnungsnummer als Zahlungszweck` gespeichert. `Rechnungsversand freigegeben` bleibt **false**.
+- Der Make-Rechnungsprozess `7781492` ist **inactive**. Modul 2 lädt die Betriebskonfiguration nur mit expliziter Rechnungsversandfreigabe, IBAN, UID und MWST-Hinweis. Der Google-Docs-Entwurf nutzt die hinterlegte `{{2.IBAN}}`, ist aber weiterhin nicht versandbereit.
+- **Swiss QR-Zahlteil:** Die normale IBAN erlaubt `NON` (ohne Referenz, mit Rechnungsnummer als unstrukturierter Mitteilung) oder `SCOR` (ISO 11649). Für eine QR-Referenz `QRR` wäre hingegen eine besondere QR-IBAN der Bank nötig. Version 2.3 der SIX Swiss QR-Bill Guidelines erfordert strukturierte Adressen; echte Schweizer QR-Grafik mit Kreuz, Zahlteil und Empfangsschein sowie Testscan und korrekte PDF-Gestaltung sind weiterhin zu entwickeln. Der bisherige Rechnungsentwurf enthält noch einen QR-Platzhalter. **Nicht produktiv freigeben.**
+- Dokumentiert in Airtable Projektprotokoll `recPStwxedjfeIUh4`.

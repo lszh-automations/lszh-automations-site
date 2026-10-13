@@ -731,6 +731,7 @@ const server=http.createServer(async (req,res)=>{
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
   if (req.method==='POST' && pathname==='/api/offer/preview') return offerAcceptance.preview(req,res);
   if (req.method==='POST' && pathname==='/api/offer/accept') return offerAcceptance.accept(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/document') return offerAcceptance.document(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);

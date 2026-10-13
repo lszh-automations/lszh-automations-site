@@ -61,3 +61,10 @@ Das bestehende inaktive Rechnungs-Szenario **7781492** erzeugt derzeit die Googl
 - https://www.six-group.com/de/products-services/banking-services/payment-standardization/standards/qr-bill.html
 - https://www.six-group.com/dam/download/banking-services/standardization/qr-bill/ig-qr-bill-v2.3-en.pdf
 - https://www.six-group.com/dam/download/banking-services/standardization/qr-bill/style-guide-qr-bill-en.pdf
+
+## Make-Test der SCOR-Referenz (14.10.2026)
+- Isoliertes On-Demand-Szenario **7944047** „LSZH TEST – SCOR-Referenz für QR-Rechnungen (kein Versand)“ angelegt.
+- Ein Make Code JavaScript-Modul berechnet denselben SHA256-basierten ISO-11649-SCOR-Wert wie `lib/swiss-qr.js`; kein Mailversand, keine Kundenverträge.
+- Test-Eingabe `SR-20261008-q0xp9K` ergab `RF17LSZH69FAEF66BED4FA21` und `checksum_valid=true`. Unabhängige Node-Referenzimplementierung und Mod97-Abgleich stimmen exakt überein.
+- Nach der Testausführung wurde das Make-Szenario wieder **deaktiviert**.
+- Dies belegt die Referenzberechnung in Make, **nicht** den finalen PDF-Renderer oder die bankseitige Einlesung.

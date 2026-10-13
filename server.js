@@ -677,6 +677,40 @@ async function handleSecureSubmit(req,res) {
   }
 }
 
+// OFF BY DEFAULT. Private server-to-server invoice rendering, never public without a secret.
+// This route must pass a verified live bank/QR scan review before enabling.
+async function handleSwissQrBill(req,res){
+  const enabled=String(process.env.SWISS_QR_BILL_ENABLED||'').toLowerCase()==='true';
+  const secret=String(process.env.SWISS_QR_BILL_API_KEY||'');
+  if(!enabled||secret.length<32)
+    return send(res,503,JSON.stringify({error:'swiss_qr_bill_disabled'}));
+  if(!safeEqual(req.headers['x-lszh-invoice-key'],secret))
+    return send(res,401,JSON.stringify({error:'unauthorized'}));
+  if(secureRateLimited(req,12))
+    return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try{
+    const data=await readJson(req,16384);
+    if(!data||typeof data!=='object'||Array.isArray(data))
+      return send(res,400,JSON.stringify({error:'invalid_invoice'}));
+    // Reject ad-hoc test override outside development; this endpoint is not enabled now.
+    const {renderInvoice}=require('./lib/invoice-pdf');
+    const result=await renderInvoice(data);
+    const fileNo=String(data.invoiceNumber||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,55);
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Disposition','attachment; filename="LSZH_Rechnung_'+fileNo+'.pdf"');
+    res.setHeader('X-LSZH-SCOR-Reference',result.reference);
+    return send(res,200,result.pdf,'application/pdf');
+  }catch(e){
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    if(/^invalid_|^missing_|^payload_too_long/.test(e.message))
+      return send(res,400,JSON.stringify({error:'invalid_invoice_fields'}));
+    // No customer data is logged by this handler.
+    return send(res,502,JSON.stringify({error:'qr_renderer_unavailable'}));
+  }
+}
+
 function staticFile(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
@@ -719,6 +753,7 @@ const server=http.createServer(async (req,res)=>{
     }
   }
 
+  if (req.method==='POST' && pathname==='/api/internal/invoices/qr-pdf') return handleSwissQrBill(req,res);
   if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);

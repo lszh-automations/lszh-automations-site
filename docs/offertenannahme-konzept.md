@@ -155,3 +155,13 @@ Diese Angaben **ersetzen die alten STAGING-Ordner-IDs im privaten Google-Konto i
 - Isolierter echter Gmail-API-Test (Make `7942515`) erfolgreich, **keine Mail gesendet**; Profil und akzeptierter Sendealias geprüft.
 - **Altbestand aus persönlichem Drive** (`lars.schulthess10@gmail.com`) ist noch vorhanden, nicht automatisch migriert oder gelöscht. Bei Migration erst vollständige Geschäftskonto-Kopie einschliesslich Prüfsummen verifizieren und anschliessend den Altbestand bewusst, kontrolliert bereinigen. Nie persönliche Drive-Freigaben oder Verbindungen für neue Kundenprozesse verwenden.
 - Die produktive Online-Annahme, alle Sendeszenarien und die juristische Freigabe bleiben deaktiviert. Tests beweisen die Geschäftskonto-Verbindungen, **nicht** den gesamten rechtssicheren Vertragsabschluss.
+
+## Migration des privaten Google-Drive-Altbestands – Status 13.10.2026
+
+- Im alten Privat-Ordner befinden sich 10 Offerten- und 23 Rechnungs-Google-Docs. Fünf weitere dort liegende Dateien wurden als nicht eindeutig geschäftlich eingestuft; **nicht anfassen oder löschen**.
+- Privates STAGING enthält zusätzlich historisches Freigaberegister, technische Test-PDF und Unterordner. Geschäftliche Quelle darf künftig nur noch `lars@lszh-automations.ch` sein.
+- Neu im Business-Archiv: Migration-Altbestand Offerten `1zYeyu1YkCAWjfE-QYaUYrp-NAkuTCEUn`, Migration-Altbestand Rechnungen `1H4dD2UgGcNppfNXRwb8CCjmWHg5ETux2`, Migration-Dokumentation `10N1GJExndUMTZD_t9H2be-fiyyQ7iQ9R`.
+- Nach Google-Docs-DOCX-Export wurden das **Freigaberegister und vier Dokumente** ins Geschäftskonto übertragen und per erneutem Download **bytegenau mit dem exportierten DOCX** abgeglichen. Zielkonto als Eigentümer `lars@lszh-automations.ch` bestätigt. Zuordnung und SHA-256 befinden sich im Airtable-Projektprotokoll (`reca5xn1Yza11guX0`).
+- **29 Offerten/Rechnungen sowie historische technische PDF weiterhin offen.** Eine weitere automatisierte Übertragung wurde durch Sicherheitskontrollen blockiert, kein Umgehungsversuch; verbleibende Migration nur über zugelassenen Weg, ggf. manuell über Google Drive Export/Import, danach erst kontrollierte Bereinigung.
+- Native Google Docs und deren Versionshistorie bleiben derzeit im alten Konto unverändert. `.docx`-Kopien spiegeln den exportierten Inhalt, nicht die Google Docs Änderungsverläufe. **Keine Originale dauerhaft löschen, bevor die vollständige Wiederherstellbarkeit einschließlich ggf. benötigter Historie geklärt ist.**
+- Alle Test- und produktionsbezogenen Make-Szenarien nach Test wieder deaktiviert. Keine juristische Freigabe und keine Kundennachrichten.

@@ -310,13 +310,13 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) {const error = new Error('HTTP '+response.status); error.status = response.status; throw error;}
 
     form.reset();
     status.textContent = 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
     status.style.color = '#16794b';
   } catch (err) {
-    status.textContent = 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
+    status.textContent = err.status===409 ? 'Das Onboarding ist bereits eingegangen oder der Link ist ungültig. Bitte kontaktieren Sie uns für Änderungen.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
     status.style.color = '#b42318';
   } finally {
     button.disabled = false;

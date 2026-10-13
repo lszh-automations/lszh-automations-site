@@ -121,3 +121,19 @@ Vor Setzen von `Online-Annahme Bestätigung in Bearbeitung` werden Offerten-/Bed
 
 ### Tests und Freigabegrenze
 GitHub Actions prüft Syntax sowie Acceptance-/Archivprüfungs-Unit-Tests gegen simulierte Drive-Antworten. Das beweist die Codepfade, ersetzt aber keinen realen End-to-End-Probelauf. Draft PR #1 bleibt offen, die drei Make-Szenarien bleiben inaktiv und die Render-Live-Website unverändert.
+
+## Privates Vertragsarchiv und Freigabesperre – 13.10.2026
+
+Google Drive STAGING-Wurzel: `1_1jVIlD2MAwkVxpTsCUIZ-14LjQggmA3`
+Offerten-PDF: `1a2GIXQ9hnLP27PQHZCdLBh2wLevvf9jN`
+Projektbedingungen-PDF: `1L6lESMSB0CFjZtgZ6vZaAl3zB-iNdI0M`
+Annahmenachweise-PDF: `1I0PA-oMOTYUzA-q16frxnLbTUTiw9DlA`
+Internes Freigaberegister: Google Doc `1ANPIYiKzLIg_yxKifhy5lZHQe0zIwfo2yD2Ll69fhtw` im STAGING-Ordner. Laut Drive-Metadaten nur Eigentümerberechtigung; diese Angaben ersetzen keine externe Zugriffssimulation.
+
+Make-Offertenarchiv-Szenario 7835460 schreibt nun seine PDFs in den Offerten-PDF-Unterordner, und Make-Bestätigungsszenario 7940220 speichert Annahmenachweise im entsprechenden Unterordner. Verbindungsberechtigung der Make-Verbindung auf diese neuen Ordner ist noch durch einen echten Test zu bestätigen.
+
+Projektbedingungen v1.0 RC1 sind als lokale vierseitige PDF- und Word-Freigabeentwürfe vorbereitet. RC1 darf **nicht** als freigegebene Version v1.0 in Airtable eingetragen oder automatisch versendet werden. Vor Freigabe ist eine neue finale Version mit dokumentierter juristischer und geschäftlicher Zustimmung abzulegen.
+
+Airtable Feld `Online-Annahme rechtlich freigegeben` wurde in Offerten ergänzt (Checkbox, zunächst nicht gesetzt). Sowohl Make-Szenario 7940261 für persönliche Offertenlinks als auch 7940220 für die Bestätigungsmail verlangen `=1`. Der Server lehnt in `offerAcceptance.js` die Annahme ohne `true` ab und das interne `scripts/issue-offer-link.js` verweigert die Link-Ausstellung ohne diesen Status.
+
+VOR FREIGABE OFFEN: juristische Prüfung, finale PDF v1.0 mit echter SHA-256, gültige Archiv-Datei-ID für die Projektbedingungen, Render Read-only Drive Dienstkonto, Datenaufbewahrung/Backup, verifizierte Berechtigungen der Make-Verbindungen, E2E-Test mit fiktiven Kunden und anschliessende dokumentierte Betriebsfreigabe. Die Google-Drive-Sperre ist keine WORM-Garantie.

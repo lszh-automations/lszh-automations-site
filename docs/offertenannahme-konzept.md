@@ -25,7 +25,7 @@ Render-Variablen (nicht im GitHub-Repository und noch NICHT gesetzt):
 - OFFER_AIRTABLE_PAT — minimal berechtigter Airtable-Token für diese Base und die Offerten-Tabelle (Lesen und Schreiben)
 - OFFER_PROOF_SALT — langer, einmalig generierter Salt für pseudonymisierte IP-Prüfinformation
 - OFFER_TERMS_APPROVED_VERSION — exakt juristisch freigegebene Version, z.B. v1.0; Entwurf 0.9 ist gesperrt
-- OFFER_CONFIRMATION_WEBHOOK — URL eines getesteten Make-Szenarios, das die Annahme bestätigt und einen archivierten Beleg an Kunde und LSZH sendet
+- Bestätigung erfolgt durch Make-Szenario 7940220 via Airtable-Polling (noch deaktiviert), ohne synchronen Webhook
 - SITE_BASE_URL — optional für das interne CLI
 
 **Beachten:** Server führt einen Airtable-PATCH aus und ruft danach den Bestätigungs-WebHook auf. Ein Webhook-Fehler lässt die Annahme bestehen, meldet aber 'confirmation_email_pending'; deshalb sind Alarmierung, Wiederholung und Belegarchivierung noch produktiv zu bauen.
@@ -69,3 +69,24 @@ Die Seite ist via /offerte-annehmen/?code=<persoenliches-token> erreichbar; /off
 ## Grenzen des Entwurfs
 
 Dieses Verfahren ist eine dokumentierte elektronische Zustimmung, aber **keine qualifizierte elektronische Signatur** und keine sichere Identitätsprüfung. Ob für einzelne Kunden/Verträge weitere Anforderungen gelten, ist juristisch zu prüfen. Die veröffentlichten PDF-Links sind erst dann beweissicher, wenn die Dateien tatsächlich unveränderlich archiviert und ihre gespeicherten Hashes geprüft sind. Die Funktion ist in einem GitHub-Entwicklungszweig, nicht produktiv.
+
+## STAGING-Verbindungen 13.10.2026
+
+Alle drei Make-Szenarien sind deaktiviert; sequentielle und vertrauliche Ausführung ist eingestellt.
+
+### 7835460 – Offerte erzeugen und versenden
+PDF aus Google Docs wird nun vor dem Mailversand mit Google Drive Modul 7 als eigenständige PDF im bisherigen Make-Ordner 1QGdyp4hnbDYxi-liJGVftzTvT0kgPF7Q gespeichert. Modul 8 protokolliert die Drive-Datei-ID in Airtable (Online-Annahme Offerten Drive ID). Erst danach läuft die bereits vorhandene Offerten-E-Mail.
+
+### 7940261 – Sicherer persönlicher Annahmelink
+Airtable sucht nur versendete Offerten mit v1.0, beiden Archiv-Datei-IDs, beiden PDF-URLs, echten SHA-256-Prüfsummen, gültigem Datum und ohne Annahmetoken. Ein Make-Variablenmodul erzeugt einen zufälligen Token aus zwei UUIDs, CryptoFunctions bildet SHA-256 in Hex und Airtable erhält nur den Hash. Danach lädt Make beide PDFs herunter, mailt diese als Anhänge mit persönlichem Link und markiert den Versandzeitpunkt. Bei E-Mail-Fehler bleibt der Hash gesetzt und erfordert gezielte Entsperrung. Make-Mapping und Hashgleichheit müssen im isolierten Test verifiziert werden.
+
+### 7940220 – Bestätigung und PDF-Annahmenachweis
+Airtable-Suche nur nach elektronisch angenommener Offerte mit v1.0, Zeitstempel, vollständigen Archivfeldern, ohne gesendete Bestätigung und ohne Bearbeitungssperre. Claim-Checkbox wird zuerst gesetzt. Make lädt Offerte und Bedingungen, erzeugt und archiviert Annahmenachweis als PDF, versendet drei PDF-Anhänge und speichert anschliessend Versandzeit/Beleg-ID. Fehler zwischen Claim und Versand erfordern manuelle Prüfung statt riskantem automatischem Doppelversand.
+
+### Besonders wichtig vor Freigabe
+- Juristisch geprüfte Projektbedingungen v1.0 und rechtsverbindlicher Stand je Offerte. Keine Entwurf-0.9-Dokumente als Vertrag einsetzen.
+- Freigegebene Vertragsbedingungen-PDF separat archivieren und tatsächliche Drive-ID, HTTPS-Download-URL und echten SHA-256-Dateihash in Airtable hinterlegen.
+- Die Offerten-PDF-SHA-256-Ermittlung ist noch nicht automatisiert. Auch die neu angelegten Drive-Dateien sind nicht technisch unveränderlich.
+- URL-Zugriff, genaue Dateibytes/Hashes und Make-Module auf Testdaten prüfen. Drive-Dateien sind ohne geeignete Freigabe möglicherweise nicht für externe Kunden lesbar.
+- Verhalten bei Mehrfachannahme, Mailfehler, Crash nach Claim, Datenschutz/Beweisprotokoll und Dokumentmanipulation abschliessend testen.
+- Portal/API liegen nur im GitHub-Draft-PR Nr. 1; weder auf die Live-Website deployen noch Make-Module aktivieren, bevor die Bedingungen und technische Abnahme vorliegen.

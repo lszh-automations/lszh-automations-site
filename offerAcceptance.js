@@ -60,7 +60,8 @@ module.exports = function createOfferAcceptance(deps) {
   function eligible(record) {
     const f = record.fields || {};
     const version = process.env.OFFER_TERMS_APPROVED_VERSION;
-    return f.Status === 'Versendet'
+    return f['Online-Annahme rechtlich freigegeben'] === true
+      && f.Status === 'Versendet'
       && f['Vertragsunterlagen versendet'] === true
       && f['Vertragsunterlagen akzeptiert'] !== true
       && !f['Online-Annahme Zeitstempel']

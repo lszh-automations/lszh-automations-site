@@ -165,3 +165,13 @@ Diese Angaben **ersetzen die alten STAGING-Ordner-IDs im privaten Google-Konto i
 - **29 Offerten/Rechnungen sowie historische technische PDF weiterhin offen.** Eine weitere automatisierte Übertragung wurde durch Sicherheitskontrollen blockiert, kein Umgehungsversuch; verbleibende Migration nur über zugelassenen Weg, ggf. manuell über Google Drive Export/Import, danach erst kontrollierte Bereinigung.
 - Native Google Docs und deren Versionshistorie bleiben derzeit im alten Konto unverändert. `.docx`-Kopien spiegeln den exportierten Inhalt, nicht die Google Docs Änderungsverläufe. **Keine Originale dauerhaft löschen, bevor die vollständige Wiederherstellbarkeit einschließlich ggf. benötigter Historie geklärt ist.**
 - Alle Test- und produktionsbezogenen Make-Szenarien nach Test wieder deaktiviert. Keine juristische Freigabe und keine Kundennachrichten.
+
+### Nachkontrolle Geschäftsarchiv nach manuellem ZIP-Upload (13.10.2026)
+
+- Nutzer hat die 29 noch fehlenden DOCX-Exporte sowie die drei Begleitdateien in die Geschäftskonto-Migrationsordner hochgeladen.
+- Live Drive API über Make Geschäftsverbindung `11904271`: **10 Offerten-DOCX** im Geschäftskonto (eine vorherige + neun neue) und **23 Rechnungs-DOCX** (drei vorherige + 20 neue), `200 OK`; keine weiteren Seiten in der Ordnerabfrage.
+- Alle **neun neuen Offerten** stimmen in Dateiname, Bytezahl und Drive-SHA256 mit den 9 Angebotsdatensätzen des exportierten `MANIFEST.json` überein. Eigentümer jeweils `lars@lszh-automations.ch`.
+- Die drei Begleitdateien `MANIFEST.json`, `SHA256SUMMEN.txt`, `BITTE_LESEN.md` sind im Geschäftskonto vorhanden; ihre Drive-SHA256 stimmen mit den ZIP-Dateien überein.
+- **Noch offen:** Die 20 neu hochgeladenen Rechnungen sind nach Gesamtzahl vorhanden, aber der vollständige Einzelabgleich sämtlicher SHA-256-Werte ist nach Blockierung einer umfangreichen Metadaten-Auswertung nicht abgeschlossen. Daher alte Google-Docs-Originale **noch nicht löschen**.
+- Die nur lesenden Make-Testszenarien `7943019` und `7943290` wurden nach den Prüfabfragen deaktiviert; keine produktive Freigabe.
+- Airtable Projektprotokoll: `reczfR3liqH18t0vI`.

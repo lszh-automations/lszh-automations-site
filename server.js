@@ -120,6 +120,44 @@ async function proxy(req, res, envName) {
   }
 }
 
+// Onboarding links are issued only after an accepted offer.
+// Never allow untrusted input into Make's Airtable filter formula.
+async function handleCustomerOnboarding(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(rateLimited(req)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  const target=process.env.MAKE_ONBOARDING_WEBHOOK;
+  if(!target) return send(res,503,JSON.stringify({error:'not_configured'}));
+  try {
+    const payload=await readJson(req);
+    if(!payload || typeof payload!=='object' || Array.isArray(payload))
+      return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    if(payload.website) return send(res,204,'');
+    delete payload.website;
+    const token=String(payload.project_code||'');
+    if(!/^ob_[a-fA-F0-9-]{36}$/.test(token))
+      return send(res,400,JSON.stringify({error:'invalid_project_link'}));
+    if(!String(payload.company||'').trim() || !String(payload.contact_email||'').includes('@') ||
+       !String(payload.make_account_status||'').trim() || !String(payload.make_invitation_status||'').trim())
+      return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    const result=await fetch(target,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
+    });
+    if(!result.ok) return send(res,502,JSON.stringify({error:'upstream_failed'}));
+    let answer=null;
+    try { answer=JSON.parse(await result.text()); } catch {}
+    // Make only returns this acknowledgement after saving and sending the confirmation.
+    // A default webhook "Accepted" without a response means invalid/duplicate or unfinished.
+    if(answer?.ok!==true || typeof answer?.record_id!=='string' || !/^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
+      return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
+    return send(res,200,JSON.stringify({ok:true}));
+  } catch(e){
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+
 function cleanJsonText(text='') {
   const trimmed=String(text).trim().replace(/^\`\`\`(?:json)?\s*/i,'').replace(/\s*\`\`\`$/,'');
   const start=trimmed.indexOf('{'), end=trimmed.lastIndexOf('}');
@@ -660,7 +698,7 @@ const server=http.createServer(async (req,res)=>{
   }
 
   if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
-  if (req.method==='POST' && pathname==='/api/onboarding') return proxy(req,res,'MAKE_ONBOARDING_WEBHOOK');
+  if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);

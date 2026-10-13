@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - 'offerAcceptance.js'
+      - 'offerArchiveVerifier.js'
       - 'test/offerAcceptance.test.js'
+      - 'test/offerArchiveVerifier.test.js'
       - 'server.js'
       - 'package.json'
       - '.github/workflows/offer-acceptance-check.yml'
@@ -22,7 +24,9 @@ jobs:
         run: |
           node --check server.js
           node --check offerAcceptance.js
+          node --check offerArchiveVerifier.js
           node --check scripts/issue-offer-link.js
           node --check test/offerAcceptance.test.js
+          node --check test/offerArchiveVerifier.test.js
       - name: Unit tests
         run: npm test

@@ -101,7 +101,8 @@ test('store audit fields before dispatching confirmation webhook',async()=>{
     await api.accept(req,r);return r;
   });
   assert.equal(res.code,200);
-  assert.deepEqual(order,['read','write','confirmation']);
+  assert.deepEqual(order,['read','write']);
+  assert.equal(res.body.confirmation_email_pending,true);
   assert.equal(updates[0].fields.Status,'Angenommen');
   assert.equal(updates[0].fields['Vertragsunterlagen akzeptiert'],true);
   assert.equal(updates[0].fields['Online-Annahme Person'],'Test Person');

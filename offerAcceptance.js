@@ -8,6 +8,7 @@ module.exports = function createOfferAcceptance(deps) {
   const TABLE = 'tbljeIUoD7wwKuSmS';
   const inFlight = new Set();
   const {send, readJson, sameOrigin, rateLimited, clientIp} = deps;
+  const archiveVerifier = deps.archiveVerifier || require('./offerArchiveVerifier')();
   const TOKEN_RE = /^[A-Za-z0-9_-]{32,80}$/;
   const HASH_RE = /^[a-f0-9]{64}$/;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,7 +18,8 @@ module.exports = function createOfferAcceptance(deps) {
     return process.env.OFFER_ACCEPTANCE_ENABLED === 'true'
       && version.length > 0 && !/entwurf|draft|0\.9/i.test(version)
       && Boolean(process.env.OFFER_AIRTABLE_PAT)
-      && Boolean(process.env.OFFER_PROOF_SALT);
+      && Boolean(process.env.OFFER_PROOF_SALT)
+      && Boolean(process.env.OFFER_DRIVE_SA_B64);
   }
   function reply(res, status, data) {
     return send(res, status, JSON.stringify(data));
@@ -65,8 +67,8 @@ module.exports = function createOfferAcceptance(deps) {
       && f['Projektbedingungen Version'] === version
       && /^\d{4}-\d{2}-\d{2}$/.test(String(f['Gültig bis'] || ''))
       && f['Gültig bis'] >= swissDate(new Date())
-      && validUrl(f['Online-Annahme Offerten-PDF'])
-      && validUrl(f['Online-Annahme Bedingungen-PDF'])
+      && f['Online-Annahme Offerten-Archivstatus'] === 'VERIFIZIERT'
+      && Boolean(f['Online-Annahme Offerten-Archivprüfung am'])
       && HASH_RE.test(String(f['Online-Annahme Offerten-SHA256'] || ''))
       && HASH_RE.test(String(f['Online-Annahme Bedingungen-SHA256'] || ''))
       && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Offerten Drive ID'] || ''))
@@ -88,8 +90,6 @@ module.exports = function createOfferAcceptance(deps) {
       payment_model:f.Zahlungsmodell || '',
       valid_until:f['Gültig bis'],
       terms_version:f['Projektbedingungen Version'],
-      quote_pdf:f['Online-Annahme Offerten-PDF'],
-      terms_pdf:f['Online-Annahme Bedingungen-PDF'],
       quote_sha256:f['Online-Annahme Offerten-SHA256'],
       terms_sha256:f['Online-Annahme Bedingungen-SHA256']
     };
@@ -109,6 +109,7 @@ module.exports = function createOfferAcceptance(deps) {
       if(!TOKEN_RE.test(code)) return reply(res,404,{error:'invalid_or_expired'});
       const record=await findOfferByToken(code);
       if(!record || !eligible(record)) return reply(res,404,{error:'invalid_or_expired'});
+      if(!await archiveVerifier.verify(record.fields)) return reply(res,409,{error:'archive_changed'});
       return reply(res,200,{ok:true,offer:display(record)});
     } catch(err) {
       return reply(res,502,{error:'temporarily_unavailable'});
@@ -132,6 +133,7 @@ module.exports = function createOfferAcceptance(deps) {
       inFlight.add(hash);
       const record=await findOfferByToken(code);
       if(!record || !eligible(record)) return reply(res,409,{error:'already_accepted_or_expired'});
+      if(!await archiveVerifier.verify(record.fields)) return reply(res,409,{error:'archive_changed'});
       const f=record.fields, offer=display(record);
       if(b.quote_sha256 !== offer.quote_sha256 || b.terms_sha256 !== offer.terms_sha256)
         return reply(res,409,{error:'document_changed'});
@@ -178,5 +180,40 @@ module.exports = function createOfferAcceptance(deps) {
       if(hash) inFlight.delete(hash);
     }
   }
-  return {preview,accept};
+  async function document(req,res) {
+    if(!allowed(req,res))return;
+    try {
+      const b=await readJson(req);
+      const code=typeof b.code==='string'?b.code:'';
+      const which=b.which;
+      if(!TOKEN_RE.test(code)||!['quote','terms'].includes(which))
+        return reply(res,404,{error:'invalid_or_expired'});
+      const record=await findOfferByToken(code);
+      if(!record||!eligible(record))
+        return reply(res,404,{error:'invalid_or_expired'});
+      if(!await archiveVerifier.verify(record.fields))
+        return reply(res,409,{error:'archive_changed'});
+      const bytes=await archiveVerifier.pdf(record.fields,which);
+      const f=record.fields;
+      const basename=(which==='quote'
+        ? 'LSZH_Offerte_'+f.Offertennummer
+        : 'LSZH_Projektbedingungen_'+f['Projektbedingungen Version'])
+        .replace(/[^A-Za-z0-9_.-]/g,'_').slice(0,100);
+      res.writeHead(200,{
+        'Content-Type':'application/pdf',
+        'Content-Length':String(bytes.length),
+        'Content-Disposition':'attachment; filename="'+basename+'.pdf"',
+        'Cache-Control':'no-store',
+        'Pragma':'no-cache',
+        'Referrer-Policy':'no-referrer',
+        'X-Content-Type-Options':'nosniff',
+        'X-Robots-Tag':'noindex, nofollow'
+      });
+      return res.end(bytes);
+    } catch(err) {
+      if(err.message==='archive_changed')return reply(res,409,{error:'archive_changed'});
+      return reply(res,503,{error:'archive_unavailable'});
+    }
+  }
+  return {preview,accept,document};
 };

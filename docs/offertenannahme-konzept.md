@@ -90,3 +90,34 @@ Airtable-Suche nur nach elektronisch angenommener Offerte mit v1.0, Zeitstempel,
 - URL-Zugriff, genaue Dateibytes/Hashes und Make-Module auf Testdaten prüfen. Drive-Dateien sind ohne geeignete Freigabe möglicherweise nicht für externe Kunden lesbar.
 - Verhalten bei Mehrfachannahme, Mailfehler, Crash nach Claim, Datenschutz/Beweisprotokoll und Dokumentmanipulation abschliessend testen.
 - Portal/API liegen nur im GitHub-Draft-PR Nr. 1; weder auf die Live-Website deployen noch Make-Module aktivieren, bevor die Bedingungen und technische Abnahme vorliegen.
+
+## Technische Hash-Verifikation und geschützte Auslieferung – 13.10.2026
+
+**Neue Sicherheitsarchitektur (ersetzt ältere Aussagen zu öffentlich verfügbaren PDF-URLs):**
+
+### Make 7835460 – Sperre und unabhängiger Archiv-Hash
+1. Google Docs erzeugt das Angebots-PDF. Drive Upload (Modul 7) speichert es als reguläre PDF-Binärdatei.
+2. Google Drive Download (Modul 9) liest genau die gespeicherte Datei erneut und liefert ihre von Google berechnete sha256Checksum.
+3. Google Drive API (Modul 10) setzt `contentRestrictions.readOnly=true`. Diese Bearbeitungssperre ist **nicht WORM** und kann durch berechtigte Nutzer aufgehoben werden.
+4. Google Drive API (Modul 11) liest Metadaten mit id, mimeType, size, sha256Checksum und contentRestrictions nochmals aus.
+5. Airtable Update (Modul 8) läuft nur wenn dieselbe Datei-ID, identische SHA-256, MIME PDF und ein aktiver Schreibschutz vorliegen. Es speichert Drive-ID, SHA-256, `Online-Annahme Offerten-Archivstatus=VERIFIZIERT` sowie `Online-Annahme Offerten-Archivprüfung am`.
+6. Die Offertenmail bekommt die **aus Drive erneut heruntergeladenen PDF-Bytes** (Modul 9) als Anhang, nicht eine separate, möglicherweise abweichende Exportdatei.
+
+### Make 7940261 – Links nur bei intakten PDF-Archiven
+Token-Hash wird **erst nach** Download beider archivierten PDFs geschrieben. Vor dem Speichern werden PDF-Dateityp und aktuelle Drive-SHA-256-Werte gegen Airtable verglichen. Die Suche verlangt Archivstatus VERIFIZIERT. PDF-URLs werden nicht mehr benötigt, da Kunden-Dokumente vom eigenen Server geschützt ausgeliefert werden.
+
+### Make 7940220 – Bestätigungsmail nur bei intakten PDF-Archiven
+Vor Setzen von `Online-Annahme Bestätigung in Bearbeitung` werden Offerten-/Bedingungen-PDF geladen und gegen beide gespeicherten SHA-256-Werte abgeglichen. Danach entstehen Annahmenachweis, PDF-Archiv und Bestätigungsmail (drei PDF-Anhänge). Fehlerbehandlung und Nachholung bleiben vor Go-Live offen.
+
+### Website: geschützter PDF-Abruf und Prüfung unmittelbar vor Annahme
+`offerArchiveVerifier.js` authentifiziert sich mit einem explizit berechtigten Google-Dienstkonto (kurzlebiges Drive-Read-Only-OAuth-Token, signiert mit Dienstkonto-Schlüssel). Jede Vorschau und jedes Annahmegesuch prüft **beide** PDFs anhand der aktuellen Drive-Metadaten, SHA-256 und `contentRestrictions.readOnly` auf dem Server. `POST /api/offer/document` liefert PDFs nur nach gültigem persönlichen Offertenlink; der Server berechnet zusätzlich SHA-256 der tatsächlich heruntergeladenen PDF-Bytes. Die PDFs müssen dafür nicht mit `anyone with the link` freigegeben werden. Der Kunde speichert sie über die Portal-Seite.
+
+### Go-Live-Konfiguration fehlt absichtlich
+- `OFFER_DRIVE_SA_B64`: Base64-kodiertes JSON eines Google Cloud Dienstkontos, ausschliesslich als Render Secret. Das Dienstkonto erhält Lesezugriff auf die betroffenen PDF-Archivdateien/den Archivordner. Keine Zugangsdaten im Code, Airtable oder Kundenmails.
+- `OFFER_ACCEPTANCE_ENABLED=true` erst nach Freigabe, mindestens gültiger `OFFER_TERMS_APPROVED_VERSION`, `OFFER_AIRTABLE_PAT` und `OFFER_PROOF_SALT` erforderlich.
+- Vertragsbedingungen v1.0 juristisch freigeben, als PDF in Drive speichern, Inhalt mit SHA-256 sichern, Bearbeitungssperre prüfen; pro Offerte `Online-Annahme Bedingungen Drive ID` und `Online-Annahme Bedingungen-SHA256` hinterlegen.
+- Noch kein Live-Test mit tatsächlicher Drive-Berechtigung. Wegen fehlenden Dokumentfreigaben und Servicekonto bleiben die API-Routen durch das Flag gesperrt.
+- Noch nicht gelöst: echtes WORM-/unveränderliches Langzeitarchiv, Aufbewahrungs- und Löschkonzept, atomare Annahme über mehrere Render-Instanzen, Wiederaufnahme nach Make-Verarbeitungsfehlern und rechtliche Prüfung der projektbezogenen Vertragsbedingungen.
+
+### Tests und Freigabegrenze
+GitHub Actions prüft Syntax sowie Acceptance-/Archivprüfungs-Unit-Tests gegen simulierte Drive-Antworten. Das beweist die Codepfade, ersetzt aber keinen realen End-to-End-Probelauf. Draft PR #1 bleibt offen, die drei Make-Szenarien bleiben inaktiv und die Render-Live-Website unverändert.

@@ -313,10 +313,10 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     if (!response.ok) {const error = new Error('HTTP '+response.status); error.status = response.status; throw error;}
 
     form.reset();
-    status.textContent = 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
+    status.textContent = response.status===202 ? 'Vielen Dank. Ihre Angaben wurden zur Verarbeitung entgegengenommen. Sie erhalten eine Bestätigung per E-Mail, sobald das Onboarding abgeschlossen ist. Bitte senden Sie das Formular nicht erneut ab.' : 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
     status.style.color = '#16794b';
   } catch (err) {
-    status.textContent = err.status===409 ? 'Das Onboarding ist bereits eingegangen oder der Link ist ungültig. Bitte kontaktieren Sie uns für Änderungen.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
+    status.textContent = err.status===409 ? 'Dieses Onboarding wurde bereits eingereicht oder wird gerade verarbeitet. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
     status.style.color = '#b42318';
   } finally {
     button.disabled = false;

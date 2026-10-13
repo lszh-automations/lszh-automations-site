@@ -84,7 +84,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
   <div class="card">
     <h1>Damit wir Ihr Projekt sauber vorbereiten können.</h1>
-    <p class="intro">Bitte ergänzen Sie die folgenden Angaben zu Ihrem Projekt. Wir fragen nur Informationen ab, die wir für die technische Umsetzung, Tests und Freigabe benötigen.</p>
+    <p class="intro">Bitte ergänzen Sie die folgenden Angaben zu Ihrem Projekt. Wir fragen nur Informationen ab, die wir für die technische Umsetzung, Tests und Freigabe benötigen. Die Einrichtung Ihrer Make-Organisation ist kein Hindernis – wir helfen Ihnen bei Bedarf.</p>
 
     <div class="notice">
       <strong>Wichtig:</strong> Bitte tragen Sie hier keine Passwörter, API-Schlüssel, Recovery-Codes oder andere geheime Zugangsdaten ein. Für erforderliche Verbindungen nutzen wir bevorzugt eine direkte Freigabe oder OAuth. Falls später eine getrennte Übermittlung nötig ist, stellen wir nach Prüfung des Projekts einen gesonderten, zeitlich begrenzten Link zur Verfügung.
@@ -185,6 +185,44 @@ button:disabled{opacity:.55;cursor:not-allowed}
           <textarea name="connections" placeholder="z. B. Outlook-Postfach, ERP, Google Drive ..."></textarea>
           <span class="help">Bitte nur Systemnamen nennen. Vertrauliche Zugangsdaten werden nicht in diesem Formular erfasst.</span>
         </label>
+      </div>
+
+      <div class="section" id="makeSetup">
+        <h2>Make &amp; technische Einrichtung</h2>
+        <p>Ihre Automationen betreiben wir in einer <strong>Make-Organisation Ihres Unternehmens</strong>. Ihr Unternehmen verwaltet das Make-Abonnement und die Abrechnung direkt bei Make. LSZH Automations wird nur mit den für die Umsetzung notwendigen Berechtigungen eingeladen.</p>
+        <div class="notice" style="background:#f0f6ff;border-color:#cfddf4;color:#24446d">
+          <strong>Keine Sorge:</strong> Sie brauchen noch kein Make-Konto, um dieses Onboarding auszufüllen. Wenn Sie Unterstützung bei der Registrierung oder Einladung benötigen, begleiten wir Sie Schritt für Schritt. Bitte senden Sie uns niemals Ihr Make-Passwort oder Zugangscodes.
+        </div>
+        <label>Wie weit ist Ihre Make-Einrichtung?
+          <select name="make_account_status" id="make_account_status" required>
+            <option value="">Bitte auswählen</option>
+            <option>Make-Organisation vorhanden</option>
+            <option>Make-Konto vorhanden – Organisation unklar</option>
+            <option>Noch kein Make-Konto</option>
+            <option>Unterstützung gewünscht</option>
+          </select>
+        </label>
+        <label>Name Ihrer Make-Organisation (falls bekannt)
+          <input name="make_organization" type="text" maxlength="160" placeholder="z. B. Muster AG">
+          <span class="help">Nur der Organisationsname, keine Zugangsdaten oder API-Keys.</span>
+        </label>
+        <label>Stand der Einladung von LSZH Automations
+          <select name="make_invitation_status" id="make_invitation_status" required>
+            <option value="">Bitte auswählen</option>
+            <option>Noch nicht eingeladen</option>
+            <option>Einladung versendet</option>
+            <option>Unterstützung bei Einladung gewünscht</option>
+            <option>Noch nicht möglich</option>
+          </select>
+          <span class="help">Die konkrete LSZH-Einladungsadresse und die benötigte Rolle stimmen wir separat mit Ihnen ab.</span>
+        </label>
+        <label>Fragen zur Einrichtung (optional)
+          <textarea name="make_setup_notes" placeholder="z. B. wir haben bereits eine Organisation, benötigen aber Hilfe bei der Einladung ..." maxlength="1200"></textarea>
+        </label>
+        <div class="help" style="padding:8px 0">
+          <strong>Wenn Sie bereits eine Organisation haben:</strong> Ein Organisationsadministrator kann in Make unter „Org“ → „Users“ eine Einladung ausstellen. Die Rolle und E-Mail-Adresse klären wir im nächsten Schritt.
+          <a href="https://help.make.com/organizations" target="_blank" rel="noopener noreferrer">Offizielle Make-Anleitung öffnen</a>.
+        </div>
       </div>
 
       <div class="section">

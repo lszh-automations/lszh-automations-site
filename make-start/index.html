@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Make einrichten – LSZH Automations</title>
+<style>
+:root{--navy:#091a30;--ink:#18283d;--muted:#657589;--edge:#dce5ef;--blue:#2458ac;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;color:var(--ink);font:15px/1.65 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+header{background:linear-gradient(115deg,#081729,#102c52);color:#fff;padding:24px max(20px,calc((100% - 880px)/2))}
+.head{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{font-size:18px;font-weight:800;text-decoration:none;color:#fff}
+.tag{font-size:12px;border:1px solid #547396;border-radius:30px;padding:5px 11px;color:#cddbeb}
+main{max-width:880px;margin:0 auto;padding:34px 20px 60px}
+h1{font-size:clamp(26px,4.5vw,40px);line-height:1.2;margin:0 0 10px;letter-spacing:-.7px}
+h2{font-size:21px;line-height:1.3;margin:0 0 10px}
+.lead{font-size:17px;color:var(--muted);max-width:680px;margin:0 0 27px}
+.notice{background:#eaf1fd;border-left:4px solid var(--blue);padding:15px 18px;border-radius:12px;margin:24px 0}
+.steps{display:grid;gap:16px;margin:22px 0}
+.step{background:var(--card);border:1px solid var(--edge);border-radius:17px;padding:22px 24px;box-shadow:0 7px 22px rgba(17,36,63,.035)}
+.num{display:inline-flex;background:#e7effe;color:#2259ae;border-radius:20px;width:32px;height:32px;align-items:center;justify-content:center;font-weight:800;margin-bottom:12px}
+.step p{margin:0;color:#52637b}.step ul{color:#52637b;margin:10px 0 0;padding-left:20px}
+a{color:#2458ac}a:hover{text-decoration:none}
+small{color:var(--muted)}.bottom{background:#fff;padding:22px 24px;border:1px solid var(--edge);border-radius:17px}
+footer{text-align:center;color:#8491a2;font-size:12px;margin-top:34px}
+@media(max-width:600px){header{padding:18px 20px}.head{align-items:flex-start;flex-direction:column}.step{padding:18px}}
+</style>
+</head>
+<body>
+<header><div class="head"><a class="brand" href="/">LSZH Automations</a><span class="tag">Anleitung für Kunden</span></div></header>
+<main>
+<h1>Ihr Make-Konto einrichten</h1>
+<p class="lead">Sie behalten die Kontrolle über Ihre Automationen. Wir unterstützen Sie bei der Einrichtung, übernehmen die vereinbarte Umsetzung und stehen später für die Betreuung zur Verfügung.</p>
+<div class="notice"><strong>Gut zu wissen:</strong> Ihr Make-Konto und Ihre Make-Organisation gehören Ihrem Unternehmen. Make rechnet einen gewählten Plan und die Nutzung direkt mit Ihnen ab. Unsere Dienstleistungen werden separat von LSZH Automations verrechnet.</div>
+<div class="steps">
+<section class="step"><span class="num">1</span><h2>Make-Konto erstellen oder anmelden</h2>
+<p>Besuchen Sie <a href="https://www.make.com/" target="_blank" rel="noopener noreferrer">make.com</a>. Falls Ihr Unternehmen bereits Make nutzt, verwenden Sie das vorhandene Konto und legen nicht unnötig ein zweites an.</p></section>
+<section class="step"><span class="num">2</span><h2>Organisation Ihres Unternehmens prüfen</h2>
+<p>Legen Sie bei Bedarf eine eigene Organisation für Ihr Unternehmen an. Wählen Sie nach Möglichkeit das passende EU-Rechenzentrum, wenn Ihre Datenschutzanforderungen dafür sprechen. <strong>Achtung:</strong> Laut Make lässt sich die Rechenzentrumsregion einer Organisation nachträglich nicht ändern.</p>
+<p style="margin-top:10px"><a href="https://help.make.com/organizations" target="_blank" rel="noopener noreferrer">Offizielle Anleitung: Make-Organisationen</a></p></section>
+<section class="step"><span class="num">3</span><h2>Plan und Abrechnung festlegen</h2>
+<p>Sie wählen und bezahlen den Make-Plan direkt. Ein kostenloser Einstieg kann für die Vorbereitung ausreichen. Welcher Plan für Betrieb, Berechtigungen und Automationsumfang geeignet ist, klären wir gemeinsam, bevor zusätzliche Kosten entstehen.</p>
+<p style="margin-top:10px"><a href="https://www.make.com/en/pricing" target="_blank" rel="noopener noreferrer">Aktuelle Make-Preise und Funktionen</a></p></section>
+<section class="step"><span class="num">4</span><h2>LSZH Automations einladen</h2>
+<p>Sobald wir Ihnen die richtige Einladungsadresse und Rolle bestätigt haben, kann eine berechtigte Person Ihres Unternehmens unter <strong>Org → Users → Invite user</strong> die Einladung anlegen. Wählen Sie das vereinbarte Team und die passende Rolle. Geben Sie uns möglichst nur die Rechte, die wir für die Umsetzung benötigen.</p>
+<ul><li><strong>Keine</strong> Passwörter oder Bestätigungscodes an LSZH senden.</li><li>Falls die Benutzerverwaltung in Ihrem Plan abweicht, stimmen wir die Möglichkeiten ab.</li><li>Der Kunde bleibt Eigentümer und Administrator seiner Organisation.</li></ul>
+<p style="margin-top:10px"><a href="https://help.make.com/organizations" target="_blank" rel="noopener noreferrer">Make-Dokumentation zur Einladung</a></p></section>
+<section class="step"><span class="num">5</span><h2>Systeme sicher verbinden</h2>
+<p>Wenn erforderlich, autorisieren Sie Google, Microsoft, Bexio oder andere Dienste direkt in <em>Ihrer</em> Make-Organisation. Bevorzugt nutzen wir OAuth bzw. die Freigaben des jeweiligen Anbieters. API-Schlüssel erfragen wir nur, wenn technisch notwendig, und übermitteln sie nicht per E-Mail.</p></section>
+<section class="step"><span class="num">6</span><h2>Gemeinsam testen und freigeben</h2>
+<p>LSZH Automations erstellt die vereinbarten Szenarien in Ihrer Umgebung, prüft den Ablauf mit Testdaten und dokumentiert die Übergabe. Erst nach Ihrer Freigabe wird die produktive Automation aktiviert.</p></section>
+</div>
+<div class="bottom"><h2>Sie möchten Unterstützung?</h2>
+<p>Kein Problem. Im Kunden-Onboarding wählen Sie einfach „Unterstützung gewünscht“ bzw. „Unterstützung bei Einladung gewünscht“. Wir begleiten die Einrichtung ohne Passwortweitergabe.</p>
+<p><small>Für die technische Realisierung verarbeiten wir lediglich die notwendigen Projektdaten. Bestehende vereinbarte Leistungs- und Betreuungsbedingungen bleiben massgebend.</small></p></div>
+<footer>LSZH Automations · ein Geschäftsbereich der LSZH Invest GmbH</footer>
+</main></body></html>

@@ -108,3 +108,30 @@ Drei frühere Testfehler des ursprünglichen Vergabeprozesses wurden **explizit 
 - Schlägt die allererste Airtable-Erstellung des Diagnoseeintrags fehl, gibt es auch dort noch keinen persistenten Datensatz. Das ist ein ausstehender Infrastruktur-Fehlerfall; keine Exactly-once- oder revisionssichere Zusage.
 - Airtable-Auditfelder sind veränderbar, die zwei Make Data Stores sind einzelne Atomschlüssel-Register, keine transaktionale Datenbank über alle Systeme. Datenbank-Konsistenz, Zugangsschutz, Freigabesignaturen und Backups sind vor produktiver Nutzung gesondert zu lösen.
 - Weiterhin keine echten Rechnungen, keine Kundenmails, keine Freigabe von `Rechnungsversand freigegeben`.
+
+
+## Fehlerprotokolle direkt im Test-Nummerngenerator – V2 (14.10.2026)
+
+Original V1 7958235 umbenannt zu «LSZH ALT TEST – Nummerngenerator V1 (ohne direkte Fehlerlogs)»; inaktiv. Neue V2 7958849 «LSZH TEST – Nummernvergabe V2 + direkte Fehlerprotokolle (KEIN Versand)»; inaktiv.
+
+### Eingebaute Make-Errorhandler
+
+Die neun Modulpunkte 2 bis 10 besitzen jeweils einen errorHandler mit eigenem Airtable-POST in die Diagnosetabelle tblAfUyhsFJ6HIIff und folgendem builtin:Commit. Die Pfade betreffen unzulässige Anfrage, Duplicate Request-Key, Audit-POST, Audit-Sequenz, Airtable-GET, Kollisionsprüfung, Audit-PATCH vor Reservierung, Nummern-Data-Store AddRecord und finalen Audit-PATCH. Keine E-Mail, keine Freigabe, keine automatische Entsperrung oder Wiederholung.
+
+**Wichtig:** Commit kann einen Make-Lauf als success ohne Output beenden. Deshalb fuer Geschaeftserfolg nur ReturnData mit ausdruecklicher Nummernreservierung werten; Status im separaten Audit bleibt verbindlich. Scheitert das Airtable-Fehlerlogging selbst, ist keine persistierte Protokollzeile garantiert: technische Make-Ausfuehrung muss dann manuell nachpruefbar bleiben. Kein revisionssicheres Produktivaudit.
+
+### Real durchgefuehrte V2-Fehlertests
+
+| Ausfuehrung | Fehler | Neuer Airtable-Pruefdatensatz |
+| --- | --- | --- |
+| 52de98db97ed4a79956dd46665039ae4 | Bereits reservierte Testanfrage A, Modul 3 | recY3jD2kx9JdDLnP: DUPLIKAT_ANFRAGE_GESPERRT |
+| 2bba07ba21e94e798ccaa14a28464928 | Ungueltiger Testinput, Modul 2 | recx99ilAZ3hZIZN1: ABGEWIESEN_UNGUELTIGE_TESTANFRAGE |
+| ad5e81844c344cfb8e9a28ce8f0a81b0 | Absichtlich unterbrochene Testanfrage D nach Request-Lock und Audit, Modul 5 | recLLeB6pSJmi3Vl6: damaliges Label AUDIT_SEQUENZ_FEHLER_MANUELL_PRUEFEN |
+
+Test D: Anfrage DEMO-ISSUE-20261014-D, neuer Airtable-Vergabe-Audit rec7twoHT9CnRGRPv, Sequenz 5. Request-Key LSZH-ISSUE-REQ-V1-DEMO-ISSUE-20261014-D wurde gespeichert; Nummer TEST-LSZH-2026-000005 NICHT reserviert und keine Rechnung erstellt. Der Ablauffehler wurde absichtlich injiziert. Das Handler-Label wurde danach zu AUDIT_NACH_LOCK_FEHLER_MANUELL_PRUEFEN praezisiert; alte Auditzeile wurde aus Nachvollziehbarkeit nicht ueberschrieben.
+
+Nach den Tests: Nummern-Register Data Store 218620 weiterhin 6 Keys, Request Store 218673 nun 4 Keys. Alt-V1 und V2 sind beide inaktiv. Echte Rechnung und Kunden-E-Mail: keine. Globaler Rechnungsversand: gesperrt.
+
+### Offen
+
+Die restlichen sechs Fehlerpfade sind bisher nicht separat durch Simulation nachgewiesen. Kontrollierte manuelle Wiederherstellung, revisionsfestes Audit mit unabhängiger Verfuegbarkeit, aktive Ueberwachung und authentifizierte Freigabe bleiben fuer echten Betrieb ausstehend. Keine produktiven Nummern aus diesem Prototyp heraus vergeben.

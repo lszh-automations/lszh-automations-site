@@ -708,7 +708,7 @@ async function handleSwissQrBill(req,res,{demo499=false,dynamicPreview=false}={}
          !/^\d{2}\.\d{2}\.\d{4}$/.test(String(data.dueDate||'')))
         return send(res,403,JSON.stringify({error:'invalid_preview_only_input'}));
       const servicePeriod=String(data.servicePeriod||'').trim();
-      if(servicePeriod.length>60 || /[\\r\\n\\x00-\\x1f]/.test(servicePeriod))
+      if(servicePeriod.length>60 || /[\r\n\x00-\x1f]/.test(servicePeriod))
         return send(res,400,JSON.stringify({error:'invalid_service_period'}));
       safeData={
         invoiceNumber:'PREVIEW-'+data.invoiceNumber,amountCHF:data.amountCHF,

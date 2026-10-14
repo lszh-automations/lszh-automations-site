@@ -37,3 +37,18 @@ Kundenempfänger-Adresse nur aus validierter Kunden-/Auftragskonfiguration über
 - 14.10.2026: Versuch eines internen HTML-V3-Tests wurde vor dem Make-Senden durch eine externe Sicherheitsprüfung blockiert. Make-Ausführungsliste, Data Store und Airtable-Testprotokoll geprüft: **kein HTML-V3-Versand ausgelöst**, keine V3-Reservierung. Beide Make-Szenarien wieder `inactive`. Keine Versandwiederholung ohne klare Freigabe.
 
 **Status Kundenmail:** HTML-Struktur und Platzhalter geprüft, noch unverbundene Vorlage. Keine produktive Rechnungs- oder Email-Freigabe.
+
+## Sicherer Kundenmail-Vorschauprozess
+
+Neues **inaktives**, ausdrücklich **READ-ONLY** Make On-Demand-Szenario
+[7955953 – LSZH TEST – Kundenrechnungsmail HTML aus Airtable (NUR VORSCHAU)](https://eu1.make.com/1728770/scenarios/7955953).
+
+Ablauf: Input `invoice_id` → synthetische Allowlist (`rec3tykWQLdw7aaCV`) → Airtable GET Rechnungen → Code prüft Beleg-ID, Echtbetrieb=false, PDF gesendet=false, Rechnungsnummer, CHF-Betrag, Rechnungs-E-Mail und Fälligkeitsdatum → ersetzt die vier HTML-Tokens mit **HTML-escaped** Daten → ReturnData.
+
+**Dieses Szenario hat kein Gmail-, SMTP-, HTTP-POST-, Airtable-Schreib- oder anderes Versandmodul.** Die E-Mail-Adresse wird nur auf gültige Syntax geprüft; kein Versand wird angestossen.
+
+- Positiver Test 14.10.2026: Execution `2fc0d60c764a4dd4b8fca00a9a9e2061` erfolgreich, Betrag CHF 1'250.00, Fälligkeit 22.10.2026, alle Platzhalter ersetzt, Status `CUSTOMER_EMAIL_PREVIEW_ONLY`, `no_send=true`.
+- Negativtest 14.10.2026: Execution `e87202da67cd4deeaa1624019e545481` lehnt eine ungültige Rechnungs-ID korrekt ab, bevor Airtable gelesen wird.
+- Separat eine iPhone-breite, nicht versendete HTML-Mustervorschau erstellt und die Darstellung ohne horizontalen Überlauf kontrolliert.
+
+Wichtig: Die vier Werte sind jetzt im Preview technisch angebunden, aber der spätere produktive Workflow muss Kunden-/Belegidentität zusätzlich mit dem **finalen Swiss-QR-PDF-Anhang** vergleichen, korrekte Empfängerberechtigung und Rechnungsstatus prüfen, Versandfreigabe dokumentieren und einen eigenen robusten Idempotenzschlüssel verwenden. Keine E-Mail-Automation freigeben.

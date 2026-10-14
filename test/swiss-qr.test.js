@@ -36,3 +36,17 @@ test('Invalid debtor and invoice identifiers rejected',()=>{
 assert.throws(()=>buildSwissQr({invoiceNumber:'SR 2026?',amountCHF:'1250.00',debtor}));
 assert.throws(()=>buildSwissQr({invoiceNumber:'SR-2026-001',amountCHF:'1250.00',debtor:{...debtor,postal:''}}));
 });
+test('CHF 499 preview is fixed and scannable, with non-payable warning',()=>{
+ const q=buildSwissQr({invoiceNumber:'DEMO-QR-499-2026-001',amountCHF:'499.00',debtor,test:true,preview:true});
+ const l=q.payload.split('\\n');
+ assert.equal(l.length,31);
+ assert.equal(l[18],'499.00');
+ assert.equal(l[19],'CHF');
+ assert.equal(l[27],'SCOR');
+ assert.equal(l[28],q.reference);
+ assert.match(l[29],/NICHT BEZAHLEN/);
+ assert.equal(q.preview,true);
+ assert.throws(()=>buildSwissQr({invoiceNumber:'DEMO-001',amountCHF:'499.00',debtor,test:true}));
+ assert.throws(()=>buildSwissQr({invoiceNumber:'DEMO-001',amountCHF:'499.01',debtor,test:true,preview:true}));
+ assert.throws(()=>buildSwissQr({invoiceNumber:'DEMO-001',amountCHF:'499.00',debtor,test:false,preview:true}));
+});

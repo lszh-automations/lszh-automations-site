@@ -31,6 +31,8 @@ jobs:
           node --check scripts/issue-offer-link.js
           node --check test/offerAcceptance.test.js
           node --check test/offerArchiveVerifier.test.js
+          node --check test/offerAcceptance.http.test.js
+          node --check test/support/offer-http-mock.cjs
       - name: Browser page script syntax
         run: |
           node - <<'NODE'

@@ -59,5 +59,5 @@ test('variable invoice previews accept Airtable amount and reject unsafe amounts
  assert.equal(q.variablePreview,true);
  assert.throws(()=>buildSwissQr({...options,amountCHF:'0.00'}),/invalid_amount/);
  assert.throws(()=>buildSwissQr({...options,amountCHF:'-1.00'}),/invalid_amount/);
- assert.throws(()=>buildSwissQr({...options,test:false}),/invalid_variable_preview/);
+ assert.throws(()=>buildSwissQr({...options,test:false}),/invalid_preview/);
 });

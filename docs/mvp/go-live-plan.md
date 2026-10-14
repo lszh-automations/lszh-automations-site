@@ -153,3 +153,34 @@ Das gemeinsame MVP-Staging (GitHub Draft PR #4) wurde um `test/browser/offer-por
 **Geschäftliches Vertragsarchiv noch nicht End-to-End geprüft:** Die in der Projektdokumentation angegebenen geschäftlichen Google-Drive-Archivordner `1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in`, `1COIjnGZDK1XCPXNBNikHw-7eUKfjNXgU` und `1o9ADwrIAuhEtP7Mv7tDCY9-OkNpCxX3I` gaben über den in ChatGPT aktuell verbundenen Google-Drive-Zugriff jeweils HTTP **404**. Das belegt **nur einen fehlgeschlagenen Zugriff mit genau dieser Verbindung**; es beweist weder, dass die Ordner tatsächlich fehlen, noch, dass die separate Make-Geschäftskonto-Verbindung nicht funktioniert. Vor realer Annahme Berechtigungen mit dem richtigen Geschäftskonto und dem explizit befugten Read-only-Servicekonto verifizieren; keine privaten Dokumente öffentlich stellen. Bei den fiktiven Belegen liegen zudem nur Vorschau-/Teststatus und nicht freigegebene Projektbedingungen vor.
 
 **Weiterhin KEINE Freigabe:** Juristisch genehmigte Vertragsbedingungen v1.0 fehlen laut bestehendem Freigaberegister; Projektbedingungen RC1 und AVV RC1 sind Entwürfe. Der echte geschäftliche Annahmelink darf weder versendet noch die produktive Annahme aktiviert werden. Keine Änderungen an `main`, keine Vertragsannahme, keine Kundenmail.
+
+## Google-Drive-Konten und Vertragsarchiv – Zugriffstest 14.10.2026
+
+**Technischer Status: Eine geschäftliche, bearbeitungsgesperrte Test-Offerten-PDF ist nachweislich über Make erreichbar. Der produktive Vertragsabschluss bleibt deaktiviert.**
+
+### Zwei getrennte Google-Drive-Berechtigungsbereiche
+
+1. Das mit ChatGPT verbundene Google Drive ist aktuell das **private Konto** \`lars.schulthess10@gmail.com\`. Es besitzt den privaten Ordner \`LSZH Vertragsarchiv – STAGING (nicht produktiv)\` (ID \`1_1jVIlD2MAwkVxpTsCUIZ-14LjQggmA3\`). Dessen Unterordner sind \`Offerten-PDF\` \`1a2GIXQ9hnLP27PQHZCdLBh2wLevvf9jN\`, \`Projektbedingungen\` \`1L6lESMSB0CFjZtgZ6vZaAl3zB-iNdI0M\` und \`Annahmenachweise\` \`1I0PA-oMOTYUzA-q16frxnLbTUTiw9DlA\`. Alle gehören dem privaten Account und haben **keine Freigaben** an weitere Konten oder die Öffentlichkeit. Projektbedingungen- und Annahmeordner sind leer. Ein fiktiver Test-PDF-Beleg \`1ZVFEASOJEvOfO3R6QcXxrbo4M4JxgrZL\` liegt im privaten Test-Unterordner. Die **historisch zuvor versuchten drei Ordner-IDs** waren keine IDs aus diesem Staging-Freigaberegister; ihre 404-Antworten sind für den Geschäftsaccount nicht aussagekräftig.
+2. Die vorhandenen Make-Szenarien \`7940220\` und \`7940261\` verwenden die **geschäftliche** Google-Drive-Verbindung \`11904271\` für \`lars@lszh-automations.ch\`. Dieser Verbindungsstatus ist \`ok\`. Ein echter Leseversuch ist am 14.10.2026 gelungen und macht den früheren Hinweis "invalid refresh token" für *diesen* Zugriff hinfällig.
+
+### Read-only Live-Prüfungen ohne Kundenaktion
+
+Vorhandenes Make-On-Demand-Szenario \`7941848\` (nur \`StartSubscenario → google-drive:getAFile → ReturnData\`) jeweils kurz aktiviert, gelesen und sofort wieder deaktiviert, keine Gmail- oder Schreibmodule.
+
+- Ursprünglicher Test auf Geschäftskonto-Datei \`1m8ayt5kbffbHyA9u11pABrfSJRZ4vQfq\`: **SUCCESS**, Execution \`6ec41eeea2a543f7b266143746a6bfd3\`, 630 Bytes, SHA-256 \`c7694e7a617af93059204f790bcf9f306b8d3fa3c5a15e6a4f352a2abf6366c4\`.
+- Geschäftliche Testofferten-PDF \`14hOfZHVRsBbMBGJCc6ZoAFyKErM37GOp\`: **SUCCESS**, Execution \`9eb6438c03144cdfae0fec8aa5bb8373\`, Name \`TEST_NICHT_VERSENDEN_Offerte_OFF-recq55ozKTWUvqo3u.pdf\`, \`application/pdf\`, **69'771 Bytes**, SHA-256 \`759d06e3352f89522aa5e92d14c89175c0d384974d144073299291d47135bff2\` = genau der Airtable-Wert der Testofferte \`recJQ13OAtv6iSafG\`. Die Make-Dateimetadaten bestätigten \`contentRestrictions: readOnly=true\`, **owner \`lars@lszh-automations.ch\`**, \`shared=false\`, keine \`anyone\`-Berechtigung. Das ist ein belastbarer Nachweis der geschäftlichen Test-PDF mit Integritäts- und Bearbeitungsschutz.
+- Dieselbe geschäftliche Make-Verbindung konnte die nur privat vorhandene Test-PDF \`1ZVFEASOJEvOfO3R6QcXxrbo4M4JxgrZL\` **nicht** lesen: erwarteter \`404 File not found\`, Execution \`09cd375cba8e487294477d9e82dcf5d5\`. Das bestätigt, dass die Konten nicht dieselben Leserechte haben. Die Datei ist nicht als verschwunden anzusehen.
+- Nach den Diagnoseversuchen wurde \`7941848\` auf **ursprüngliche Datei-ID** \`1m8ayt5kbffbHyA9u11pABrfSJRZ4vQfq\` zurückgesetzt und ist **inactive**. Keine Freigaben wurden verändert; keine Mail, Rechnung oder Vertragsannahme.
+
+### Verbindliche Architekturentscheidung für den ersten Kunden
+
+Für den zukünftigen Vertragsworkflow **nur geschäftlich verwaltete, private Drive-Archivordner** als eine führende Quelle verwenden. **Nicht** versehentlich IDs aus dem privaten Staging-Archiv in die geschäftliche Make-Verbindung mappen und **keine** öffentliche Linkfreigabe als Berechtigungs-Workaround aktivieren. Der ausstehende Dienstkontozugriff soll minimaler **Leser auf den zwei endgültigen PDF-Artefakten bzw. genau ihrem geschäftlichen Archivordner** sein, nicht Editor und nicht pauschal auf das ganze Drive.
+
+Vor Go-Live nachweisen:
+1. Endgültige, juristisch/geschäftlich **freigegebene Projektbedingungen v1.0** und ausgefüllte AVV-Anlagen als separate echte PDFs, mit Versionsbezeichnungen und Hash; Entwürfe **nicht** als genehmigt markieren.
+2. Beide PDFs im selben geschäftlichen Archiv hinterlegen, **nicht öffentlich**, SHA-256 und \`contentRestrictions.readOnly=true\` für beide belegen.
+3. Eigenes Google-Dienstkonto (E-Mail des tatsächlich eingerichteten Servicekontos), gezielte Read-only-Freigabe im Geschäftskonto und separater Echttest des in \`offerArchiveVerifier.js\` verwendeten \`OFFER_DRIVE_SA_B64\` über Render-**Secret**. Eine OAuth-Make-Verbindung ist **nicht** gleich dem Dienstkonto und beweist dessen Zugriff nicht.
+4. Die Airtable-Felder der jeweiligen echten Offerte (Drive-IDs, SHA-256, freigegebene Version, \`VERIFIZIERT\`, letzter Prüfzeitpunkt, rechtliche Freigabe) erst nach diesen echten Nachweisen befüllen.
+5. \`OFFER_ACCEPTANCE_ENABLED=false\` und Make-Szenarien inaktiv belassen; zusätzlich den Offertenversand wegen des dokumentierten internen Testmail-Vorfalls mit dem \`0=1\`-Filter gesperrt lassen. Vor Kundenversand und echtem Vertragsabschluss explizite menschliche Freigabe.
+
+**Limitation:** Der Geschäftskonto-Drive-Test verifiziert Zugang über Make OAuth und eine bereits vorhandene **synthetische** Offerte. Es ist **kein** Servicekonto-, finale-Bedingungen-, vollständiger Online-Annahme- oder juristischer Freigabetest.

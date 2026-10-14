@@ -50,3 +50,14 @@ test('CHF 499 preview is fixed and scannable, with non-payable warning',()=>{
  assert.throws(()=>buildSwissQr({invoiceNumber:'DEMO-001',amountCHF:'499.01',debtor,test:true,preview:true}));
  assert.throws(()=>buildSwissQr({invoiceNumber:'DEMO-001',amountCHF:'499.00',debtor,test:false,preview:true}));
 });
+
+test('variable invoice previews accept Airtable amount and reject unsafe amounts',()=>{
+ const options={invoiceNumber:'PREVIEW-AZ-20261008-q0xp9K',amountCHF:'1250.00',debtor,test:true,preview:true,variablePreview:true};
+ const q=buildSwissQr(options);
+ assert.equal(q.payload.split('\n')[18],'1250.00');
+ assert.equal(q.payload.split('\n')[29],'PDF VORSCHAU NICHT BEZAHLEN');
+ assert.equal(q.variablePreview,true);
+ assert.throws(()=>buildSwissQr({...options,amountCHF:'0.00'}),/invalid_amount/);
+ assert.throws(()=>buildSwissQr({...options,amountCHF:'-1.00'}),/invalid_amount/);
+ assert.throws(()=>buildSwissQr({...options,test:false}),/invalid_variable_preview/);
+});

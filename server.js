@@ -694,6 +694,13 @@ function staticFile(req, res) {
   if (pathname === '/offerte-annehmen' || pathname === '/offerte-annehmen/') pathname = '/offerte-annehmen/index.html';
   if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
   if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
+  if (pathname.startsWith('/onboarding/')) {
+    // A personal onboarding link carries a high-entropy token in its URL.
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
   if (pathname.startsWith('/offerte-annehmen/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Referrer-Policy','no-referrer');

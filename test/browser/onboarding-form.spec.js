@@ -42,7 +42,11 @@ test('Onboarding Chromium desktop/mobile uses mock webhook only, no invitation o
    const context=await browser.newContext({viewport:{width,height},isMobile:width===390,hasTouch:width===390});
    const page=await context.newPage();
    const external=[];page.on('request',req=>{if(!req.url().startsWith(base))external.push(req.url());});
-   await page.goto(base+'/onboarding/?code='+tokens[index]);
+   const pageResponse=await page.goto(base+'/onboarding/?code='+tokens[index]);
+   expect(pageResponse.headers()['referrer-policy']).toBe('no-referrer');
+   expect(pageResponse.headers()['cache-control']).toContain('no-store');
+   expect(pageResponse.headers()['x-robots-tag']).toContain('noindex');
+   await expect.poll(()=>new URL(page.url()).search).toBe('');
    const form=page.locator('#onboardingForm');await fill(form);
    await expect(page.getByText('lars@lszh-automations.ch').first()).toBeVisible();
    await form.locator('button[type="submit"]').click();

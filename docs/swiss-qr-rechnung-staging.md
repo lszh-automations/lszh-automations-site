@@ -68,3 +68,15 @@ Das bestehende inaktive Rechnungs-Szenario **7781492** erzeugt derzeit die Googl
 - Test-Eingabe `SR-20261008-q0xp9K` ergab `RF17LSZH69FAEF66BED4FA21` und `checksum_valid=true`. Unabhängige Node-Referenzimplementierung und Mod97-Abgleich stimmen exakt überein.
 - Nach der Testausführung wurde das Make-Szenario wieder **deaktiviert**.
 - Dies belegt die Referenzberechnung in Make, **nicht** den finalen PDF-Renderer oder die bankseitige Einlesung.
+
+## Vollständiger GitHub-Node-PDF-Test – 14.10.2026
+
+- CI-Workflow `.github/workflows/swiss-qr-staging.yml` wurde im Draft-Branch eingerichtet, installiert `pdfkit`, `qrcode` und PDF-Inspektionswerkzeuge, führt alle Node-Tests sowie echten PDF-Erzeugungs- und QR-Rücklesetest aus.
+- **Grüner GitHub Actions Testlauf**: https://github.com/lszh-automations/lszh-automations-site/actions/runs/38488528625 (Job erfolgreich).
+- `npm test`: **7/7** bestanden, einschliesslich PDF-Renderer und negativen Tests (CHF-Betrag in als nicht zahlbar markiertem Test blockiert).
+- Das Node-Programm `scripts/qr-smoke.js` erzeugte `LSZH_QR_Staging_Nicht_Zahlbar.pdf` mit **2 A4-Seiten**, 10'650 Bytes und Test-Referenz `RF13LSZH8AE1F7308D00155A`.
+- `pdfinfo`: 2 A4-Seiten (595.28 × 841.89 pt); der QR-Code wurde aus der gerenderten PDF mit OpenCV tatsächlich dekodiert, **31 Swiss-QR-Felder** und CHF 0.00 geprüft, `NICHT ZUR ZAHLUNG VERWENDEN` vorhanden.
+- Die gerenderte Seite 1 und Seite 2 wurden zusätzlich visuell kontrolliert: sichtbare Musterrechnung, QR-Zahlteil, Empfangsschein, Schweizer Kreuz und Testhinweis, keine offensichtliche Textabschneidung.
+- Zweiter isolierter Make-Test `7944507` führte einen vollständigen synthetischen Swiss-QR-Datensatz mit 31 Feldern, gültiger SCOR- und IBAN-Prüfung, CHF 0.00 und ausdrücklichem Testhinweis aus, Status erfolgreich; Make-Szenario nach Run wieder deaktiviert.
+- **Noch nicht ausgeführt**: Staging-Render-Deployment, Bank-App-Scan, produktiver Make-Rechnungsablauf, Echtbetrag und reale Kundendaten. Keine Kundenmail gesendet. Draft nicht mergen.
+- Render-Konto hat derzeit nur Workspace `My Workspace` mit Login `lars.schulthess10@gmail.com`. Render-Tool verlangt ausdrücklich die Auswahlbestätigung des Nutzers, bevor wir diesen Workspace für Services verwenden; daher **kein Render-Service erstellt**. Geschäftliches Google-Drive-Konto `lars@lszh-automations.ch` bleibt separat, unverändert.

@@ -26,6 +26,9 @@ assert.equal(l[30],'EPD');
 test('Non-payable tests are 0.00 with exact SIX warning',()=>{
 const q=buildSwissQr({invoiceNumber:'TEST-001',amountCHF:'0.00',debtor,test:true});
 assert.equal(q.payload.split('\n')[29],'NICHT ZUR ZAHLUNG VERWENDEN');
+assert.equal(q.payload.split('\n')[18],'', 'SIX forbids 0.00 as encoded payment amount');
+assert.equal(q.qrAmount,'');
+assert.equal(q.amount,'0.00');
 assert.throws(()=>buildSwissQr({invoiceNumber:'TEST-001',amountCHF:'1250.00',debtor,test:true}));
 assert.throws(()=>buildSwissQr({invoiceNumber:'TEST-001',amountCHF:'0.00',debtor}));
 });

@@ -72,3 +72,17 @@ Status: **Draft PR #3** https://github.com/lszh-automations/lszh-automations-sit
 In Make wurden drei Labels eingeführt: `MVP – Prüfung vor Go-Live` (12 Szenarien), `TEST / STAGING – kein Versand` (11), `ALT / nicht aktivieren` (2). **Labels verändern die Ausführung nicht.** Bestehende Szenarien wurden nicht gelöscht oder produktiv aktiviert.
 
 Das Dokument erteilt keinerlei rechtliche Abnahme. Eine Zeitangabe von 1–2 Wochen bleibt eine Schätzung unter Vorbehalt der Prüfungen und Freigaben.
+
+
+## Tatsächlicher Make-Webhook → Airtable E2E-Test bestanden (14.10.2026)
+
+Nach dem erfolgreichen CI-Test wurde **ein einziger synthetischer Testlead** durch den Original-Make-Website-Webhook und die aktuelle, inaktive MVP-Sicherheitslogik geschickt. Beide Gmail-Module in Website-Szenario `7774243` waren **explizit disabled=true** und blieben auch danach deaktiviert.
+
+- **Einmaliger Testsender:** On-Demand-Make-Szenario `7960269` mit streng kontrollierter Testkennung `LSZH-MVP-LEAD-E2E-20261014-01`. Es erstellt die neun Websiteformular-Pflichtangaben, Uhrzeit/Quelle und sendet genau einen HTTP-POST als JSON an denselben Make-Webhook, den die Website nutzt. Testsender ist kein Ersatz für die noch unveröffentlichte `server.js`-Version.
+- **Echter Make-Webhook-Durchlauf:** Execution `a51a71dfff3344f1a0e331d61330dde0`, Status `success`.
+- **Testsender-Durchlauf:** Execution `fbd0a2e33ca54befb8a5264f2191f0bd`, Status `success`; HTTP-Antwort als erfolgreiche gespeicherte Airtable-ID ausgewertet.
+- **Airtable tatsächlich geschrieben:** Base `appzJiskpAdaR1HEv`, `Leads` Tabelle `tbldBCMm9NlSQqcq5`, Testdatensatz `recq55ozKTWUvqo3u`. Quelle `LSZH Automations Website`; Status `Neu`; Firma `LSZH E2E "Sonderzeichen" GmbH`, Name `LSZH E2E Test <Max & Co>`, Empfängeradresse `lars@lszh-automations.ch`. Sonderzeichen `<b>HTML-Test</b>`, `&`, Anführungszeichen und mehrzeilige Inhalte wurden in Airtable **unverändert als Text** gespeichert. Testdaten ausdrücklich `NUR SYNTHETISCHER TEST – NICHT KONTAKTIEREN`.
+- **Echter Speicherbeleg:** WebhookRespond lieferte die Airtable-ID `recq55ozKTWUvqo3u`; dieser genaue Datensatz wurde anschliessend separat mit Airtable gelesen und verifiziert.
+- **Sicherheit:** Gmail-Module `3` und `4` blieben `disabled=true`. Website-Szenario `7774243` und Testsender `7960269` unmittelbar nach dem einmaligen Test wieder `inactive`; Webhook-Queue stand wieder bei `0`. Es wurde kein Kundenmail-, Offerten- oder Rechnungsprozess aktiviert.
+
+**Was das noch NICHT beweist:** Die neue Website-`server.js`/`index.html`-Version liegt weiterhin nur in **Draft PR #3**, wurde also noch nicht durch den echten Render-Webserver oder eine echte iPhone-Browsersitzung getestet. Der E2E-Test beginnt *an der Make-Webhook-Grenze*, nicht am Browser. Die separate GitHub CI mit 5/5 Tests simuliert Browser→Server→Webhook-Antworten, aber keine reale Render-Bereitstellung. Vor Merge/Go-Live müssen Website-UI/Origin/Spam-/Duplikatfälle und Empfänger/Mail-Fehler geprüft werden. Original-CRM-Testdatensatz bitte als Test belassen oder kontrolliert archivieren.

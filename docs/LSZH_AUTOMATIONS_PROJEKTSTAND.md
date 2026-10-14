@@ -92,3 +92,13 @@ Letzte Architekturentscheidung: 13.10.2026 – Kunden besitzen ihre eigenen Make
 - Die Testkopie `7963278` ist nach den Testläufen wieder **INAKTIV**. Ebenso sind die früheren isolierten Teststrecken `7962957`, `7962998`, `7963182` und `7963206` inaktiv.
 
 **Noch nicht abgenommen:** Die Testkopie hat einen `StartSubscenario`-Trigger, **keinen Live-Webseiten-Webhook**. Noch nötig: tatsächlicher synthetischer HTTP-Webhook-Test, echte Unterbrechung in Make zwischen Modul 3 und Modul 6, gleichzeitige erstmalige Einsendungen, Fehlerantworten bei nicht autorisiertem Token oder Airtable-Ausfall sowie Stabilität bei späteren Datenaktualisierungen. Der instanzlokale Zwei-Minuten-Cache im Website-Proxy garantiert keine dauerhafte Exklusivität. Die übrigen Freigabeblocker zu Google Drive, RC1/AVV, Kundenorganisation und Rechnungs-/Offertenversand bleiben bestehen.
+
+
+### Nachtrag 14.10.2026 – echter HTTP-Webhook im isolierten Test
+
+- Eigenständiges Make-Webhook-Szenario **7963329** als eingeschränkte Kopie des Onboardings angelegt. Es enthält **kein Gmail-/E-Mail-Modul** und darf ausschliesslich den synthetischen Testauftrag `rec2958xrhm6QmIbM` verarbeiten. Getrenntes synthetisches HTTP-Sendeszenario **7963343**.
+- **HTTP-E2E Wiederholung:** Ein tatsächlicher HTTP-POST aus Szenario 7963343 an den Test-WebHook 7963329 durchlief Validierung, Auftragsabfrage, JSON-Erzeugung, Existenzprüfung, Wiederholungs-Guard, Airtable-Upsert, Auftrags-/Kundendaten und Datenschutzaufgaben-Existenzprüfung. Die Webhook-Antwort enthielt `ok=true` und dieselbe ursprüngliche Datensatz-ID. Make-Ausführung ohne Fehler.
+- **HTTP-E2E Konflikt:** Geänderter Projektname im POST führte zu `duplicate=true`, `error=already_submitted`. Ausführungsprotokoll durchlief nur die Validierung und lesenden Module sowie die Konflikt-Antwort (Modul 19), **kein** Airtable-Schreibmodul. Projektname, Verknüpfung und DSG-Aufgabe blieben unverändert.
+- Beide Make-HTTP-Läufe meldeten HTTP **200** vom internen Webhook. Der bereits implementierte Website-Proxy wertet das Geschäftsfehler-JSON aus und soll bei `duplicate=true` selbst HTTP **409** ausgeben. Dieser Website-Proxy-Endpunkt wurde noch **nicht** selbst per HTTP getestet.
+- Webhook-Queue nach Tests **0**. Szenarien **7963329** und **7963343** nach den Läufen deaktiviert, wie auch das originale Onboarding **7777695**. Dessen Kundenmail-Modul 9 behält die `0=1`-Sperre.
+- Weiter offen bleiben: Durchlauf über das tatsächliche öffentlich zugängliche Website-Onboarding samt 409-Prüfung, echte Fehler-/Unterbrechungsinjektion in Make, initial gleichzeitige Eingänge für denselben noch nicht angelegten Datensatz, Fehlerbehandlung bei Ausfall von Airtable/Google und manuelle organisatorische Freigaben. **Keine Produktionsfreigabe.**

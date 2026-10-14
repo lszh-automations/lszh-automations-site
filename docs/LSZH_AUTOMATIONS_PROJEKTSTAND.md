@@ -163,3 +163,19 @@ Letzte Architekturentscheidung: 13.10.2026 – Kunden besitzen ihre eigenen Make
 
 **Wichtige Dokumentenidentität:** Das Original RC1 enthält Platzhalter, Entwurfsvermerke und keine Signaturen. Der provisorische Geschäftsentscheid wertet es *nicht* zu einer endgültigen rechtsgeprüften, signierten Vereinbarung auf. Es wird durch diese Notiz nicht umbenannt, überschrieben oder als final archiviert.
 
+
+
+### Nachtrag 14.10.2026 – RC1-Originale geprüft und echte synthetische PDF-/Annahme-Nachweisstrecke
+
+Die originalen **Projektbedingungen v1.0 RC1 (4 Seiten)** und das **Geschäftsbedingungen-Entscheidungsblatt RC1 (1 Seite)** wurden in der ChatGPT-Library wiedergefunden und mit der vorhandenen **AVV v0.9 RC1 (6 Seiten, Anlagen A–C)** textlich abgeglichen. Originale **nicht verändert**; die frühere Aussage „hier nicht abrufbar“ im Freigabeformular ist damit nur noch historischer Stand. Die AVV bleibt allein **intern provisorisch** als Muster freigegeben; die Projektbedingungen, eine endgültige AVV und kundenbezogene Anlagen sind **nicht extern/rechtlich freigegeben**.
+
+**Offene Geschäftsentscheide:** D1 Care-Kündigung 30 Tage auf Monatsende; D2 Werkabnahme innert 10 Arbeitstagen ohne automatische Schweigeabnahme; D3 Haftungsdeckel 12 Monate Leistungsentgelt, mindestens CHF 2'000. D3 ausdrücklich noch keine akzeptierte rechtswirksame Klausel. Zudem muss eine auftragsbezogene AVV mit Anlagen A–C vor der entsprechenden Kundendatenverarbeitung separat nachweisbar vereinbart werden; aktuelle Online-Angebotsstrecke prüft nur Offerte und Projektbedingungen.
+
+**Isolierte synthetische Make-Tests durchgeführt:**
+- `7963939`: zwei verschiedene, als `TEST_ONLY` gekennzeichnete Fake-PDFs erstellt, getrennt ins geschäftliche STAGING archiviert, erneut gelesen, mit SHA-256 sowie Drive Content Restriction kontrolliert. **SUCCESS** (fiktive Offerte 36'691 Bytes; fiktive Projektbedingungen 38'877 Bytes). Danach deaktiviert.
+- `7963965`: beide fiktiven PDFs mit richtiger Version/Hash **PASS**. Manipulierter Hash, vertauschte IDs und dieselbe PDF für beide Dokumente wurden korrekt **abgewiesen**; reine Lesetests, kein Statuswechsel. Danach deaktiviert.
+- `7963993`: einen **synthetischen, ausdrücklich rechtlich unwirksamen** Annahmenachweis aus den beiden archivierten Fake-PDFs erzeugt, als PDF gespeichert, gesperrt und Hash geprüft: **SUCCESS / actual_contract=false / email_sent=false**. Negativtest mit falschem Hash brach **vor** Dokumenterzeugung ab. Danach deaktiviert.
+
+Ausführliche Klausel- und Testprüfung: [LSZH_RC1_KLAUSELPRUEFUNG_UND_SYNTHETISCHER_ANNAHMETEST_20261014.md](./LSZH_RC1_KLAUSELPRUEFUNG_UND_SYNTHETISCHER_ANNAHMETEST_20261014.md).
+
+**Wichtige Restpunkte:** keine echten Kunden, E-Mails oder Vertragsannahmen getestet; öffentliches Website-/Token-/Annahme-Endpoint und vollständige Airtable-Nachweis-/Versandkette bleiben offen. Im produktiven Staging-Flow `7940220` einen möglichen Fehlerfall nach PDF-Archivierung und vor bestätigtem Mailversand auf Wiederanlauf/Status-Reset prüfen. Rechtliches und geschäftliches D1–D3-Freigabeverfahren sowie allfällige AVV-Anlagen und endgültige PDF-Versionen mit Archiv-ID/Hash bleiben offen. Die Szenarien `7835460`, `7940261`, `7940220` und alle obigen synthetischen Teststrecken sind **inaktiv**, harte `0=1`-Sperren bleiben unberührt. Keine Produktivfreigabe.

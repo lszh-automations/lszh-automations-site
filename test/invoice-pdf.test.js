@@ -17,6 +17,6 @@ test('test PDFs reject real monetary amounts and invalid addresses',async()=>{
 test('scan preview with CHF 499.00 produces 2-page PDF without production issuance',async()=>{
  const r=await renderInvoice({invoiceNumber:'DEMO-QR-499-2026-001',amountCHF:'499.00',debtor,test:true,preview:true,description:'Demo without real obligation'});
  assert.equal(r.pdf.subarray(0,5).toString('latin1'),'%PDF-');
- assert.equal((r.pdf.toString('latin1').match(/\\/Type\\s*\\/Page\\b/g)||[]).length,2);
- assert.match(r.reference,/^RF\\d{2}LSZH[A-F0-9]{16}$/);
+ assert.equal((r.pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
+ assert.match(r.reference,/^RF\d{2}LSZH[A-F0-9]{16}$/);
 });

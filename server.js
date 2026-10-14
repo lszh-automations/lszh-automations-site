@@ -692,10 +692,9 @@ async function handleSwissQrBill(req,res){
     const data=await readJson(req,16384);
     if(!data||typeof data!=='object'||Array.isArray(data))
       return send(res,400,JSON.stringify({error:'invalid_invoice'}));
-    // Additional independent safety latch: this STAGING endpoint generates only CHF 0.00 test PDFs.
-    // Never accept production invoices without a separate explicit rollout decision.
-    if(String(process.env.SWISS_QR_REAL_INVOICES_ENABLED||'').toLowerCase()!=='true' &&
-       (data.test!==true || data.amountCHF!=='0.00'))
+    // STAGING is hard locked to CHF 0.00 and test=true even if a deployment
+    // accidentally sets a production environment variable. No override here.
+    if(data.test!==true || data.amountCHF!=='0.00')
       return send(res,403,JSON.stringify({error:'test_only_zero_amount'}));
     const {renderInvoice}=require('./lib/invoice-pdf');
     const result=await renderInvoice(data);

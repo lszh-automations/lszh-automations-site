@@ -145,3 +145,21 @@ Letzte Architekturentscheidung: 13.10.2026 – Kunden besitzen ihre eigenen Make
 **Verifikation:** Die drei Make-Szenarien `7835460`, `7940261` und `7940220` nach den Änderungen erneut ausgelesen: alle **INAKTIV**. Alle drei Kundenmail-Module besitzen harte `0=1`-Filter; vorgelagerte Schreib-/Vertragsprozesse ebenfalls. JSON-Bodies der drei korrigierten Airtable-Statusaktualisierungen sind syntaktisch gültig. Google-Drive-Verbindung ist autorisiert.
 
 **Noch nicht abgenommen:** Vollständige E2E-Ausführung der drei Offerten-/Annahme-Staging-Szenarien (harte Sperren bleiben aktiv), eigene Geschäfts-STAGING-Unterordner, zwei **tatsächlich freigegebene** finale Projektbedingungen-/Offerten-PDFs samt SHA-256 und Archivzugriff, Berechtigungs- und Retention-/Backup-/WORM-Konzept, separates eingeschränktes serverseitiges Dienstkonto, RC1-Projektbedingungen und AVV mit geschäftlicher und juristischer Freigabe, scharfe Anbieter-/UID-/MWST-Daten, Kundeneinwilligung und ausdrückliche Produktionsfreigabe. Keine E-Mails, Einladungen oder Vertragsabschlüsse durchgeführt.
+
+
+### AVV v0.9 / RC1 – Geschäftsentscheid vom 14.10.2026: INTERN PROVISORISCH FREIGEGEBEN
+
+**Entscheid durch den LSZH-Geschäftsführer:** Das bestehende **LSZH_AVV_v0_9_RC1_Freigabeentwurf.docx**, Original vom **13.10.2026**, wird als **interne, provisorisch akzeptierte Arbeitsgrundlage** für technische Vorbereitung, Dokumentenabgleich und vollständig synthetische Tests behandelt. Original bleibt unverändert (auch wenn darauf noch „nicht freigegeben“ steht). Der Entscheid ist separat im Google-Drive-Freigaberegister **LSZH Vertragsarchiv – Freigaberegister (STAGING)** protokolliert.
+
+**Eindeutige Status-Trennung:**
+- AVV-Musterinhalt: **INTERN PROVISORISCH FREIGEGEBEN** / für Staging-Arbeit verwendbar.
+- Unterschriften, Kunden- und Projektbezug: **NICHT FREIGEGEBEN**.
+- AVV Anlagen A (Daten-/Projektsteckbrief), B (TOM-Nachweise), C (Subprozessoren inkl. Regionen/Genehmigung): **NOCH NICHT kundenbezogen abgeschlossen**.
+- Juristische Prüfung inkl. Anwendbarkeit DSG/ggf. DSGVO und Auslandsdaten: **OFFEN**.
+- Projektbedingungen v1.0 RC1: **SEPARAT OFFEN**.
+- Online-Annahme rechtlich freigegeben in Airtable: **NEIN / unverändert**; sämtliche **harten Make-0=1-Sperren** bleiben bestehen; keine echten E-Mails, keine externe Bereitstellung oder Einladungen, keine Vertragsabschlüsse und keine Produktiv-Szenarien.
+
+**Vor externer Verwendung pro Kunde prüfen:** Identität und Vertretungsbefugnis; Leistungs-/Datenfluss- und Rollenzuordnung (auch kundeneigene Make-Organisation); Kategorien inkl. besondere Daten/Profiling; eingesetzte Anbieter, Regionen, internationale Zugriffe, AVV/SCC; technische und organisatorische Massnahmen mit tatsächlichem Nachweis; Lösch-/Backupfristen; Kundenfreigabe Anlage C; Abstimmung mit finalen Projektbedingungen; richtige AVV-Version als eigenständige schreibgeschützte PDF im **geschäftlichen** Archiv mit SHA-256; unabhängige rechtliche und geschäftliche finale Freigabe.
+
+**Wichtige Dokumentenidentität:** Das Original RC1 enthält Platzhalter, Entwurfsvermerke und keine Signaturen. Der provisorische Geschäftsentscheid wertet es *nicht* zu einer endgültigen rechtsgeprüften, signierten Vereinbarung auf. Es wird durch diese Notiz nicht umbenannt, überschrieben oder als final archiviert.
+

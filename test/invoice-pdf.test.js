@@ -30,6 +30,7 @@ test('SIX print format: A4 lower-edge payment part, receipt and QR quiet zone',(
  assert.ok(LAYOUT.qrX+LAYOUT.qrSize+LAYOUT.qrQuietZone<=118);
  assert.equal(LAYOUT.receiptAcceptanceTop+LAYOUT.receiptAcceptanceHeight,297);
  assert.ok(LAYOUT.receiptAcceptanceHeight>=20);
+ assert.equal(LAYOUT.receiptWidth-LAYOUT.receiptRightMargin,57);
  assert.ok(LAYOUT.receiptAmountStart+12<=LAYOUT.receiptAcceptanceTop);
 });
 test('visible amounts have blank thousands separator, encoded QR value stays ungrouped',()=>{

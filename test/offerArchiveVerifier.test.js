@@ -9,6 +9,7 @@ const qid='1ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef';
 const tid='1BCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef';
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const fields={
+  'AVV erforderlich':'Nein',
   'Online-Annahme Offerten Drive ID':qid,
   'Online-Annahme Offerten-SHA256':hash(quote),
   'Online-Annahme Bedingungen Drive ID':tid,
@@ -17,6 +18,7 @@ const fields={
   'Online-Annahme Offerten-Archivprüfung am':'2026-10-13T18:00:00Z'
 };
 const {privateKey}=crypto.generateKeyPairSync('rsa',{modulusLength:2048});
+process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID='1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in';
 process.env.OFFER_DRIVE_SA_B64=Buffer.from(JSON.stringify({
   client_email:'archive-test@example.iam.gserviceaccount.com',
   private_key:privateKey.export({type:'pkcs8',format:'pem'}).toString()
@@ -35,7 +37,7 @@ function mockDrive({changed=false,unlocked=false,wrongBytes=false}={}){
         {status:200,headers:{'content-type':'application/pdf'}});
     return Response.json({
       id,mimeType:'application/pdf',sha256Checksum:checksum,size:bytes.length,
-      trashed:false,contentRestrictions:[{readOnly:!unlocked}]
+      trashed:false,parents:['1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in'],contentRestrictions:[{readOnly:!unlocked}]
     });
   }
   return {verifier:createVerifier({fetcher}),calls};

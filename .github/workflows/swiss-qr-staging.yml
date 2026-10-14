@@ -33,6 +33,8 @@ jobs:
         run: npm test
       - name: Create CHF 0.00 TEST PDF
         run: node scripts/qr-smoke.js
+      - name: Install PDF inspection utilities
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Verify physical A4 and 2-page PDF
         run: |
           pdfinfo out/LSZH_QR_Staging_Nicht_Zahlbar.pdf | tee out/pdfinfo.txt

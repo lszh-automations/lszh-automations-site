@@ -46,3 +46,25 @@ Nach den Tests beide Szenarien **inaktiv**; Data Store enthält vier geprüfte T
 7. **Keine automatische E-Mail und kein Echtbetrieb ohne ausdrückliche Freigabe.** Legacy-Szenario `7781492` inaktiv/gesperrt; Freigabe-Vorprüfung `7956605` weiterhin `can_send=false` und eigene Nummerneindeutigkeitskontrolle aktuell absichtlich nicht als bestanden implementiert.
 
 Diese Dokumentation beschreibt einen erfolgreich getesteten **Prototyp für historische Testnummern und atomare Schlüsselreservierung**, keine freigegebene produktive Rechnungsarchitektur.
+
+
+## Automatisch generierte Testnummern mit separatem Audit (14.10.2026)
+
+Die Architektur enthält zusätzlich:
+
+- Airtable-Tabelle `tbleGuMXKhEjGP3wP` «Rechnungsnummern – Vergabeprotokoll TEST», Sequenz-Feld `fld3E3KBRWZO6Zm5O` als Airtable `autoNumber`; Status, Vorgang, erzeugte Nummer, Data-Store-Key und Prüfprotokoll. Seed `rec6Wx4flejD71JeH` für bestehende Test-Reservierung `000001`. Das **Autonummer-Feld ist hier ein technischer TEST-Nummern-Vorschlagsgeber**, keine rechtsverbindliche Rechnungsnummer.
+- Data Store `218673` «LSZH TEST – Nummernvergabe Anfrage-IDs (Einmal)». Reserviert einmalig die Request-IDs, bevor ein auditierter Vorschlag erzeugt wird. Kein Overwrite.
+- Make On-Demand-Szenario `7958235` «LSZH TEST – Automatische Rechnungsnummer + Audit (KEIN Versand)». Beschränkt auf genau zwei synthetische Test-Anfrage-IDs `DEMO-ISSUE-20261014-A`, `DEMO-ISSUE-20261014-B`. Schrittfolge: Input-Validierung → Request-Lock im Store 218673 → Airtable Audit-Datensatz anlegen (autoNumber) → `TEST-LSZH-2026-NNNNNN` ableiten → Airtable bestehende Rechnungsnummern prüfen (kein Offset, HTTP 200, null Treffer) → Audit «Nummer geprüft, Reservierung offen» → atomarer DataStore AddRecord im Nummernregister 218620, `overwrite=false` → Audit «Reserviert (nur TEST)» → ReturnData ohne Rechnung/Mail.
+- Erfolgreiche Vergabe A: Make execution `06e29bcb5a6041cc9944614a58a44bc2`, Nummer `TEST-LSZH-2026-000002`, Register `LSZH-REGISTER-V1-TEST-LSZH-2026-000002`, Audit `recxAgO8sgqx7C3tz`.
+- Wiederholter A-Antrag: `44b42561b5e04dba8de56bd8628e5e75`, `Duplicate key error` **vor** weiterer Nummerngenerierung.
+- Erfolgreiche Vergabe B: `92bc25e36e194c8d9608ad4ea34f2214`, `TEST-LSZH-2026-000003`, Audit `recd6tAQchvvmNzQS`.
+- Wiederholter B-Antrag: `52925e369ca0487a8f2034a0bb650751`, `Duplicate key error` vor nächster Nummer.
+- Nicht erlaubte produktive Anforderung: `c7e1ce32df8d4b34b05bae5ce9477d9f`, abgelehnt durch strikte Test-Allowlist.
+
+**Verified after tests:** Audit-Tabelle exakt 3 Einträge (Seed 000001, reserviert 000002 und 000003), Nummernregister Store 218620 sechs Testschlüssel (drei aus Airtable übernommene Nummern und drei TEST-LSZH Nummern), Request Store 218673 zwei Schlüssel. Szenario 7958235 nach erneutem Abschaltversuch **inactive**. Keine Kundenrechnungen, keine Rechnungsstatusänderungen, keine E-Mails, keine Zahlung. Globaler Sendegate false.
+
+**Noch kein vollständiges revisionssicheres Produktionsaudit:**
+- Bei Duplikat/ungültiger Anfrage vor Airtable-Log-Erstellung wird Ablehnung aktuell im **Make-Ausführungsverlauf** protokolliert, nicht als eigenständige Zeile der Audit-Tabelle. Ebenso kann bei Verbindungsfehlern nach einer Request-Reservierung ein manueller Abgleich notwendig werden.
+- Wenn der Nummern-Data-Store erfolgreich reserviert, aber Airtable-PATCH danach scheitert, verbleibt ein unfertiger Audit-Eintrag (fail-closed). Kein automatischer Neuversuch. Solche Zustände müssen in einer zukünftigen manuellen Recovery-Funktion abgeglichen werden.
+- Airtable Autonumber erzeugt fortlaufende interne Datensatznummern, aber keine **lückenlos garantierte** Geschäftsnummernfolge; Stornos und fehlgeschlagene Versuche benötigen explizite Nachverfolgung.
+- Für Echtbetrieb: alle bisherigen Rechnungsquellen verifizieren, Testdaten/Testnummern-Domain trennen, vollständiges unveränderliches Event-Log samt Fehler-/Abbruchpfaden, atomare Freigabe/Sendegates und Authentifizierung entwickeln. Produktiver Rechnungsversand bleibt deaktiviert.

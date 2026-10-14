@@ -692,7 +692,11 @@ async function handleSwissQrBill(req,res){
     const data=await readJson(req,16384);
     if(!data||typeof data!=='object'||Array.isArray(data))
       return send(res,400,JSON.stringify({error:'invalid_invoice'}));
-    // Reject ad-hoc test override outside development; this endpoint is not enabled now.
+    // Additional independent safety latch: this STAGING endpoint generates only CHF 0.00 test PDFs.
+    // Never accept production invoices without a separate explicit rollout decision.
+    if(String(process.env.SWISS_QR_REAL_INVOICES_ENABLED||'').toLowerCase()!=='true' &&
+       (data.test!==true || data.amountCHF!=='0.00'))
+      return send(res,403,JSON.stringify({error:'test_only_zero_amount'}));
     const {renderInvoice}=require('./lib/invoice-pdf');
     const result=await renderInvoice(data);
     const fileNo=String(data.invoiceNumber||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,55);
@@ -745,6 +749,11 @@ const server=http.createServer(async (req,res)=>{
   const pathname=urlObj.pathname;
   const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
 
+  // The dedicated API has its own independent, secret-based access gate. Keep all
+  // website pages under SITE_PRIVATE; no bypass for any other route.
+  if(req.method==='POST' && pathname==='/api/internal/invoices/qr-pdf')
+    return handleSwissQrBill(req,res);
+
   if(sitePrivate) {
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Cache-Control','no-store');
@@ -753,7 +762,6 @@ const server=http.createServer(async (req,res)=>{
     }
   }
 
-  if (req.method==='POST' && pathname==='/api/internal/invoices/qr-pdf') return handleSwissQrBill(req,res);
   if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);

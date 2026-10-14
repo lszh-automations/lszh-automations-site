@@ -68,3 +68,13 @@ test('large but valid Swiss-QR amounts do not overflow their printed columns',as
  const r=await renderInvoice(request);
  assert.equal(r.pdf.subarray(0,5).toString('latin1'),'%PDF-');
 });
+
+test('actual PDF artifact encodes exactly A4-sized MediaBoxes (not just layout constants)',async()=>{
+ const r=await renderInvoice({invoiceNumber:'PREVIEW-A4-2026-001',amountCHF:'1250.00',debtor,test:true,preview:true,variablePreview:true,description:'A4 Print Geometry Test'});
+ const media=[...r.pdf.toString('latin1').matchAll(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/g)];
+ assert.equal(media.length,2,'Both printed PDF pages must be A4');
+ for(const m of media){
+  assert.ok(Math.abs(Number(m[1])*25.4/72-210)<0.05,'A4 width must be 210mm');
+  assert.ok(Math.abs(Number(m[2])*25.4/72-297)<0.05,'A4 height must be 297mm');
+ }
+});

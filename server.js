@@ -702,10 +702,10 @@ async function handleSwissQrBill(req,res,{demo499=false,dynamicPreview=false}={}
          !/^rec[A-Za-z0-9]{14}$/.test(String(data.invoiceRecordId||''))||
          !/^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$/.test(String(data.invoiceNumber||''))||
          typeof data.amountCHF!=='string'||
-         !/^[0-9]{1,7}\\.[0-9]{2}$/.test(data.amountCHF)||
+         !/^[0-9]{1,7}\.[0-9]{2}$/.test(data.amountCHF)||
          !(Number(data.amountCHF)>0)||
-         !/^\\d{2}\\.\\d{2}\\.\\d{4}$/.test(String(data.invoiceDate||''))||
-         !/^\\d{2}\\.\\d{2}\\.\\d{4}$/.test(String(data.dueDate||'')))
+         !/^\d{2}\.\d{2}\.\d{4}$/.test(String(data.invoiceDate||''))||
+         !/^\d{2}\.\d{2}\.\d{4}$/.test(String(data.dueDate||'')))
         return send(res,403,JSON.stringify({error:'invalid_preview_only_input'}));
       safeData={
         invoiceNumber:'PREVIEW-'+data.invoiceNumber,amountCHF:data.amountCHF,

@@ -39,6 +39,6 @@ test('visible amounts have blank thousands separator, encoded QR value stays ung
  assert.throws(()=>printAmount('1,250.00'),/invalid_visible_amount/);
 });
 test('overlong debtor details fail closed instead of spilling across the payment-part margin',async()=>{
- const tooLong={...debtor,name:'Ein Ungewoehnlich Langer Gesellschaftsname Der Den Zahlteil Deutlich Ueberschreitet GmbH'};
+ const tooLong={...debtor,name:'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW'};
  await assert.rejects(()=>renderInvoice({invoiceNumber:'PREVIEW-TEST',amountCHF:'499.00',debtor:tooLong,test:true,preview:true,variablePreview:true}),/invalid_layout_text_too_long/);
 });

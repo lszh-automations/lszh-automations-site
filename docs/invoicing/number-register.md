@@ -68,3 +68,43 @@ Die Architektur enthält zusätzlich:
 - Wenn der Nummern-Data-Store erfolgreich reserviert, aber Airtable-PATCH danach scheitert, verbleibt ein unfertiger Audit-Eintrag (fail-closed). Kein automatischer Neuversuch. Solche Zustände müssen in einer zukünftigen manuellen Recovery-Funktion abgeglichen werden.
 - Airtable Autonumber erzeugt fortlaufende interne Datensatznummern, aber keine **lückenlos garantierte** Geschäftsnummernfolge; Stornos und fehlgeschlagene Versuche benötigen explizite Nachverfolgung.
 - Für Echtbetrieb: alle bisherigen Rechnungsquellen verifizieren, Testdaten/Testnummern-Domain trennen, vollständiges unveränderliches Event-Log samt Fehler-/Abbruchpfaden, atomare Freigabe/Sendegates und Authentifizierung entwickeln. Produktiver Rechnungsversand bleibt deaktiviert.
+
+
+## Fehlerprüfung und manuelle Wiederherstellung (14.10.2026)
+
+**Verbindlicher Sicherheitsgrundsatz:** Solange ein Vergabevorgang nicht vollständig und eindeutig abgeglichen ist, **niemals dieselbe Anfrage einfach noch einmal senden, keine bestehende Reservierung löschen und keine Rechnung ausstellen**.
+
+Die zusätzliche Architektur:
+
+- Airtable `tblAfUyhsFJ6HIIff` «Nummernvergabe – Sicherheitsprüfungen TEST»: Separate append-orientierte Prüfhistorie (Airtable-Einträge sind technisch editierbar und damit noch kein manipulationssicheres Audit). Bei jeder Diagnose wird zuerst ein Datensatz mit `PRUEFUNG_LAEUFT` erstellt, erst danach werden die Daten geprüft. Fällt die Diagnose dazwischen aus, bleibt ein offener Prüfdatensatz zur manuellen Nachbearbeitung.
+- Make `7958539` «LSZH TEST – Nummernvergabe Fehlerprüfung + manuelle Klärung (KEIN Versand)», **inaktiv und on-demand**: exakt drei definierte synthetische Anfrage-IDs A/B/C oder bewusst verworfener ungültiger Input; schreibt nur Diagnoseprotokoll, liest ansonsten das ursprüngliche Vergabeprotokoll und die beiden Data Stores. **Keine** Reservierung, Entsperrung, Rechnungs-/Mail- oder Buchungsschritte. Rückgaben `can_issue=false`, `auto_retry_allowed=false`, `no_send=true` in jeder Verzweigung.
+- Data Store `218673` prüft den **Anfrage-Lock**, Data Store `218620` den **Nummern-Lock**. Der ursprüngliche Vergabe-Auditdatensatz muss genau einmal vorkommen, ID, Sequenz und Rechnungsnummer müssen passen. Airtable-Abfragefehler/Mehrfachtreffer und inkonsistente Schlüssel werden als manuell zu prüfende Abweichungen behandelt.
+- Make `7958461`, **inaktiv**, nur zum Aufbau eines klar markierten simulierten Abbruchs C: Anfrage-Lock für `DEMO-ISSUE-20261014-C` gesetzt, Nummer `TEST-LSZH-2026-000004` bewusst **nicht** im Nummernregister eingetragen. Airtable-Vergabe-Audit `recVAM4EXVNAv6Aki`, Status «TEST: Unterbrechung vor Nummernreservierung – manuell prüfen». Einzig für Tests, nicht zur tatsächlichen Wiederherstellung gedacht.
+
+### Verifizierte Diagnosefälle
+
+| Fall | Make-Execution | Rückgabe | Audit-Eintrag |
+|---|---|---|---|
+| Bestehende Reservierung A, `000002` | `838b0550c31e44fc87f9e40355cdd09e` | `RESERVIERUNG_BESTEHT_KONSISTENT`, beide Locks vorhanden | `recdrhkS2x7QRLcyX` |
+| Simulierter Abbruch C, `000004` | `a76e4beae2eb48048c50723501089d8b` | `UNTERBROCHEN_MANUELL_PRUEFEN`, nur Anfrage-Lock vorhanden | `rectoJpwLgbigVDSx` |
+| Ungültige Eingabe | `0473299103a447ae9c6101b76a6469c3` | `ABGEWIESEN_UNGUELTIGE_ANFRAGE`, weder Nummer noch Anfrage freigegeben | `recF2jrZL0hjEpWN9` |
+
+Drei frühere Testfehler des ursprünglichen Vergabeprozesses wurden **explizit nachträglich**, also nicht per Automatik, im separaten Diagnoseprotokoll festgehalten:
+- `44b42561b5e04dba8de56bd8628e5e75`: Duplikat A;
+- `52925e369ca0487a8f2034a0bb650751`: Duplikat B;
+- `c7e1ce32df8d4b34b05bae5ce9477d9f`: ungültige Vergabeanfrage.
+
+### Vorgehen bei `UNTERBROCHEN_MANUELL_PRUEFEN`
+
+1. **Sperre beibehalten.** Keine Wiederholung mit derselben Anfrage-ID, kein Löschen von Schlüsseln oder Audit-Zeilen.
+2. Bestehenden Airtable-Auditdatensatz, Make-Ausführung und beide Data-Store-Schlüssel gemeinsam prüfen; mit historischen Rechnungen und ggf. PDF-Archiv abgleichen.
+3. Prüfen, ob bereits eine Rechnung, PDF oder eine E-Mail **ausserhalb** dieser Testumgebung entstanden ist, bevor entschieden wird, ob die Nummer jemals verwendet werden darf.
+4. Ungeklärte Vorgänge als gesperrt/offen stehen lassen; eine spätere Revisions-/Storno-/Recovery-Funktion benötigt explizite menschliche Autorisierung und dauerhaftes Entscheidungsprotokoll. **Nicht** automatisch einen freien Slot belegen oder einen vergebenen Slot wiederverwenden.
+5. Der aktuelle Test-Diagnoseprozess zeigt nur einen Zustand und ist **keine** automatische Wiederherstellungsfunktion.
+
+### Einschränkungen vor Go-live
+
+- Der frühere Nummernvergabeprozess `7958235` schreibt Fehler **vor** Anlage seines eigenen Airtable-Vergabe-Audits bislang nicht von sich aus in die neue Prüftabelle. In diesen Fällen ist eine separate Diagnose/Eintragung erforderlich. Automatische Integration der Fehlerzweige ist **noch offen**.
+- Schlägt die allererste Airtable-Erstellung des Diagnoseeintrags fehl, gibt es auch dort noch keinen persistenten Datensatz. Das ist ein ausstehender Infrastruktur-Fehlerfall; keine Exactly-once- oder revisionssichere Zusage.
+- Airtable-Auditfelder sind veränderbar, die zwei Make Data Stores sind einzelne Atomschlüssel-Register, keine transaktionale Datenbank über alle Systeme. Datenbank-Konsistenz, Zugangsschutz, Freigabesignaturen und Backups sind vor produktiver Nutzung gesondert zu lösen.
+- Weiterhin keine echten Rechnungen, keine Kundenmails, keine Freigabe von `Rechnungsversand freigegeben`.

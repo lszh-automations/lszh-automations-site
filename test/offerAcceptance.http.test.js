@@ -74,7 +74,7 @@ test('HTTP full journey – browser route → synthetic Airtable → Drive JWT/P
   const app=await childApp();
   t.after(()=>app.close());
   const start=await app.command('snapshot');
-  const sha=Object.fromEntries(Object.entries(start.docs).map(([k,v])=>[k,v.sha]));
+  const sha={offer:start.docs.quote.sha,terms:start.docs.terms.sha,avv:start.docs.avv.sha};
   await t.test('real HTTP serves the draft page',async()=>{
     const r=await fetch(app.base+'/offerte-annehmen/',{signal:AbortSignal.timeout(6000)});
     assert.equal(r.status,200);

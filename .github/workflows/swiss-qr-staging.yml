@@ -1,0 +1,72 @@
+name: Swiss QR Rechnung - STAGING Tests
+on:
+  push:
+    branches:
+      - feature/swiss-qr-bill-staging-20261014
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "scripts/qr-smoke.js"
+      - "package.json"
+      - ".github/workflows/swiss-qr-staging.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "scripts/qr-smoke.js"
+      - "package.json"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies (no publish or deployment)
+        run: npm install --no-audit --no-fund
+      - name: Run QR and PDF unit tests
+        run: npm test
+      - name: Create CHF 0.00 TEST PDF
+        run: node scripts/qr-smoke.js
+      - name: Install PDF inspection utilities
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Verify physical A4 and 2-page PDF
+        run: |
+          pdfinfo out/LSZH_QR_Staging_Nicht_Zahlbar.pdf | tee out/pdfinfo.txt
+          grep -Eq '^Pages:[[:space:]]+2$' out/pdfinfo.txt
+          grep -Eq 'Page size:[[:space:]]+595' out/pdfinfo.txt
+      - name: Decode QR and validate payload directly from rendered PDF
+        run: |
+          python -m pip install --quiet opencv-python-headless
+          pdftoppm -f 2 -l 2 -r 240 -singlefile -png out/LSZH_QR_Staging_Nicht_Zahlbar.pdf out/page2
+          python - <<'PY'
+          import cv2
+          p='out/page2.png'
+          img=cv2.imread(p)
+          assert img is not None, 'render failed'
+          text, points, _=cv2.QRCodeDetector().detectAndDecode(img)
+          assert points is not None and text, 'QR not machine-readable'
+          fields=text.splitlines()
+          assert len(fields)==31, f'{len(fields)} QR-bill fields expected 31'
+          assert fields[:3]==['SPC','0200','1'],fields[:3]
+          assert fields[19]=='CHF' and fields[27]=='SCOR',fields[19:29]
+          assert fields[18]=='0.00'
+          assert fields[29]=='NICHT ZUR ZAHLUNG VERWENDEN'
+          assert fields[30]=='EPD'
+          print('PDF QR DECODE PASS:',len(fields),'fields, test CHF 0.00')
+          PY
+      - name: Upload only synthetic test PDF and validation log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lszh-qr-invoice-staging-sample
+          path: |
+            out/*.pdf
+            out/pdfinfo.txt
+          if-no-files-found: ignore
+          retention-days: 7

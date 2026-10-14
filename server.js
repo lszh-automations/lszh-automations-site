@@ -150,53 +150,41 @@ async function handleCustomerOnboarding(req,res) {
   const target=process.env.MAKE_ONBOARDING_WEBHOOK;
   if(!target) return send(res,503,JSON.stringify({error:'not_configured'}));
   try {
-    const payload=await readJson(req);
-    if(!payload || typeof payload!=='object' || Array.isArray(payload))
-      return send(res,400,JSON.stringify({error:'invalid_fields'}));
-    if(payload.website) return send(res,204,'');
-    delete payload.website;
-    const token=String(payload.project_code||'');
-    if(!/^ob_[a-fA-F0-9-]{36}$/.test(token))
-      return send(res,400,JSON.stringify({error:'invalid_project_link'}));
-    if(!String(payload.company||'').trim() || !String(payload.contact_email||'').includes('@') ||
-       !String(payload.make_account_status||'').trim() || !String(payload.make_invitation_status||'').trim())
-      return send(res,400,JSON.stringify({error:'invalid_fields'}));
-    // Block quick repeated submissions without keeping the one-time token in memory.
-    // Make remains the durable duplicate check; this local cache is only a short-lived guard.
-    const requestKey=crypto.createHash('sha256').update(token).digest('hex');
+    const raw=await readJson(req);
+    if(raw?.website) return send(res,204,'');
+    let payload;
+    try {payload=require('./onboardingValidation').validateOnboarding(raw);}
+    catch(e){
+      const code=e.message==='invalid_project_link'?'invalid_project_link':'invalid_fields';
+      return send(res,400,JSON.stringify({error:code}));
+    }
+    const requestKey=crypto.createHash('sha256').update(payload.project_code).digest('hex');
     const now=Date.now();
     if((onboardingSubmissionCache.get(requestKey)||0)>now)
       return send(res,409,JSON.stringify({error:'already_submitted_or_processing'}));
     if(onboardingSubmissionCache.size>1000)
       for(const [key,until] of onboardingSubmissionCache) if(until<=now) onboardingSubmissionCache.delete(key);
+    // Ambiguous Make/HTTP timeouts must not permit an immediate repeat submission.
+    // Durable duplicate rejection remains Make's responsibility.
     onboardingSubmissionCache.set(requestKey,now+120000);
-    try {
-      const result=await fetch(target,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
-      });
-      if(!result.ok) {
-        onboardingSubmissionCache.delete(requestKey);
-        return send(res,502,JSON.stringify({error:'upstream_failed'}));
-      }
-      let answer=null;
-      try { answer=JSON.parse(await result.text()); } catch {}
-      // Make may acknowledge the webhook while later modules still run.
-      // Report confirmed success only with the explicit saved-record receipt.
-      if(answer?.ok===true && typeof answer?.record_id==='string' &&
-         /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
-        return send(res,200,JSON.stringify({ok:true,confirmed:true}));
-      if(answer?.duplicate===true || answer?.error==='already_submitted')
-        return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
-      // 202 is intentionally NOT a claim that Airtable has saved the submission.
-      return send(res,202,JSON.stringify({ok:true,pending:true}));
-    } catch(err) {
-      onboardingSubmissionCache.delete(requestKey);
-      throw err;
-    }
+    const result=await fetch(target,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
+    });
+    let answer=null;
+    try {answer=JSON.parse(await result.text());} catch {}
+    if(answer?.duplicate===true || answer?.error==='already_submitted' || result.status===409)
+      return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
+    if(!result.ok) return send(res,502,JSON.stringify({error:'upstream_failed'}));
+    // Make webhook ACK alone is NOT an Airtable persistence receipt.
+    if(answer?.ok===true && typeof answer?.record_id==='string' &&
+       /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
+      return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+    return send(res,202,JSON.stringify({ok:true,pending:true}));
   } catch(e){
     if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
     if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    // For ambiguous provider errors keep the short-lived duplicate guard set.
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }

@@ -5,6 +5,8 @@ on:
       - 'offerAcceptance.js'
       - 'offerArchiveVerifier.js'
       - 'test/offerAcceptance.test.js'
+      - 'test/offerAcceptance.avv.test.js'
+      - 'test/offerAcceptance.ui.test.js'
       - 'test/offerArchiveVerifier.test.js'
       - 'server.js'
       - 'offerte-annehmen/index.html'

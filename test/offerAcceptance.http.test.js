@@ -149,29 +149,33 @@ test('HTTP full journey – browser route → synthetic Airtable → Drive JWT/P
     assert.equal(again.status,409);
     assert.equal((await app.command('snapshot')).writes,1);
   });
+  const noAvvServer=await childApp();
+  t.after(()=>noAvvServer.close());
   await t.test('AVV Nein is only two documents, third PDF 404, consent rejected',async()=>{
-    await app.command('mode',{mode:'Nein'});
-    const p=await app.call('preview',{code});
+    await noAvvServer.command('mode',{mode:'Nein'});
+    const p=await noAvvServer.call('preview',{code});
     assert.equal(p.status,200);assert.equal(p.json.offer.avv_required,false);
-    const d=await app.call('document',{code,which:'avv'});
+    const d=await noAvvServer.call('document',{code,which:'avv'});
     assert.equal(d.status,404);
-    const unexpected=await app.call('accept',{...payload(sha,'Nein'),accept_avv:true});
+    const unexpected=await noAvvServer.call('accept',{...payload(sha,'Nein'),accept_avv:true});
     assert.equal(unexpected.status,400);
-    assert.equal((await app.command('snapshot')).writes,0);
-    const good=await app.call('accept',payload(sha,'Nein'));
+    assert.equal((await noAvvServer.command('snapshot')).writes,0);
+    const good=await noAvvServer.call('accept',payload(sha,'Nein'));
     assert.equal(good.status,200);
-    const stored=await app.command('snapshot');
+    const stored=await noAvvServer.command('snapshot');
     assert.equal(stored.writes,1);
     assert.equal(stored.fields['Online-Annahme AVV ausdrücklich akzeptiert'],false);
     assert.equal(JSON.parse(stored.fields['Online-Annahme Nachweis']).avv_required,false);
   });
+  const undecidedServer=await childApp();
+  t.after(()=>undecidedServer.close());
   await t.test('AVV Prüfen is blocked and cannot reach acceptance',async()=>{
-    await app.command('mode',{mode:'Prüfen'});
-    const p=await app.call('preview',{code});
+    await undecidedServer.command('mode',{mode:'Prüfen'});
+    const p=await undecidedServer.call('preview',{code});
     assert.equal(p.status,404);
-    const result=await app.call('accept',payload(sha,'Nein'));
+    const result=await undecidedServer.call('accept',payload(sha,'Nein'));
     assert.equal(result.status,409);
-    assert.equal((await app.command('snapshot')).writes,0);
+    assert.equal((await undecidedServer.command('snapshot')).writes,0);
   });
   await t.test('untrusted origin cannot trigger offer operations',async()=>{
     const r=await app.call('preview',{code},{origin:'https://untrusted.invalid'});

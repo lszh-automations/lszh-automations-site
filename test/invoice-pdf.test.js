@@ -50,3 +50,20 @@ test('optional service period is printable, malformed periods rejected',async()=
  assert.equal((good.pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
  await assert.rejects(()=>renderInvoice({...request,servicePeriod:'01.10.2026\nRechnung faelschen'}),/invalid_service_period/);
 });
+
+test('invoice keeps a complete two-line description without clipping into the amount column',async()=>{
+ const request={
+  invoiceNumber:'PREVIEW-LONGSERVICE-2026-001',
+  amountCHF:'1250.00',debtor,test:true,preview:true,variablePreview:true,
+  description:'Laufende Automationsbetreuung einschliesslich Monitoring, Fehlermeldungsanalyse und monatlicher Anpassungen'
+ };
+ const r=await renderInvoice(request);
+ assert.equal(r.pdf.subarray(0,5).toString('latin1'),'%PDF-');
+ assert.equal((r.pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
+ await assert.rejects(()=>renderInvoice({...request,description:'W'.repeat(150)}),/invalid_service_description_too_long/);
+});
+test('large but valid Swiss-QR amounts do not overflow their printed columns',async()=>{
+ const request={invoiceNumber:'PREVIEW-LARGE-2026-001',amountCHF:'9999999.99',debtor,test:true,preview:true,variablePreview:true,description:'Grossbetrag nur als Test'};
+ const r=await renderInvoice(request);
+ assert.equal(r.pdf.subarray(0,5).toString('latin1'),'%PDF-');
+});

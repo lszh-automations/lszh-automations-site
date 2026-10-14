@@ -79,3 +79,11 @@ Alle Tests ausschliesslich in deaktivierbaren **isolierten On-Demand-Szenarien**
 Make-Produktionsvorbereitung `7835460` (Offerten-PDF/Versand), `7940261` (Annahmelink) und `7940220` (Annahmebeleg) bleiben **INAKTIV**. Harte `0=1`-Filter auf Produktiv-/Versandmodulen bestehen; Airtable `Online-Annahme rechtlich freigegeben` bleibt NEIN. Keine Kundenmails, Einladungen, echten Vertragsabschlüsse oder operative Aktivierungen.
 
 **Freigabestatus:** Technische Teilstrecke zu Archiv/Hash/Schreibschutz/**fiktivem** Annahmenachweis erfolgreich getestet. RC1-Vertragstexte nur geprüft, **nicht** extern freigegeben.
+
+
+### Klarstellung 14.10.2026 – D1–D3 geschäftlich bereits definiert
+Auf ausdrücklichen Hinweis des Geschäftsführers sind **D1–D3 keine erneut zu entscheidenden Geschäftsfragen**. Die bereits erarbeiteten Geschäftsparameter gelten für die weitere interne Vertragserstellung als **festgelegt**:
+- **D1 Care-Kündigung:** 30 Kalendertage auf Monatsende, soweit keine abweichende Mindestlaufzeit vereinbart; zwingende Rechte (insbesondere ggf. Art. 404 OR) vorbehalten.
+- **D2 Abnahme:** Prüfung innerhalb von 10 Arbeitstagen, **keine** fiktive Abnahme allein durch Schweigen.
+- **D3 Haftung:** Bei leicht fahrlässig verursachten unmittelbaren und vorhersehbaren Vermögensschäden Entgelt der betroffenen Leistung der letzten 12 Monate, **mindestens CHF 2'000**, soweit wirksam und angemessen; Vorsatz, grobe Fahrlässigkeit und zwingende Haftungsgrenzen nicht ausschliessen.
+**Status-Trennung:** Geschäftliche Eckwerte **definiert**; juristische Angemessenheit/Wirksamkeit **ungeprüft bzw. offen**; RC1-Dokumente und tatsächlicher Kundeneinsatz **nicht final freigegeben**. Alte Einträge «D1–D3 Geschäftsentscheid offen» sind **historischer Prüfstand** und durch diese Klarstellung überholt. Kein zusätzlicher Freigabe- oder Versandautomatismus, Make-Sperren unverändert. Es wird nicht nochmals nach denselben Eckwerten gefragt.

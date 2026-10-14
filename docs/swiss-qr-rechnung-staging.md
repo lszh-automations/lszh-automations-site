@@ -80,3 +80,13 @@ Das bestehende inaktive Rechnungs-Szenario **7781492** erzeugt derzeit die Googl
 - Zweiter isolierter Make-Test `7944507` führte einen vollständigen synthetischen Swiss-QR-Datensatz mit 31 Feldern, gültiger SCOR- und IBAN-Prüfung, CHF 0.00 und ausdrücklichem Testhinweis aus, Status erfolgreich; Make-Szenario nach Run wieder deaktiviert.
 - **Noch nicht ausgeführt**: Staging-Render-Deployment, Bank-App-Scan, produktiver Make-Rechnungsablauf, Echtbetrag und reale Kundendaten. Keine Kundenmail gesendet. Draft nicht mergen.
 - Render-Konto hat derzeit nur Workspace `My Workspace` mit Login `lars.schulthess10@gmail.com`. Render-Tool verlangt ausdrücklich die Auswahlbestätigung des Nutzers, bevor wir diesen Workspace für Services verwenden; daher **kein Render-Service erstellt**. Geschäftliches Google-Drive-Konto `lars@lszh-automations.ch` bleibt separat, unverändert.
+
+## Render-STAGING Deployment – 14.10.2026
+- Nutzer hat separaten Test-Render-Service freigegeben; bestehender Render-Workspace `tea-db1qm7btqb8s73eajs8g` ist nach Kontoumstellung auf `lars@lszh-automations.ch` registriert.
+- Neu erstellter Render Free-Webservice **`lszh-swiss-qr-staging`** ID `srv-db7cn5q5b2lc73fecb1g` (Frankfurt), Dashboard: https://dashboard.render.com/web/srv-db7cn5q5b2lc73fecb1g .
+- Separater Branch `feature/swiss-qr-bill-staging-20261014`, `autoDeploy=no`, Build `npm install --no-audit --no-fund && npm test && node scripts/qr-smoke.js`, Start `node server.js`.
+- Abschalt- und Sicherheitsflags auf STAGING: `SITE_PRIVATE=true`, `SWISS_QR_BILL_ENABLED=false`, `OFFER_ACCEPTANCE_ENABLED=false`. Kein Preview-Token eingerichtet, QR-Rechnungs-API NICHT freigegeben. Keine Kunden-/Live-Daten verarbeitet.
+- Erstes Render-Deployment `dep-db7cn6a5b2lc73fecceg` auf Commit `1671a211f54d19e63e39d0c5a0e0f00f2d9e763d` **Status `live`**. Render-Build-Log: `7` Tests, `7` bestanden, `QR-PDF SMOKE OK: 2 Seiten, 10650 Bytes, SCOR=RF13LSZH8AE1F7308D00155A`, Build erfolgreich, Node-Webserver Port 10000 gestartet.
+- Live-Webseite `lszh-automations-site` auf `main` wurde weder deployt noch anderweitig verändert. Produktiver Rechnungsversand und elektronische Offertenannahme bleiben ausgeschaltet.
+- Render Free: kostenloses Compute, gemeinsame 750 Instanzstunden/Workspace/Monat; potenzielle Zusatzkosten bei Überschreitung inkludierter Build-Minuten/Bandbreite mit hinterlegtem Zahlungsmittel beachten.
+- **Noch offen:** gesicherte Testfreigabe einer STAGING-API mit separatem API-Schlüssel, Test mit ausschließlich synthetischen Rechnungsdaten (CHF 0.00), PDF-Bytes über Make-Https abrufen und Drive-Archivierung/SCOR sowie Hash prüfen. Bank-App-Scan vor Produktivfreigabe.

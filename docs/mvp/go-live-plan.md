@@ -114,3 +114,21 @@ Der erzeugte private PDF-Archivbeleg hat laut Airtable Datensatz die Drive-ID `1
 **Sofortige Nachsicherung:** Das Angebotsszenario `7835460` wieder `inactive`; sämtliche temporären Test-Mappings, Doc-Titel, Filter der Suchstufe, PDF-Dateiname und Archiv-Testparameter auf Original zurückgestellt. Modul `5` erhielt zusätzlich einen zwingend unerfüllbaren Filter `0=1` (Name «SICHERHEITSSPERRE – KEIN OFFERTENVERSAND VOR FREIGABE»). Module `5` und `6` bleiben `disabled=true`, aber **diese disabled-Flags sind alleine kein ausreichender Sicherheitsnachweis**. Testofferten-Notiz wurde um das Ereignis ergänzt, die Wiedervorlage gelöscht; keine weiteren Mailtests oder Vertragsaktionen.
 
 **Go-Live-Blocker:** Vor jedem echten Offer-Send muss die Verlässlichkeit von Szenario-/Modul-Disabled-Mechanismen, Sendegates, konkreten Empfängern, E-Mail-Provider-Ausgang und atomaren Versandstatus aktualisiert und mit gesicherter NICHT-Versand-Testmethode geprüft werden. Kein weiteres Aktivieren von `7835460` für Vorschau, solange das Sende-Modul Teil der Flow-Konfiguration ist; die nächste Vorschau muss physisch **ohne Mailmodul** erfolgen oder PDF ausserhalb dieses gemischten Szenarios entstehen. Ausdrückliche Go-Live-Freigabe erforderlich.
+
+
+## Gemeinsamer Integrationszweig – 14.10.2026
+
+**Zusammengeführt, NICHT live:** Der eigenständige sichere Offertenannahme-Branch `feature/secure-offer-acceptance-20261013` (Draft PR #1) und der sichere Lead-/Browser-Branch `feature/mvp-website-intake-safety-20261014` (Draft PR #3) wurden als gemeinsamer Stand `feature/mvp-integration-20261014` in **Draft PR #4** unter https://github.com/lszh-automations/lszh-automations-site/pull/4 integriert. Kein Merge nach `main` und kein Render-Deployment.
+
+Hier existiert **die Annahmeseite tatsächlich als `offerte-annehmen/index.html`**, dazu die statische `/offerte-annehmen/`-Serverroute, die POST-Routen `/api/offer/preview`, `/api/offer/document` und `/api/offer/accept`, und `offerAcceptance.js`/`offerArchiveVerifier.js`. Der zuvor festgestellte fehlende Pfad bezog sich nur auf `main`; die Annahmeimplementierung war bereits auf dem separaten Feature-Branch vorhanden. Es wurde **keine** zusätzliche Vertragsannahme erfunden oder aktiviert.
+
+Der integrierte `server.js` behält die gesperrte Annahmearchitektur und übernimmt die bestätigte CRM-Speicher-ID statt einer Webhook-ACK-Scheinbestätigung. `index.html` verwendet die getestete bestätigte/Pending-Formularanzeige. Beide ursprünglichen Modultest-Suiten und der Desktop-/Mobil-Chromium-Browsertest sind enthalten.
+
+**GitHub Actions Nachweis:**
+- Offer acceptance checks Run `38597898306` SUCCESS, 22 Node-Tests bestanden, 0 fehlgeschlagen.
+- MVP Lead Intake Tests Run `38597898105` SUCCESS, Node-Tests und realer headless Chromium-Browsertest bestanden.
+- Die Browsertests verwenden lokalen Node-Server und simulierte Make-Webhook-Antworten. Es wurde NICHT die produktive Domain oder ein echtes Online-Vertragsgeschäft getestet.
+
+**Freigabesperren unverändert:** Annahme-Feature Flag `OFFER_ACCEPTANCE_ENABLED` bleibt aus, juristisch genehmigte Projektbedingungen v1.0 liegen gemäss eigenem Staging-Freigaberegister noch NICHT vor, Drive-Read-Servicekonto und echte PDF-Archiv-/Token-/Signaturprüfung müssen vor Live-Einsatz nachgewiesen werden. Make Link- und Annahmeszenarien `7940261`/`7940220` bleiben inactive. Offerten-Sendeszenario `7835460` wegen des festgehaltenen überraschenden internen Testmail-Vorfalls zusätzlich am Gmail-Modul mit dauerhaft unerfüllbarer Filterbedingung `0=1` gesperrt.
+
+**Nächste tatsächlich verkaufsnotwendige Aufgaben:** Juristisch und geschäftlich freigegebene Projektbedingungen/AVV (keine automatische rechtliche Freigabe), produktiv geprüfte Dokumentenarchive und Berechtigungen, isolierter Portal/Drive E2E-Test mit synthetischem Kunden, Onboarding desselben Kunden ohne produktive E-Mail, manueller QR-Rechnungs- und Versandfreigabeprozess. Erst danach eine ausdrückliche Entscheidung über Go-Live.

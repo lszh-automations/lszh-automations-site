@@ -6,6 +6,7 @@ const token='A'.repeat(43);
 const H='a'.repeat(64), K='b'.repeat(64);
 const baseRecord={id:'recABCDEFGHIJKLMN',fields:{
   Status:'Versendet',
+  'AVV erforderlich':'Nein',
   'Online-Annahme rechtlich freigegeben':true,
   Offertennummer:'TEST-001',
   'Vertragsunterlagen versendet':true,
@@ -41,6 +42,7 @@ function initEnv() {
   process.env.OFFER_AIRTABLE_PAT='fake-test-token';
   process.env.OFFER_PROOF_SALT='fake-test-salt';
   process.env.OFFER_DRIVE_SA_B64='fake-base64-creds';
+  process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID='1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in';
   process.env.OFFER_CONFIRMATION_WEBHOOK='https://example.net/make-hook';
 }
 const original=global.fetch;

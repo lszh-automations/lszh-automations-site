@@ -4,7 +4,7 @@ const http=require('node:http'),net=require('node:net');
 const {spawn}=require('node:child_process');
 const {setTimeout:delay}=require('node:timers/promises');
 const path=require('node:path');
-const token='ob_aaaaaaaa-bbbb-cccc-dddd-000000000011';
+const tokens=['ob_aaaaaaaa-bbbb-cccc-dddd-000000000011','ob_aaaaaaaa-bbbb-cccc-dddd-000000000012'];
 async function freePort(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 async function ready(base){for(let i=0;i<80;i++){try{if((await fetch(base+'/onboarding/')).ok)return;}catch{}await delay(70);}throw Error('no test server');}
 async function fill(form){
@@ -37,12 +37,12 @@ test('Onboarding Chromium desktop/mobile uses mock webhook only, no invitation o
  OFFER_ACCEPTANCE_ENABLED:'false'},stdio:['ignore','pipe','pipe']});
  try{
   await ready(base);
-  for(const [width,height,modeValue] of [[1366,900,'pending'],[390,844,'confirmed']]){
+  for(const [index,[width,height,modeValue]] of [[1366,900,'pending'],[390,844,'confirmed']].entries()){
    mode=modeValue;
    const context=await browser.newContext({viewport:{width,height},isMobile:width===390,hasTouch:width===390});
    const page=await context.newPage();
    const external=[];page.on('request',req=>{if(!req.url().startsWith(base))external.push(req.url());});
-   await page.goto(base+'/onboarding/?code='+token);
+   await page.goto(base+'/onboarding/?code='+tokens[index]);
    const form=page.locator('#onboardingForm');await fill(form);
    await expect(page.getByText('lars@lszh-automations.ch').first()).toBeVisible();
    await form.locator('button[type="submit"]').click();
@@ -57,7 +57,7 @@ test('Onboarding Chromium desktop/mobile uses mock webhook only, no invitation o
 function assertSynthetic(records){
  expect(records).toHaveLength(2);
  for(const r of records){
-  expect(r.project_code).toBe(token);
+  expect(tokens).toContain(r.project_code);
   expect(r.company).toBe('LSZH "E2E" GmbH <TEST>');
   expect(r.make_invitation_status).toBe('Noch nicht eingeladen');
   expect(r.source).toBe('LSZH Kunden-Onboarding');

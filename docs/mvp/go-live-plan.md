@@ -132,3 +132,24 @@ Der integrierte `server.js` behält die gesperrte Annahmearchitektur und überni
 **Freigabesperren unverändert:** Annahme-Feature Flag `OFFER_ACCEPTANCE_ENABLED` bleibt aus, juristisch genehmigte Projektbedingungen v1.0 liegen gemäss eigenem Staging-Freigaberegister noch NICHT vor, Drive-Read-Servicekonto und echte PDF-Archiv-/Token-/Signaturprüfung müssen vor Live-Einsatz nachgewiesen werden. Make Link- und Annahmeszenarien `7940261`/`7940220` bleiben inactive. Offerten-Sendeszenario `7835460` wegen des festgehaltenen überraschenden internen Testmail-Vorfalls zusätzlich am Gmail-Modul mit dauerhaft unerfüllbarer Filterbedingung `0=1` gesperrt.
 
 **Nächste tatsächlich verkaufsnotwendige Aufgaben:** Juristisch und geschäftlich freigegebene Projektbedingungen/AVV (keine automatische rechtliche Freigabe), produktiv geprüfte Dokumentenarchive und Berechtigungen, isolierter Portal/Drive E2E-Test mit synthetischem Kunden, Onboarding desselben Kunden ohne produktive E-Mail, manueller QR-Rechnungs- und Versandfreigabeprozess. Erst danach eine ausdrückliche Entscheidung über Go-Live.
+
+
+## Geschütztes Annahmeportal: Browser-Sicherheitsprüfung (14.10.2026)
+
+Das gemeinsame MVP-Staging (GitHub Draft PR #4) wurde um `test/browser/offer-portal.spec.js` erweitert. Der Playwright-Test startet den **lokalen** Node-Webserver, öffnet `/offerte-annehmen/?demo=1` in headless Chromium in Desktop- und Mobilansicht und prüft:
+
+- Nur die ausdrücklich unverbindliche Muster-Offerte wird angezeigt; der Verbindlich-Annehmen-Button ist deaktiviert.
+- PDF-Links lösen im Demomodus **keine** `/api/offer/document`-Anfrage und keinen echten Dateidownload aus.
+- `POST /api/offer/preview`, `/api/offer/accept` und `/api/offer/document` verweigern bei `OFFER_ACCEPTANCE_ENABLED=false` konsequent mit HTTP 503 `not_available`; weder Airtable- noch Drive-/Make-Zugriff nötig.
+- Die Annahmeseite erhält `Cache-Control: no-store`, `X-Robots-Tag: noindex` und `Referrer-Policy: no-referrer`.
+- Persönliche Token und der Demo-Query-Parameter werden nach dem Lesen aus der Browseradresszeile entfernt.
+
+**Gefundener und behobener Bug:** Der generische `send()`-Handler von `server.js` überschrieb zuvor die für `/offerte-annehmen/` gesetzte `Referrer-Policy: no-referrer` mit `strict-origin-when-cross-origin`. Im Integrationszweig setzt `send()` jetzt `res.getHeader('Referrer-Policy') || 'strict-origin-when-cross-origin'`, behält also die strengere Sicherheitseinstellung des geschützten Portals.
+
+**Verifizierte letzte CI-Läufe:**
+- `38599038707` – Offer acceptance checks: SUCCESS, 22 Unit-Tests bestanden.
+- `38599038390` – MVP Lead Intake Tests: SUCCESS, Unit-Tests bestanden und **2/2** Playwright-Browsertests (Website-Anfrage und Offertenannahme; jeweils Desktop/Mobil) bestanden.
+
+**Geschäftliches Vertragsarchiv noch nicht End-to-End geprüft:** Die in der Projektdokumentation angegebenen geschäftlichen Google-Drive-Archivordner `1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in`, `1COIjnGZDK1XCPXNBNikHw-7eUKfjNXgU` und `1o9ADwrIAuhEtP7Mv7tDCY9-OkNpCxX3I` gaben über den in ChatGPT aktuell verbundenen Google-Drive-Zugriff jeweils HTTP **404**. Das belegt **nur einen fehlgeschlagenen Zugriff mit genau dieser Verbindung**; es beweist weder, dass die Ordner tatsächlich fehlen, noch, dass die separate Make-Geschäftskonto-Verbindung nicht funktioniert. Vor realer Annahme Berechtigungen mit dem richtigen Geschäftskonto und dem explizit befugten Read-only-Servicekonto verifizieren; keine privaten Dokumente öffentlich stellen. Bei den fiktiven Belegen liegen zudem nur Vorschau-/Teststatus und nicht freigegebene Projektbedingungen vor.
+
+**Weiterhin KEINE Freigabe:** Juristisch genehmigte Vertragsbedingungen v1.0 fehlen laut bestehendem Freigaberegister; Projektbedingungen RC1 und AVV RC1 sind Entwürfe. Der echte geschäftliche Annahmelink darf weder versendet noch die produktive Annahme aktiviert werden. Keine Änderungen an `main`, keine Vertragsannahme, keine Kundenmail.

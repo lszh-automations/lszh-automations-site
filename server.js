@@ -71,7 +71,7 @@ function send(res, code, body, type='application/json; charset=utf-8') {
   const headers={
     'Content-Type': type,
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': res.getHeader('Referrer-Policy') || 'strict-origin-when-cross-origin',
     'X-Frame-Options': 'DENY',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
   };
@@ -101,22 +101,43 @@ function readJson(req, maxBytes=MAX_BODY) {
     req.on('error', reject);
   });
 }
+function validateLead(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid_fields');
+  const limits={name:120,company:160,email:254,message:2500,current_process:2500,systems:1200,main_problem:80,frequency:80,desired_result:1600};
+  const value={};
+  for(const [key,limit] of Object.entries(limits)){
+    if(typeof body[key]!=='string' && !(key==='desired_result'&&body[key]===undefined)) throw new Error('invalid_fields');
+    const text=String(body[key]||'').trim();
+    if(text.length>limit||(key!=='desired_result'&&!text))throw new Error('invalid_fields');
+    value[key]=text;
+  }
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value.email))throw new Error('invalid_fields');
+  value.source='LSZH Automations Website';
+  value.submitted_at=new Date().toISOString();
+  return value;
+}
 async function proxy(req, res, envName) {
   if (!sameOrigin(req)) return send(res, 403, JSON.stringify({error:'forbidden'}));
   if (rateLimited(req)) return send(res, 429, JSON.stringify({error:'rate_limited'}));
   const target = process.env[envName];
   if (!target) return send(res, 503, JSON.stringify({error:'not_configured'}));
   try {
-    const payload = await readJson(req);
-    if (payload.website) return send(res, 204, '');
-    delete payload.website;
-    const r = await fetch(target, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(15000)});
-    if (!r.ok) return send(res, 502, JSON.stringify({error:'upstream_failed'}));
-    return send(res, 200, JSON.stringify({ok:true}));
-  } catch (e) {
-    if (e.message === 'too_large') return send(res, 413, JSON.stringify({error:'payload_too_large'}));
-    if (e.message === 'bad_json') return send(res, 400, JSON.stringify({error:'invalid_json'}));
-    return send(res, 502, JSON.stringify({error:'temporary_failure'}));
+    const data=await readJson(req);
+    if(data && typeof data==='object' && data.website) return send(res,204,'');
+    const payload=envName==='MAKE_LEAD_WEBHOOK'?validateLead(data):data;
+    const r=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+    if(!r.ok)return send(res,502,JSON.stringify({error:'upstream_failed'}));
+    let receipt=null;
+    try{receipt=JSON.parse(await r.text());}catch{}
+    if(receipt?.ok===true && /^rec[A-Za-z0-9]{14}$/.test(String(receipt.record_id||'')))
+      return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+    // A webhook acknowledgment is not proof that Airtable stored the lead.
+    return send(res,202,JSON.stringify({ok:true,pending:true}));
+  }catch(e){
+    if(e.message==='too_large')return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json')return send(res,400,JSON.stringify({error:'invalid_json'}));
+    if(e.message==='invalid_fields')return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }
 
@@ -129,53 +150,41 @@ async function handleCustomerOnboarding(req,res) {
   const target=process.env.MAKE_ONBOARDING_WEBHOOK;
   if(!target) return send(res,503,JSON.stringify({error:'not_configured'}));
   try {
-    const payload=await readJson(req);
-    if(!payload || typeof payload!=='object' || Array.isArray(payload))
-      return send(res,400,JSON.stringify({error:'invalid_fields'}));
-    if(payload.website) return send(res,204,'');
-    delete payload.website;
-    const token=String(payload.project_code||'');
-    if(!/^ob_[a-fA-F0-9-]{36}$/.test(token))
-      return send(res,400,JSON.stringify({error:'invalid_project_link'}));
-    if(!String(payload.company||'').trim() || !String(payload.contact_email||'').includes('@') ||
-       !String(payload.make_account_status||'').trim() || !String(payload.make_invitation_status||'').trim())
-      return send(res,400,JSON.stringify({error:'invalid_fields'}));
-    // Block quick repeated submissions without keeping the one-time token in memory.
-    // Make remains the durable duplicate check; this local cache is only a short-lived guard.
-    const requestKey=crypto.createHash('sha256').update(token).digest('hex');
+    const raw=await readJson(req);
+    if(raw?.website) return send(res,204,'');
+    let payload;
+    try {payload=require('./onboardingValidation').validateOnboarding(raw);}
+    catch(e){
+      const code=e.message==='invalid_project_link'?'invalid_project_link':'invalid_fields';
+      return send(res,400,JSON.stringify({error:code}));
+    }
+    const requestKey=crypto.createHash('sha256').update(payload.project_code).digest('hex');
     const now=Date.now();
     if((onboardingSubmissionCache.get(requestKey)||0)>now)
       return send(res,409,JSON.stringify({error:'already_submitted_or_processing'}));
     if(onboardingSubmissionCache.size>1000)
       for(const [key,until] of onboardingSubmissionCache) if(until<=now) onboardingSubmissionCache.delete(key);
+    // Ambiguous Make/HTTP timeouts must not permit an immediate repeat submission.
+    // Durable duplicate rejection remains Make's responsibility.
     onboardingSubmissionCache.set(requestKey,now+120000);
-    try {
-      const result=await fetch(target,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
-      });
-      if(!result.ok) {
-        onboardingSubmissionCache.delete(requestKey);
-        return send(res,502,JSON.stringify({error:'upstream_failed'}));
-      }
-      let answer=null;
-      try { answer=JSON.parse(await result.text()); } catch {}
-      // Make may acknowledge the webhook while later modules still run.
-      // Report confirmed success only with the explicit saved-record receipt.
-      if(answer?.ok===true && typeof answer?.record_id==='string' &&
-         /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
-        return send(res,200,JSON.stringify({ok:true,confirmed:true}));
-      if(answer?.duplicate===true || answer?.error==='already_submitted')
-        return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
-      // 202 is intentionally NOT a claim that Airtable has saved the submission.
-      return send(res,202,JSON.stringify({ok:true,pending:true}));
-    } catch(err) {
-      onboardingSubmissionCache.delete(requestKey);
-      throw err;
-    }
+    const result=await fetch(target,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)
+    });
+    let answer=null;
+    try {answer=JSON.parse(await result.text());} catch {}
+    if(answer?.duplicate===true || answer?.error==='already_submitted' || result.status===409)
+      return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
+    if(!result.ok) return send(res,502,JSON.stringify({error:'upstream_failed'}));
+    // Make webhook ACK alone is NOT an Airtable persistence receipt.
+    if(answer?.ok===true && typeof answer?.record_id==='string' &&
+       /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
+      return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+    return send(res,202,JSON.stringify({ok:true,pending:true}));
   } catch(e){
     if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
     if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    // For ambiguous provider errors keep the short-lived duplicate guard set.
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }
@@ -682,8 +691,22 @@ function staticFile(req, res) {
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
+  if (pathname === '/offerte-annehmen' || pathname === '/offerte-annehmen/') pathname = '/offerte-annehmen/index.html';
   if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
   if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
+  if (pathname.startsWith('/onboarding/')) {
+    // A personal onboarding link carries a high-entropy token in its URL.
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
+  if (pathname.startsWith('/offerte-annehmen/')) {
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
   if (pathname.startsWith('/secure/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
@@ -704,6 +727,7 @@ function staticFile(req, res) {
     });
   });
 }
+const offerAcceptance = require('./offerAcceptance')({send,readJson,sameOrigin,rateLimited,clientIp});
 const server=http.createServer(async (req,res)=>{
   let urlObj;
   try { urlObj=new URL(req.url,'http://local'); }
@@ -721,6 +745,9 @@ const server=http.createServer(async (req,res)=>{
 
   if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/preview') return offerAcceptance.preview(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/accept') return offerAcceptance.accept(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/document') return offerAcceptance.document(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);

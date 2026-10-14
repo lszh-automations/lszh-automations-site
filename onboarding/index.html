@@ -273,6 +273,8 @@ const params = new URLSearchParams(location.search);
 const code = params.get('code') || '';
 const firma = params.get('firma') || '';
 const projekt = params.get('projekt') || '';
+// Remove the personal link token from history after reading it.
+if(location.search) history.replaceState(null,'',location.pathname+location.hash);
 
 document.getElementById('project_code').value = code;
 if (firma) document.getElementById('company').value = firma;
@@ -311,10 +313,19 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     });
 
     if (!response.ok) {const error = new Error('HTTP '+response.status); error.status = response.status; throw error;}
-
-    form.reset();
-    status.textContent = response.status===202 ? 'Vielen Dank. Ihre Angaben wurden zur Verarbeitung entgegengenommen. Sie erhalten eine Bestätigung per E-Mail, sobald das Onboarding abgeschlossen ist. Bitte senden Sie das Formular nicht erneut ab.' : 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
-    status.style.color = '#16794b';
+    const receipt=await response.json().catch(()=>null);
+    if(response.status===200 && receipt?.confirmed===true){
+      form.reset();
+      status.textContent='Vielen Dank. Ihre Angaben wurden in unserem System gespeichert. Notwendige Zugänge stimmen wir separat ab.';
+      status.style.color='#16794b';
+    }else if(response.status===202 && receipt?.pending===true){
+      // A Make ACK does not prove that Airtable stored the submission.
+      // Keep entered data; do not encourage another immediate submission.
+      status.textContent='Ihre Angaben wurden zur Verarbeitung entgegengenommen; die Speicherung ist noch nicht bestätigt. Bitte nicht erneut absenden. Kontaktieren Sie uns bei Fragen.';
+      status.style.color='#956311';
+    }else{
+      throw new Error('onboarding_unconfirmed_receipt');
+    }
   } catch (err) {
     status.textContent = err.status===409 ? 'Dieses Onboarding wurde bereits eingereicht oder wird gerade verarbeitet. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
     status.style.color = '#b42318';

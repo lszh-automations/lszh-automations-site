@@ -1,0 +1,47 @@
+name: Offer acceptance checks
+on:
+  pull_request:
+    paths:
+      - 'offerAcceptance.js'
+      - 'offerArchiveVerifier.js'
+      - 'test/offerAcceptance.test.js'
+      - 'test/offerArchiveVerifier.test.js'
+      - 'server.js'
+      - 'offerte-annehmen/index.html'
+      - 'package.json'
+      - '.github/workflows/offer-acceptance-check.yml'
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/mvp-integration-20261014
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check server.js
+          node --check offerAcceptance.js
+          node --check offerArchiveVerifier.js
+          node --check scripts/issue-offer-link.js
+          node --check test/offerAcceptance.test.js
+          node --check test/offerArchiveVerifier.test.js
+      - name: Browser page script syntax
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const vm=require('node:vm');
+          const html=fs.readFileSync('offerte-annehmen/index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+          if(scripts.length!==1)throw new Error('Unexpected portal script count: '+scripts.length);
+          new vm.Script(scripts[0][1],{filename:'offerte-annehmen/index.html'});
+          NODE
+      - name: Unit tests
+        run: npm test

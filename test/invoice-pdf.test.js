@@ -42,3 +42,11 @@ test('overlong debtor details fail closed instead of spilling across the payment
  const tooLong={...debtor,name:'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW'};
  await assert.rejects(()=>renderInvoice({invoiceNumber:'PREVIEW-TEST',amountCHF:'499.00',debtor:tooLong,test:true,preview:true,variablePreview:true}),/invalid_layout_text_too_long/);
 });
+
+test('optional service period is printable, malformed periods rejected',async()=>{
+ const request={invoiceNumber:'PREVIEW-SERVICE-001',amountCHF:'499.00',debtor,test:true,preview:true,variablePreview:true};
+ const good=await renderInvoice({...request,servicePeriod:'01.10.2026 - 31.10.2026'});
+ assert.equal(good.pdf.subarray(0,5).toString('latin1'),'%PDF-');
+ assert.equal((good.pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
+ await assert.rejects(()=>renderInvoice({...request,servicePeriod:'01.10.2026\nRechnung faelschen'}),/invalid_service_period/);
+});

@@ -192,7 +192,7 @@ test('Cloud Run identity and actual LSZH Cloud project identity forbid synthetic
 });
 
 test('issuer denies missing or corrupted binding and guard without writing a token',async()=>{
- await denied(fakeDb(draft({airtableRecordId:null})) ,{},'binding_missing');
+ await denied(fakeDb(draft({airtableRecordId:null})) ,{},'readback_unavailable');
  await denied(fakeDb(draft({airtableBinding:null})),{},'binding_mismatch');
  await denied(fakeDb(draft({airtableBinding:{source:'SYNTHETIC_READ_ONLY',
    schemaVersion:1,boundAt:'2026-10-15T10:00:00.000Z',
@@ -231,7 +231,7 @@ test('a changed Airtable offer, PDF, recipient or AVV prevents issuance',async()
 test('no trustworthy fresh reader, wrong record ID and failed read refuse issuance',async()=>{
  const s=fakeDb();
  await denied(s,{readRecord:null},'invalid_input');
- await denied(s,{airtableRecordId:'recOTHER000000000'},'binding_mismatch');
+ await denied(s,{airtableRecordId:'recOTHER000000000'},'readback_unavailable');
  await denied(s,{readRecord:async()=>{throw Error('offline');}},'readback_unavailable');
  await denied(s,{readRecord:async()=>null},'readback_unavailable');
 });

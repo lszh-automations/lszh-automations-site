@@ -201,3 +201,14 @@ test('a mismatching remote acceptance marker is never called verified',async()=>
    leaseId:l.leaseId,remoteFields:remote}),e=>assertRejected(e,'remote_unverified'));
  assert.equal(s.read().reconciliationStatus,'LEASED');
 });
+
+test('reconciliation event is specific to one frozen contract manifest',()=>{
+ const a=accepted(),b=accepted();
+ const prior=eventId(a,documentPath);
+ b.contractManifestHash=H('b');
+ b.acceptanceEvidence.contractManifestHash=H('b');
+ const next=eventId(b,documentPath);
+ assert.notEqual(prior,next);
+ const proof=JSON.parse(previewAirtableAcceptance(b,documentPath).fields['Online-Annahme Nachweis']);
+ assert.equal(proof.contractManifestHash,H('b'));
+});

@@ -144,3 +144,31 @@ Der Betreiber hat die Build-Source-ZIP aus `gs://run-sources-lszh-automations-eu
 Diese geringe Anzahl Dateien plus der belegte Function Target `lszhPortalPreflight` sprechen stark für ein dediziertes Preflight-Build und nicht für die vollumfängliche Portal-Website. **Endgültiger Nachweis erst nach Prüfung der `index.js`**, ohne Credentials oder Umgebungsvariablen an Dritte auszugeben. Es ist keine GitHub-Zuordnung belegbar, und das Archiv ist kein Beleg einer vollständigen Portal-API.
 
 Nächster Schritt: lokal in derselben Cloud Shell eine **statische Stichwort-/Routenprüfung der index.js** vornehmen, nur boolesche Treffer ausgeben, keinen kompletten Quelltext oder Secret-Werte. Danach die bestehende GitHub-Portal-App für einen gesonderten Staging-Deploy planen; keine produktiven Gates aktivieren.
+
+## Quellcodeprüfung der tatsächlich gerouteten Preflight-Revision – 15.10.2026
+
+Der Betreiber hat per Cloud Shell die unveränderte Build-Source-ZIP von Revision `00004-qt7` (genau `index.js`, `package.json`, ca. 2,4 KiB) ohne Quelltext- oder Credential-Ausgabe analysiert. Ein heuristischer Regex-Check über `index.js` ergab:
+
+| Kennzeichen | Treffer |
+| --- | --- |
+| `lszhPortalPreflight` | JA |
+| Offerten-API (`/api/offer` oder `offerte-annehmen`) | NEIN |
+| Typische HTTP-Routing-Muster | NEIN |
+| Firestore | JA |
+| Google Drive | JA |
+| `runTransaction` | NEIN |
+
+**Gesamtbefund:** Die derzeit zu 100 % geroutete Cloud-Run-Revision ist eine LSZH-Preflight-Funktion mit bestätigter Google-Cloud-Readiness und erfolgreichen Identity-/Drive-/Firestore-Leseprüfungen. In der ZIP sind **keine erkennbaren Offerten-API-Routen oder Firestore-Transaktionen**. Die Regex-Prüfung ist nur statisch, nicht ein erschöpfender Quellcode-Audit. Ein produktionsfertiges Vertragsannahmeportal wurde nicht nachgewiesen.
+
+**Quellarchitektur:** Die vorhandene Website-API `server.js`, Frontend `offerte-annehmen/index.html` und Dokumentenprüfung `offerArchiveVerifier.js` liegen im GitHub-Projekt, dessen `README.txt` Render als beabsichtigtes Hosting (Startbefehl `node server.js`) benennt. Der Render-Live-Deploy wurde hier **nicht** geprüft, und es besteht kein belegter automatischer Quellstands-Abgleich vom Cloud-Run-Preflight-Image zu GitHub. Die Preflight-Funktion vorerst nicht überschreiben.
+
+### Offline-Transaktionsbaustein im separaten Entwicklungszweig
+
+- `firestoreAcceptanceState.js` implementiert als isolierten, **nirgendwo angebundenen** Kandidaten die Firestore-Transaktionsschnittstelle `db.runTransaction` mit Zustandsprüfung und einer einzigen Statusänderung `ISSUED → ACCEPTED`.
+- Beachtung von freigegebener Offerte, vorheriger Zustellung, echten SHA-256 der Offerte/Bedingungen und bedarfsweise AVV, Empfänger-E-Mail, Zustimmungsflags, Ablaufzeitpunkt; nach Commit markiert `reconciliationStatus=PENDING` eine **noch separat zu implementierende Airtable-Synchronisation**.
+- Nur Pfade in der bereits vorgeschlagenen Test-Collection `stagingOfferFixtures` sind zugelassen; **keine** Collection wurde in der echten Datenbank erstellt.
+- `test/firestoreAcceptanceState.test.js` prüft 7 synthetische Fälle, u. a. Doppelannahme, Änderungen/fehlende AVV und ausstehende Freigaben. Die lokale Fake-Transaktion serialisiert zwar konkurrierende Aufrufe, **beweist aber noch keine Firestore-ACID-Eigenschaften im Cloud-System**.
+- Das bestehende Manifest `prepare-firestore-staging.js` ist weiterhin ein **nicht importiertes OFFLINE-Schema** mit deaktivierten Freigaben. Der isolierte Transaktions-Kandidat erwartet zusätzlich Status `ISSUED`, Zustell-/Freigabebestätigungen und ISO-Ablaufdatum. **Die zwei Schemata sind noch nicht integriert:** keine Dummy-Daten in Cloud überführen und keinen realen Annahmefluss als abgeschlossen melden.
+- Die GitHub-CI für offline only wurde um `test/firestoreAcceptanceState.test.js` erweitert. CI-Ausführung ist noch nicht verifiziert.
+
+**Sichere nächste Entwicklungsarbeit:** Schema/Mappings harmonisieren, Cloud-Run-/Render-Zuständigkeiten und Authentifizierung der Verbindung planen, AVV-Archivprüfung ergänzen, nach expliziter Testfreigabe Cloud-Firestore-Emulator und dann isolierte echte Staging-Transaktionen testen. Bis dahin keine Änderung am bestehenden `server.js`, keinerlei Deployment, keine produktiven Make-Mails oder Annahmen.

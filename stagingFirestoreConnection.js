@@ -1,7 +1,7 @@
 'use strict';
 // Isolated SDK constructor; NOT imported by the website or active Cloud Run services.
 // No network, reads, writes, IAM changes or Firestore documents at module load.
-const {TARGET,COLLECTION}=require('./stagingOfferSchema');
+const {TARGET,COLLECTION,documentPath}=require('./stagingOfferSchema');
 const ALLOWED_SERVICE='lszh-offer-acceptance-staging'; // planned NEW service, not existing preflight
 const HOST_RE=/^(localhost|127\.0\.0\.1|\[::1\]):([1-9][0-9]{1,4})$/;
 class StagingConfigError extends Error {
@@ -36,6 +36,13 @@ function createStagingFirestoreConnection({Firestore,env=process.env,mode='cloud
   ensure(typeof Ctor==='function');
   const db=new Ctor({projectId:settings.projectId,databaseId:settings.databaseId});
   // The SDK constructor alone does not verify remote IAM or actual connectivity.
-  return {db,settings,connected:false};
+  // No raw database handle, mutation method or transaction method escapes this module.
+  const readFixture=async fixtureId=>{
+    const ref=db.doc(documentPath(fixtureId));
+    const snapshot=await ref.get();
+    return Object.freeze({exists:!!snapshot.exists,
+      data:snapshot.exists?snapshot.data():null});
+  };
+  return Object.freeze({readFixture,settings,connected:false});
 }
 module.exports={ALLOWED_SERVICE,StagingConfigError,validateSettings,createStagingFirestoreConnection};

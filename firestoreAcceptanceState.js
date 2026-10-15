@@ -3,6 +3,8 @@
 // Dependency injection: caller provides a Firestore client later, after explicit staging approval.
 const crypto=require('node:crypto');
 const {SCHEMA_VERSION,isStagingPath}=require('./stagingOfferSchema');
+const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
+const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
 const HEX64=/^[a-f0-9]{64}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,6 +78,22 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
     if(state?.status==='ACCEPTED'||state?.acceptedAt!=null)
       throw new ClaimRejected('already_processed');
     eligible(state,documentPath,expected,actor,now);
+    // A CRM record supplied by a browser or offer number is insufficient.
+    // Demand the pre-existing, unique Airtable binding inside the SAME transaction.
+    if(!RECORD_ID.test(state.airtableRecordId||'')||
+       state.airtableBinding?.source!=='SYNTHETIC_READ_ONLY'||
+       state.airtableBinding?.schemaVersion!==1)
+      throw new ClaimRejected('binding_missing');
+    const lock=await tx.get(db.doc(LOCK_COLLECTION+'/'+state.airtableRecordId));
+    if(!lock.exists)throw new ClaimRejected('binding_missing');
+    const bound=lock.data();
+    const currentFingerprint=bindingFingerprint(state,state.airtableRecordId);
+    if(bound?.fixtureId!==state.fixtureId||bound?.recordId!==state.airtableRecordId||
+       bound?.syntheticOnly!==true||
+       bound?.boundAt!==state.airtableBinding.boundAt||
+       !equalHash(bound.fingerprint,state.airtableBinding.fingerprint)||
+       !equalHash(currentFingerprint,state.airtableBinding.fingerprint))
+      throw new ClaimRejected('binding_mismatch');
     const evidence={
       acceptedAt:now.toISOString(),
       actorName:actor.name.trim().replace(/\s+/g,' '),

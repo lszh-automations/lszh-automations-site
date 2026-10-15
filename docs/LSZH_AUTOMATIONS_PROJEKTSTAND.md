@@ -69,6 +69,15 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Neuer separater, opt-in geschützter Integrationstest für zwei unabhängige Firestore-SDK-Clients gegen einen **lokalen Firestore-Emulator** vorbereitet. Emulator und SDK stehen hier nicht zur Verfügung; daher noch kein echter Emulator-Lauf. CI-Workflow mit Test ergänzt, standardmässig im Skip-Modus; tatsächlicher CI-Lauf weiter unbestätigt.
 - Dokumentation: `docs/LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md`. Kein Deployment, kein Cloud-Run-Dienst, keine Berechtigungen/Datensätze/Make-Szenarien geändert.
 
+### ✅ Firestore-Emulator – erstmals echter Transaktionsnachweis (15.10.2026)
+
+- **GitHub Actions erfolgreich:** [erster Emulatorlauf #38769381514](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38769381514) und [DB-Isolationslauf #38769645834](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38769645834). Jeweils **7/7 Sicherheitschecks plus 2/2 echte Firestore-SDK-Integrationstests**, keine Fehler. Dies ist nicht mehr nur ein serialisierender Fake.
+- Beide unabhängigen Firestore-Clients im lokalen Emulator: bei zwei gleichzeitigen Annahmeversuchen genau ein Erfolg; zweite Antwort 409; gespeicherter Status `ACCEPTED`, `reconciliationStatus=PENDING`. AVV-Hash-Manipulation blockiert. Der zweite Lauf bestätigt ausserdem einen nicht vorhandenen identischen Dokumentpfad in `(default)` bei Verwendung der benannten Testdatenbank.
+- **Zusätzliche Sicherheit:** Emulator-Modus fordert nun das **Firebase-Demoprojekt `demo-lszh-offers`** statt `lszh-automations`, die genaue Datenbank-ID `lszh-offers-staging` und `127.0.0.1:8080`; kein IAM-/Cloud-Schreibzugriff auf das echte Google-Cloud-Projekt.
+- Einschränkung: Firebase-CLI warnte zugleich, dass mehrere Datenbanken im Emulator nicht voll unterstützt seien. Die Isolation wurde **beobachtet**, aber echte Google-Cloud-Firestore-Laufzeit, IAM, Drive-/PDF-Readback, tokenisierte Linkausstellung und Airtable-Reconciliation bleiben **ungeprüft**.
+- Einzelheiten und Originalbelege: `docs/LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md`. Vorherige Textabschnitte, die einen Emulatorlauf als offen nennen, sind **historische Zwischenstände** und durch diesen Nachweis technisch aktualisiert.
+- **Weiterhin keine** Cloud-Run-Deployments, Firestore-Schreibzugriffe ausserhalb des kurzlebigen lokalen Emulators, echte Kundenannahmen oder produktive E-Mails.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

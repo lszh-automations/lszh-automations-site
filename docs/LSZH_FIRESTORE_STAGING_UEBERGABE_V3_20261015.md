@@ -70,3 +70,18 @@ GitHub-Skript: `scripts/audit-gcp-staging-readonly.sh`. **Läuft nur lokal in ei
 3. Die zurückgelieferte Ausgabe prüfen (keine Secrets weitergeben). Ein Image-Digest **allein** beweist noch keine Commit-Zuordnung.
 4. Erst anhand dieser realen Revision die kleinste Firestore-Transaktionsanbindung spezifizieren; produktive Freigabeflags bleiben weiterhin aus.
 
+
+## Google Cloud Shell – verifizierter Live-Metadatenabgleich 15.10.2026
+
+Vom Projektbetreiber nach Ausführung von `scripts/audit-gcp-staging-readonly.sh` in einer authentifizierten Google Cloud Shell übermittelte Ausgabe:
+
+- Angemeldete Google-Identität: `lars@lszh-automations.ch`.
+- Firestore: `projects/lszh-automations/databases/lszh-offers-staging`, Region `europe-west6`, `FIRESTORE_NATIVE`, `PESSIMISTIC`.
+- Cloud Run Offertenportal: `lszh-offer-portal-staging`, zuletzt bereite Revision `lszh-offer-portal-staging-00004-qt7`, Dienstkonto `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com`, Image-Digest `sha256:b92e8b201f8d2d43c90bc626e74a3bfba2d6adedf015634e432ffdd61af6cd1e`.
+- Cloud Run Archivdienst: `lszh-archive-reader-staging`, zuletzt bereite Revision `lszh-archive-reader-staging-00003-d9m`, Dienstkonto `lszh-archive-reader@lszh-automations.iam.gserviceaccount.com`, Image-Digest `sha256:e83ffc7f0b9cc10b30b5516c0afe0e53a79357ef7af8d74deb52a6d4755abc4b`.
+- Alle Anfragen waren reine Leseabfragen; kein Deployment, Import, Datenbank- oder IAM-Schreibzugriff.
+
+**Grenzen dieser Verifikation:** Die zuletzt bereite Revision ist nicht zwingend der exakte aktuell geroutete Traffic-Stand (Traffic-Split separat auslesen). Ein vorhandenes Dienstkonto beweist weder seine IAM-Rollen noch dessen Zugriffsrechte auf Firestore oder Drive. Auch der Image-Digest stellt **keine belegte Zuordnung** zum GitHub-Quellstand dar. Der Cloud Run-Code und die End-to-End-Anbindung zu Firestore bleiben ungeprüft. In Codex blockiert ein Netzwerkproxy HTTP 403; dies ist kein Beleg fehlender Cloud-IAM-Rechte.
+
+**Nächster ausschließlich lesender Prüfpunkt:** Cloud-Run-Traffic-Zuordnung sowie Betriebs-/Startlog der *tatsächlich mit Traffic belieferten* Portal-Revision, ohne Secrets und ohne Identitätstokens offenzulegen. Erst danach den zugehörigen Code dem getesteten GitHub-Stand zuordnen. Keine Firestore-Dokumente oder Collection zum jetzigen Zeitpunkt anlegen.
+

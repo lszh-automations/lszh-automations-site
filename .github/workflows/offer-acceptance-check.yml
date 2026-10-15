@@ -15,6 +15,8 @@ on:
       - 'cloud-run/offer-portal-staging/**'
       - 'test/offerPortalStaging.test.js'
       - 'test/offerPortalHttp.test.js'
+      - 'test/offerPortalConfig.test.js'
+      - 'test/firestoreEmulator.integration.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -44,6 +46,10 @@ jobs:
           node --check cloud-run/offer-portal-staging/portalCore.mjs
           node --check cloud-run/offer-portal-staging/firestoreOfferStore.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
+          node --check cloud-run/offer-portal-staging/stagingConfig.mjs
+          node --check cloud-run/offer-portal-staging/index.mjs
+          node --check test/offerPortalConfig.test.js
+          node --check test/firestoreEmulator.integration.test.js
           node --check test/offerPortalHttp.test.js
           node --check test/offerPortalStaging.test.js
           node --check scripts/run-tests-safely.js
@@ -59,3 +65,29 @@ jobs:
           NODE
       - name: Unit tests
         run: npm test
+
+  firestore-emulator:
+    name: Synthetic named Firestore transactions (emulator only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install isolated portal SDK dependencies
+        run: npm install --prefix cloud-run/offer-portal-staging --no-audit --no-fund --ignore-scripts
+      - name: Run local emulator transaction contention tests
+        env:
+          CI: 'true'
+          GCLOUD_PROJECT: demo-lszh-automations
+        run: |
+          npx --yes firebase-tools@15.16.0 emulators:exec \
+            --only firestore \
+            --project demo-lszh-automations \
+            --config cloud-run/offer-portal-staging/firebase.emulator.json \
+            "node --test test/firestoreEmulator.integration.test.js"

@@ -8,6 +8,13 @@ on:
       - 'services/offer-acceptance-staging/package.json'
       - 'services/offer-acceptance-staging/package-lock.json'
       - 'services/offer-acceptance-staging/Dockerfile'
+      - 'services/offer-acceptance-staging/index.js'
+      - 'services/offer-acceptance-staging/app.js'
+      - 'services/offer-acceptance-staging/stagingReadProbe.js'
+      - 'services/offer-acceptance-staging/startupReadProof.js'
+      - 'services/offer-acceptance-staging/test/startupReadProof.test.js'
+      - 'stagingFirestoreConnection.js'
+      - 'stagingOfferSchema.js'
   workflow_dispatch:
 permissions:
   contents: read

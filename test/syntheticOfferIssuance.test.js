@@ -4,33 +4,51 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {issueSyntheticOfferOnce,SyntheticIssueRejected}=require('../syntheticOfferIssuance');
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
+const {bindingFingerprint,LOCK_COLLECTION}=require('../syntheticAirtableBinding');
 const {buildOfferFragmentLink}=require('../services/offer-acceptance-staging/offerLinks');
 const pdf=s=>Buffer.from('%PDF-1.7\nSYNTHETIC '+s+'\n%%EOF');
 const archiveBytes={offer:pdf('QUOTE'),terms:pdf('TERMS'),avv:pdf('AVV')};
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const fixtureId='LSZH-EMULATOR-ABC1234567890abcdef';
+const recordId='recTEST0000000000';
 const NOW=new Date('2026-10-15T12:00:00Z');
 const expiry=new Date('2026-10-16T12:00:00Z');
 const docs=Object.fromEntries(Object.entries(archiveBytes).map(([k,v])=>[k,{
  mimeType:'application/pdf',sha256:hash(v),driveFileId:'1'.repeat(24),
  archiveVerified:true}]));
 function draft(extra={}){
- return {schemaVersion:1,fixtureId,testOnly:true,offerNumber:'DEMO-OFF-20991231-999',
+ const state={schemaVersion:1,fixtureId,testOnly:true,offerNumber:'DEMO-OFF-20991231-999',
   status:'TEST_DRAFT_NOT_SENT',recipientEmail:'fake-tester@example.invalid',
   validUntil:'2099-12-31',termsVersion:'TEST_ONLY_TERMS',
   avvRequired:true,avvVersion:'TEST_ONLY_AVV',
   tokenHash:null,issuedAt:null,expiresAt:null,acceptedAt:null,acceptanceEvidence:null,
   reconciliationStatus:'NOT_STARTED',legallyApproved:false,acceptanceEnabled:false,
   deliveryEnabled:false,deliveryConfirmed:false,archiveVerified:true,
-  requiresManualReview:true,documents:docs,...extra};
+  requiresManualReview:true,documents:docs,airtableRecordId:recordId,...extra};
+ if(!Object.prototype.hasOwnProperty.call(extra,'airtableBinding')){
+   state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
+      boundAt:'2026-10-15T10:00:00.000Z',fingerprint:bindingFingerprint(state,state.airtableRecordId)};
+ }
+ return state;
 }
-function fakeDb(initial=draft()){
+function fakeDb(initial=draft(),options={}){
  let state=structuredClone(initial),writes=0;
+ const guard=options.noLock?null:{
+   fixtureId:options.otherFixture?'LSZH-EMULATOR-WRONG1234567890':state.fixtureId,
+   recordId:state.airtableRecordId,
+   fingerprint:options.wrongFingerprint?'f'.repeat(64):state.airtableBinding?.fingerprint,
+   boundAt:state.airtableBinding?.boundAt,
+   syntheticOnly:true
+ };
  let serial=Promise.resolve();
  const db={doc:path=>({path}),runTransaction:fn=>{
   const next=serial.then(async()=>{
    let patch=null;
-   const tx={get:async()=>({exists:!!state,data:()=>structuredClone(state)}),
+   const tx={get:async ref=>{
+     if(ref.path.startsWith(LOCK_COLLECTION+'/'))
+       return {exists:!!guard,data:()=>structuredClone(guard)};
+     return {exists:!!state,data:()=>structuredClone(state)};
+   },
      update:(ref,values)=>{assert.equal(ref.path,'stagingOfferFixtures/'+fixtureId);
        patch=structuredClone(values)}};
    const value=await fn(tx);
@@ -168,4 +186,20 @@ test('Cloud Run identity and actual LSZH Cloud project identity forbid synthetic
       if(v===undefined)delete process.env[k];else process.env[k]=v;
     }
   }
+});
+
+test('issuer denies missing or corrupted binding and guard without writing a token',async()=>{
+ await denied(fakeDb(draft({airtableRecordId:null})) ,{},'binding_missing');
+ await denied(fakeDb(draft({airtableBinding:null})),{},'not_eligible');
+ await denied(fakeDb(draft({airtableBinding:{source:'SYNTHETIC_READ_ONLY',
+   schemaVersion:1,boundAt:'2026-10-15T10:00:00.000Z',
+   fingerprint:'f'.repeat(64)}})),{},'not_eligible');
+ await denied(fakeDb(draft(),{noLock:true}),{},'binding_missing');
+ await denied(fakeDb(draft(),{otherFixture:true}),{},'binding_mismatch');
+ await denied(fakeDb(draft(),{wrongFingerprint:true}),{},'binding_mismatch');
+});
+test('changing source PDF after binding invalidates the frozen fingerprint',async()=>{
+ const state=draft();
+ state.documents.offer={...state.documents.offer,driveFileId:'Z'.repeat(24)};
+ await denied(fakeDb(state),{},'not_eligible');
 });

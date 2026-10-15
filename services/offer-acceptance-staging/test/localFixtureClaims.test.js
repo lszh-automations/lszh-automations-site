@@ -161,7 +161,7 @@ test('container build excludes synthetic claim harness and the production entryp
  assert.doesNotMatch(docker,/COPY[^\n]*test\//);
  assert.doesNotMatch(docker,/localFixtureClaims/);
  assert.doesNotMatch(index,/localFixtureClaim/);
- assert.match(index,/createGateway\(\)/);
+ assert.match(index,/createGateway\(\{stagingReadProbe\}\)/);
 });
 
 test('HTTP claim blocks unbound synthetic offer even with correct PDFs',async()=>{

@@ -6,6 +6,7 @@ const crypto=require('node:crypto');
 const {documentPath,SCHEMA_VERSION}=require('./stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
 const {fetchSyntheticReadback,verifySyntheticReadback}=require('./syntheticAirtableReadback');
+const {COLLECTION:FREEZES,verifyFrozenContractSnapshots}=require('./syntheticContractFreeze');
 const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const HEX=/^[a-f0-9]{64}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
@@ -133,6 +134,7 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     if(!RECORD_ID.test(state?.airtableRecordId||''))deny('binding_missing');
     if(state.airtableRecordId!==airtableRecordId)deny('binding_mismatch');
     const lock=await tx.get(db.doc(LOCK_COLLECTION+'/'+state.airtableRecordId));
+    const frozen=await tx.get(db.doc(FREEZES+'/'+fixtureId));
     if(!lock.exists)deny('binding_missing');
     const bound=lock.data();
     if(bound?.fixtureId!==fixtureId||bound.recordId!==state.airtableRecordId||
@@ -143,6 +145,8 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     if(state?.status==='TEST_ISSUED_NOT_DELIVERED'||state?.tokenHash!=null)
       deny('already_issued');
     checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt);
+    try{verifyFrozenContractSnapshots(state,frozen);}
+    catch{deny('contract_not_frozen_or_mismatched');}
     try{verifySyntheticReadback(state,readback,'issuance');}
     catch{deny('readback_mismatch');}
     tx.update(ref,{status:'TEST_ISSUED_NOT_DELIVERED',

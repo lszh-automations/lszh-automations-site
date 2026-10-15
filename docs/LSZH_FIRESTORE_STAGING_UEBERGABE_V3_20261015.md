@@ -136,3 +136,11 @@ Der Projektbetreiber las per Cloud Shell `gcloud run revisions describe lszh-off
 
 **Nächster minimaler Read-only-Schritt:** Quell-ZIP über bereits autorisierte Cloud Shell aus GCS lokal lesen und zuerst **nur Dateinamen** prüfen (keinen Quellinhalt, keine Secrets, keine Live-Tokens in Chat weitergeben). Danach vorhandene Cloud-Funktion gegen die GitHub-Anwendung abgrenzen. Im Anschluss **eine** konsistente, sicher gesperrte Staging-Portal-Implementierung im bestehenden GitHub-Entwicklungszweig vorbereiten – kein zweites CRM und keine neue Datenbank, keine produktive Aktivierung.
 
+
+## Cloud-Run-Quellarchiv: Dateiinventar 15.10.2026
+
+Der Betreiber hat die Build-Source-ZIP aus `gs://run-sources-lszh-automations-europe-west6/services/lszh-offer-portal-staging/1792067505.193000.zip` in **seiner eigenen Cloud Shell** lediglich nach `/tmp/lszh-portal-source.zip` kopiert und per `unzip -Z -1` aufgelistet. Ausgabe: genau `index.js`, `package.json`, Archivübertragung ca. 2,4 KiB. **Keine Änderung in Cloud Run, GitHub oder Firestore**.
+
+Diese geringe Anzahl Dateien plus der belegte Function Target `lszhPortalPreflight` sprechen stark für ein dediziertes Preflight-Build und nicht für die vollumfängliche Portal-Website. **Endgültiger Nachweis erst nach Prüfung der `index.js`**, ohne Credentials oder Umgebungsvariablen an Dritte auszugeben. Es ist keine GitHub-Zuordnung belegbar, und das Archiv ist kein Beleg einer vollständigen Portal-API.
+
+Nächster Schritt: lokal in derselben Cloud Shell eine **statische Stichwort-/Routenprüfung der index.js** vornehmen, nur boolesche Treffer ausgeben, keinen kompletten Quelltext oder Secret-Werte. Danach die bestehende GitHub-Portal-App für einen gesonderten Staging-Deploy planen; keine produktiven Gates aktivieren.

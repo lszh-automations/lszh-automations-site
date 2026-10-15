@@ -16,7 +16,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=deps --chown=65532:65532 /app/node_modules ./node_modules
 COPY --chown=65532:65532 stagingOfferSchema.js stagingFirestoreConnection.js ./
-COPY --chown=65532:65532 services/offer-acceptance-staging/app.js services/offer-acceptance-staging/index.js services/offer-acceptance-staging/offerLinks.js services/offer-acceptance-staging/stagingReadProbe.js ./services/offer-acceptance-staging/
+COPY --chown=65532:65532 services/offer-acceptance-staging/app.js services/offer-acceptance-staging/index.js services/offer-acceptance-staging/offerLinks.js services/offer-acceptance-staging/stagingReadProbe.js services/offer-acceptance-staging/startupReadProof.js ./services/offer-acceptance-staging/
 COPY --chown=65532:65532 offerte-annehmen/index.html ./offerte-annehmen/index.html
 USER 65532:65532
 EXPOSE 8080

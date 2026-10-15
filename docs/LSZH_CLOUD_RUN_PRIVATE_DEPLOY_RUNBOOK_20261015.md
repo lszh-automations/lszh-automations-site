@@ -4,6 +4,19 @@
 
 **WICHTIG:** Das ChatGPT-GitHub-Tool kann Code/CI pflegen, hat aber keinen Zugriff auf die Google-Cloud-Control-Plane. Die nachfolgenden Google-Cloud-Befehle müssen vom autorisierten Benutzer in **Cloud Shell** ausgeführt werden; diese Datei führt sie niemals selbst aus.
 
+## Letzter externer Preflight durch den Nutzer – alle drei Prüfungen bestätigt
+
+Der Nutzer hat die drei konkreten rein lesenden Cloud-Shell-Abfragen ausgeführt:
+
+- **Artifact Registry:** `cloud-run-source-deploy` ist in `projects/lszh-automations/locations/europe-west6/repositories/cloud-run-source-deploy` vorhanden (Google-managed encryption). Repository-Size laut Nutzeranzeige: 24.740 MB.
+- **Benötigte APIs:** `artifactregistry.googleapis.com`, `cloudbuild.googleapis.com` und `run.googleapis.com` stehen in der `gcloud services list --enabled`-Ausgabe. Das bedeutet nicht automatisch, dass alle benötigten Deploy-/Service-Account-Berechtigungen erteilt sind.
+- **Neue Cloud Run Zielidentität:** `gcloud run services describe lszh-offer-acceptance-staging --region=europe-west6` lieferte `Cannot find service`. Es wurde noch kein neuer Cloud-Run-Service bereitgestellt.
+
+**Erneut vor Deploy prüfen:** aktives `gcloud`-Login, tatsächliches Dienstkonto, weiterhin vorhandene unveränderte IAM-Condition und eindeutiges Nichtvorhandensein des Zielservice. Bei fehlenden Rechten oder Cloud-Build-Aufforderungen zu weiteren Ressourcen/Berechtigungen **nicht automatisch zustimmen**.
+
+**Testierter Quellcode-Commit für die geplante Bereitstellung:**
+`8b486d8ba92b036055df4a57f7158285c502c155`. Dazugehöriger [Firestore/Startup-Emulator CI-Lauf #38804002721](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38804002721) **SUCCESS**. Distroless-Dockerfile und Firestore-Lockfile sind darin gegenüber dem [erfolgreichen Container-Build-/Scan-Lauf #38803915370](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38803915370) (Commit `12c16a973f1821481423e67b96ef20b6074e3145`) **unverändert**; der später ergänzte Startup-Proof wurde lokal getestet. Der exakt kombinierte Container aus Commit `8b486...` wurde noch nicht als fertiges Image gescannt; bei dessen Google-Cloud-Build neue Logs prüfen.
+
 ## A. Read-only Preflight – immer ZUERST
 
 ```bash

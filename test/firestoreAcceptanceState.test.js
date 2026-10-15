@@ -2,15 +2,18 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
+const {SCHEMA_VERSION}=require('../stagingOfferSchema');
 const H=ch=>ch.repeat(64);
+const pdf=ch=>({mimeType:'application/pdf',sha256:H(ch),driveFileId:'1'.repeat(24),archiveVerified:true});
 const base={
+  schemaVersion:SCHEMA_VERSION,fixtureId:'LSZH-STAGING-20261015-001',testOnly:true,
   status:'ISSUED',acceptanceEnabled:true,legallyApproved:true,
   deliveryConfirmed:true,archiveVerified:true,acceptedAt:null,
   expiresAt:'2030-01-01T00:00:00.000Z',tokenHash:H('1'),
   offerNumber:'DEMO-OFF-20261015-001',termsVersion:'TEST_ONLY_TERMS',
   recipientEmail:'lars@lszh-automations.ch',
   avvRequired:true,avvVersion:'TEST_ONLY_AVV',
-  documents:{offer:{sha256:H('2')},terms:{sha256:H('3')},avv:{sha256:H('4')}}
+  documents:{offer:pdf('2'),terms:pdf('3'),avv:pdf('4')}
 };
 const input={
   documentPath:'stagingOfferFixtures/DEMO-OFF-20261015-001',
@@ -79,7 +82,7 @@ test('token, PDF hash, recipient or AVV mismatch blocked',async()=>{
 });
 test('AVV optional when not required',async()=>{
   const s=fakeStore({...base,avvRequired:false,avvVersion:null,
-    documents:{offer:base.documents.offer,terms:base.documents.terms}});
+    documents:{offer:pdf('2'),terms:pdf('3')}});
   await claimOfferOnce({...input,db:s.db,actor:{...input.actor,acceptAvv:false}});
   assert.equal(s.getState().acceptanceEvidence.acceptedAvv,false);
 });
@@ -89,4 +92,22 @@ test('bad path and absent authorization/consent rejected before transaction',asy
     {actor:{...input.actor,acceptTerms:false}},
     {actor:{...input.actor,authorized:false}}
   ]) await rejectsWithoutWrite(fakeStore(base),changed);
+});
+
+test('non-archived, missing-id or wrong MIME PDF blocks claim',async()=>{
+  for(const changed of [
+    {...pdf('2'),archiveVerified:false},
+    {...pdf('2'),driveFileId:null},
+    {...pdf('2'),mimeType:'text/plain'}
+  ]) await rejectsWithoutWrite(fakeStore({...base,documents:{...base.documents,offer:changed}}));
+});
+test('unknown schema, wrong fixture identity and absent testOnly are blocked',async()=>{
+  for(const changed of [
+    {schemaVersion:999},
+    {fixtureId:'LSZH-STAGING-20261015-999'},
+    {testOnly:false},
+    {expiresAt:null},
+    {avvRequired:null},
+    {tokenHash:null}
+  ]) await rejectsWithoutWrite(fakeStore({...base,...changed}));
 });

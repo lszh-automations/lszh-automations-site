@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {createStagingFirestoreConnection,StagingConfigError,ALLOWED_SERVICE}=require('../stagingFirestoreConnection');
+const {createStagingFirestoreConnection,StagingConfigError,ALLOWED_SERVICE,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 let calls=0;
 class FakeFirestore {
   constructor(options){calls++;FakeFirestore.lastOptions=options;}
@@ -9,7 +9,7 @@ class FakeFirestore {
 }
 const cloud={K_SERVICE:ALLOWED_SERVICE,GOOGLE_CLOUD_PROJECT:'lszh-automations',
   LSZH_FIRESTORE_PROJECT_ID:'lszh-automations',LSZH_FIRESTORE_DATABASE_ID:'lszh-offers-staging'};
-const emulator={LSZH_FIRESTORE_PROJECT_ID:'lszh-automations',
+const emulator={LSZH_FIRESTORE_PROJECT_ID:EMULATOR_PROJECT,
   LSZH_FIRESTORE_DATABASE_ID:'lszh-offers-staging',FIRESTORE_EMULATOR_HOST:'127.0.0.1:8080',
   LSZH_STAGING_EMULATOR_TEST:'yes'};
 function rejects(options){
@@ -40,9 +40,12 @@ test('emulator mode accepts only loopback, requires explicit simulation flag',()
   for(const host of ['evil.com:8080','0.0.0.0:8080','10.0.0.10:8080','localhost:99999','local:8080'])
     rejects({mode:'emulator',env:{...emulator,FIRESTORE_EMULATOR_HOST:host}});
   rejects({mode:'emulator',env:{...emulator,LSZH_STAGING_EMULATOR_TEST:'no'}});
+  rejects({mode:'emulator',env:{...emulator,LSZH_FIRESTORE_PROJECT_ID:'lszh-automations'}});
+  rejects({mode:'emulator',env:{...emulator,GOOGLE_CLOUD_PROJECT:'lszh-automations'}});
+  rejects({mode:'emulator',env:{...emulator,GCLOUD_PROJECT:'lszh-automations'}});
   rejects({mode:'emulator',env:{...emulator,K_SERVICE:'lszh-offer-acceptance-staging'}});
   const {settings}=createStagingFirestoreConnection({Firestore:FakeFirestore,mode:'emulator',env:emulator});
-  assert.deepEqual(FakeFirestore.lastOptions,{projectId:'lszh-automations',databaseId:'lszh-offers-staging'});
+  assert.deepEqual(FakeFirestore.lastOptions,{projectId:EMULATOR_PROJECT,databaseId:'lszh-offers-staging'});
   assert.equal(settings.mode,'emulator');assert.equal(settings.writeAuthorized,false);
 });
 test('no privileged method exposed by the connection wrapper',()=>{

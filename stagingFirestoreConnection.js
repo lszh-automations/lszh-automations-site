@@ -3,6 +3,7 @@
 // No network, reads, writes, IAM changes or Firestore documents at module load.
 const {TARGET,COLLECTION,SCHEMA_VERSION,documentPath}=require('./stagingOfferSchema');
 const ALLOWED_SERVICE='lszh-offer-acceptance-staging'; // planned NEW service, not existing preflight
+const EMULATOR_PROJECT='demo-lszh-offers'; // Firebase demo project has NO production resources
 const HOST_RE=/^(localhost|127\.0\.0\.1|\[::1\]):([1-9][0-9]{1,4})$/;
 class StagingConfigError extends Error {
   constructor(){super('staging_connection_not_configured');this.name='StagingConfigError';}
@@ -10,23 +11,28 @@ class StagingConfigError extends Error {
 function ensure(ok){if(!ok)throw new StagingConfigError();}
 function validateSettings(env,mode){
   ensure(mode==='cloud-run'||mode==='emulator');
-  ensure(env.LSZH_FIRESTORE_PROJECT_ID===TARGET.projectId);
   ensure(env.LSZH_FIRESTORE_DATABASE_ID===TARGET.databaseId);
   // No private-key files or credentials embedded in the deployment.
   ensure(!env.GOOGLE_APPLICATION_CREDENTIALS&&!env.GOOGLE_CLOUD_KEYFILE_JSON);
   if(mode==='cloud-run'){
+    ensure(env.LSZH_FIRESTORE_PROJECT_ID===TARGET.projectId);
     ensure(env.K_SERVICE===ALLOWED_SERVICE&&env.GOOGLE_CLOUD_PROJECT===TARGET.projectId);
     ensure(!env.FIRESTORE_EMULATOR_HOST);
     // Deliberate 'disabled' gate: this module cannot authorize writes.
     ensure(env.LSZH_FIRESTORE_STAGING_WRITE_ENABLED!=='true');
   }else{
-    // Emulator runs only on loopback, not public or remote host.
+    // Emulator only uses a non-existing Firebase demo project and loopback.
+    // A mistaken connection to real Firestore must not address the actual project.
+    ensure(env.LSZH_FIRESTORE_PROJECT_ID===EMULATOR_PROJECT);
+    ensure(!env.GOOGLE_CLOUD_PROJECT||env.GOOGLE_CLOUD_PROJECT===EMULATOR_PROJECT);
+    ensure(!env.GCLOUD_PROJECT||env.GCLOUD_PROJECT===EMULATOR_PROJECT);
     const m=HOST_RE.exec(env.FIRESTORE_EMULATOR_HOST||'');
     ensure(m && Number(m[2])<=65535);
     ensure(env.LSZH_STAGING_EMULATOR_TEST==='yes');
     ensure(!env.K_SERVICE);
   }
-  return Object.freeze({projectId:TARGET.projectId,databaseId:TARGET.databaseId,
+  return Object.freeze({projectId:mode==='emulator'?EMULATOR_PROJECT:TARGET.projectId,
+    databaseId:TARGET.databaseId,
     collection:COLLECTION,mode,writeAuthorized:false});
 }
 function createStagingFirestoreConnection({Firestore,env=process.env,mode='cloud-run'}={}){
@@ -48,4 +54,4 @@ function createStagingFirestoreConnection({Firestore,env=process.env,mode='cloud
   };
   return Object.freeze({readFixture,settings,connected:false});
 }
-module.exports={ALLOWED_SERVICE,StagingConfigError,validateSettings,createStagingFirestoreConnection};
+module.exports={ALLOWED_SERVICE,EMULATOR_PROJECT,StagingConfigError,validateSettings,createStagingFirestoreConnection};

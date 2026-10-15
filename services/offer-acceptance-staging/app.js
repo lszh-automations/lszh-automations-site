@@ -1,6 +1,7 @@
 'use strict';
-// Isolated STAGING only. Production gateway NEVER reads CRM/Drive/Firestore,
-// never accepts offers. Its optional localhost harness hook is only usable
+// Isolated STAGING only. An internal Firestore GET probe is opt-in and
+// returns no document data. CRM/Drive and offer acceptance remain disabled.
+// Its optional localhost harness hook is only usable
 // with explicit NODE_ENV=test, no Cloud Run identity and loopback HTTP.
 const http=require('node:http');
 const fs=require('node:fs/promises');

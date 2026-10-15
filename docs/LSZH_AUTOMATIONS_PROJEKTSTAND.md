@@ -53,6 +53,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - 7 neue Unit-Tests und lokal mit den bisherigen 9 Transaktions- und 3 Schema-Tests insgesamt **19/19 bestanden**. Zusätzlich ist ein ausschließlich opt-in aktivierbarer lokaler Emulator-Doppelannahmetest in `test/firestoreEmulator.integration.test.js` vorbereitet. Standard-Node-Lauf: **19 bestanden, 1 sicher übersprungen, 0 fehlgeschlagen** – **kein echter Emulator-Lauf**. Fake-Client-Test, **kein** echter Firestore-IAM-Test oder Cloud-Firestore-Emulator-Test. GitHub-Actions-Workflow für Offline-Prüfungen ergänzt, tatsächlicher CI-Lauf noch offen.
 - Technik-/Sicherheitsentscheidung und verbleibende Hosting-Optionen: `docs/LSZH_FIRESTORE_KEYLESS_CONNECTION_STAGING_20261015.md`. Vor echtem Firestore-STAGING-Schreibtest explizite gesonderte Autorisierung, Berechtigungskontrolle und sichere Authentifizierung nötig. Aktuelle RC1-Rechtsfreigabe fehlt.
 
+### Staging-Offertengateway & geschützte Kundenlinks – 15.10.2026
+
+- Neuer GitHub-Entwurf `services/offer-acceptance-staging/{app.js,index.js,Dockerfile,test/app.test.js}`. Separater, geplanter Cloud-Run-Dienst `lszh-offer-acceptance-staging` soll künftig **Offertenoberfläche und API unter demselben Origin** führen. Die bestehende Render-Website bleibt auf Render, die Cloud-Run-Preflight-Revision bleibt unverändert.
+- **Noch nicht deployt**, keine Domain/Servicekonten/Firestore-Daten angefasst; APIs `/api/offer/preview`, `/api/offer/document`, `/api/offer/accept` antworten **immer 503**. Der Dienst lädt keine Datenbank und verschickt nichts.
+- Testbeleg: 8 lokale Node-HTTP-Tests bestanden; CSP-Hashes, No-Store/No-Referrer/No-Index, CORS verweigert und keine Zustandsänderungen. GitHub-CI noch nicht bestätigt; Docker-Image noch nicht gebaut.
+- Die Offertenoberfläche liest den geheimen Link-Token künftig ausschliesslich als URL-Fragment `#code=...`, nicht mehr als Queryparameter. Veraltete `?code=`-Links müssen vor jedem späteren Go-live bewusst migriert werden. Der bislang nicht atomare direkte Linkaussteller `scripts/issue-offer-link.js` ist im Entwicklungszweig hart deaktiviert.
+- Künftige öffentliche Kundenlinks brauchen robuste Firestore-Ausstellung/Transaktion, Authentifizierungs-/Rate-Limit-Schutz, richtige private Drive-PDFs mit AVV, Wiederanlauf der Airtable-/Make-Synchronisation und Rechtsfreigabe. Technische Doku: `docs/LSZH_OFFER_GATEWAY_STAGING_20261015.md`.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

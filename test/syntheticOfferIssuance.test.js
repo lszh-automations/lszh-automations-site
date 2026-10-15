@@ -190,7 +190,7 @@ test('Cloud Run identity and actual LSZH Cloud project identity forbid synthetic
 
 test('issuer denies missing or corrupted binding and guard without writing a token',async()=>{
  await denied(fakeDb(draft({airtableRecordId:null})) ,{},'binding_missing');
- await denied(fakeDb(draft({airtableBinding:null})),{},'not_eligible');
+ await denied(fakeDb(draft({airtableBinding:null})),{},'binding_mismatch');
  await denied(fakeDb(draft({airtableBinding:{source:'SYNTHETIC_READ_ONLY',
    schemaVersion:1,boundAt:'2026-10-15T10:00:00.000Z',
    fingerprint:'f'.repeat(64)}})),{},'not_eligible');

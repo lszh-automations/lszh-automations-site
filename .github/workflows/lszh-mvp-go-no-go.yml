@@ -1,0 +1,34 @@
+name: LSZH MVP release safety gates (read-only; NO_GO expected)
+on:
+  push:
+    branches:
+      - feature/firestore-staging-dryrun-20261015
+    paths:
+      - '.github/workflows/lszh-mvp-go-no-go.yml'
+      - 'scripts/mvp-readiness-gate.js'
+      - 'test/mvpReadinessGate.test.js'
+      - 'docs/LSZH_MVP_READINESS_SNAPSHOT_20261015.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check pure release-gate syntax and test fail-closed policy
+        run: |
+          node --check scripts/mvp-readiness-gate.js
+          node --check test/mvpReadinessGate.test.js
+          node --test test/mvpReadinessGate.test.js
+      - name: Emit dated readiness report without cloud access
+        run: |
+          node scripts/mvp-readiness-gate.js --status
+      - name: Assert both releases are still gated (not a production release)
+        run: |
+          node -e "const r=require('./scripts/mvp-readiness-gate');const p=require('./docs/LSZH_MVP_READINESS_SNAPSHOT_20261015.json');const x=r.evaluate(p);if(x.syntheticEndToEnd.ready||x.customerPilot.ready)process.exit(1);console.log('Release remains NO_GO until independent evidence and explicitly documented authorization.')"
+      # No Make, Airtable, Firestore, Gmail, Cloud Run, IAM, credentials, deployment or actual customer access.

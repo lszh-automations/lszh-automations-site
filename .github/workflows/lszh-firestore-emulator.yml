@@ -19,6 +19,8 @@ on:
       - 'syntheticAirtableReadback.js'
       - 'syntheticContractFreeze.js'
       - 'syntheticDriveRevisionReadback.js'
+      - 'stagingArchiveReadiness.js'
+      - 'test/stagingArchiveReadiness.test.js'
       - 'test/syntheticDriveRevisionReadback.test.js'
       - 'test/syntheticContractFreeze.test.js'
       - 'test/syntheticContractFreeze.integration.test.js'
@@ -82,6 +84,8 @@ jobs:
           node --check syntheticAirtableReadback.js
           node --check syntheticContractFreeze.js
           node --check syntheticDriveRevisionReadback.js
+          node --check stagingArchiveReadiness.js
+          node --check test/stagingArchiveReadiness.test.js
           node --check test/syntheticDriveRevisionReadback.test.js
           node --check test/syntheticContractFreeze.test.js
           node --check test/syntheticContractFreeze.integration.test.js
@@ -97,7 +101,7 @@ jobs:
           node --check test/syntheticOfferIssuance.test.js
           node --check test/syntheticOfferIssuance.integration.test.js
           node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
-          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js test/airtableReadonlyRecord.test.js test/firestoreAcceptanceState.test.js test/syntheticAirtableReadback.test.js test/syntheticDriveRevisionReadback.test.js test/syntheticContractFreeze.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js
+          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js test/airtableReadonlyRecord.test.js test/firestoreAcceptanceState.test.js test/syntheticAirtableReadback.test.js test/syntheticDriveRevisionReadback.test.js test/stagingArchiveReadiness.test.js test/syntheticContractFreeze.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js
       - name: Run real Firestore transactions on a local demo-project emulator
         run: |
           ./node_modules/.bin/firebase emulators:exec \

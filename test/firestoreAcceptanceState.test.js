@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 const {SCHEMA_VERSION}=require('../stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
+const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
 const H=ch=>ch.repeat(64);
 const pdf=ch=>({mimeType:'application/pdf',sha256:H(ch),driveFileId:'1'.repeat(24),archiveVerified:true});
 const base={
@@ -12,6 +13,7 @@ const base={
   deliveryConfirmed:true,archiveVerified:true,acceptedAt:null,
   expiresAt:'2030-01-01T00:00:00.000Z',tokenHash:H('1'),
   offerNumber:'DEMO-OFF-20261015-001',termsVersion:'TEST_ONLY_TERMS',
+  validUntil:'2099-12-31',
   recipientEmail:'fake-tester@example.invalid',
   avvRequired:true,avvVersion:'TEST_ONLY_AVV',
   documents:{offer:pdf('2'),terms:pdf('3'),avv:pdf('4')}
@@ -53,12 +55,16 @@ function fakeStore(initial,opts={}){
   return {db,getState:()=>state,getWrites:()=>writes};
 }
 async function rejectsWithoutWrite(store,overrides={}){
-  await assert.rejects(claimOfferOnce({...input,...overrides,db:store.db}),ClaimRejected);
+  await assert.rejects(claimOfferOnce({...input,airtableRecordId:store.getState()?.airtableRecordId,
+    readRecord:async()=>mockAirtableOffer(store.getState(),'acceptance'),
+    ...overrides,db:store.db}),ClaimRejected);
   assert.equal(store.getWrites(),0);
 }
 test('synthetic AVV claim records an accepted state and pending reconciliation',async()=>{
   const s=fakeStore(base);
-  const result=await claimOfferOnce({...input,db:s.db});
+  const result=await claimOfferOnce({...input,db:s.db,
+    airtableRecordId:base.airtableRecordId,
+    readRecord:async()=>mockAirtableOffer(s.getState(),'acceptance')});
   assert.equal(result.accepted,true);assert.equal(s.getWrites(),1);
   assert.equal(s.getState().status,'ACCEPTED');
   assert.equal(s.getState().reconciliationStatus,'PENDING');
@@ -66,7 +72,9 @@ test('synthetic AVV claim records an accepted state and pending reconciliation',
 });
 test('two concurrent claims serialize: one accepted, one rejected',async()=>{
   const s=fakeStore(base);
-  const result=await Promise.allSettled([0,1].map(()=>claimOfferOnce({...input,db:s.db})));
+  const result=await Promise.allSettled([0,1].map(()=>claimOfferOnce({...input,db:s.db,
+    airtableRecordId:base.airtableRecordId,
+    readRecord:async()=>mockAirtableOffer(s.getState(),'acceptance')})));
   assert.equal(result.filter(x=>x.status==='fulfilled').length,1);
   assert.equal(result.filter(x=>x.status==='rejected').length,1);
   assert.equal(s.getWrites(),1);
@@ -98,7 +106,9 @@ test('AVV optional when not required',async()=>{
   optional.airtableBinding={...base.airtableBinding,
     fingerprint:bindingFingerprint(optional,optional.airtableRecordId)};
   const s=fakeStore(optional);
-  await claimOfferOnce({...input,db:s.db,actor:{...input.actor,acceptAvv:false}});
+  await claimOfferOnce({...input,db:s.db,actor:{...input.actor,acceptAvv:false},
+    airtableRecordId:optional.airtableRecordId,
+    readRecord:async()=>mockAirtableOffer(s.getState(),'acceptance')});
   assert.equal(s.getState().acceptanceEvidence.acceptedAvv,false);
 });
 test('bad path and absent authorization/consent rejected before transaction',async()=>{
@@ -134,4 +144,34 @@ test('acceptance refuses a missing, forged or mismatched CRM binding',async()=>{
  await rejectsWithoutWrite(fakeStore(base,{corruptLock:true}));
  const tampered={...base,documents:{...base.documents,offer:{...base.documents.offer,driveFileId:'Z'.repeat(24)}}};
  await rejectsWithoutWrite(fakeStore(tampered));
+});
+
+test('fresh Airtable divergence blocks acceptance despite intact Firestore lock',async()=>{
+ for(const edited of [
+  {'Offertennummer':'DEMO-OFF-OTHER'}, {'Projektbedingungen Version':'OTHER'},
+  {'Gültig bis':'2099-12-30'},
+  {'Lead E-Mail':['fake-imposter@example.invalid']},
+  {'Online-Annahme Offerten-SHA256':'f'.repeat(64)},
+  {'Online-Annahme AVV Drive ID':'Z'.repeat(24)},
+  {'Online-Annahme AVV-Version':'OTHER'},
+  {'AVV erforderlich':'Nein'},{Status:'Entwurf'},
+  {'Vertragsunterlagen versendet':false},
+  {'Online-Annahme rechtlich freigegeben':false},
+  {'Online-Annahme Link gesendet am':null},
+  {'Online-Annahme Token-Hash':'f'.repeat(64)},
+  {'Vertragsunterlagen akzeptiert':true}
+ ]){
+  const store=fakeStore(base);
+  await rejectsWithoutWrite(store,{readRecord:async()=>({
+    ...mockAirtableOffer(store.getState(),'acceptance'),
+    fields:{...mockAirtableOffer(store.getState(),'acceptance').fields,...edited}
+  })});
+ }
+});
+test('untrusted/missing Airtable reader rejects acceptance without side effects',async()=>{
+ const store=fakeStore(base);
+ await rejectsWithoutWrite(store,{readRecord:null});
+ await rejectsWithoutWrite(store,{readRecord:async()=>{throw Error('offline');}});
+ await rejectsWithoutWrite(store,{airtableRecordId:'recOTHER000000000'});
+ assert.equal(store.getWrites(),0);
 });

@@ -15,7 +15,8 @@ export function stagingConfig(env={}){
   if(env.LSZH_PORTAL_STAGING_ENABLED!=='true')return {enabled:false};
   // A copied config must not accidentally enable this code on Render, local
   // developer machines, the LSZH marketing site or another Cloud Run service.
-  if(env.K_SERVICE!==STAGING.service || !String(env.K_REVISION||'') ||
+  if(env.K_SERVICE!==STAGING.service ||
+     !/^lszh-offer-portal-staging-\\d{5}-[a-z0-9]+$/.test(String(env.K_REVISION||'')) ||
      String(env.GOOGLE_CLOUD_PROJECT||env.GCLOUD_PROJECT||'')!==STAGING.projectId ||
      env.FIRESTORE_EMULATOR_HOST || env.GOOGLE_APPLICATION_CREDENTIALS ||
      env.OFFER_DRIVE_SA_B64 || env.OFFER_DRIVE_SA_FILE)

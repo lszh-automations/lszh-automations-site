@@ -119,6 +119,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Wichtige Grenze:** Zwischen dem Airtable-GET und dem Firestore-Commit kann Airtable theoretisch erneut geändert werden (keine verteilte Transaktion / TOCTOU). Deshalb bleibt die produktive Versionierungs-/Freeze- und Rechtsfreigabefrage offen. Kein produktives Deployment, E-Mail, Make, Airtable-PATCH oder echter Firestore-STAGING-Schreibtest.
 - Weitere Einzelheiten: `docs/LSZH_FRESH_AIRTABLE_READBACK_20261015.md`.
 
+### Vertragssnapshot + Airtable-GET-Härtung – Offline-/Emulator-Test bestanden (15.10.2026)
+
+- `airtableReadonlyRecord.js` weiterhin nur als **nicht konfigurierte**, GET-only API-Lesefassade, jetzt mit `AbortSignal.timeout(5000)`, maximal 256 KiB geprüfter Antwortgrösse, strikt überprüfter Airtable-Record-ID, abgelehnten Weiterleitungen und neutralen Fehlermeldungen auch bei Secret-Leseproblemen. Kein echter Airtable-GET oder Zugangsschlüssel verwendet.
+- `syntheticContractFreeze.js`: neuer **rein synthetischer** Manifestentwurf für Offerte/Bedingungen/AVV mit SHA-256 über lokale PDF-Bytes, einzelnem Revisionsbezeichner, Drive-Datei-ID und eindeutigem Gesamtmanifest-Hash. Der `stagingContractFreezes/{fixtureId}`-Guard wird mit dem bestehenden Airtable-Bindungs-Guard durch eine Firestore-Transaktion einmalig angelegt. Künstliche Revisions-IDs sind **nicht** tatsächlich bei Google Drive ausgelesen. Keine Rechts-/Archivfreigabe durch einen Hash.
+- Echter GitHub-Actions-Nachweis [#38779835279](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38779835279): **88/88 Unit-/HTTP-/Sicherheitstests und 7/7 Firestore-Emulator-Integrationstests bestanden**, inklusive zwei gleichzeitig einfrierender Firestore-Clients (nur ein Commit).
+- **Wesentlicher noch offener Integrationspunkt:** Die **ausgestellten** synthetischen Links und der **Annahmekandidat** prüfen das neue `contractManifestHash` derzeit **noch nicht verpflichtend**. Erst nach dieser Code-Integration gilt die zusammenhängende Kette als getestet; vorher ist dies ein isolierter Sicherheitsbaustein. Auch die echten revisionsgenauen Drive-PDFs, eine authentifizierte Airtable-API-GET-Verbindung und das Airtable/Firestore-TOCTOU-Risiko bleiben offen.
+- Keine Cloud-Deployments, produktiven Firestore-Writes, Airtable-PATCHes, E-Mails, Make-Ausführungen, Vertragsabschlüsse oder Freigaben. Technischer Bericht: `docs/LSZH_CONTRACT_FREEZE_STAGING_20261015.md`.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

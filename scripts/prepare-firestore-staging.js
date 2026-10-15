@@ -5,8 +5,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
-const TARGET=Object.freeze({projectId:'lszh-automations',databaseId:'lszh-offers-staging',region:'europe-west6'});
-const COLLECTION='stagingOfferFixtures'; // PROPOSAL, not verified deployed schema.
+const {TARGET,COLLECTION,SCHEMA_VERSION,documentPath,blockedFixture}=require('../stagingOfferSchema');
 const EXPECTED_EMAIL='lars@lszh-automations.ch';
 const TYPES=['offer','terms','avv'];
 const SHA=/^[0-9a-f]{64}$/;
@@ -25,6 +24,7 @@ function checkedManifest(m,root){
  ensure(o.status==='TEST_DRAFT_NOT_SENT' && o.email===EXPECTED_EMAIL && o.avv_required==='Ja','Unsafe recipient/status/AVV');
  ensure(/^DEMO-OFF-\d{8}-\d{3}$/.test(o.offer_number||''),'Non-test offer number');
  ensure(/^TEST_ONLY_/.test(o.contract_version||'') && /^TEST_ONLY_/.test(o.avv_version||''),'Unapproved contract material');
+ ensure(/^\d{4}-\d{2}-\d{2}$/.test(o.valid_until||'') && Number.isFinite(Date.parse(o.valid_until+'T12:00:00Z')),'Invalid expiry date');
  ensure(m.token?.raw_token_in_manifest===false && m.token?.token_issued_to_customer===false && SHA.test(m.token?.token_hash||''),'Unsafe token metadata');
  ensure(isObject(m.documents) && Object.keys(m.documents).sort().join(',')===TYPES.slice().sort().join(','),'Exactly three documents required');
  const docs={},seenFiles=new Set(),seenHashes=new Set();
@@ -42,15 +42,12 @@ function checkedManifest(m,root){
      driveFileId:null,archiveVerified:false};
  }
  // Merely proposed document. Never send this JSON directly as a Firestore write.
+ const proposedDocument=blockedFixture({fixtureId:m.fixture_id,offer:o,documents:docs});
  return {mode:'OFFLINE_DRY_RUN_ONLY',cloudWritePerformed:false,target:TARGET,
-  proposedCollection:COLLECTION,proposedDocumentId:m.fixture_id,
-  proposedDocument:{fixtureId:m.fixture_id,offerNumber:o.offer_number,status:'TEST_DRAFT_NOT_SENT',
-   recipientEmail:EXPECTED_EMAIL,company:o.company,contactName:o.contact_name,validUntil:o.valid_until,
-   setupCHF:o.amount_setup_chf,monthlyCareCHF:o.amount_care_chf_monthly,avvRequired:true,
-   documents:docs,tokenHash:null,acceptedAt:null,testOnly:true,legallyApproved:false,
-   acceptanceEnabled:false,deliveryEnabled:false,archiveVerified:false,requiresManualReview:true},
-  blockers:['Drive upload/readback and permissions not verified','Deployed portal schema not confirmed',
-    'No test token issued','No separate authorization to write to STAGING']};
+  schemaVersion:SCHEMA_VERSION,proposedCollection:COLLECTION,proposedDocumentId:m.fixture_id,
+  proposedDocumentPath:documentPath(m.fixture_id),proposedDocument,
+  blockers:['Drive upload/readback and permissions not verified','No production deployment or Firestore write authorization',
+    'No live test token issued','Portal AVV verification and database integration not implemented']};
 }
 function prepare(root){
  ensure(typeof root==='string' && root.length>0,'Fixture directory required');

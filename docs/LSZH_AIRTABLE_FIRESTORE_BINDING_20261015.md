@@ -17,6 +17,12 @@ Neues Testmodul: `syntheticAirtableBinding.js`.
 5. Ergebnisstatus bleibt **`TEST_DRAFT_NOT_SENT`**, `acceptanceEnabled=false`, `legallyApproved=false`. Es wird kein Link versendet, kein Vertrag angenommen, kein Airtable-Datensatz aktualisiert.
 6. Unzulässige Ausführungsumgebungen werden explizit gesperrt: Cloud Run `K_SERVICE`, reales LSZH-Google-Projekt, fehlender `offline-or-emulator-only`-Modus, andere als synthetische Fixture-IDs. Das Modul importiert **keine Airtable-SDKs, Credentials oder Netzwerkfunktion**.
 
+## Vorbereiteter gesicherter Read-only-Airtable-Client
+
+Ergänzend wurde `airtableReadonlyRecord.js` entwickelt. Der Baustein erfordert **explizit** eine serverseitig injizierte `fetchImpl`, die Identität der Base, die Identität der Tabelle und eine separate `getAccessToken`-Funktion. Er besitzt **keinen automatischen Netzwerkzugriff, keine selbstgelesenen Umgebungsvariablen und keinen API-Schlüssel**. Die URL wird ausschliesslich als `https://api.airtable.com/v0/{baseId}/{tableId}/{recordId}` zusammengesetzt; die drei IDs werden streng validiert. Die Anfrage ist **nur GET** mit ausgeschalteten Weiterleitungen, Caching, Cookies und Referrer. Der Rückgabedatensatz muss dieselbe Record-ID haben. HTTP-Fehler, fehlende Record-Felder und Netzwerkausnahmen werden mit neutralen Fehlern statt sensitiven Details zurückgegeben.
+
+`test/airtableReadonlyRecord.test.js` verwendet **ausnahmslos einen erfundenen Fetch-Callback und ein Testtoken**. Keine echten Airtable-Zugangsdaten, kein produktiver API-Aufruf und kein Schreibzugriff. Die Ergänzung ist eine **Transportvorbereitung**, keine aktivierte Live-Verbindung. Spätere Anbindung darf nur serverseitig mit minimalen Rechten und zusätzlicher Freigabe-/Authentifizierungsprüfung erfolgen.
+
 ## Grenzen des Nachweises
 
 - **Die Airtable-Felder existieren:** verbundenes Airtable-Schema am 15.10. ausschliesslich lesend überprüft. Die echte Base- und Tabellenidentität sind intern bekannt und wurden nicht mit synthetischen Daten beschrieben.

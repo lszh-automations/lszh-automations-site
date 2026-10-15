@@ -124,3 +124,23 @@ test('Cloud Run production identity disables the local fixture injection even if
   finally{if(original===undefined)delete process.env.K_SERVICE;else process.env.K_SERVICE=original;}
  }finally{await env.close();}
 });
+
+test('production Node mode disables local test claim route even when handler injected',async()=>{
+ const env=await setup();
+ try{
+  const previous=process.env.NODE_ENV;process.env.NODE_ENV='production';
+  try{
+    const r=await request(env.url);
+    assert.equal(r.status,404);assert.equal(env.store.writes(),0);
+  }finally{process.env.NODE_ENV=previous;}
+ }finally{await env.close();}
+});
+test('container build excludes synthetic claim harness and the production entrypoint injects nothing',()=>{
+ const root=path.join(__dirname,'..');
+ const docker=fs.readFileSync(path.join(root,'Dockerfile'),'utf8');
+ const index=fs.readFileSync(path.join(root,'index.js'),'utf8');
+ assert.doesNotMatch(docker,/COPY[^\n]*test\//);
+ assert.doesNotMatch(docker,/localFixtureClaims/);
+ assert.doesNotMatch(index,/localFixtureClaim/);
+ assert.match(index,/createGateway\(\)/);
+});

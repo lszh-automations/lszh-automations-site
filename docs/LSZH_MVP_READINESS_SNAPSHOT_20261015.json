@@ -1,0 +1,75 @@
+{
+  "kind": "LSZH_MVP_TEST_READINESS_V1",
+  "snapshotAt": "2026-10-15",
+  "scope": "Read-only ChatGPT connector inventory, previous synthetic proofs and feature-branch CI; NOT A LIVE CHECK AFTER SNAPSHOT",
+  "approvals": {
+    "syntheticExecution": false,
+    "realPilot": false
+  },
+  "tests": {
+    "onlySyntheticIdentities": {
+      "status": "PASS",
+      "evidence": "Synthetische Airtable-Offerte DEMO-OFF-20991231-20261015A1; fiktiver Lead; @example.invalid"
+    },
+    "dummyContractClearlyMarked": {
+      "status": "PASS",
+      "evidence": "Drei TEST_ONLY-PDFs mit sichtbarem Testhinweis, NICHT VERTRAG; Dateibytes SHA-verifiziert"
+    },
+    "mailTransportDisabled": {
+      "status": "PASS",
+      "evidence": "Staging-Angebots/Annahme-Szenarien in Make inaktiv; Annahmelink-Mail hart gesperrt"
+    },
+    "realAcceptanceDisabled": {
+      "status": "PASS",
+      "evidence": "Isoliertes Gateway POST /api/offer/accept=503; keine aktivierte Annahme in Cloud Run"
+    },
+    "syntheticOfferAndAttachmentsReadback": {
+      "status": "PASS",
+      "evidence": "Airtable-Demoentwurf plus drei private Google-Drive-Test-PDFs im Read-only-Byteabgleich"
+    },
+    "privateCloudRunConfigured": {
+      "status": "NOT_TESTED",
+      "evidence": "Der separate Google-Cloud-Run-Dienst lszh-offer-acceptance-staging fehlt; noch kein autorisierter Deploy"
+    },
+    "realNamedFirestoreReadVerified": {
+      "status": "NOT_TESTED",
+      "evidence": "Firestore Viewer-Konto und IAM-Condition bestätigt; echter SDK-GET unter diesem Konto nicht durchgeführt"
+    },
+    "stagingOfferAcceptanceRehearsal": {
+      "status": "NOT_TESTED",
+      "evidence": "Keine komplette simulierte Offerte-zu-Annahme-Verarbeitung über Make, Gateway und Archiv nachgewiesen"
+    },
+    "stagingInvoiceQrRehearsal": {
+      "status": "NOT_TESTED",
+      "evidence": "QR-PDF-Vorschau und Testprotokolle existieren, aber kein verknüpfter Offerte-zu-Rechnung-E2E-Prozess nachgewiesen"
+    },
+    "reconciliationAndRetriesRehearsal": {
+      "status": "NOT_TESTED",
+      "evidence": "Firestore-Emulator-Transaktionstests bestanden, externe Airtable/Make-Reconciliation und Fehler-Replay nicht E2E verifiziert"
+    },
+    "rc1LegalReviewComplete": {
+      "status": "BLOCKED",
+      "evidence": "Projektbedingungen v1.0 RC1: juristische/geschäftliche Freigabe noch ausstehend"
+    },
+    "avvLegalReviewComplete": {
+      "status": "BLOCKED",
+      "evidence": "AVV RC1: juristische/geschäftliche Freigabe noch ausstehend"
+    },
+    "immutableArchiveRetentionApproved": {
+      "status": "BLOCKED",
+      "evidence": "Drei synthetische Google-Drive-Revisionen keepForever=false; rechtssichere Archivierung/Retention ungelöst"
+    },
+    "commercialPaymentDataChecked": {
+      "status": "NOT_TESTED",
+      "evidence": "Rechnungs-/IBAN-/MWST-/QR-Referenz-Stammdaten nicht für Live-Pilot abgenommen"
+    },
+    "customerAccessSecurityReviewed": {
+      "status": "NOT_TESTED",
+      "evidence": "Echte Cloud-Run-Ingress/Invoker-Policy sowie kundenspezifische Make-Rollen und Datenflüsse nicht pilotabgenommen"
+    },
+    "customerDeliveryEndToEndVerified": {
+      "status": "NOT_TESTED",
+      "evidence": "Produktiver Kundenversand und echte Vertragsannahme sind bewusst gesperrt und nicht getestet"
+    }
+  }
+}

@@ -21,9 +21,11 @@ const mockAccepted=id=>{
  const proof={acceptedAt:'2026-10-15T11:00:00.000Z',actorName:'Test Muster',
   actorEmail:'fake-tester@example.invalid',authorized:true,acceptedTerms:true,
   acceptedAvv:true,offerNumber:'DEMO-OFF-20991231-999',termsVersion:'TEST_ONLY_TERMS',
-  quoteSha256:H('2'),termsSha256:H('3'),avvSha256:H('4'),avvVersion:'TEST_ONLY_AVV'};
+  quoteSha256:H('2'),termsSha256:H('3'),avvSha256:H('4'),avvVersion:'TEST_ONLY_AVV',
+  contractManifestHash:H('a')};
  return {schemaVersion:1,fixtureId:id,testOnly:true,status:'ACCEPTED',
   airtableRecordId:'recTEST0000000000',acceptedAt:proof.acceptedAt,
+  contractManifestHash:proof.contractManifestHash,contractManifestVersion:1,
   acceptanceEvidence:proof,legallyApproved:true,acceptanceEnabled:true,
   deliveryConfirmed:true,archiveVerified:true,offerNumber:proof.offerNumber,
   termsVersion:proof.termsVersion,avvRequired:true,avvVersion:proof.avvVersion,

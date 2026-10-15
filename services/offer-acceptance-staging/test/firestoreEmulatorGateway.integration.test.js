@@ -8,7 +8,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {once}=require('node:events');
 const {createGateway}=require('../app');
 const {createLocalFixtureClaim}=require('./localFixtureClaims');
-const {validateSettings}=require('../../../stagingFirestoreConnection');
+const {validateSettings,EMULATOR_PROJECT}=require('../../../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../../../stagingOfferSchema');
 let enabled=false;
 try{
@@ -18,8 +18,8 @@ try{
 test('local HTTP + two independent Firestore emulator clients commit only once', {skip:!enabled},async()=>{
  // SDK and emulator are never used in standard CI/unit tests.
  const {Firestore}=require('@google-cloud/firestore');
- const one=new Firestore({projectId:TARGET.projectId,databaseId:TARGET.databaseId});
- const two=new Firestore({projectId:TARGET.projectId,databaseId:TARGET.databaseId});
+ const one=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
+ const two=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
  const fixtureId='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
  const fixture={fixtureId,offerNumber:'DEMO-OFF-20991231-999',
    termsVersion:'TEST_ONLY_TERMS',avvVersion:'TEST_ONLY_AVV',avvRequired:true};

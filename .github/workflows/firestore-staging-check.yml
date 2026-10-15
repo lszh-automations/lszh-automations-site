@@ -4,6 +4,8 @@ on:
     paths:
       - 'scripts/prepare-firestore-staging.js'
       - 'test/firestoreStagingDryrun.test.js'
+      - 'firestoreAcceptanceState.js'
+      - 'test/firestoreAcceptanceState.test.js'
       - '.github/workflows/firestore-staging-check.yml'
   workflow_dispatch:
 permissions:
@@ -22,7 +24,9 @@ jobs:
         run: |
           node --check scripts/prepare-firestore-staging.js
           node --check test/firestoreStagingDryrun.test.js
+          node --check firestoreAcceptanceState.js
+          node --check test/firestoreAcceptanceState.test.js
       - name: Run offline tests only
         run: |
-          node --test test/firestoreStagingDryrun.test.js
+          node --test test/firestoreStagingDryrun.test.js test/firestoreAcceptanceState.test.js
           # No gcloud authentication, Firebase credentials, cloud writes or deploys.

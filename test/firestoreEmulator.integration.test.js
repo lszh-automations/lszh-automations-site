@@ -26,12 +26,16 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
   const {Firestore}=require('@google-cloud/firestore');
   const a=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
   const b=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
+  const defaultDb=new Firestore({projectId:EMULATOR_PROJECT,databaseId:'(default)'});
   const id='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
   const document=documentPath(id);
   const ref=a.doc(document);
   // Emulator-only write; skip condition above excludes any non-loopback host.
   try{
     await ref.create(initial(id));
+    const defaultRef=defaultDb.doc(document);
+    assert.equal((await defaultRef.get()).exists,false,
+      'Emulator did not isolate named Firestore database from (default)');
     const now=new Date('2026-10-15T12:00:00Z');
     const results=await Promise.allSettled([a,b].map(db=>claimOfferOnce({db,documentPath:document,expected,actor,now})));
     assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
@@ -41,5 +45,7 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     assert.equal(updated.acceptanceEvidence.acceptedAvv,true);
     assert.equal(updated.reconciliationStatus,'PENDING');
     assert.equal(updated.acceptanceEvidence.avvSha256,H('4'));
-  }finally{await ref.delete().catch(()=>{});await Promise.all([a.terminate(),b.terminate()]);}
+    assert.equal((await defaultRef.get()).exists,false,
+      'Named acceptance leaked into default database');
+  }finally{await ref.delete().catch(()=>{});await Promise.all([a.terminate(),b.terminate(),defaultDb.terminate()]);}
 });

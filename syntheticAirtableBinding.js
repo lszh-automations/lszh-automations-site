@@ -75,6 +75,7 @@ function validState(state,fixtureId){
     state.reconciliationStatus!=='NOT_STARTED'||
     state.airtableRecordId!=null||state.airtableBinding!=null||
     !/^DEMO-OFF-[A-Za-z0-9-]{8,50}$/.test(state.offerNumber||'')||
+    !/^fake-[a-z0-9-]+@example\.invalid$/.test(state.recipientEmail||'')||
     !/^TEST_ONLY_/.test(state.termsVersion||''))deny('not_eligible');
 }
 function fingerprint(state,fields,recordId){

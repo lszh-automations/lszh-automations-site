@@ -175,6 +175,15 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Offene nächste konkreten Schritte: lesenden Cloud-Shell-Preflight ausführen und Output auswerten; **erst danach** gesonderte Freigabe für ein dediziertes nutzerverwaltetes Servicekonto oder neue IAM-/Deploy-Schritte, später separater synthetischer Cloud-STAGING-Schreibtest. Keine Bucket-Lock-/Retention-Änderungen, keine Live-Airtable-/Drive-Mutationen, keine Annahmen oder Kunden-E-Mails.
 - Anleitung und erwartete Grenzen: `docs/LSZH_CLOUD_SHELL_READONLY_AUDIT_20261015.md`.
 
+### Echte Cloud-Shell-Read-only-Ausgabe vom 15.10.2026 (vom Nutzer ausgeführt)
+
+- `scripts/audit-lszh-cloud-readonly.js --read-only` wurde durch den Nutzer in Google Cloud Shell ausgeführt. JSON-Ergebnis `LSZH_CLOUD_READONLY_PREFLIGHT_V1`: `project=lszh-automations`, `region=europe-west6`, `database=lszh-offers-staging`.
+- `namedFirestore=PRESENT`: benannte Firestore-STAGING-Datenbank im Zielprojekt / in der Zielregion durch diesen Live-`describe`-Aufruf bestätigt. **Keine** Datenbank-Schreibberechtigung geprüft oder ausgeübt.
+- `existingPreflight=EXISTS_IDENTITY_PERMISSIONS_UNVERIFIED`: bestehender Cloud-Run-Preflight `lszh-offer-portal-staging` und konfigurierte Dienstidentität per Metadaten bestätigt. **Keine** Drive-/Airtable-/Firestore-IAM-Rechte dieses Dienstes hiermit nachgewiesen.
+- `plannedService=NOT_VERIFIED` und `candidateServiceAccount=NOT_VERIFIED`: der geplante neue Annahmedienst und das vorgeschlagene Konto `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` **sind nicht verifiziert**. Das Audit klassifiziert Fehler wie 404, `PERMISSION_DENIED`, CLI-/JSON-Fehler und Timeouts einheitlich als `NOT_VERIFIED`; **nicht** daraus auf Abwesenheit schliessen.
+- `driveReaderPermission=NOT_TESTED`, `airtableReaderPermission=NOT_TESTED`, `namedDatabaseWritePermission=NOT_TESTED`. `authorizedToWrite=false`, `authorizedToDeploy=false`, `authorizedToModifyIAM=false`, `authorizedToLockRetention=false`; `resourcesModified=false`.
+- **Nächster sicherer Schritt:** lesende Einzel-`gcloud describe`-Aufrufe mit begrenztem `--format=value(...)` bzw. gezielter Fehleranzeige für die beiden `NOT_VERIFIED`-Objekte ausführen, um tatsächliches `NOT_FOUND` von Berechtigungs-/CLI-Problemen zu unterscheiden. Keine Kontoerstellung, IAM-Rechteänderung, Deployment, Firestore-Writes, Dokumentaufbewahrungssperre, E-Mail oder Vertragsannahme.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

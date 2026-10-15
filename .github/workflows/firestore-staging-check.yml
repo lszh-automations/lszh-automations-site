@@ -1,0 +1,28 @@
+name: Firestore staging dry-run checks
+on:
+  pull_request:
+    paths:
+      - 'scripts/prepare-firestore-staging.js'
+      - 'test/firestoreStagingDryrun.test.js'
+      - '.github/workflows/firestore-staging-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-validation:
+    runs-on: ubuntu-latest
+    env:
+      OFFER_ACCEPTANCE_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: |
+          node --check scripts/prepare-firestore-staging.js
+          node --check test/firestoreStagingDryrun.test.js
+      - name: Run offline tests only
+        run: |
+          node --test test/firestoreStagingDryrun.test.js
+          # No gcloud authentication, Firebase credentials, cloud writes or deploys.

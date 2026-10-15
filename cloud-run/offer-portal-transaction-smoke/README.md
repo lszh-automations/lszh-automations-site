@@ -1,3 +1,9 @@
+## Abschliessender Realtest-Nachweis (15.10.2026, 13:55 MESZ)
+
+**ERFOLGREICH – das ursprüngliche fehlende Endergebnis wurde durch neue Cloud-Run-Logs aufgeklärt.** Die Geschäftsführung zeigte `LSZH_PORTAL_TX_SMOKE: TRANSACTION_PASS (12_ATTEMPTS_1_COMMIT_11_DECLINED)`, `CLEANUP_PASS` und `PASS` (13:55:30.269 MESZ) unter der richtigen Portal-Identität. Der Code bestätigt den Status und das physische Entfernen des eigens angelegten synthetischen Dokuments vor dem Erfolg. Der vorherige Warnhinweis über fehlende PASS-Logs unten ist **historisch und überholt**.
+
+**Nicht noch einmal den schreibenden Cloud-Run-Startup-Test deployen oder ausführen.** Die temporäre Revision ist auf den originalen **lesenden** Preflight zurückzusetzen: `cloud-run/offer-portal-preflight/index.js` und `package.json` einspielen, `transactionTest.mjs` entfernen, Funktionsziel `lszhPortalPreflight` beibehalten. Rücksetzung wurde durch den Nutzer **noch nicht bestätigt**. Der negative IAM-Test ergab `INCONCLUSIVE_DB_ABSENT`, also weiterhin **keinen Nachweis** einer Zugriffsverweigerung auf eine andere existente Datenbank.
+
 ## WICHTIGER REALBETRIEBSBEFUND vom 15.10.2026
 
 **Dieses zuvor beschriebene Startup-Verfahren NICHT erneut anwenden.** Der erste echte Google-Cloud-Run-Test wurde am 15.10.2026 13:55 MESZ gestartet und protokollierte nur `START`, `IDENTITY_PASS`, `IAM_NEGATIVE_INCONCLUSIVE_DB_ABSENT`. In den vom Geschäftsführer übermittelten Logs fehlen bis zur letzten Aufnahme **`TRANSACTION_PASS`, `CLEANUP_PASS`, `PASS`, `FAIL`**. Der Datenzustand ist unbekannt.

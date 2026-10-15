@@ -38,4 +38,15 @@ Ergänzend wurde `airtableReadonlyRecord.js` entwickelt. Der Baustein erfordert 
 - `test/syntheticAirtableBinding.integration.test.js`: zwei unabhängig initiierte echte Firestore-Transaktionen gegen den **lokalen Firebase-Emulator** mit **`demo-lszh-offers`** und `lszh-offers-staging` als *nur lokalen* Namensbezeichnern. Es darf nur eine Fixture denselben Airtable-Mockdatensatz binden; die zweite Transaktion muss abgewiesen werden. Kein Airtable-Netzwerk, keine Kunden- oder Produktivdaten.
 - [GitHub-Actions-Workflow](../.github/workflows/lszh-firestore-emulator.yml) prüft Syntax/Unit/Emulator. Nachfolgende Ausführungsergebnisse separat anhand der Joblogs dokumentieren, nicht durch einen grünen Code-Commit behaupten.
 
+## Tatsächlich verifizierter GitHub-Actions-Testlauf
+
+[GitHub Actions Run #38774815271](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38774815271) erfolgreich abgeschlossen, Code-Revision `92ab208e09afa51f465471f2e41586be1880f9c2`:
+
+- **44/44** Sicherheits- und Unit-Tests bestanden, keine fehlgeschlagenen Tests und keine Skips. Enthält die GET-only-Airtable-Testtransportprüfungen, ohne echte API-Aufrufe.
+- **6/6** lokale Firestore-Emulator-Integrationstests bestanden. Der neue sechste Test beweist die atomare Eindeutigkeit der simulierten Airtable-Datensatz-ID bei zwei gleichzeitig bindenden Firestore-Clients.
+- Die anfänglichen Tests fanden eine fehlende frühe Empfänger-Sperre und eine nicht präzise Fehlererwartung bei einer schon existierenden Zuordnung. Beides wurde korrigiert und durch einen abschliessend grünen CI-Lauf bestätigt.
+- Der Firebase-Emulator meldet weiterhin eingeschränkte Unterstützung für mehrere Datenbanken; die benannte Datenbank ist **nicht** als echte Google-Cloud-Laufzeit verifiziert.
+
+**Der Code ist nicht ausgerollt und führt keine realen Schreibvorgänge aus.** Die einzige transaktionale Bindung im Test erfolgte im kurzlebigen `demo-lszh-offers`-Emulator.
+
 **Nächste Priorität:** Den geprüften `airtableRecordId`-Bindungsnachweis beim späteren Ausstellen und Annehmen zwingend mitvergleichen; zuvor die unabhängige authentifizierte Airtable-Leseverbindung unter einem freigegebenen Staging-Servicekonzept und echten PDFs planen. Weiterhin keine produktive Aktivierung ohne ausdrückliche Zustimmung.

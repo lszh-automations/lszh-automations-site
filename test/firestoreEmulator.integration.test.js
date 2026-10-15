@@ -7,6 +7,8 @@ const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {claimOfferOnce}=require('../firestoreAcceptanceState');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
 const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
+const {mockFrozenContract}=require('./helpers/mockContractFreeze');
+const {COLLECTION:FREEZES}=require('../syntheticContractFreeze');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const config={...process.env};
 let canTest=false;
@@ -34,6 +36,7 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
   const ref=a.doc(document);
   const recordId='rec'+crypto.randomBytes(7).toString('hex');
   const bindingRef=a.doc(LOCK_COLLECTION+'/'+recordId);
+  const dbFreeze=a.doc(FREEZES+'/'+id);
   // Emulator-only write; skip condition above excludes any non-loopback host.
   try{
     const state=initial(id);
@@ -41,7 +44,9 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
       boundAt:'2026-10-15T10:00:00.000Z',
       fingerprint:bindingFingerprint(state,recordId)};
-    await Promise.all([ref.create(state),bindingRef.create({fixtureId:id,recordId,
+    const contract=mockFrozenContract(state);
+    Object.assign(state,contract.state);
+    await Promise.all([ref.create(state),dbFreeze.create(contract.freeze),bindingRef.create({fixtureId:id,recordId,
       fingerprint:state.airtableBinding.fingerprint,boundAt:state.airtableBinding.boundAt,
       syntheticOnly:true})]);
     const defaultRef=defaultDb.doc(document);
@@ -68,7 +73,7 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     assert.equal((await defaultRef.get()).exists,false,
       'Named acceptance leaked into default database');
   }finally{
-    await Promise.all([ref.delete().catch(()=>{}),bindingRef.delete().catch(()=>{})]);
+    await Promise.all([ref.delete().catch(()=>{}),bindingRef.delete().catch(()=>{}),dbFreeze.delete().catch(()=>{})]);
     await Promise.all([a.terminate(),b.terminate(),defaultDb.terminate()]);
   }
 });

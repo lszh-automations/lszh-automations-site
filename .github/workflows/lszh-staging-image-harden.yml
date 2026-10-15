@@ -29,6 +29,7 @@ jobs:
       - name: Independently inspect official Node base-image index digest
         run: |
           docker buildx imagetools inspect node:22.23.3-bookworm-slim | head -45
+          docker buildx imagetools inspect gcr.io/distroless/nodejs22-debian13:nonroot | head -45
       - name: Verify checked-in dependency lock is current and integrity-checked
         working-directory: services/offer-acceptance-staging
         run: |

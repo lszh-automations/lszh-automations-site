@@ -61,6 +61,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Die Offertenoberfläche liest den geheimen Link-Token künftig ausschliesslich als URL-Fragment `#code=...`, nicht mehr als Queryparameter. Veraltete `?code=`-Links müssen vor jedem späteren Go-live bewusst migriert werden. Der bislang nicht atomare direkte Linkaussteller `scripts/issue-offer-link.js` ist im Entwicklungszweig hart deaktiviert.
 - Künftige öffentliche Kundenlinks brauchen robuste Firestore-Ausstellung/Transaktion, Authentifizierungs-/Rate-Limit-Schutz, richtige private Drive-PDFs mit AVV, Wiederanlauf der Airtable-/Make-Synchronisation und Rechtsfreigabe. Technische Doku: `docs/LSZH_OFFER_GATEWAY_STAGING_20261015.md`.
 
+### Lokaler HTTP-Doppelannahmetest & Emulatorvorbereitung – 15.10.2026
+
+- Im GitHub-Entwicklungszweig verbindet ein ausschliesslich lokaler **Testhandler** die HTTP-Staging-App mit `firestoreAcceptanceState.claimOfferOnce`. Er verwendet nur lokale synthetische PDF-Bytes und einen serialisierenden Fake-Firestore-Store, nicht das Google-Cloud-Projekt. Produktive API-Routen `/api/offer/{preview,document,accept}` bleiben 503.
+- Die Testnaht `/__local_fixture/claim` erfordert `NODE_ENV=test`, kein `K_SERVICE`, beidseitige Loopback-TCP-Verbindung und explizite Handler-Injektion; im Cloud-Run-Entrypoint nicht injiziert und im Docker-Bauplan nicht enthalten.
+- **20 lokale Gateway-/Linktests in Node.js 22 bestanden, keine Fehler**: genau eine Annahme bei zwei gleichzeitigen HTTP-Anfragen, AVV-Einwilligung, manipulierte Tokens/Hashes, veränderte synthetische PDF-Datei und Produktionssperren. **Nur Fake-Transaktionen, nicht die tatsächliche Firestore-Transaktionsengine.**
+- Neuer separater, opt-in geschützter Integrationstest für zwei unabhängige Firestore-SDK-Clients gegen einen **lokalen Firestore-Emulator** vorbereitet. Emulator und SDK stehen hier nicht zur Verfügung; daher noch kein echter Emulator-Lauf. CI-Workflow mit Test ergänzt, standardmässig im Skip-Modus; tatsächlicher CI-Lauf weiter unbestätigt.
+- Dokumentation: `docs/LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md`. Kein Deployment, kein Cloud-Run-Dienst, keine Berechtigungen/Datensätze/Make-Szenarien geändert.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

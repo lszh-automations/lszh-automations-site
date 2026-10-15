@@ -41,6 +41,8 @@ on:
       - 'services/offer-acceptance-staging/app.js'
       - 'services/offer-acceptance-staging/index.js'
       - 'services/offer-acceptance-staging/stagingReadProbe.js'
+      - 'services/offer-acceptance-staging/startupReadProof.js'
+      - 'services/offer-acceptance-staging/test/startupReadProof.test.js'
       - 'services/offer-acceptance-staging/Dockerfile'
       - 'services/offer-acceptance-staging/test/stagingReadProbe.test.js'
       - 'test/stagingFirestoreRead.emulator.integration.test.js'
@@ -84,6 +86,8 @@ jobs:
           node --check services/offer-acceptance-staging/test/localFixtureClaims.test.js
           node --check services/offer-acceptance-staging/stagingReadProbe.js
           node --check services/offer-acceptance-staging/index.js
+          node --check services/offer-acceptance-staging/startupReadProof.js
+          node --check services/offer-acceptance-staging/test/startupReadProof.test.js
           node --check services/offer-acceptance-staging/test/stagingReadProbe.test.js
           node --check test/stagingFirestoreRead.emulator.integration.test.js
           node --check firestoreAcceptanceState.js
@@ -114,7 +118,7 @@ jobs:
           node --check test/syntheticOfferIssuance.test.js
           node --check test/syntheticOfferIssuance.integration.test.js
           node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
-          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js test/airtableReadonlyRecord.test.js test/firestoreAcceptanceState.test.js test/syntheticAirtableReadback.test.js test/syntheticDriveRevisionReadback.test.js test/stagingArchiveReadiness.test.js test/cloudReadOnlyAudit.test.js test/syntheticContractFreeze.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js services/offer-acceptance-staging/test/stagingReadProbe.test.js
+          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js test/airtableReadonlyRecord.test.js test/firestoreAcceptanceState.test.js test/syntheticAirtableReadback.test.js test/syntheticDriveRevisionReadback.test.js test/stagingArchiveReadiness.test.js test/cloudReadOnlyAudit.test.js test/syntheticContractFreeze.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js services/offer-acceptance-staging/test/stagingReadProbe.test.js services/offer-acceptance-staging/test/startupReadProof.test.js
       - name: Run real Firestore transactions on a local demo-project emulator
         run: |
           ./node_modules/.bin/firebase emulators:exec \

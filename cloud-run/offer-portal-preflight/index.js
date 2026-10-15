@@ -10,7 +10,7 @@ const PDF='1W-ZB32pxV7R6EC928BU0iMIAFhSlTno8';
 const PDF_SHA256='0e5e304feb775fc9ff45478970d6a1582542f58f84c5b03b1f5d8d94fdcea536';
 const META='http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default';
 const DRIVE='https://www.googleapis.com/drive/v3/files/';
-const FIRESTORE='https://firestore.europe-west6.rep.googleapis.com/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_staging_offers_v1/__lszh_preflight_absent__';
+const FIRESTORE='https://firestore.europe-west6.rep.googleapis.com/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_staging_offers_v1?pageSize=1';
 const LIMIT=12*1024*1024;
 
 async function query(url,headers={}){
@@ -55,10 +55,11 @@ async function driveRead(){
 }
 async function firestoreRead(){
   const headers=await oauth('https://www.googleapis.com/auth/datastore');
-  // No collection/document has been created. An authenticated GET on a
-  // nonexistent test document should return 404, never create any data.
+  // GET listDocuments on named staging DB, even if the collection is empty.
+  // HTTP 200 proves IAM-authorized database-level list access. Never process
+  // or log any returned documents. No collection or document is created.
   const response=await query(FIRESTORE,headers);
-  if(response.status===404)return;
+  if(response.status===200)return;
   if(response.status===403||response.status===401)throw Error('firestore_iam_denied');
   throw Error('firestore_unexpected_status');
 }

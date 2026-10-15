@@ -1,0 +1,63 @@
+name: LSZH Firestore emulator proof (synthetic only)
+on:
+  push:
+    branches:
+      - feature/firestore-staging-dryrun-20261015
+    paths:
+      - '.github/workflows/lszh-firestore-emulator.yml'
+      - 'tests/emulator/**'
+      - 'stagingFirestoreConnection.js'
+      - 'test/stagingFirestoreConnection.test.js'
+      - 'test/firestoreEmulator.integration.test.js'
+      - 'stagingOfferSchema.js'
+      - 'firestoreAcceptanceState.js'
+      - 'services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js'
+      - 'services/offer-acceptance-staging/test/localFixtureClaims.js'
+      - 'services/offer-acceptance-staging/app.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lszh-demo-firestore-emulator-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  synthetic-firestore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      FIREBASE_CLI_DISABLE_UPDATE_CHECK: '1'
+      LSZH_FIRESTORE_PROJECT_ID: demo-lszh-offers
+      LSZH_FIRESTORE_DATABASE_ID: lszh-offers-staging
+      LSZH_STAGING_EMULATOR_TEST: 'yes'
+      LSZH_RUN_EMULATOR_TRANSACTION_TEST: I_UNDERSTAND_LOCAL_ONLY
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Java 21 for local Firestore emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install local test tooling only (no deployment or cloud credentials)
+        run: npm install --no-save --no-package-lock @google-cloud/firestore@7 firebase-tools@15
+      - name: Check demo-only configuration and test source syntax
+        run: |
+          node --check stagingFirestoreConnection.js
+          node --check test/stagingFirestoreConnection.test.js
+          node --check test/firestoreEmulator.integration.test.js
+          node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
+          node --test test/stagingFirestoreConnection.test.js
+      - name: Run real Firestore transactions on a local demo-project emulator
+        run: |
+          ./node_modules/.bin/firebase emulators:exec \
+            --config tests/emulator/firebase.json \
+            --only firestore \
+            --project demo-lszh-offers \
+            "node --test test/firestoreEmulator.integration.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js"
+      # No gcloud, Firebase login, Firebase deploy, service account keys, OAuth,
+      # remote Firestore endpoints, Make, Airtable or email. Only local emulator.

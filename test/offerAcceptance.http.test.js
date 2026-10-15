@@ -82,6 +82,18 @@ test('HTTP full journey – browser route → synthetic Airtable → Drive JWT/P
     assert.match(page,/id="avvConsent"/);
     assert.match(page,/id="avvPdf"/);
   });
+  await t.test('source files, configs and Render secret file names are never public',async()=>{
+    for(const forbidden of [
+      '/server.js', '/offerArchiveVerifier.js', '/offerAcceptance.js',
+      '/package.json', '/README.txt', '/docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md',
+      '/test/offerAcceptance.http.test.js',
+      '/.env', '/.github/workflows/offer-acceptance-check.yml',
+      '/lszh-archive-reader.json', '/%2eenv', '/%2e%2e/server.js'
+    ]){
+      const r=await fetch(app.base+forbidden,{signal:AbortSignal.timeout(6000)});
+      assert.equal(r.status,404,'forbidden static path '+forbidden);
+    }
+  });
   await t.test('AVV Ja previews 3 separately frozen files through JWT-mocked Drive metadata',async()=>{
     const r=await app.call('preview',{code});
     assert.equal(r.status,200);

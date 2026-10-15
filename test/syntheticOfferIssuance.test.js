@@ -7,6 +7,8 @@ const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 const {bindingFingerprint,LOCK_COLLECTION}=require('../syntheticAirtableBinding');
 const {buildOfferFragmentLink}=require('../services/offer-acceptance-staging/offerLinks');
 const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
+const {mockFrozenContract}=require('./helpers/mockContractFreeze');
+const {COLLECTION:FREEZES}=require('../syntheticContractFreeze');
 const pdf=s=>Buffer.from('%PDF-1.7\nSYNTHETIC '+s+'\n%%EOF');
 const archiveBytes={offer:pdf('QUOTE'),terms:pdf('TERMS'),avv:pdf('AVV')};
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -30,7 +32,7 @@ function draft(extra={}){
    state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
       boundAt:'2026-10-15T10:00:00.000Z',fingerprint:bindingFingerprint(state,state.airtableRecordId)};
  }
- return state;
+ return state.airtableBinding?mockFrozenContract(state).state:state;
 }
 function fakeDb(initial=draft(),options={}){
  let state=structuredClone(initial),writes=0;
@@ -41,6 +43,9 @@ function fakeDb(initial=draft(),options={}){
    boundAt:state.airtableBinding?.boundAt,
    syntheticOnly:true
  };
+ const freeze=options.noFreeze||!state.airtableBinding?null:
+   mockFrozenContract(state).freeze;
+ if(freeze&&options.corruptFreeze)freeze.manifest.documents.offer.revisionId='bad';
  let serial=Promise.resolve();
  const db={doc:path=>({path}),runTransaction:fn=>{
   const next=serial.then(async()=>{
@@ -48,6 +53,8 @@ function fakeDb(initial=draft(),options={}){
    const tx={get:async ref=>{
      if(ref.path.startsWith(LOCK_COLLECTION+'/'))
        return {exists:!!guard,data:()=>structuredClone(guard)};
+     if(ref.path.startsWith(FREEZES+'/'))
+       return {exists:!!freeze,data:()=>structuredClone(freeze)};
      return {exists:!!state,data:()=>structuredClone(state)};
    },
      update:(ref,values)=>{assert.equal(ref.path,'stagingOfferFixtures/'+fixtureId);
@@ -234,4 +241,11 @@ test('no trustworthy fresh reader, wrong record ID and failed read refuse issuan
  await denied(s,{airtableRecordId:'recOTHER000000000'},'readback_unavailable');
  await denied(s,{readRecord:async()=>{throw Error('offline');}},'readback_unavailable');
  await denied(s,{readRecord:async()=>null},'readback_unavailable');
+});
+
+test('frozen contract is mandatory: missing/corrupted or mismatched version refuses issuance',async()=>{
+ await denied(fakeDb(draft(),{noFreeze:true}),{},'contract_not_frozen_or_mismatched');
+ await denied(fakeDb(draft(),{corruptFreeze:true}),{},'contract_not_frozen_or_mismatched');
+ const s=draft();s.documents.terms={...s.documents.terms,driveFileId:'Y'.repeat(24)};
+ await denied(fakeDb(s),{},'not_eligible');
 });

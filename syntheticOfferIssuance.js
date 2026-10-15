@@ -67,6 +67,8 @@ function checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt){
     deny('document_changed');
   if(state.avvRequired===false&&state.documents?.avv!=null)deny('document_changed');
   if(!/^\d{4}-\d\d-\d\d$/.test(String(state.validUntil||''))||
+     !Number.isFinite(Date.parse(state.validUntil+'T12:00:00Z'))||
+     new Date(state.validUntil+'T12:00:00Z').toISOString().slice(0,10)!==state.validUntil||
      swissDay(now)>state.validUntil||swissDay(expiresAt)>state.validUntil)
     deny('expired');
 }
@@ -85,6 +87,10 @@ function checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt){
 async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date(),
   expiresAt=new Date(now.getTime()+24*60*60*1000),randomBytes=crypto.randomBytes,
   testMode}={}){
+  // Defense in depth: never execute this synthetic writer inside Cloud Run
+  // or under the real LSZH Google Cloud project identity.
+  if(process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT==='lszh-automations'||
+    process.env.GCLOUD_PROJECT==='lszh-automations')deny('invalid_input');
   if(testMode!=='offline-or-emulator-only'||
     !/^LSZH-EMULATOR-[A-Za-z0-9_-]{12,60}$/.test(String(fixtureId||''))||
     !db||typeof db.doc!=='function'||typeof db.runTransaction!=='function'||

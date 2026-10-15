@@ -189,7 +189,7 @@ module.exports = function createOfferAcceptance(deps) {
         evidence
       });
       if(!receipt || receipt.accepted!==true)throw Error('atomic_commit_failed');
-      return reply(res,200,{ok:true,confirmed:true,offer_number:offer.number,confirmation_email_pending:true});
+      return reply(res,200,{ok:true,confirmed:true,offer_number:offer.number,reconciliation_pending:true,confirmation_email_pending:false});
     } catch(err) {
       if(err.message==='archive_changed')return reply(res,409,{error:'archive_changed'});
       if(err.reason==='already_processed')return reply(res,409,{error:'already_accepted_or_expired'});

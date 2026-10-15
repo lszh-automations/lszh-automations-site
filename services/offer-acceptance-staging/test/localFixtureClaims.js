@@ -6,7 +6,7 @@ const {claimOfferOnce,ClaimRejected}=require('../../../firestoreAcceptanceState'
 const {documentPath}=require('../../../stagingOfferSchema');
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 function hash(bytes){return crypto.createHash('sha256').update(bytes).digest('hex');}
-function createLocalFixtureClaim({db,fixture,archiveBytes}={}){
+function createLocalFixtureClaim({db,fixture,archiveBytes,readRecord}={}){
   if(!db||!fixture||!/^LSZH-EMULATOR-[A-Za-z0-9_-]{12,60}$/.test(fixture.fixtureId||''))
     throw Error('invalid_test_fixture');
   if(!archiveBytes||!Buffer.isBuffer(archiveBytes.offer)||!Buffer.isBuffer(archiveBytes.terms)||
@@ -50,7 +50,8 @@ function createLocalFixtureClaim({db,fixture,archiveBytes}={}){
       const actor={name:b.name,email:b.email,authorized:b.authorized,
         acceptTerms:b.accept_terms,acceptAvv:b.accept_avv===true};
       const result=await claimOfferOnce({db,documentPath:documentPath(fixture.fixtureId),
-        expected,actor,now:new Date()});
+        expected,actor,now:new Date(),
+        airtableRecordId:fixture.airtableRecordId,readRecord});
       return json(res,200,{ok:true,offer_number:result.offerNumber,
         reconciliation_pending:true},headers);
     }catch(e){

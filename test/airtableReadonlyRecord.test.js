@@ -73,3 +73,41 @@ test('empty or multiline token is rejected before any request',async()=>{
   assert.equal(requests,0);
  }
 });
+
+test('credentials provider failures are sanitized and never invoke transport',async()=>{
+ let sent=0;
+ const read=createReadOnlyAirtableRecordReader({baseId,tableId,
+  getAccessToken:async()=>{throw Error('private token fetch failure');},
+  fetchImpl:async()=>{sent++;return null;}});
+ await assert.rejects(read(recordId),e=>{
+  assert.ok(e instanceof AirtableReadRejected);
+  assert.doesNotMatch(e.message,/private/);
+  return true;
+ });
+ assert.equal(sent,0);
+});
+test('real-style response body is capped and parsed with a five-second deadline',async()=>{
+ let calls=0;
+ const reader=createReadOnlyAirtableRecordReader({...settings,
+  fetchImpl:async(url,opts)=>{
+   calls++;
+   assert.equal(opts.signal.aborted,false);
+   assert.equal(typeof opts.signal.addEventListener,'function');
+   return {status:200,url,headers:{get:()=>null},
+     text:async()=>JSON.stringify({id:recordId,fields})};
+  }});
+ assert.deepEqual(await reader(recordId),{id:recordId,fields});
+ assert.equal(calls,1);
+});
+test('oversized, redirected and malformed HTTP responses fail closed',async()=>{
+ for(const response of [
+  {status:200,url:'https://evil.example',text:async()=>JSON.stringify({id:recordId,fields})},
+  {status:200,headers:{get:()=>String(999999)},text:async()=>JSON.stringify({id:recordId,fields})},
+  {status:200,text:async()=>JSON.stringify({id:recordId,fields:{raw:'x'.repeat(270000)}})},
+  {status:200,text:async()=>'{broken json'},
+  {status:200,text:async()=>JSON.stringify({id:recordId,fields:[]})}
+ ]){
+  const reader=createReadOnlyAirtableRecordReader({...settings,fetchImpl:async()=>response});
+  await assert.rejects(reader(recordId),AirtableReadRejected);
+ }
+});

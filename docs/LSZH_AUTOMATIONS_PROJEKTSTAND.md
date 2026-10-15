@@ -192,6 +192,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Firestore `lszh-offers-staging` hatte der vorausgehende Cloud-Shell-Read-only-Audit als `PRESENT` bestätigt. Weiter ungeprüft: Rollen und Rechte anderer Konten, Drive-/Airtable-Berechtigungen einer neuen Identität, Firestore-Schreibrechte, tatsächlicher Einsatz einer neuen Cloud-Run-Revision.
 - **Nächster vorgeschlagener, aber NICHT freigegebener Schritt:** gesonderte Benutzerfreigabe für das Erstellen eines benutzerverwalteten, dedizierten Servicekontos ohne exportierte JSON-Keys. Danach IAM minimal gesondert prüfen/freigeben, rein lesenden neuen Cloud-Run-Service testen und erst später einen separaten synthetischen Firestore-STAGING-Schreibtest bewilligen. **Kein** Cloud-Konto, keine IAM-Rolle, kein Cloud-Run-Dienst wurde durch diese Nachkontrolle erstellt, verändert oder deployed. Produktiver Vertragsabschluss bleibt deaktiviert.
 
+### Cloud-Shell-Bestandsaufnahme vorhandener Dienstkonten – 15.10.2026
+
+- Der Nutzer hat den bestehenden Cloud-Run-Preflight `lszh-offer-portal-staging` und alle Projekt-Servicekonten mit reinen `gcloud ... describe/list`-Aufrufen überprüft. Der Preflight verwendet nachweislich `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com`.
+- Im Projekt `lszh-automations` sind folgende drei Dienstkonten **vorhanden und nicht deaktiviert**: `lszh-archive-reader@lszh-automations.iam.gserviceaccount.com` (Anzeigename `LSZH Archive Reader`), `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` (Anzeigename `LSZH Offer Portal Staging`) und `470613067122-compute@developer.gserviceaccount.com` (Google-Compute-Standardkonto).
+- Das zuvor vorgeschlagene Konto `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` fehlt weiterhin unter genau diesem Namen; **kein neues Konto anlegen**, bevor Rollen, Ressourcenscopes und Aufgabentrennung des vorhandenen Archiv-Lesekontos beurteilt sind. Das Compute-Standardkonto nicht als pauschalen Ersatz für einen sensiblen Annahmedienst empfehlen.
+- **Nicht geprüft:** IAM-Rollen dieser drei Konten, Google-Drive-Datei-/Ordnerfreigaben, Airtable-Zugang über Server/Secret Manager, tatsächliche Rechte auf der benannten Firestore-Datenbank. Kontoaktivität und Service-Zuordnung sind **keine** Nachweise effektiver Lese-/Schreibberechtigungen. Bestehender Cloud-Run-Preflight nicht überschreiben.
+- Nächster sicherer Schritt: projektweite IAM-Rollen-Zuordnungen für `lszh-archive-reader` und `lszh-offer-portal-staging` **rein lesend** mit `gcloud projects get-iam-policy` überprüfen; das kann ressourcenspezifische Rollen und Google-Drive-/Airtable-Berechtigungen noch nicht vollständig abbilden. Keine IAM-Änderung, kein Deploy, kein Firestore-Write und keine Rechts-/Annahmefreigabe.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

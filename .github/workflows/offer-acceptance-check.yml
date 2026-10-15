@@ -12,6 +12,8 @@ on:
       - 'offerte-annehmen/index.html'
       - 'package.json'
       - 'cloud-run/archive-reader-staging/**'
+      - 'cloud-run/offer-portal-staging/**'
+      - 'test/offerPortalStaging.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -38,6 +40,9 @@ jobs:
           node --check archiveStagingSmoke.js
           node --check cloud-run/archive-reader-staging/index.js
           node --check cloud-run/archive-reader-staging/archiveBundleVerifier.mjs
+          node --check cloud-run/offer-portal-staging/portalCore.mjs
+          node --check cloud-run/offer-portal-staging/firestoreOfferStore.mjs
+          node --check test/offerPortalStaging.test.js
           node --check scripts/run-tests-safely.js
       - name: Browser page script syntax
         run: |

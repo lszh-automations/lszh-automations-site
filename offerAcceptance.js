@@ -19,7 +19,8 @@ module.exports = function createOfferAcceptance(deps) {
       && version.length > 0 && !/entwurf|draft|0\.9/i.test(version)
       && Boolean(process.env.OFFER_AIRTABLE_PAT)
       && Boolean(process.env.OFFER_PROOF_SALT)
-      && Boolean(process.env.OFFER_DRIVE_SA_B64)
+      && (Boolean(process.env.OFFER_DRIVE_SA_B64) ||
+          process.env.OFFER_DRIVE_SA_FILE==='/etc/secrets/lszh-archive-reader.json')
       && /^[A-Za-z0-9_-]{20,100}$/.test(String(process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID||''));
   }
   function reply(res, status, data) {

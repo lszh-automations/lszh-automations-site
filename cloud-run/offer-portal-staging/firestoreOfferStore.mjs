@@ -40,7 +40,9 @@ export function createFirestoreOfferStore(db){
          offerFingerprint(latest)!==expectedFingerprint)return 'offer_changed';
       transaction.update(ref,{
         status:'accepted',revision:latest.revision+1,acceptedAt:now.toISOString(),
-        evidence
+        evidence,
+        // Persist decision only: no automatic Airtable, Make or email actions.
+        downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}
       });
       return 'accepted';
     });

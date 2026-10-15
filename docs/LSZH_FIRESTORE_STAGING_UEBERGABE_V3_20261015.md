@@ -85,3 +85,16 @@ Vom Projektbetreiber nach Ausführung von `scripts/audit-gcp-staging-readonly.sh
 
 **Nächster ausschließlich lesender Prüfpunkt:** Cloud-Run-Traffic-Zuordnung sowie Betriebs-/Startlog der *tatsächlich mit Traffic belieferten* Portal-Revision, ohne Secrets und ohne Identitätstokens offenzulegen. Erst danach den zugehörigen Code dem getesteten GitHub-Stand zuordnen. Keine Firestore-Dokumente oder Collection zum jetzigen Zeitpunkt anlegen.
 
+
+## Cloud Run Traffic- und Statusprüfung – 15.10.2026
+
+Durch den Nutzer in der angemeldeten Google Cloud Shell rein lesend ausgeführt:
+`gcloud run services describe lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format='json(status.traffic,status.conditions)'`
+
+- `Ready=True`, `ConfigurationsReady=True`, `RoutesReady=True`, `BaseImageValidated=True`.
+- `status.traffic=[{percent:100,revisionName:"lszh-offer-portal-staging-00004-qt7"}]`: Traffic wird zu 100 % auf die zuletzt bereite Revision geroutet.
+- **Noch nicht bestätigt:** welche tatsächliche Anwendung im Container läuft, ob ein Platzhalter-Image verwendet wird, der aktuelle Endpunkt-Vertrag, Git-Commit-Zuordnung und Firestore-Zugriff.
+- Keine Daten geändert; keine Aktivierung/Deployment/Secrets ausgelesen.
+
+Als nächster enger read-only Prüfschritt: sicher gefilterte Startlog-Suche genau dieser Revision auf die ursprüngliche Cloud-Run-Platzhalter-Meldung. Das Vorhandensein der Meldung innerhalb dieser Revision ist ein starker Platzhalter-Hinweis; das Fehlen beweist die echte Anwendung nicht.
+

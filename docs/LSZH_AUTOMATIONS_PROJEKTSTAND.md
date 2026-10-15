@@ -150,6 +150,13 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Vorher Make-Relevanz geprüft: PDF-/Archivscenario `7965546` und `7965246` inaktiv, andere aktive Szenarien nicht mit dieser Tabelle verbunden. Airtable-Automationsbedingungen gelesen, keine ausgelöste Abschlussfreigabe. Keine produktive Nachricht, kein Cloud Run-/Make-Deployment, kein echter Firestore-STAGING-Write.
 - Vollständige Test-IDs, SHA-256, Revisionen und Grenzen: `docs/LSZH_SYNTHETIC_STAGING_WRITE_PROOF_20261015.md`. **Nächster Sicherheitsblock:** serverseitiger read-only Zugriff auf dieses synthetische Paket, revisionssichere Drive-Archivstrategie, separat freigegebene echte Firestore-STAGING-Tests und juristisch freigegebene RC1/AVV-Unterlagen.
 
+### STAGING-Live-Readback: drei echte PDF-Rohdateien stimmen vollständig mit Airtable überein (15.10.2026)
+
+- Die bereits angelegten **synthetischen** Airtable-IDs `recaH2FUSgUUytImd` (Offerte `DEMO-OFF-20991231-20261015A1`) und `recv49NbSCmc5nEu3` (fiktiver Lead mit ausschliesslich `.invalid`-Adresse) wurden **frisch read-only** geprüft. Die Offerte ist weiterhin `Entwurf`; kein Versand, kein Token, keine Rechts-/Annahmefreigabe.
+- Die drei tatsächlichen Drive-Test-PDFs wurden frisch als **binäre Rohdateien** abgerufen, in der lokalen Testumgebung mit SHA-256 nachgerechnet und gegen die aktuellen drei Airtable-Hashes sowie Drive-Datei-IDs und Revisionsgrössen verglichen. **3/3 exakt identisch**, jede Datei genau ein ungeteilter Parent im privaten Testordner `1TbS-BpxQQmtTKQMiYsCR4bIQmftOoYfP`; PDF-1.4-Dokumente jeweils eine Seite, ausdrücklich **TESTDATEN – NICHT VERTRAG**.
+- Die aktuellen Drive-Revisions-IDs waren **vor und nach** dem Download unverändert, aber **alle 3 Revisionen `keepForever=false`**. Der konservative Freeze-Gate bleibt daher **gesperrt**; es wurde **keine** Retention-/Sharing-Einstellung verändert und keine ersatzweise rechtliche Unveränderlichkeit behauptet.
+- Kein neuer produktiver/extern gespeicherter Datensatz, keine neuen PDF-Uploads, kein Live-Firestore-Test, kein Make/Email/Cloud-Run-Deployment. Die Cloud-Run-Dienstidentität und authentifizierte Backend-Leseverbindung bleiben unabhängig von den ChatGPT-Connector-Leserechten **offen**. Vgl. `docs/LSZH_SYNTHETIC_STAGING_READONLY_RECHECK_20261015.md`.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

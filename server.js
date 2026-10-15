@@ -760,4 +760,14 @@ const server=http.createServer(async (req,res)=>{
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);
   return send(res,405,JSON.stringify({error:'method_not_allowed'}));
 });
-server.listen(PORT, ()=>console.log(`LSZH Automations listening on ${PORT}`));
+server.listen(PORT, ()=>{
+  console.log(`LSZH Automations listening on ${PORT}`);
+  if(process.env.NODE_ENV==='staging' &&
+     process.env.SITE_PRIVATE==='true' &&
+     process.env.OFFER_ACCEPTANCE_ENABLED!=='true' &&
+     process.env.LSZH_STAGING_ARCHIVE_SMOKE==='true'){
+    // Read-only proof of actual service-account access; never a public endpoint.
+    void require('./archiveStagingSmoke')().catch(()=>
+      console.error('LSZH_STAGING_ARCHIVE_READER_CHECK: FAIL'));
+  }
+});

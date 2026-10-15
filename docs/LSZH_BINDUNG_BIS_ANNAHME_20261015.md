@@ -16,6 +16,10 @@
 - [GitHub Actions Run #38776172583](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38776172583): **56/56 Node-Unit-Tests und 6/6 Firestore-Emulator-Tests erfolgreich**, einschliesslich **verpflichtender Bindung im simulierten Annahmecode** und parallelen SDK-/HTTP-Tests. Die Emulatorwarnung zur eingeschränkten Multi-Datenbank-Unterstützung bleibt bestehen; echte Cloud-Laufzeit wurde nicht geprüft.
 - Der GitHub-Workflow wurde zusätzlich erweitert, damit der lokale HTTP-Regressionstest `services/offer-acceptance-staging/test/localFixtureClaims.test.js` bei jeder relevanten Änderung gemeinsam mit den anderen Prüfungen ausgeführt wird. **Diesen zusätzlichen vollständigen Regressionslauf nur anhand des späteren GitHub-Jobergebnisses als bestanden dokumentieren.**
 
+## Abschliessende Gesamtregression
+
+[GitHub Actions Run #38776417489](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38776417489) **erfolgreich**: **66/66 Node-Unit-/HTTP-Sicherheitstests und 6/6 echte lokale Firestore-Emulatortests**, keine Fehlschläge oder übersprungenen Tests. Enthält auch die HTTP-Prüfung, dass ein nicht gebundener synthetischer Angebotsdatensatz selbst mit korrekten PDF-Hashes nicht angenommen werden kann. Der Firebase-Emulator meldet weiter eine Einschränkung bei benannten Datenbanken; die echte GCP-Datenbank wurde nicht angesprochen.
+
 ## Grenzen und Freigabepunkte
 
 - Ein Guard beweist lediglich, dass **bei der synthetischen Bindung** Daten übereinstimmten. Er schützt vor unbemerkt veränderten Firestore-Feldern, aber **nicht** vor späteren Änderungen in der echten Airtable-Base. Ein späterer echter Ausstellungs- und Annahmedienst benötigt unmittelbar davor einen **unabhängigen, authentifizierten, frischen Airtable-GET**, dessen Ergebnis serverseitig mit dem eingefrorenen Vertrag verglichen wird.

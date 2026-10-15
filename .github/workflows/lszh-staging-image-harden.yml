@@ -39,7 +39,7 @@ jobs:
       - name: Build exactly the isolated nonroot container image
         run: |
           docker build --pull --no-cache --file services/offer-acceptance-staging/Dockerfile --tag lszh-staging-read:ci .
-          test "$(docker image inspect lszh-staging-read:ci --format '{{.Config.User}}')" = "node"
+          test "$(docker image inspect lszh-staging-read:ci --format '{{.Config.User}}')" = "65532:65532"
       - name: Verify no external-service connection and blocked acceptance in container
         run: |
           docker run --rm --detach --name lszh-readonly-ci --read-only \

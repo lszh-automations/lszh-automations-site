@@ -45,6 +45,10 @@ ACCEPTED + PENDING
 
 Am 15.10. wurde die Struktur der verbundenen Airtable-Base `appzJiskpAdaR1HEv` und Tabelle `tbljeIUoD7wwKuSmS` **nur gelesen**. Die oben genannten Zielspalten sind vorhanden. Insbesondere stehen `Offertennummer`, `Projektbedingungen Version`, `AVV erforderlich`, die Archiv-SHA256-Felder und die elektronische Annahme-Evidenz zur Verfügung. **Es wurde kein Feld angelegt und kein Datensatz verändert.**
 
+## Bestätigter abschliessender GitHub-Testlauf
+
+[Run #38773121610](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38773121610) auf `feature/firestore-staging-dryrun-20261015`: Job mit **29/29 erfolgreichen Node-Unit-/Sicherheitstests sowie 5/5 erfolgreichen Firestore-Emulator-Tests**, keine Fehlschläge/Skips. Insbesondere bestätigen die 2 neuen Emulator-Tests genau einen Lease unter Parallelität, den nur durch korrekten externen Nachweis möglichen `SYNCED`-Zustand und die Crash-Behandlung `NEEDS_REVIEW` mit optionaler späterer verifizierter Quittierung. Es handelt sich bei den angeblichen Airtable-Feldern im Test durchgehend um **synthetische Offline-Daten**, nicht um live abgerufene Airtable-Datensätze. Der Firebase-Emulator warnt weiterhin vor unvollständiger Multi-Datenbank-Unterstützung; echte Cloud-STAGING-Abnahme bleibt offen.
+
 ## Wichtige offene Integrationspunkte
 
 1. Der bestehende Annahmecode setzt `reconciliationStatus=PENDING`. Der künftige echte Firestore-Datensatz braucht zusätzlich eine **zuverlässig serverseitig gebundene Airtable-Record-ID**; diese Feldübernahme ist noch **nicht implementiert**. Tests verwenden nur `recTEST0000000000`, keinen realen Datensatz.

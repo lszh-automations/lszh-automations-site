@@ -7,6 +7,7 @@ const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {issueSyntheticOfferOnce}=require('../syntheticOfferIssuance');
 const {bindSyntheticAirtableRecordOnce,LOCK_COLLECTION}=require('../syntheticAirtableBinding');
+const {prepareSyntheticContractManifest,freezeSyntheticContractOnce,COLLECTION:FREEZES}=require('../syntheticContractFreeze');
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 let enabled=false;
 try{
@@ -65,6 +66,13 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
     readRecord:async()=>mockRecord,testMode:'offline-or-emulator-only',now});
   assert.equal(bound.bound,true);
   assert.equal((await bindingRef.get()).data().fixtureId,fixtureId);
+  const frozenDraft=(await ref.get()).data();
+  const prepared=prepareSyntheticContractManifest({state:frozenDraft,archiveBytes:bytes,
+    revisions:{offer:'revSyntheticQuote123',terms:'revSyntheticTerms123',
+      avv:'revSyntheticAVV0001'},testMode:'offline-or-emulator-only'});
+  const frozen=await freezeSyntheticContractOnce({db:a,fixtureId,prepared,
+    testMode:'offline-or-emulator-only',now});
+  assert.equal(frozen.frozen,true);
   const input={fixtureId,archiveBytes:bytes,now,expiresAt,testMode:'offline-or-emulator-only',
     airtableRecordId:recordId,readRecord:async()=>mockRecord};
   // Airtable changed AFTER binding. The new independent snapshot must veto
@@ -102,6 +110,7 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
  }finally{
   await ref.delete().catch(()=>{});
   await bindingRef.delete().catch(()=>{});
+  await a.doc(FREEZES+'/'+fixtureId).delete().catch(()=>{});
   await Promise.all([a.terminate(),b.terminate(),standard.terminate()]);
  }
 });

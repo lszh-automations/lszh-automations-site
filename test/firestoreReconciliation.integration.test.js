@@ -8,7 +8,7 @@ const crypto=require('node:crypto');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {acquireLease,completeAfterVerifiedRemote,previewAirtableAcceptance,
- ReconciliationRejected,compareRemote}=require('../firestoreReconciliation');
+ ReconciliationRejected,compareRemote,resolveUnknownOutcome}=require('../firestoreReconciliation');
 let enabled=false;
 try {
  validateSettings(process.env,'emulator');
@@ -93,5 +93,18 @@ test('emulator: crashed reconciliation lease requires review; never retry blindl
   assert.equal(state.reconciliationReviewReason,'LEASE_OUTCOME_UNKNOWN');
   await assert.rejects(acquireLease({...args,db:a,now:later}),
     e=>e instanceof ReconciliationRejected&&e.reason==='manual_review_required');
+  // Simulate a previously succeeded remote update, subsequently re-read
+  // from a trusted source. The recovery itself causes zero Airtable calls.
+  const preview=previewAirtableAcceptance(state,target);
+  await assert.rejects(resolveUnknownOutcome({...args,db:a,now:later,
+    remoteFields:remoteFrom(state)}),
+    e=>e instanceof ReconciliationRejected&&e.reason==='manual_review_required');
+  assert.equal((await ref.get()).data().reconciliationStatus,'NEEDS_REVIEW');
+  const recovered=await resolveUnknownOutcome({...args,db:b,now:later,
+    remoteFields:{...remoteFrom(state),...preview.fields}});
+  assert.equal(recovered.synced,true);
+  assert.equal(recovered.sendConfirmation,false);
+  assert.equal(recovered.recoveredFromUnknown,true);
+  assert.equal((await ref.get()).data().reconciliationStatus,'SYNCED');
  }finally{await ref.delete().catch(()=>{});await Promise.all([a.terminate(),b.terminate()]);}
 });

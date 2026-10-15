@@ -6,6 +6,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const crypto=require('node:crypto');
 const {createGateway}=require('../app');
 const {createLocalFixtureClaim}=require('./localFixtureClaims');
+const {LOCK_COLLECTION,bindingFingerprint}=require('../../../syntheticAirtableBinding');
 const TOKEN='A'.repeat(43);
 const fixture={fixtureId:'LSZH-EMULATOR-abcdef0123456789',offerNumber:'DEMO-OFF-20991231-999',
   termsVersion:'TEST_ONLY_TERMS',avvVersion:'TEST_ONLY_AVV',avvRequired:true};
@@ -18,20 +19,30 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const doc=b=>({mimeType:'application/pdf',sha256:hash(b),
   driveFileId:'1'.repeat(24),archiveVerified:true});
 function state(){
- return {schemaVersion:1,fixtureId:fixture.fixtureId,testOnly:true,
+ const s={schemaVersion:1,fixtureId:fixture.fixtureId,testOnly:true,
   status:'ISSUED',acceptanceEnabled:true,legallyApproved:true,
   deliveryConfirmed:true,archiveVerified:true,acceptedAt:null,
   expiresAt:'2099-12-31T23:59:59Z',tokenHash:hash(TOKEN),
   offerNumber:fixture.offerNumber,termsVersion:fixture.termsVersion,
   avvVersion:fixture.avvVersion,avvRequired:true,recipientEmail:'fake-tester@example.invalid',
   documents:{offer:doc(archiveBytes.offer),terms:doc(archiveBytes.terms),avv:doc(archiveBytes.avv)}};
+ s.airtableRecordId='recTEST0000000000';
+ s.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
+   boundAt:'2026-10-15T10:00:00.000Z',
+   fingerprint:bindingFingerprint(s,s.airtableRecordId)};
+ return s;
 }
-function fakeTransactionalStore(initial){
+function fakeTransactionalStore(initial,options={}){
   let value=structuredClone(initial),writes=0;
+  const guard=options.noLock?null:{fixtureId:value.fixtureId,
+    recordId:value.airtableRecordId,boundAt:value.airtableBinding?.boundAt,
+    fingerprint:value.airtableBinding?.fingerprint,syntheticOnly:true};
   let serial=Promise.resolve();
   return {db:{doc:p=>({path:p}),runTransaction:fn=>{
     const job=serial.then(async()=>{
-      const tx={get:async()=>({exists:!!value,data:()=>structuredClone(value)}),
+      const tx={get:async ref=>ref.path.startsWith(LOCK_COLLECTION+'/')
+       ? {exists:!!guard,data:()=>structuredClone(guard)}
+       : {exists:!!value,data:()=>structuredClone(value)},
         update:(ref,patch)=>{value={...value,...structuredClone(patch)};writes++;}};
       return fn(tx);
     });
@@ -45,10 +56,10 @@ function body(extra={}){
    quote_sha256:hash(archiveBytes.offer),terms_sha256:hash(archiveBytes.terms),
    avv_sha256:hash(archiveBytes.avv),...extra};
 }
-async function setup({initial=state(),archive=archiveBytes,withHandler=true}={}){
+async function setup({initial=state(),archive=archiveBytes,withHandler=true,noLock=false}={}){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-fixture-http-'));
  const htmlPath=path.join(dir,'index.html');fs.writeFileSync(htmlPath,'<html>Staging UI</html>');
- const store=fakeTransactionalStore(initial);
+ const store=fakeTransactionalStore(initial,{noLock});
  const oldNodeEnv=process.env.NODE_ENV;process.env.NODE_ENV='test';
  const srv=createGateway({htmlPath,localFixtureClaim:withHandler?
     createLocalFixtureClaim({db:store.db,fixture,archiveBytes:archive}):null});
@@ -143,4 +154,13 @@ test('container build excludes synthetic claim harness and the production entryp
  assert.doesNotMatch(docker,/localFixtureClaims/);
  assert.doesNotMatch(index,/localFixtureClaim/);
  assert.match(index,/createGateway\(\)/);
+});
+
+test('HTTP claim blocks unbound synthetic offer even with correct PDFs',async()=>{
+ const env=await setup({noLock:true});
+ try{
+  const r=await request(env.url);
+  assert.equal(r.status,409);
+  assert.equal(env.store.writes(),0);
+ }finally{await env.close();}
 });

@@ -29,7 +29,21 @@ gcloud projects get-iam-policy "$PROJECT" --flatten='bindings[].members' \
   --filter='bindings.members:lszh-offer-reader@' \
   --format='table(bindings.role,bindings.condition.title,bindings.condition.expression)'
 echo '=== target Cloud Run service (NOT_FOUND expected) ==='
-gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" --format='value(metadata.name)' || true
+ERR_FILE="$(mktemp)"
+if gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" --format='value(metadata.name)' >"$ERR_FILE" 2>&1; then
+  echo 'STOP: Ziel-Service existiert bereits, kein neues Deployment beginnen.'
+  cat "$ERR_FILE"
+  rm -f "$ERR_FILE"
+  exit 1
+elif grep -Eq 'NOT_FOUND|Cannot find service' "$ERR_FILE"; then
+  echo 'EXPECTED: Ziel-Service ist noch nicht vorhanden'
+else
+  echo 'STOP: unklarer Service-Status / möglicherweise fehlende Leseberechtigung'
+  cat "$ERR_FILE"
+  rm -f "$ERR_FILE"
+  exit 1
+fi
+rm -f "$ERR_FILE"
 ```
 
 **STOP**, bevor du ein Deployment startest, wenn das Repository `cloud-run-source-deploy` fehlt, eine benötigte API nicht `ENABLED` ist, das **neue** Ziel bereits existiert, die Leserolle nicht ausschliesslich auf die benannte Datenbank begrenzt ist, oder sich die angezeigte Identität unterscheidet. **Keine automatischen Antworten auf Prompts zur Repository-/Rollen-/API-Erstellung.** Neue IAM-Bindings und die Erstellung anderer Ressourcen sind **nicht** Teil der Freigabe. Falls die Repository-Prüfung `NOT_FOUND` meldet, nur den Befund zurückmelden: `--source` würde andernfalls möglicherweise automatisch ein neues Artifact-Registry-Repository anlegen.

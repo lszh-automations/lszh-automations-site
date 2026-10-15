@@ -78,7 +78,7 @@ function validState(state,fixtureId){
     !/^fake-[a-z0-9-]+@example\.invalid$/.test(state.recipientEmail||'')||
     !/^TEST_ONLY_/.test(state.termsVersion||''))deny('not_eligible');
 }
-function fingerprint(state,fields,recordId){
+function bindingFingerprint(state,recordId){
  const d=state.documents;
  const data={fixtureId:state.fixtureId,recordId,offerNumber:state.offerNumber,
    recipient:state.recipientEmail,validUntil:state.validUntil,
@@ -112,7 +112,7 @@ async function bindSyntheticAirtableRecordOnce({db,fixtureId,airtableRecordId,
    validState(state,fixtureId);
    if(guard.exists)deny('record_already_bound');
    stable(remote.fields,state);
-   const digest=fingerprint(state,remote.fields,airtableRecordId);
+   const digest=bindingFingerprint(state,airtableRecordId);
    const timestamp=now.toISOString();
    tx.create(bindingRef,{fixtureId,recordId:airtableRecordId,
      fingerprint:digest,boundAt:timestamp,syntheticOnly:true});
@@ -123,4 +123,4 @@ async function bindSyntheticAirtableRecordOnce({db,fixtureId,airtableRecordId,
      fingerprint:digest,remoteWritePerformed:false};
  });
 }
-module.exports={bindSyntheticAirtableRecordOnce,SyntheticBindingRejected,LOCK_COLLECTION};
+module.exports={bindSyntheticAirtableRecordOnce,SyntheticBindingRejected,LOCK_COLLECTION,bindingFingerprint};

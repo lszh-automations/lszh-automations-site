@@ -5,6 +5,8 @@ const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 const {SCHEMA_VERSION}=require('../stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
 const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
+const {mockFrozenContract}=require('./helpers/mockContractFreeze');
+const {COLLECTION:FREEZES}=require('../syntheticContractFreeze');
 const H=ch=>ch.repeat(64);
 const pdf=ch=>({mimeType:'application/pdf',sha256:H(ch),driveFileId:'1'.repeat(24),archiveVerified:true});
 const base={
@@ -22,6 +24,7 @@ base.airtableRecordId='recTEST0000000000';
 base.airtableBinding={schemaVersion:1,source:'SYNTHETIC_READ_ONLY',
   boundAt:'2026-10-15T10:00:00.000Z',
   fingerprint:bindingFingerprint(base,base.airtableRecordId)};
+Object.assign(base,mockFrozenContract(base).state);
 const input={
   documentPath:'stagingOfferFixtures/LSZH-EMULATOR-20261015AAAA',
   expected:{tokenHash:H('1'),quoteSha256:H('2'),termsSha256:H('3'),
@@ -38,6 +41,8 @@ function fakeStore(initial,opts={}){
     fingerprint:opts.corruptLock?'f'.repeat(64):state?.airtableBinding?.fingerprint,
     boundAt:state?.airtableBinding?.boundAt,syntheticOnly:true
   };
+  const freeze=opts.noFreeze||!state?.airtableBinding?null:mockFrozenContract(state).freeze;
+  if(freeze&&opts.corruptFreeze)freeze.manifest.documents.terms.revisionId='bad';
   // Simulates serializable transactions; not a substitute for live Firestore!
   let serial=Promise.resolve();
   const db={doc(path){return {path}},runTransaction(fn){
@@ -45,7 +50,9 @@ function fakeStore(initial,opts={}){
       const tx={
         get:async ref=>ref.path.startsWith(LOCK_COLLECTION+'/')
           ?{exists:!!lock,data:()=>structuredClone(lock)}
-          :{exists:!!state,data:()=>structuredClone(state)},
+          :ref.path.startsWith(FREEZES+'/')
+            ?{exists:!!freeze,data:()=>structuredClone(freeze)}
+            :{exists:!!state,data:()=>structuredClone(state)},
         update:(ref,change)=>{state={...state,...structuredClone(change)};writes++}
       };
       return fn(tx);
@@ -105,7 +112,7 @@ test('AVV optional when not required',async()=>{
     documents:{offer:pdf('2'),terms:pdf('3')}};
   optional.airtableBinding={...base.airtableBinding,
     fingerprint:bindingFingerprint(optional,optional.airtableRecordId)};
-  const s=fakeStore(optional);
+  const s=fakeStore(mockFrozenContract(optional).state);
   await claimOfferOnce({...input,db:s.db,actor:{...input.actor,acceptAvv:false},
     airtableRecordId:optional.airtableRecordId,
     readRecord:async()=>mockAirtableOffer(s.getState(),'acceptance')});
@@ -174,4 +181,11 @@ test('untrusted/missing Airtable reader rejects acceptance without side effects'
  await rejectsWithoutWrite(store,{readRecord:async()=>{throw Error('offline');}});
  await rejectsWithoutWrite(store,{airtableRecordId:'recOTHER000000000'});
  assert.equal(store.getWrites(),0);
+});
+
+test('acceptance refuses missing frozen contract, wrong revision or altered manifest',async()=>{
+ await rejectsWithoutWrite(fakeStore(base,{noFreeze:true}));
+ await rejectsWithoutWrite(fakeStore(base,{corruptFreeze:true}));
+ const changed={...base,contractManifestHash:'f'.repeat(64)};
+ await rejectsWithoutWrite(fakeStore(changed));
 });

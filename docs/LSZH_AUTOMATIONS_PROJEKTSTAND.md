@@ -184,6 +184,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - `driveReaderPermission=NOT_TESTED`, `airtableReaderPermission=NOT_TESTED`, `namedDatabaseWritePermission=NOT_TESTED`. `authorizedToWrite=false`, `authorizedToDeploy=false`, `authorizedToModifyIAM=false`, `authorizedToLockRetention=false`; `resourcesModified=false`.
 - **Nächster sicherer Schritt:** lesende Einzel-`gcloud describe`-Aufrufe mit begrenztem `--format=value(...)` bzw. gezielter Fehleranzeige für die beiden `NOT_VERIFIED`-Objekte ausführen, um tatsächliches `NOT_FOUND` von Berechtigungs-/CLI-Problemen zu unterscheiden. Keine Kontoerstellung, IAM-Rechteänderung, Deployment, Firestore-Writes, Dokumentaufbewahrungssperre, E-Mail oder Vertragsannahme.
 
+### Cloud-Shell-Live-Nachkontrolle: geplanter Dienst und Servicekonto fehlen (15.10.2026)
+
+- Der Nutzer hat die beiden empfohlenen **rein lesenden** `gcloud describe`-Kommandos unter dem aktiven Google-Konto `lars@lszh-automations.ch` ausgeführt, explizit im Projekt `lszh-automations` und für Cloud Run in der Region `europe-west6`.
+- `gcloud run services describe lszh-offer-acceptance-staging` meldet **`Cannot find service [lszh-offer-acceptance-staging]`**. Damit ist der geplante Cloud-Run-Dienst **in der geprüften Region / dem Projekt nicht vorhanden**; der existierende `lszh-offer-portal-staging`-Preflight bleibt eine separate Ressource.
+- `gcloud iam service-accounts describe lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` meldet **`NOT_FOUND: Unknown service account`**. Damit existiert das vorgeschlagene Konto **im geprüften Projekt nicht**. Das beweist nicht, dass überhaupt kein anderes geeignetes bestehendes Konto existiert.
+- Firestore `lszh-offers-staging` hatte der vorausgehende Cloud-Shell-Read-only-Audit als `PRESENT` bestätigt. Weiter ungeprüft: Rollen und Rechte anderer Konten, Drive-/Airtable-Berechtigungen einer neuen Identität, Firestore-Schreibrechte, tatsächlicher Einsatz einer neuen Cloud-Run-Revision.
+- **Nächster vorgeschlagener, aber NICHT freigegebener Schritt:** gesonderte Benutzerfreigabe für das Erstellen eines benutzerverwalteten, dedizierten Servicekontos ohne exportierte JSON-Keys. Danach IAM minimal gesondert prüfen/freigeben, rein lesenden neuen Cloud-Run-Service testen und erst später einen separaten synthetischen Firestore-STAGING-Schreibtest bewilligen. **Kein** Cloud-Konto, keine IAM-Rolle, kein Cloud-Run-Dienst wurde durch diese Nachkontrolle erstellt, verändert oder deployed. Produktiver Vertragsabschluss bleibt deaktiviert.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

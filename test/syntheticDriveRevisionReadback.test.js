@@ -140,3 +140,37 @@ test('revisions must match exactly, test mode and environment forbid cloud',asyn
   }
  }
 });
+
+test('replacing the revision while raw bytes are downloaded fails closed',async()=>{
+ const r=readers();
+ const original=r.listRevisions;
+ let count=0;
+ r.listRevisions=async id=>{
+  const record=await original(id);
+  count++;
+  if(count===2&&id===ids.offer)return {...record,
+    currentRevisionId:'revChangedMidRead0001'};
+  return record;
+ };
+ await assert.rejects(prepareSyntheticContractFromDriveReadback({
+  state:draft(),archiveFolderId:folderId,revisions:rev,
+  testMode:'offline-or-emulator-only',...r
+ }),e=>e instanceof SyntheticDriveReadRejected&&
+  e.reason==='revision_changed_during_read');
+});
+test('late sharing changes are also rejected after raw bytes retrieval',async()=>{
+ const r=readers();
+ const original=r.readMetadata;
+ let count=0;
+ r.readMetadata=async id=>{
+  const metadata=await original(id);
+  count++;
+  if(count===2&&id===ids.offer)return {...metadata,shared:true};
+  return metadata;
+ };
+ await assert.rejects(prepareSyntheticContractFromDriveReadback({
+  state:draft(),archiveFolderId:folderId,revisions:rev,
+  testMode:'offline-or-emulator-only',...r
+ }),e=>e instanceof SyntheticDriveReadRejected&&
+  e.reason==='revision_changed_during_read');
+});

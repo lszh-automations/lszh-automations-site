@@ -1,5 +1,9 @@
 # Elektronische Offertenannahme (Entwicklungsstand, NICHT produktiv)
 
+> **AKTUELLER ENTWICKLUNGSSTAND 15.10.2026 – ältere Aussagen in diesem Dokument sind teils überholt.**
+> Die technisch ergänzte AVV-PDF-Prüfung (bei `AVV erforderlich=Ja`) umfasst Download, SHA-256, Version und eine eigene ausdrückliche Checkbox. **Der frühere direkte Airtable-PATCH zur Annahme wurde im Entwicklungszweig entfernt.** `/api/offer/accept` bleibt ohne einen explizit injizierten atomaren Firestore-Adapter mit HTTP 503 gesperrt; `server.js` injiziert keinen solchen Adapter. Keine E-Mails/Annahmen aktiviert. Die neue Logik ist syntaktisch geprüft, jedoch weder mit Node-Unit-Testlauf noch produktivem Deploy/End-to-End-Test freigegeben. Verbindliche aktuelle Details: [AVV-Portal-Hardening](LSZH_AVV_PORTAL_HARDENING_20261015.md) und [Firestore-Übergabe](LSZH_FIRESTORE_STAGING_UEBERGABE_V3_20261015.md).
+>
+
 Stand: 13.10.2026. Die gesamte Funktion ist bis zur juristischen und technischen Freigabe deaktiviert. **Nicht auf dem Hauptzweig aktivieren** und keine echten Kundenlinks erstellen, bevor die Checkliste unten erfüllt ist.
 
 ## Ziel

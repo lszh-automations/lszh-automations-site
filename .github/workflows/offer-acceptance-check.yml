@@ -14,6 +14,7 @@ on:
       - 'cloud-run/archive-reader-staging/**'
       - 'cloud-run/offer-portal-staging/**'
       - 'test/offerPortalStaging.test.js'
+      - 'test/offerPortalHttp.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -42,6 +43,8 @@ jobs:
           node --check cloud-run/archive-reader-staging/archiveBundleVerifier.mjs
           node --check cloud-run/offer-portal-staging/portalCore.mjs
           node --check cloud-run/offer-portal-staging/firestoreOfferStore.mjs
+          node --check cloud-run/offer-portal-staging/portalHttp.mjs
+          node --check test/offerPortalHttp.test.js
           node --check test/offerPortalStaging.test.js
           node --check scripts/run-tests-safely.js
       - name: Browser page script syntax

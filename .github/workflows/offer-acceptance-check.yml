@@ -34,6 +34,8 @@ jobs:
           node --check services/offer-acceptance-staging/app.js
           node --check services/offer-acceptance-staging/index.js
           node --check services/offer-acceptance-staging/test/app.test.js
+          node --check services/offer-acceptance-staging/offerLinks.js
+          node --check services/offer-acceptance-staging/test/offerLinks.test.js
       - name: Browser page script syntax
         run: |
           node - <<'NODE'
@@ -47,4 +49,4 @@ jobs:
       - name: Unit tests and inactive gateway checks
         run: |
           npm test
-          node --test services/offer-acceptance-staging/test/app.test.js
+          node --test services/offer-acceptance-staging/test/app.test.js services/offer-acceptance-staging/test/offerLinks.test.js

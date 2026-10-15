@@ -224,6 +224,13 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Nächste Nutzerentscheidung:** getrennte, konkrete Genehmigung (A) zur Kontoerstellung und (B) zur datenbankbedingten Viewer-Zuweisung. **Noch nicht erfolgt.** Danach vor jedem Deployment erst live lesend die neue IAM-Policy und die Abwesenheit exportierter privater Schlüssel prüfen.
 - Externe Quellen wurden aktuell geprüft: https://cloud.google.com/iam/docs/roles-permissions/firestore, https://cloud.google.com/firestore/docs/manage-databases und https://cloud.google.com/run/docs/configuring/services/service-identity.
 
+### Freigabe für genau zwei IAM-STAGING-Änderungen im Chat erteilt – Ausführung durch Cloud Shell noch zu bestätigen (15.10.2026)
+
+- Auf die konkrete Frage nach Freigabe (1) zum Erstellen von `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` und (2) zum Zuweisen von **`roles/datastore.viewer` mit IAM-Condition auf `projects/lszh-automations/databases/lszh-offers-staging`** antwortete der Nutzer mit **„vamos“**. Diese Zustimmung wird nur auf diese beiden zuvor ausdrücklich benannten Änderungen bezogen, nicht auf Deployments, andere IAM-Rollen, Drive-/Airtable-Rechte, Cloud-Firestore-Schreibzugriffe oder Vertragsannahmen.
+- Nach offizieller Google-Dokumentation wurden für den Nutzer in Cloud Shell getrennte Befehle zur **Kontoerstellung** sowie zur **bedingten `datastore.viewer`-Zuweisung** vorbereitet, gefolgt von einem **rein lesenden** `get-iam-policy`-Kontrollbefehl. Die Ausgabe wird **noch erwartet**. **Kein Erstellen/Ändern über das verbundene ChatGPT-Tool erfolgt**, kein erfolgreicher Vollzug behauptet.
+- Exakter Condition-Titel: `LSZHOfferReaderOnlyStagingFirestore`, Ausdruck: `resource.name == "projects/lszh-automations/databases/lszh-offers-staging"`. Bedingte Rolle ist `roles/datastore.viewer` (keine Dokument-Schreibrechte). Bestehendes `lszh-offer-portal-staging`-Servicekonto samt `roles/datastore.user` und `LSZHOnlyStagingFirestore` wird nicht verändert.
+- Nächste Prüfphase nach Nutzerausgabe: Kontoexistenz und `disabled=false` bestätigen, exakte IAM-Condition auslesen; **kein Deployment**, keine Schlüsseldateien, keine Verbindung zu Drive/Airtable und kein echter Datenbank-Schreibtest ohne weitere Freigabe.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

@@ -129,6 +129,7 @@ test('7-day TTL, effective expiry and UTC date input constraints',async()=>{
  await denied(s,{expiresAt:new Date(NOW.getTime()+8*24*3600000)},'invalid_input');
  await denied(s,{expiresAt:new Date(NOW.getTime()+60*1000)},'invalid_input');
  await denied(fakeDb(draft({validUntil:'2026-10-15'})),{},'expired');
+ await denied(fakeDb(draft({validUntil:'2026-99-99'})),{},'expired');
  await denied(s,{now:new Date('invalid')},'invalid_input');
 });
 test('emulator fixture ID and explicit test intent required',async()=>{
@@ -147,4 +148,24 @@ test('optional AVV mode must NOT silently bind a third document',async()=>{
  const r=await call(s,{archiveBytes:{offer:archiveBytes.offer,terms:archiveBytes.terms}});
  assert.equal(r.issued,true);
  assert.equal(s.get().status,'TEST_ISSUED_NOT_DELIVERED');
+});
+
+test('Cloud Run identity and actual LSZH Cloud project identity forbid synthetic issuance',async()=>{
+  const before={K_SERVICE:process.env.K_SERVICE,
+    GOOGLE_CLOUD_PROJECT:process.env.GOOGLE_CLOUD_PROJECT,
+    GCLOUD_PROJECT:process.env.GCLOUD_PROJECT};
+  try{
+    process.env.K_SERVICE='lszh-offer-acceptance-staging';
+    await denied(fakeDb(),{},'invalid_input');
+    delete process.env.K_SERVICE;
+    process.env.GOOGLE_CLOUD_PROJECT='lszh-automations';
+    await denied(fakeDb(),{},'invalid_input');
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    process.env.GCLOUD_PROJECT='lszh-automations';
+    await denied(fakeDb(),{},'invalid_input');
+  }finally{
+    for(const [k,v] of Object.entries(before)){
+      if(v===undefined)delete process.env[k];else process.env[k]=v;
+    }
+  }
 });

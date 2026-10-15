@@ -120,3 +120,19 @@ Vom Nutzer per `gcloud logging read` (nur Lesen) direkt aus Cloud Logging, Filte
 **Nicht bestätigt:** welchen Dokumentpfad/welche Firestore-Collection die Startprüfung liest; ob es eine geschützte Angebotsvorschau, AVV-Dokumentenprüfung und eine Transaktionslogik für mehrfache Annahmen gibt; welcher Git-Commit im Image-Digest enthalten ist; ob Frontend/API und die eigentliche Annahme überhaupt implementiert bzw. deaktiviert sind. Startup-PASS ist kein End-to-End-Test. Keine Annahme-/Versand-/Schreibfunktion aktivieren.
 
 **Nächster sicherer Schritt:** Ohne Deployments und ohne Geheimnisoffenlegung nur lesend die Cloud-Run-Revisionsmetadaten auf Herkunfts-/Build-Informationen prüfen und die Anwendungsschnittstellen (falls vorhanden) ohne produktive Zustandsänderung ermitteln. Anschliessend Designentscheidung für Firestore: nur atomaren Annahmestatus transaktional ergänzen, Airtable weiterhin CRM; kein zweites CRM bauen.
+
+## Cloud Run revisions-Metadaten – Quellursprung verifiziert am 15.10.2026
+
+Der Projektbetreiber las per Cloud Shell `gcloud run revisions describe lszh-offer-portal-staging-00004-qt7 --project=lszh-automations --region=europe-west6 --format='json(metadata.labels,metadata.annotations)'` folgende wesentlichen Felder:
+
+- `run.googleapis.com/build-function-target`: `lszhPortalPreflight`
+- `run.googleapis.com/base-images`: Google Node.js 22 Runtime `google-22/runtimes/nodejs22`
+- `run.googleapis.com/client-name`: `cloud-console`
+- `run.googleapis.com/build-id`: `1b5ec8b7-0a55-4529-bbff-dca13af3fbc5`
+- `run.googleapis.com/build-source-location`: `gs://run-sources-lszh-automations-europe-west6/services/lszh-offer-portal-staging/1792067505.193000.zip#1792067436181831`
+- Creator: `lars@lszh-automations.ch`
+
+**Technische Schlussfolgerung:** Die aktive Revision wurde aus einer in Google Cloud Storage liegenden hochgeladenen Source-ZIP mit dem Funktionseinstiegspunkt `lszhPortalPreflight` über die Cloud Console gebaut. Der bisherige PASS-Log bestätigt die LSZH-spezifischen Preflight-Leseprüfungen. Das Deployment ist **nicht** als GitHub-Branch-/Commit-Deployment nachgewiesen. Es ist unbewiesen, dass im Container bereits HTTP-Routen für sichere Kunden-Offerten, Drei-PDF-Annahme und atomare Firestore-Transaktionen vorhanden sind. Ebenso bleibt die Anwendung nicht als Platzhalter zu behaupten; die Preflight-Funktion ist real.
+
+**Nächster minimaler Read-only-Schritt:** Quell-ZIP über bereits autorisierte Cloud Shell aus GCS lokal lesen und zuerst **nur Dateinamen** prüfen (keinen Quellinhalt, keine Secrets, keine Live-Tokens in Chat weitergeben). Danach vorhandene Cloud-Funktion gegen die GitHub-Anwendung abgrenzen. Im Anschluss **eine** konsistente, sicher gesperrte Staging-Portal-Implementierung im bestehenden GitHub-Entwicklungszweig vorbereiten – kein zweites CRM und keine neue Datenbank, keine produktive Aktivierung.
+

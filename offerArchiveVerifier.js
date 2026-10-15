@@ -66,7 +66,8 @@ module.exports=function createOfferArchiveVerifier(options={}){
     return response;
   }
   function details(fields,which){
-    const prefix=which==='quote'?'Offerten':'Bedingungen';
+    if(!['quote','terms','avv'].includes(which))throw Error('invalid_document');
+    const prefix=which==='quote'?'Offerten':which==='terms'?'Bedingungen':'AVV';
     const id=fields['Online-Annahme '+prefix+' Drive ID'];
     const digest=fields['Online-Annahme '+prefix+'-SHA256'];
     if(!ID_RE.test(String(id||''))||!HASH_RE.test(String(digest||'')))throw Error('archive_fields_missing');
@@ -90,11 +91,16 @@ module.exports=function createOfferArchiveVerifier(options={}){
     if(fields['Online-Annahme Offerten-Archivstatus']!=='VERIFIZIERT' ||
        !fields['Online-Annahme Offerten-Archivprüfung am'])
       return false;
-    const [q,t]=await Promise.all([inspectOne(fields,'quote'),inspectOne(fields,'terms')]);
-    return q.valid && t.valid;
+    const avv=fields['AVV erforderlich'];
+    if(avv!=='Ja' && avv!=='Nein')return false;
+    const kinds=avv==='Ja'?['quote','terms','avv']:['quote','terms'];
+    const checks=await Promise.all(kinds.map(kind=>inspectOne(fields,kind)));
+    return checks.every(check=>check.valid);
   }
   async function pdf(fields,which){
-    if(!['quote','terms'].includes(which))throw Error('invalid_document');
+    if(!['quote','terms','avv'].includes(which) ||
+      (which==='avv' && fields['AVV erforderlich']!=='Ja'))
+      throw Error('invalid_document');
     const check=await inspectOne(fields,which);
     if(!check.valid)throw Error('archive_changed');
     const response=await driveGet(check.id,{alt:'media'});

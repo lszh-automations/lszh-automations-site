@@ -47,7 +47,7 @@ function eligible(state,expected,actor,now){
 async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
   check(db&&typeof db.doc==='function'&&typeof db.runTransaction==='function');
   // Staging-only path. NOT a live customer-acceptance endpoint.
-  check(/^stagingOfferAcceptanceStates\/[A-Za-z0-9_-]{10,100}$/.test(documentPath||''));
+  check(/^stagingOfferFixtures\/[A-Za-z0-9_-]{10,100}$/.test(documentPath||''));
   check(expected&&[expected.tokenHash,expected.quoteSha256,expected.termsSha256]
     .every(x=>HEX64.test(String(x||''))));
   check(typeof expected.offerNumber==='string'&&expected.offerNumber.length>5&&

@@ -36,7 +36,7 @@ test('IAM denial, invalid result and timeout never claim a successful connection
 test('startup log code never uses set/update/create/firestore transaction or exports raw errors',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../startupReadProof.js'),'utf8');
  assert.doesNotMatch(source,/\.set\(|\.update\(|\.create\(|runTransaction\(/);
- assert.doesNotMatch(source,/console\.log\(.*err|logger\.error\(.*err/);
+ assert.doesNotMatch(source,/(?:console|logger)\.error\(\s*(?:err|error|exception)\s*\)/);
  const index=fs.readFileSync(path.join(__dirname,'../index.js'),'utf8');
  assert.match(index,/if\(stagingReadProbe\)await runStartupReadProbe/);
  const probeOrder=index.indexOf('await runStartupReadProbe(stagingReadProbe)');

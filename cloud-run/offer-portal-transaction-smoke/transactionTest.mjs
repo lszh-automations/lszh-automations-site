@@ -15,6 +15,7 @@ export async function runSyntheticTransactionTest(db,{count=EXPECTED}={}){
   let created=false;
   let clean=false;
   let originalError;
+  let summary;
   try{
     // create(), unlike set(), refuses to overwrite an existing document.
     await ref.create({
@@ -48,7 +49,7 @@ export async function runSyntheticTransactionTest(db,{count=EXPECTED}={}){
        data?.downstream?.email!=='disabled'||
        data?.downstream?.make!=='disabled')
       problem('transaction_check_failed');
-    return {attempts:EXPECTED,accepted,declined:duplicate};
+    summary={attempts:EXPECTED,accepted,declined:duplicate};
   }catch(err){
     originalError=err;
   }finally{
@@ -74,7 +75,7 @@ export async function runSyntheticTransactionTest(db,{count=EXPECTED}={}){
   }
   if(created&&!clean)problem('cleanup_failed');
   if(originalError)throw originalError;
-  // No path returns before clean status check.
+  return summary;
 }
 
 // Simpler explicit cleanup path and no user-visible return values.

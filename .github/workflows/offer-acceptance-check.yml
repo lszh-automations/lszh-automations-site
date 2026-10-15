@@ -8,6 +8,8 @@ on:
       - 'test/offerArchiveVerifier.test.js'
       - 'server.js'
       - 'offerte-annehmen/index.html'
+      - 'services/offer-acceptance-staging/**'
+      - 'scripts/issue-offer-link.js'
       - 'package.json'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -29,6 +31,9 @@ jobs:
           node --check scripts/issue-offer-link.js
           node --check test/offerAcceptance.test.js
           node --check test/offerArchiveVerifier.test.js
+          node --check services/offer-acceptance-staging/app.js
+          node --check services/offer-acceptance-staging/index.js
+          node --check services/offer-acceptance-staging/test/app.test.js
       - name: Browser page script syntax
         run: |
           node - <<'NODE'
@@ -39,5 +44,7 @@ jobs:
           if(scripts.length!==1)throw new Error('Unexpected portal script count: '+scripts.length);
           new vm.Script(scripts[0][1],{filename:'offerte-annehmen/index.html'});
           NODE
-      - name: Unit tests
-        run: npm test
+      - name: Unit tests and inactive gateway checks
+        run: |
+          npm test
+          node --test services/offer-acceptance-staging/test/app.test.js

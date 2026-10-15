@@ -7,8 +7,9 @@ const crypto=require('node:crypto');
 const {createGateway}=require('../app');
 const {createLocalFixtureClaim}=require('./localFixtureClaims');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../../../syntheticAirtableBinding');
+const {mockAirtableOffer}=require('../../../test/helpers/mockAirtableOffer');
 const TOKEN='A'.repeat(43);
-const fixture={fixtureId:'LSZH-EMULATOR-abcdef0123456789',offerNumber:'DEMO-OFF-20991231-999',
+const fixture={fixtureId:'LSZH-EMULATOR-abcdef0123456789',airtableRecordId:'recTEST0000000000',offerNumber:'DEMO-OFF-20991231-999',
   termsVersion:'TEST_ONLY_TERMS',avvVersion:'TEST_ONLY_AVV',avvRequired:true};
 const archiveBytes={
   offer:Buffer.from('%PDF-1.7\nSynthetic quote\n%%EOF'),
@@ -25,6 +26,7 @@ function state(){
   expiresAt:'2099-12-31T23:59:59Z',tokenHash:hash(TOKEN),
   offerNumber:fixture.offerNumber,termsVersion:fixture.termsVersion,
   avvVersion:fixture.avvVersion,avvRequired:true,recipientEmail:'fake-tester@example.invalid',
+  validUntil:'2099-12-31',
   documents:{offer:doc(archiveBytes.offer),terms:doc(archiveBytes.terms),avv:doc(archiveBytes.avv)}};
  s.airtableRecordId='recTEST0000000000';
  s.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
@@ -62,7 +64,8 @@ async function setup({initial=state(),archive=archiveBytes,withHandler=true,noLo
  const store=fakeTransactionalStore(initial,{noLock});
  const oldNodeEnv=process.env.NODE_ENV;process.env.NODE_ENV='test';
  const srv=createGateway({htmlPath,localFixtureClaim:withHandler?
-    createLocalFixtureClaim({db:store.db,fixture,archiveBytes:archive}):null});
+    createLocalFixtureClaim({db:store.db,fixture,archiveBytes:archive,
+      readRecord:async()=>mockAirtableOffer(store.get(),'acceptance')}):null});
  srv.listen(0,'127.0.0.1');await once(srv,'listening');
  return {url:'http://127.0.0.1:'+srv.address().port,store,close:async()=>{
    await new Promise((resolve,reject)=>srv.close(e=>e?reject(e):resolve()));
@@ -164,3 +167,4 @@ test('HTTP claim blocks unbound synthetic offer even with correct PDFs',async()=
   assert.equal(env.store.writes(),0);
  }finally{await env.close();}
 });
+

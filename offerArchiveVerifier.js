@@ -1,5 +1,6 @@
 'use strict';
 const crypto = require('crypto');
+const fs = require('fs');
 
 // Google Drive archives are private: only the configured service account may
 // read the designated PDFs. Drive's content restriction is reversible by an
@@ -14,9 +15,24 @@ function safeEqualHash(a,b){
   if(!HASH_RE.test(String(a||''))||!HASH_RE.test(String(b||'')))return false;
   return crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 }
-function decodeCredentials(encoded){
-  if(!encoded || encoded.length>16*1024)throw Error('archive_credentials_missing');
-  const obj=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+// Render native runtimes can also expose secret-file names under the app root.
+// The HTTP server must therefore use an explicit public-file allowlist.
+const RENDER_SECRET_FILE='/etc/secrets/lszh-archive-reader.json';
+const EXPECTED_READER='lszh-archive-reader@lszh-automations.iam.gserviceaccount.com';
+function decodeCredentials(encoded,readFile=fs.readFileSync){
+  const filePath=String(process.env.OFFER_DRIVE_SA_FILE||'');
+  let obj;
+  if(filePath){
+    if(filePath!==RENDER_SECRET_FILE)throw Error('archive_credentials_path_invalid');
+    if(encoded)throw Error('archive_credentials_ambiguous');
+    const secret=readFile(filePath);
+    if(!secret || Buffer.byteLength(secret)>16*1024)throw Error('archive_credentials_invalid');
+    obj=JSON.parse(Buffer.isBuffer(secret)?secret.toString('utf8'):String(secret));
+    if(obj?.client_email!==EXPECTED_READER)throw Error('archive_credentials_wrong_account');
+  }else{
+    if(!encoded || encoded.length>16*1024)throw Error('archive_credentials_missing');
+    obj=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+  }
   if(!obj || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(obj.client_email||'') ||
       !String(obj.private_key||'').startsWith('-----BEGIN PRIVATE KEY-----'))
     throw Error('archive_credentials_invalid');
@@ -30,7 +46,7 @@ module.exports=function createOfferArchiveVerifier(options={}){
     if(cached && cached.expires>Date.now()+60000)return cached.token;
     if(pending)return pending;
     pending=(async()=>{
-    const creds=decodeCredentials(process.env.OFFER_DRIVE_SA_B64||'');
+    const creds=decodeCredentials(process.env.OFFER_DRIVE_SA_B64||'',options.readSecretFile);
     const now=Math.floor(Date.now()/1000);
     const header=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT'})).toString('base64url');
     const payload=Buffer.from(JSON.stringify({

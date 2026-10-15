@@ -34,6 +34,7 @@ jobs:
           node --check test/offerAcceptance.http.test.js
           node --check test/support/offer-http-mock.cjs
           node --check archiveStagingSmoke.js
+          node --check scripts/run-tests-safely.js
       - name: Browser page script syntax
         run: |
           node - <<'NODE'

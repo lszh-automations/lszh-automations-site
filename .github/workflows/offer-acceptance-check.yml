@@ -12,6 +12,7 @@ on:
       - 'offerte-annehmen/index.html'
       - 'package.json'
       - 'cloud-run/archive-reader-staging/**'
+      - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
 permissions:
@@ -36,6 +37,7 @@ jobs:
           node --check test/support/offer-http-mock.cjs
           node --check archiveStagingSmoke.js
           node --check cloud-run/archive-reader-staging/index.js
+          node --check cloud-run/archive-reader-staging/archiveBundleVerifier.mjs
           node --check scripts/run-tests-safely.js
       - name: Browser page script syntax
         run: |

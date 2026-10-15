@@ -6,6 +6,7 @@ const crypto=require('node:crypto');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {issueSyntheticOfferOnce}=require('../syntheticOfferIssuance');
+const {bindSyntheticAirtableRecordOnce,LOCK_COLLECTION}=require('../syntheticAirtableBinding');
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 let enabled=false;
 try{
@@ -25,6 +26,8 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
  const fixtureId='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
  const document=documentPath(fixtureId);
  const ref=a.doc(document);
+ const recordId='rec'+crypto.randomBytes(7).toString('hex');
+ const bindingRef=a.doc(LOCK_COLLECTION+'/'+recordId);
  const docs=Object.fromEntries(Object.entries(bytes).map(([kind,content])=>[kind,{
   mimeType:'application/pdf',sha256:hash(content),driveFileId:'1'.repeat(24),
   archiveVerified:true}]));
@@ -39,6 +42,29 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
  try{
   await ref.create(state);
   assert.equal((await standard.doc(document).get()).exists,false);
+  // Mandatory order: a verified synthetic Airtable record must be locked
+  // before the token issuer can see any bindable offer.
+  const mockRecord={id:recordId,fields:{
+    Status:'Entwurf',Offertennummer:state.offerNumber,
+    'Projektbedingungen Version':state.termsVersion,
+    'Gültig bis':state.validUntil,'AVV erforderlich':'Ja',
+    'Lead E-Mail':[state.recipientEmail],
+    'Vertragsunterlagen akzeptiert':false,
+    'Vertragsunterlagen versendet':false,
+    'Online-Annahme rechtlich freigegeben':false,
+    'Online-Annahme Offerten-SHA256':docs.offer.sha256,
+    'Online-Annahme Offerten Drive ID':docs.offer.driveFileId,
+    'Online-Annahme Bedingungen-SHA256':docs.terms.sha256,
+    'Online-Annahme Bedingungen Drive ID':docs.terms.driveFileId,
+    'Online-Annahme AVV-SHA256':docs.avv.sha256,
+    'Online-Annahme AVV Drive ID':docs.avv.driveFileId,
+    'Online-Annahme AVV-Version':state.avvVersion
+  }};
+  const bound=await bindSyntheticAirtableRecordOnce({
+    db:a,fixtureId,airtableRecordId:recordId,
+    readRecord:async()=>mockRecord,testMode:'offline-or-emulator-only',now});
+  assert.equal(bound.bound,true);
+  assert.equal((await bindingRef.get()).data().fixtureId,fixtureId);
   const input={fixtureId,archiveBytes:bytes,now,expiresAt,testMode:'offline-or-emulator-only'};
   const results=await Promise.allSettled([a,b].map(db=>issueSyntheticOfferOnce({...input,db})));
   const success=results.filter(r=>r.status==='fulfilled');
@@ -66,6 +92,7 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
   assert.equal((await ref.get()).data().status,'TEST_ISSUED_NOT_DELIVERED');
  }finally{
   await ref.delete().catch(()=>{});
+  await bindingRef.delete().catch(()=>{});
   await Promise.all([a.terminate(),b.terminate(),standard.terminate()]);
  }
 });

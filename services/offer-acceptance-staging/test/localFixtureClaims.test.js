@@ -8,6 +8,8 @@ const {createGateway}=require('../app');
 const {createLocalFixtureClaim}=require('./localFixtureClaims');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../../../syntheticAirtableBinding');
 const {mockAirtableOffer}=require('../../../test/helpers/mockAirtableOffer');
+const {mockFrozenContract}=require('../../../test/helpers/mockContractFreeze');
+const {COLLECTION:FREEZES}=require('../../../syntheticContractFreeze');
 const TOKEN='A'.repeat(43);
 const fixture={fixtureId:'LSZH-EMULATOR-abcdef0123456789',airtableRecordId:'recTEST0000000000',offerNumber:'DEMO-OFF-20991231-999',
   termsVersion:'TEST_ONLY_TERMS',avvVersion:'TEST_ONLY_AVV',avvRequired:true};
@@ -32,18 +34,21 @@ function state(){
  s.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
    boundAt:'2026-10-15T10:00:00.000Z',
    fingerprint:bindingFingerprint(s,s.airtableRecordId)};
- return s;
+ return mockFrozenContract(s).state;
 }
 function fakeTransactionalStore(initial,options={}){
   let value=structuredClone(initial),writes=0;
   const guard=options.noLock?null:{fixtureId:value.fixtureId,
     recordId:value.airtableRecordId,boundAt:value.airtableBinding?.boundAt,
     fingerprint:value.airtableBinding?.fingerprint,syntheticOnly:true};
+  const frozen=options.noFreeze?null:mockFrozenContract(value).freeze;
   let serial=Promise.resolve();
   return {db:{doc:p=>({path:p}),runTransaction:fn=>{
     const job=serial.then(async()=>{
       const tx={get:async ref=>ref.path.startsWith(LOCK_COLLECTION+'/')
        ? {exists:!!guard,data:()=>structuredClone(guard)}
+       :ref.path.startsWith(FREEZES+'/')
+         ? {exists:!!frozen,data:()=>structuredClone(frozen)}
        : {exists:!!value,data:()=>structuredClone(value)},
         update:(ref,patch)=>{value={...value,...structuredClone(patch)};writes++;}};
       return fn(tx);
@@ -168,3 +173,12 @@ test('HTTP claim blocks unbound synthetic offer even with correct PDFs',async()=
  }finally{await env.close();}
 });
 
+
+test('HTTP acceptance blocks a non-frozen contract with valid PDF hashes',async()=>{
+ const env=await setup({initial:{...state(),contractManifestHash:null}});
+ try{
+  const r=await request(env.url);
+  assert.equal(r.status,409);
+  assert.equal(env.store.writes(),0);
+ }finally{await env.close();}
+});

@@ -15,13 +15,13 @@
 | Bestehender Cloud-Run-Preflight | `lszh-offer-portal-staging` mit separater Identität | Vorhanden, **nicht überschreiben** |
 | Neuer Cloud-Run-Dienst | `lszh-offer-acceptance-staging` | Noch nicht vorhanden |
 | Cloud-Run-HTTP-Gateway | `services/offer-acceptance-staging/app.js` im **Feature-Branch** | Ausschliesslich lokal und Emulator geprüft, nicht deployed |
-| Firestore SDK-Reader | `stagingFirestoreConnection.js` | Nicht in echten Cloud-Run-Gateway verdrahtet, nicht live verifiziert |
+| Firestore SDK-Reader | `stagingFirestoreConnection.js`, `stagingReadProbe.js`, Gateway opt-in-Route | Im Feature-Branch verdrahtet; **reale Cloud-Run-Laufzeitverbindung noch nicht verifiziert** |
 | Drive-Revisionsretention | Drei synthetische PDF-Revisionen mit `keepForever=false` | **BLOCKED** für Archivfreigabe |
 
 ## Absicherungen vor einem späteren Deployment
 
 1. **Separate explizite Freigabe** für das Erstellen des neuen Cloud-Run-Dienstes mit der bestätigten Leser-Identität. Keine Freigabe zum Überschreiben des bestehenden Preflight-Dienstes, von Render-Services oder der Website.
-2. Freizugebende Quelle und unveränderlicher Build-Commit bestimmen; Feature-Branch-Kontrolle, Abhängigkeiten, Image-Scanning und bei Bedarf Digest-Pinning prüfen. Der vorhandene Minimal-Gateway besitzt noch **keinen produktiv angebundenen Firestore-HTTP-Lesepfad**. Ein unverändert deployter Gateway würde deshalb keinen echten Firestore-E2E-Lesebeweis liefern.
+2. **Feature-Branch-Gateway ist nun mit festem read-only HTTP-Firestore-Pfad verdrahtet.** OCI-Image-Digests und Firestore-9.3.1-Lockfile fixiert, Trivy-/npm-Sicherheitsprüfung (aktuell 0 HIGH/CRITICAL bzw. 0 npm-Advisories) und Container-Smoke-Test bestanden. **Das beweist noch keine echte Cloud-Run-Laufzeitverbindung und ist keine Deployfreigabe.** Für eine spätere Bereitstellung unveränderlichen Build-Commit, Cloud-Run-IAM, Ingress und Sicherheitsreview separat freigeben.
 3. **Standardmässig keinen anonymen öffentlichen Aufruf** erlauben: `--no-allow-unauthenticated`, strenge Ingress-Einstellung passend zum Prüfzweck und IAM-`run.invoker` nur für ausdrücklich benannte Testidentitäten nach Review. Keine Servicekonto-Keydatei.
 4. Cloud-Run-Service-Identität muss **genau** `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` sein. Die Berechtigung `iam.serviceAccounts.actAs` des Deployers falls erforderlich nur für **dieses Konto** separat bewilligen; keine projektweite pauschale IAM-Freigabe.
 5. Explizite feste Serverkonfiguration für Projekt `lszh-automations`, benannte Datenbank `lszh-offers-staging` und den lesenden Testmodus. `LSZH_FIRESTORE_STAGING_WRITE_ENABLED` muss effektiv deaktiviert bleiben. Keine Airtable- oder Drive-Secrets im Build oder in Logs.

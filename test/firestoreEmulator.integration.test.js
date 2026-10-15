@@ -48,6 +48,14 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     assert.equal((await defaultRef.get()).exists,false,
       'Emulator did not isolate named Firestore database from (default)');
     const now=new Date('2026-10-15T12:00:00Z');
+    // An originally bound Airtable offer has been changed just before claim.
+    // A fresh readback must reject it before the Firestore status can change.
+    const remote=mockAirtableOffer(state,'acceptance');
+    await assert.rejects(claimOfferOnce({db:a,documentPath:document,expected,actor,now,
+      airtableRecordId:recordId,
+      readRecord:async()=>({...remote,fields:{...remote.fields,Status:'Entwurf'}})}),
+      e=>e.reason==='readback_mismatch');
+    assert.equal((await ref.get()).data().status,'ISSUED');
     const results=await Promise.allSettled([a,b].map(db=>claimOfferOnce({db,documentPath:document,expected,actor,now,
       airtableRecordId:recordId,readRecord:async()=>mockAirtableOffer(state,'acceptance')})));
     assert.equal(results.filter(r=>r.status==='fulfilled').length,1);

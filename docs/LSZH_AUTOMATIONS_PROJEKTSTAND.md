@@ -19,6 +19,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Ohne Firebase-/Cloud-Run-API-Zugriff bleibt das tatsächlich bereitgestellte Firestore-Collection-Schema offen; die Datenbank wurde noch nicht beschrieben.
 - Isolierte CI-Datei `.github/workflows/firestore-staging-check.yml` für lokale Tests ohne Cloud-Credentials ergänzt. Keine Produktivaktivierung.
 
+
+### Nachgewiesener Preflight-Stand und neue Offline-Sicherheitslogik, 15.10.2026
+
+- Die Cloud-Run-Revision `lszh-offer-portal-staging-00004-qt7` erhält 100 % Traffic und ist Ready. Nachweisbar eingebaut: `lszhPortalPreflight` mit Startup-Logs `IDENTITY_PASS`, `DRIVE_PASS`, `FIRESTORE_READ_PASS`. Die direkt aus Cloud Storage stammende Build-Source-ZIP enthält nur `index.js` und `package.json`; eine statische Analyse erkennt weder Offerten-API/HTTP-Routen noch `runTransaction`. **Preflight ist kein fertiges Kundenportal.**
+- Die Website mit `server.js`, `offerte-annehmen/index.html` und `offerAcceptance.js` ist separat in GitHub entwickelt; `README.txt` benennt Render als Hosting. **Render-Live-Revision ungeprüft.** Der bisherige Annahmecode arbeitet mit Airtable und lediglich prozesslokaler Doppelannahme-Sperre; AVV fehlt in diesem Annahmepfad.
+- Auf `feature/firestore-staging-dryrun-20261015` neu `firestoreAcceptanceState.js` und `test/firestoreAcceptanceState.test.js`: rein isolierter, nirgendwo angebundener Firestore-Transaktionskandidat. 7 lokale synthetische Tests bestanden; Fake-Transaktionen sind kein Cloud-End-to-End-Test. GitHub-CI enthält Testbefehle; Ausführung offen.
+- Offen vor einem echten STAGING-Schreibtest: Feldmapping zwischen Offline-Fixture und Transaktionscode, Authentifizierungsarchitektur Render/Cloud Run, optionaler AVV-Archivpfad, tatsächliche Dienste/IAM/Deploystand, getrennte Test-Schreibfreigabe. **Cloud-Run-Preflight nicht überschreiben, keine E-Mails oder echten Annahmen aktivieren.**
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

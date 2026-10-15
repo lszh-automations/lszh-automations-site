@@ -78,6 +78,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Einzelheiten und Originalbelege: `docs/LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md`. Vorherige Textabschnitte, die einen Emulatorlauf als offen nennen, sind **historische Zwischenstände** und durch diesen Nachweis technisch aktualisiert.
 - **Weiterhin keine** Cloud-Run-Deployments, Firestore-Schreibzugriffe ausserhalb des kurzlebigen lokalen Emulators, echte Kundenannahmen oder produktive E-Mails.
 
+### Synthetische Linkausstellung – atomarer Emulatornachweis (15.10.2026)
+
+- Auf `feature/firestore-staging-dryrun-20261015` neues isoliertes Modul `syntheticOfferIssuance.js`. Es erzeugt **256-Bit-Random-Token**, legt **nur SHA-256** in genau einem `stagingOfferFixtures/LSZH-EMULATOR-...`-Testdatensatz ab und verwendet `db.runTransaction` mit Wiederholungs-/Doppel-Commit-Sperre. Archiv-Hashes für lokale synthetische Offerte/Bedingungen/AVV und `Europe/Zurich`-Gültigkeit werden vor Commit abgeglichen. Keine Drive-/Make-/Airtable-/Kundenanbindung.
+- Ergebnisstatus **`TEST_ISSUED_NOT_DELIVERED`**, `deliveryConfirmed=false`, `deliveryEnabled=false`, `acceptanceEnabled=false`, `legallyApproved=false`. Selbst mit korrekt zurückgegebenem Testtoken ist **keine Vertragsannahme möglich**. Die vorhandenen V4-Fixtures bleiben blockiert; reale RC1-Freigaben fehlen.
+- Echter [GitHub-Actions-Test #38771010960](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38771010960): **17/17 Unit-/Sicherheitschecks plus 3/3 echte Emulator-Integrationstests bestanden**, davon neuer Nachweis für zwei unabhängige konkurrierende Aussteller (genau ein gespeicherter Tokenhash), geschützte PDF-Hashes und nicht annehmbaren Endzustand. Spätere verschärfte Negativtests (Cloud-Run-Identität, ungültige Kalenderdaten) laufen separat in CI; der anfänglich belegte Run bleibt als unabhängiger Erfolg gültig.
+- `scripts/issue-offer-link.js` bleibt gesperrt, geplante Kunden-Gateway-API liefert weiterhin HTTP 503. Dieser Ausstellungsprototyp ist **nicht** produktionsfähig. Das Risiko eines verlorenen Klartexttokens nach Commit und die revidierbare, sichere Zustellung müssen vor Kundenbetrieb gelöst werden.
+- Detailbericht: `docs/LSZH_LINKAUSSTELLUNG_EMULATOR_20261015.md`. Noch zu erledigen: RC1-/AVV-Rechtsfreigabe, archivierte kundenbezogene PDFs nachweislich aus Drive lesen, eigener auth-geschützter Issuance-Dienst, Widerruf/Neuausgabe, idempotente Firestore→Airtable-/Make-Reconciliation, separater autorisierter **echter** Staging-Test.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

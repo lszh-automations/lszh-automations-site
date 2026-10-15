@@ -72,12 +72,18 @@ function verifySyntheticReadback(state,record,stage){
      fields['Online-Annahme AVV ausdrücklich akzeptiert']===true||
      fields['Online-Annahme Bestätigung gesendet am'])reject();
   if(stage==='issuance'){
+    if(state.status!=='TEST_DRAFT_NOT_SENT'||state.legallyApproved!==false||
+       state.acceptanceEnabled!==false||state.deliveryConfirmed!==false||
+       state.deliveryEnabled===true||state.tokenHash!=null||
+       state.issuedAt!=null||state.acceptedAt!=null)reject();
     if(fields.Status!=='Entwurf'||
        fields['Vertragsunterlagen versendet']===true||
        fields['Online-Annahme rechtlich freigegeben']===true||
        fields['Online-Annahme Token-Hash']||
        fields['Online-Annahme Link gesendet am'])reject();
   }else{
+    if(state.status!=='ISSUED'||state.acceptedAt!=null||
+       state.acceptanceEvidence!=null)reject();
     // This is ONLY a hypothetical fully-approved synthetic fixture in tests.
     // No real approval is inferred from a checkbox by the application.
     if(fields.Status!=='Versendet'||

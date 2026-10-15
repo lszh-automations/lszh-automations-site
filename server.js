@@ -677,38 +677,54 @@ async function handleSecureSubmit(req,res) {
   }
 }
 
+// Public assets MUST be explicitly allowlisted: Render secret files are also
+// placed into the service root on native runtimes. Never serve files by path join.
+const PUBLIC_STATIC_PAGES = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/robots.txt', 'robots.txt'],
+  ['/onboarding', 'onboarding/index.html'],
+  ['/onboarding/', 'onboarding/index.html'],
+  ['/onboarding/index.html', 'onboarding/index.html'],
+  ['/make-start', 'make-start/index.html'],
+  ['/make-start/', 'make-start/index.html'],
+  ['/make-start/index.html', 'make-start/index.html'],
+  ['/offerte-annehmen', 'offerte-annehmen/index.html'],
+  ['/offerte-annehmen/', 'offerte-annehmen/index.html'],
+  ['/offerte-annehmen/index.html', 'offerte-annehmen/index.html'],
+  ['/secure', 'secure/index.html'],
+  ['/secure/', 'secure/index.html'],
+  ['/secure/index.html', 'secure/index.html'],
+  ['/secure-admin', 'secure-admin/index.html'],
+  ['/secure-admin/', 'secure-admin/index.html'],
+  ['/secure-admin/index.html', 'secure-admin/index.html']
+]);
 function staticFile(req, res) {
   let pathname;
-  try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
-  if (pathname === '/') pathname = '/index.html';
-  if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
-  if (pathname === '/offerte-annehmen' || pathname === '/offerte-annehmen/') pathname = '/offerte-annehmen/index.html';
-  if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
-  if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
-  if (pathname.startsWith('/offerte-annehmen/')) {
+  try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); }
+  catch { return send(res,400,'Bad request','text/plain'); }
+  const relative=PUBLIC_STATIC_PAGES.get(pathname);
+  if(!relative) return send(res,404,'Not found','text/plain');
+  if(relative.startsWith('offerte-annehmen/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  if (pathname.startsWith('/secure/')) {
+  if(relative.startsWith('secure/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  if (pathname.startsWith('/secure-admin/')) {
+  if(relative.startsWith('secure-admin/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  let file = path.normalize(path.join(ROOT, pathname));
-  if (!file.startsWith(ROOT)) return send(res,403,'Forbidden','text/plain');
-  fs.stat(file, (err, st) => {
-    if (!err && st.isDirectory()) file = path.join(file,'index.html');
-    fs.readFile(file, (e, data) => {
-      if (e) return send(res,404,'Not found','text/plain');
-      send(res,200,data,mime[path.extname(file).toLowerCase()] || 'application/octet-stream');
-    });
+  const file=path.join(ROOT,relative);
+  fs.readFile(file,(error,data)=>{
+    if(error) return send(res,404,'Not found','text/plain');
+    send(res,200,data,mime[path.extname(file).toLowerCase()] || 'application/octet-stream');
   });
 }
 const offerAcceptance = require('./offerAcceptance')({send,readJson,sameOrigin,rateLimited,clientIp});

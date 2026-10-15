@@ -11,6 +11,9 @@ on:
       - 'test/firestoreEmulator.integration.test.js'
       - 'stagingOfferSchema.js'
       - 'firestoreAcceptanceState.js'
+      - 'syntheticOfferIssuance.js'
+      - 'test/syntheticOfferIssuance.test.js'
+      - 'test/syntheticOfferIssuance.integration.test.js'
       - 'services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js'
       - 'services/offer-acceptance-staging/test/localFixtureClaims.js'
       - 'services/offer-acceptance-staging/app.js'
@@ -50,14 +53,17 @@ jobs:
           node --check stagingFirestoreConnection.js
           node --check test/stagingFirestoreConnection.test.js
           node --check test/firestoreEmulator.integration.test.js
+          node --check syntheticOfferIssuance.js
+          node --check test/syntheticOfferIssuance.test.js
+          node --check test/syntheticOfferIssuance.integration.test.js
           node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
-          node --test test/stagingFirestoreConnection.test.js
+          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js
       - name: Run real Firestore transactions on a local demo-project emulator
         run: |
           ./node_modules/.bin/firebase emulators:exec \
             --config tests/emulator/firebase.json \
             --only firestore \
             --project demo-lszh-offers \
-            "node --test test/firestoreEmulator.integration.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js"
+            "node --test test/firestoreEmulator.integration.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js test/syntheticOfferIssuance.integration.test.js"
       # No gcloud, Firebase login, Firebase deploy, service account keys, OAuth,
       # remote Firestore endpoints, Make, Airtable or email. Only local emulator.

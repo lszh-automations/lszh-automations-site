@@ -70,6 +70,7 @@ test('staging acceptance with AVV records complete consent once',async()=>{
   {ok:true,accepted:true,confirmation_pending:true});
  const {doc,updates}=data.state();equal(updates,1);
  equal(doc.status,'accepted');equal(doc.revision,2);
+ deepStrictEqual(doc.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
  equal(doc.evidence.avv_pdf_sha256,refs.avv.sha256);
  equal(doc.evidence.quote_pdf_sha256,refs.quote.sha256);
  equal(doc.evidence.name,'Synthetischer Kunde');

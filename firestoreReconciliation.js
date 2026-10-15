@@ -181,5 +181,29 @@ async function completeAfterVerifiedRemote({db,documentPath,testMode,leaseId,rem
    return {synced:true,eventId:preview.eventId,sendConfirmation:false};
  });
 }
+// Resolution for uncertain outcomes: an authenticated, independent Airtable
+// read must prove the exact marker was already applied. This NEVER sends another
+// PATCH, Make job or email. Missing/mismatching proof stays NEEDS_REVIEW.
+async function resolveUnknownOutcome({db,documentPath,testMode,remoteFields,
+  now=new Date()}={}){
+ checkArgs(db,documentPath,testMode,now);
+ const ref=db.doc(documentPath);
+ return db.runTransaction(async tx=>{
+   const snap=await tx.get(ref);
+   if(!snap.exists)deny();
+   const s=snap.data();
+   if(!matchesAccepted(s,documentPath)||
+     s.reconciliationStatus!=='NEEDS_REVIEW'||
+     s.reconciliationReviewReason!=='LEASE_OUTCOME_UNKNOWN')deny('not_eligible');
+   const preview=previewAirtableAcceptance(s,documentPath);
+   if(compareRemote(remoteFields,preview)!=='ALREADY_APPLIED')
+     deny('manual_review_required');
+   tx.update(ref,{reconciliationStatus:'SYNCED',reconciliationLease:null,
+     reconciliationEventId:preview.eventId,reconciledAt:now.toISOString(),
+     reconciliationReviewReason:null});
+   return {synced:true,eventId:preview.eventId,recoveredFromUnknown:true,
+     sendConfirmation:false};
+ });
+}
 module.exports={ReconciliationRejected,eventId,previewAirtableAcceptance,compareRemote,
- acquireLease,completeAfterVerifiedRemote};
+ acquireLease,completeAfterVerifiedRemote,resolveUnknownOutcome};

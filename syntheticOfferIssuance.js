@@ -5,6 +5,7 @@
 const crypto=require('node:crypto');
 const {documentPath,SCHEMA_VERSION}=require('./stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
+const {fetchSyntheticReadback,verifySyntheticReadback}=require('./syntheticAirtableReadback');
 const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const HEX=/^[a-f0-9]{64}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
@@ -96,7 +97,7 @@ function checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt){
  */
 async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date(),
   expiresAt=new Date(now.getTime()+24*60*60*1000),randomBytes=crypto.randomBytes,
-  testMode}={}){
+  testMode,airtableRecordId,readRecord}={}){
   // Defense in depth: never execute this synthetic writer inside Cloud Run
   // or under the real LSZH Google Cloud project identity.
   if(process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT==='lszh-automations'||
@@ -108,7 +109,8 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
     expiresAt.getTime()-now.getTime()<5*60*1000||
     expiresAt.getTime()-now.getTime()>MAX_TTL_MS||
-    typeof randomBytes!=='function')deny('invalid_input');
+    typeof randomBytes!=='function'||!RECORD_ID.test(airtableRecordId||'')||
+    typeof readRecord!=='function')deny('invalid_input');
   // The archive is locally simulated. Compute all proof hashes before starting
   // a retryable transaction. Absolutely no network I/O inside callback.
   const hashes=verifySyntheticArchive(archiveBytes,
@@ -117,6 +119,10 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
   if(!Buffer.isBuffer(secret)||secret.length!==32)deny('invalid_entropy');
   const token=secret.toString('base64url');
   const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+  // Fresh server-side GET (injected read-only reader). Absolutely no remote IO
+  // inside Firestore's retryable transaction callback.
+  const readback=await fetchSyntheticReadback(readRecord,airtableRecordId)
+    .catch(()=>deny('readback_unavailable'));
   const ref=db.doc(documentPath(fixtureId));
   const result=await db.runTransaction(async tx=>{
     const snap=await tx.get(ref);
@@ -125,6 +131,7 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     // Binding is a separate Firestore document. Read it INSIDE the SAME
     // transaction, before any writes, to protect against lost/raced links.
     if(!RECORD_ID.test(state?.airtableRecordId||''))deny('binding_missing');
+    if(state.airtableRecordId!==airtableRecordId)deny('binding_mismatch');
     const lock=await tx.get(db.doc(LOCK_COLLECTION+'/'+state.airtableRecordId));
     if(!lock.exists)deny('binding_missing');
     const bound=lock.data();
@@ -136,6 +143,8 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     if(state?.status==='TEST_ISSUED_NOT_DELIVERED'||state?.tokenHash!=null)
       deny('already_issued');
     checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt);
+    try{verifySyntheticReadback(state,readback,'issuance');}
+    catch{deny('readback_mismatch');}
     tx.update(ref,{status:'TEST_ISSUED_NOT_DELIVERED',
       tokenHash,issuedAt:now.toISOString(),expiresAt:expiresAt.toISOString(),
       deliveryConfirmed:false,deliveryEnabled:false,acceptanceEnabled:false,

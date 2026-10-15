@@ -29,3 +29,21 @@ Stand: 15.10.2026. **Nicht bereitgestellt, kein Go-Live, kein Kunde kann damit e
 ## Beabsichtigter nächster sichere Schritt
 
 Geklärte Architektur mit dem Geschäftsführer abstimmen; dann ggf. getrennte **Firestore Native Staging-DB in `europe-west6` (Zürich)** für ausschliesslich synthetische Testangebote anlegen, eigenes Portal-Dienstkonto mit minimaler Firestore-Rolle und ausschliesslich nötigem Drive-Lesezugriff definieren, Cloud-Run-Code integrieren und Wiederholungs-/Parallelitätstests mit realen Firestore-Transaktionen ausführen. Noch keine produktive Freigabe. Offizielle Firestore-Transaktionsdokumentation: https://firebase.google.com/docs/firestore/manage-data/transactions. Standortliste: https://docs.cloud.google.com/firestore/docs/locations.
+
+
+## Neuer Stand 15.10.2026 – reale Firestore-Emulator-Parallelität und Zürich-Konfiguration
+
+Der ursprünglich reine Fake-Test wurde durch **einen zusätzlichen offiziellen Firestore-Emulator-Lauf** ergänzt. In einem vollständig lokalen `demo-lszh-automations`-Projekt mit benannter DB `lszh-offers-staging` erhalten **zwölf gleichzeitige Annahmeanfragen exakt einen erfolgreichen Transaktionsabschluss und elf Ablehnungen**. Der Datensatz hat anschliessend `status='accepted'`, `revision=2` und `downstream.airtable/proofPdf/email='disabled'`. Weder Google-Cloud-Abrechnung noch echte Firestore-Daten oder Benutzerkonten waren beteiligt. Der Emulator ist kein Beleg für IAM-/Cloud-Run-Konfiguration im Echtbetrieb.
+
+Neu eingeführt: `stagingConfig.mjs` begrenzt Projekt, Revision, Dienstkonto (Runtime-Prüfung beim ersten Aufruf), benannte Datenbank, Geschäftsstaging-Ordner, Test-Vertragsversion und genau zulässige HTTPS-Staging-Origins. Default ist **disabled**; eine Aktivierung ohne gültiges Staging-Setup oder mit herunterladbarem Dienstkonto-JSON wird abgewiesen. `index.mjs` ist ein späterer Cloud-Run-Einstiegspunkt mit Firestore SDK (benannte Datenbank und regionaler Zürich-Endpunkt), Google Application Default Credentials, internem Google-Drive-PDF-Bündelprüfer, Firestore-Claim und HTTP-Adapter. **Noch nicht in Cloud Run bereitgestellt.**
+
+Das getrennte Staging-Paket `package.json` pinnt `@google-cloud/firestore`, `google-auth-library` und das Functions Framework. Die optionale Containerverpackung liegt in `cloud-run/Dockerfile.offer-portal-staging`, mit dem **Build-Kontext `cloud-run/`**; der vorhandene reine Archiv-Reader-Dienst wird nicht umgebaut. Das Quellpaket ist noch kein getestetes Produktionscontainer-Image.
+
+Die Tests werden im GitHub-Workflow parallel geprüft: normale synthetische Tests sowie ein separater CI-Job mit Java und `firebase-tools`/Firestore-Emulator. Die echte Google-Cloud-Datenbank und das separate Portal-Dienstkonto existieren **noch nicht**. Es ist **kein** Zugriff auf reale Firestore-Ressourcen aktiviert.
+
+**Vollständige manuelle Einrichtung mit Kosten- und IAM-Vorbehalt:**
+[LSZH_FIRESTORE_STAGING_SETUP_20261015.md](../../docs/LSZH_FIRESTORE_STAGING_SETUP_20261015.md).
+
+### Sicherheit vor Go-Live
+
+Firestore-Emulator-Tests sind keine Last-/Rechtsfreigabe. Der Portal-HTTP-Adapter enthält noch keinen WAF-/Rate-Limiting-Dienst oder vollständige Browseroberfläche. Firestore-Transaktion und Google-Drive-Prüfung können keine nachträgliche Veränderung von reversibel gesperrten Drive-Dateien verhindern; WORM/Beweissicherung und PDF-Zuordnung weiter lösen. Vor erster öffentlicher Kundenannahme eigene Identität, produktionsfähiges Hosting, eigenständige datenschutzrechtliche und juristische Prüfung, DNS und ausdrückliche Freigabe erforderlich.

@@ -134,10 +134,14 @@ test('never bind live, already issued or accepted records',async()=>{
   {legallyApproved:true},{deliveryConfirmed:true},{acceptanceEnabled:true},
   {status:'ISSUED'},{status:'ACCEPTED'},{issuedAt:now.toISOString()},
   {tokenHash:sha('a')},{reconciliationStatus:'PENDING'},
-  {recipientEmail:'real@example.com'}, {airtableRecordId:'recOTHER000000000'}]){
+  {recipientEmail:'real@example.com'}]){
   const s=memory([draft(fixtureId,extra)]);
   await denied(s,{},'not_eligible');
  }
+});
+test('already-set Airtable record ID is rejected as an already bound fixture',async()=>{
+ const s=memory([draft(fixtureId,{airtableRecordId:'recOTHER000000000'})]);
+ await denied(s,{},'already_bound');
 });
 test('no test intent, real project identity, bad fixture or bad record ID',async()=>{
  for(const value of [{testMode:'production'},{airtableRecordId:'recINVALID'},

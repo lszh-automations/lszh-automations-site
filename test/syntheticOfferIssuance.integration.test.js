@@ -65,7 +65,8 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
     readRecord:async()=>mockRecord,testMode:'offline-or-emulator-only',now});
   assert.equal(bound.bound,true);
   assert.equal((await bindingRef.get()).data().fixtureId,fixtureId);
-  const input={fixtureId,archiveBytes:bytes,now,expiresAt,testMode:'offline-or-emulator-only'};
+  const input={fixtureId,archiveBytes:bytes,now,expiresAt,testMode:'offline-or-emulator-only',
+    airtableRecordId:recordId,readRecord:async()=>mockRecord};
   const results=await Promise.allSettled([a,b].map(db=>issueSyntheticOfferOnce({...input,db})));
   const success=results.filter(r=>r.status==='fulfilled');
   const failed=results.filter(r=>r.status==='rejected');
@@ -88,7 +89,8 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
      avvSha256:hash(bytes.avv),offerNumber:state.offerNumber,
      termsVersion:state.termsVersion,avvVersion:state.avvVersion},
    actor:{name:'Test Muster',email:state.recipientEmail,authorized:true,
-     acceptTerms:true,acceptAvv:true},now}),ClaimRejected);
+     acceptTerms:true,acceptAvv:true},now,
+   airtableRecordId:recordId,readRecord:async()=>mockRecord}),ClaimRejected);
   assert.equal((await ref.get()).data().status,'TEST_ISSUED_NOT_DELIVERED');
  }finally{
   await ref.delete().catch(()=>{});

@@ -7,6 +7,7 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const {URL}=require('node:url');
+const {PROBE_PATH,isReadProbeRuntime}=require('./stagingReadProbe');
 
 const DOC_PATH=path.resolve(__dirname,'../../offerte-annehmen/index.html');
 const BLOCKED_PATHS=new Set(['/api/offer/preview','/api/offer/document','/api/offer/accept']);
@@ -44,7 +45,7 @@ function isLoopbackSocket(req){
   const ok=x=>x==='127.0.0.1'||x==='::1'||x==='::ffff:127.0.0.1';
   return ok(local)&&ok(remote);
 }
-function createGateway({htmlPath=DOC_PATH,localFixtureClaim=null}={}){
+function createGateway({htmlPath=DOC_PATH,localFixtureClaim=null,stagingReadProbe=null}={}){
   // Loading locally is the only IO performed; no Firestore SDK initialization.
   const htmlPromise=fs.readFile(htmlPath,'utf8');
   const server=http.createServer(async(req,res)=>{
@@ -66,6 +67,25 @@ function createGateway({htmlPath=DOC_PATH,localFixtureClaim=null}={}){
         if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'},
           {...headers,Allow:'POST'});
         return await localFixtureClaim(req,res,{json,headers});
+      }
+      // Internal and opt-in: a fixed read-only Firestore SDK probe.
+      // Cloud Run IAM/ingress must also deny unauthenticated callers.
+      // A missing flag/service/revision/injected reader fails closed.
+      if(pathname===PROBE_PATH){
+        if(!isReadProbeRuntime(process.env)||
+           typeof stagingReadProbe!=='function')
+          return json(res,404,{ok:false,error:'not_found'},headers);
+        if(req.method!=='GET')return json(res,405,{ok:false,error:'method_not_allowed'},
+          {...headers,Allow:'GET'});
+        if(u.searchParams.size!==0)return json(res,400,
+          {ok:false,error:'query_not_supported'},headers);
+        // Only two booleans escape; never return a record, path, ID or exception.
+        const result=await stagingReadProbe();
+        if(result?.reachable!==true||typeof result.fixtureExists!=='boolean')
+          return json(res,503,{ok:false,error:'staging_unavailable'},headers);
+        return json(res,200,{ok:true,mode:'staging_firestore_read_only',
+          reachable:true,fixture_exists:result.fixtureExists,
+          acceptanceEnabled:false,writeEnabled:false},headers);
       }
       if(pathname==='/healthz'){
         if(req.method!=='GET')return json(res,405,{ok:false,error:'method_not_allowed'},

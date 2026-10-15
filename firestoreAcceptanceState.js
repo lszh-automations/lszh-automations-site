@@ -5,6 +5,7 @@ const crypto=require('node:crypto');
 const {SCHEMA_VERSION,isStagingPath}=require('./stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
 const {fetchSyntheticReadback,verifySyntheticReadback}=require('./syntheticAirtableReadback');
+const {COLLECTION:FREEZES,verifyFrozenContractSnapshots}=require('./syntheticContractFreeze');
 const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
 const HEX64=/^[a-f0-9]{64}$/;
@@ -92,6 +93,7 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date(),
        state.airtableBinding?.schemaVersion!==1)
       throw new ClaimRejected('binding_missing');
     const lock=await tx.get(db.doc(LOCK_COLLECTION+'/'+state.airtableRecordId));
+    const frozen=await tx.get(db.doc(FREEZES+'/'+state.fixtureId));
     if(!lock.exists)throw new ClaimRejected('binding_missing');
     const bound=lock.data();
     const currentFingerprint=bindingFingerprint(state,state.airtableRecordId);
@@ -101,6 +103,9 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date(),
        !equalHash(bound.fingerprint,state.airtableBinding.fingerprint)||
        !equalHash(currentFingerprint,state.airtableBinding.fingerprint))
       throw new ClaimRejected('binding_mismatch');
+    let acceptedManifestHash;
+    try{acceptedManifestHash=verifyFrozenContractSnapshots(state,frozen);}
+    catch{throw new ClaimRejected('contract_not_frozen_or_mismatched');}
     try{verifySyntheticReadback(state,readback,'acceptance');}
     catch{throw new ClaimRejected('readback_mismatch');}
     const evidence={
@@ -109,6 +114,7 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date(),
       actorEmail:email(actor.email),
       authorized:true,acceptedTerms:true,
       acceptedAvv:state.avvRequired===true,
+      contractManifestHash:acceptedManifestHash,
       offerNumber:state.offerNumber,
       termsVersion:state.termsVersion,
       quoteSha256:state.documents.offer.sha256,

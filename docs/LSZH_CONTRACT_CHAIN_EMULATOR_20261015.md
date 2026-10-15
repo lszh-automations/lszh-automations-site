@@ -15,7 +15,7 @@
 - [GitHub-Actions-Lauf 38782567607](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38782567607): **91/91 Unit-/HTTP-Tests und 8/8 echte Firestore-Emulator-Integrationstests bestanden**, 0 Fehler und Skips.
 - Darin ein neuer **durchgehender Emulator-Test** `test/syntheticContractChain.integration.test.js`: **Airtable-Mockbindung → echte Emulator-Transaktion zum Vertrags-Freeze → konkurrierende echte Emulator-Transaktionen zur synthetischen Ausstellung → abgewiesener Annahmeversuch → abgewiesene Reconciliation-Vorschau**. Das Testprojekt `demo-lszh-offers` hat keinen Bezug zu produktiven Google-Cloud-Datensätzen.
 - Die vorhandenen Tests für eine hypothetisch bereits versendete, freigegebene Offerte prüfen weiterhin doppelte/konkurrierende Annahmen, fehlende Freeze-Guards, veränderte Archive, AVV, falsche Airtable-Felder und den einmaligen Reconciliation-Lease.
-- Nach Lauf 38782567607 wurden zusätzliche Regressionstests zu kanonischer Manifest-Sortierung und unterschiedlichen Reconciliation-Event-IDs hinzugefügt. Ihre Ergebnisse werden erst durch einen separaten vollständigen CI-Lauf belegt.
+- Der anschliessende [GitHub-Actions-Lauf 38782802281](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38782802281) bestätigt diese beiden neuen Regressionsprüfungen: **93/93 Unit-/HTTP-Tests und 8/8 echte Firestore-Emulator-Tests erfolgreich**, keine Fehler oder Skips. Die Reconciliation-Event-ID ändert sich mit der eingefrorenen Vertragsfassung und die kanonische Hashberechnung bleibt trotz umsortierter JSON-Schlüssel stabil.
 
 ## Kritische Grenzen (offen)
 

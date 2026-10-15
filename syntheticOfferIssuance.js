@@ -4,6 +4,8 @@
 // No network IO, email, Airtable, Make, Drive access or client API here.
 const crypto=require('node:crypto');
 const {documentPath,SCHEMA_VERSION}=require('./stagingOfferSchema');
+const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
+const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const HEX=/^[a-f0-9]{64}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
 const MAX_PDF=12*1024*1024;
@@ -52,6 +54,13 @@ function checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt){
      state.legallyApproved!==false||state.acceptanceEnabled!==false||
      state.deliveryEnabled!==false||state.deliveryConfirmed!==false||
      state.archiveVerified!==true||state.requiresManualReview!==true||
+     !RECORD_ID.test(state.airtableRecordId||'')||
+     state.airtableBinding?.source!=='SYNTHETIC_READ_ONLY'||
+     state.airtableBinding?.schemaVersion!==1||
+     typeof state.airtableBinding?.boundAt!=='string'||
+     !Number.isFinite(Date.parse(state.airtableBinding.boundAt))||
+     !equalHex(state.airtableBinding.fingerprint,
+       bindingFingerprint(state,state.airtableRecordId))||
      !/^DEMO-OFF-[A-Za-z0-9-]{8,50}$/.test(state.offerNumber||'')||
      !/^TEST_ONLY_/.test(state.termsVersion||'')||
      !/^fake-[a-z0-9-]+@example\.invalid$/.test(state.recipientEmail||''))
@@ -73,6 +82,7 @@ function checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt){
     deny('expired');
 }
 /**
+ * Requires a separately verified, uniquely locked synthetic Airtable identity.
  * Synthesizes a secure 256-bit bearer token, hashes it and CAS-issues exactly
  * one synthetic fixture via a Firestore transaction. The token is generated
  * outside the retryable callback and returned only AFTER commit.
@@ -112,6 +122,17 @@ async function issueSyntheticOfferOnce({db,fixtureId,archiveBytes,now=new Date()
     const snap=await tx.get(ref);
     if(!snap.exists)deny();
     const state=snap.data();
+    // Binding is a separate Firestore document. Read it INSIDE the SAME
+    // transaction, before any writes, to protect against lost/raced links.
+    if(!RECORD_ID.test(state?.airtableRecordId||''))deny('binding_missing');
+    const lock=await tx.get(db.doc(LOCK_COLLECTION+'/'+state.airtableRecordId));
+    if(!lock.exists)deny('binding_missing');
+    const bound=lock.data();
+    if(bound?.fixtureId!==fixtureId||bound.recordId!==state.airtableRecordId||
+       bound.syntheticOnly!==true||
+       bound.boundAt!==state.airtableBinding?.boundAt||
+       !equalHex(bound.fingerprint,state.airtableBinding?.fingerprint))
+      deny('binding_mismatch');
     if(state?.status==='TEST_ISSUED_NOT_DELIVERED'||state?.tokenHash!=null)
       deny('already_issued');
     checkSyntheticDraft(state,fixtureId,hashes,now,expiresAt);

@@ -241,6 +241,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Keine** weiteren IAM-Zuweisungen, Cloud-Run-Deployments, Firestore-Testdatensätze, Änderungen an Drive-Retention, RC1-/AVV-Freigaben, E-Mails oder Vertragsannahmen aus dieser Prüfung abgeleitet.
 - **Als Nächstes:** nur lesend `gcloud iam service-accounts describe` und `gcloud iam service-accounts keys list` (sowie gegebenenfalls IAM-Bindings) zur Nachkontrolle; danach die gesonderte Freigabe für einen **neuen**, mit diesem Konto laufenden Cloud-Run-Lesedienst vorbereiten, ohne den vorhandenen Preflight oder den Render-STAGING-Dienst zu überschreiben. Echte Firestore-Schreibtests weiterhin separat freigabepflichtig.
 
+### Abschliessende IAM-/Key-Nachkontrolle für den neuen STAGING-Reader (15.10.2026)
+
+- Live-Rückgabe der Cloud Shell: `EMAIL: lszh-offer-reader@lszh-automations.iam.gserviceaccount.com`; Feld `DISABLED:` in tabellarischer Ausgabe **leer** (kein deaktiviert-`true`; ein explizites `false` wurde dabei nicht ausgegeben).
+- Liste nutzerverwalteter Schlüssel (`--managed-by=user`): **`Listed 0 items`**; zu diesem Prüfzeitpunkt keine nutzerverwalteten Servicekonto-Schlüssel festgestellt.
+- Frühere IAM-Policy zeigt genau ein direktes Projektbinding für diese Identität: `roles/datastore.viewer` mit Bedingung `LSZHOfferReaderOnlyStagingFirestore` auf die Datenbank `lszh-offers-staging`. Keine `datastore.user`-Rolle für den neuen Reader sichtbar.
+- **Fortschritt:** Konto, bedingte Lese-Rolle und Schlüssellosigkeit (im Sinne: keine nutzerverwalteten Keys) nachgewiesen. **Weiterhin offen:** tatsächlicher SDK-GET durch das Konto, IAM-Vererbung/Ressourcenbindungen, Cloud-Run-Invoker/Ingress sowie später getrennte Drive-/Airtable-Anbindung.
+- Neuer Deployment-Freigabecheck: `docs/LSZH_CLOUD_RUN_READONLY_DEPLOY_GATE_20261015.md`. Besondere Feststellung: Der existierende lokale Cloud-Run-Gateway hat **noch keinen angebundenen Firestore-HTTP-Lesepfad** – selbst ein erfolgreicher unveränderter Deploy wäre **noch kein End-to-End-Beweis**. Vor Deployment explizite gesonderte Nutzerfreigabe nötig. Keine Cloud-/IAM-/Firestore-/E-Mail-/Vertragsmutation in diesem Schritt.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

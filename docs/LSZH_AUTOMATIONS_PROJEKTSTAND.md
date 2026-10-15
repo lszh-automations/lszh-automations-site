@@ -36,6 +36,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Artefakt `LSZH_Firestore_Staging_Testpaket_V4_20261015.zip` enthält 3 unveränderte synthetische PDF-Dateien, Manifest, Schema, isolierten Transaktionskandidaten und Tests. GitHub-CI-Datei erweitert.
 - Unverändert offen: echte AVV-Prüfung im bestehenden Website-Backend, sichere Hosting-/Auth-Anbindung und benannter Firestore-Datenbankclient, allfälliger autorisierter Staging-Import sowie Rechtsprüfung RC1. Bestehender Preflight bleibt unangetastet.
 
+### AVV-Absicherung und atomarer Annahme-Release-Gate – 15.10.2026
+
+- Airtable `Offerten` hat die benötigten Felder bereits: `AVV erforderlich`, `Online-Annahme AVV Drive ID`, `Online-Annahme AVV-SHA256`, `Online-Annahme AVV-Version` und `Online-Annahme AVV ausdrücklich akzeptiert`; lesende Schemaprüfung, keine Airtable-Änderungen.
+- Im GitHub-Staging-Branch wurden `offerArchiveVerifier.js`, `offerAcceptance.js`, `offerte-annehmen/index.html` und ihre Tests erweitert: AVV ist nur bei `Ja` sichtbar/verpflichtend; geschützter PDF-Abruf und Archiv-Hashprüfung vor jedem möglichen Commit.
+- **Sicherheitskorrektur:** Der alte, nicht atomare Airtable-Status-`PATCH` wurde aus dem Annahmepfad entfernt. Ohne injizierten `commitAtomic`-Adapter antwortet dieser mit HTTP 503. `server.js` stellt keinen solchen Adapter bereit; Annahmen bleiben somit technisch blockiert.
+- Syntaktische Prüfung der betroffenen JS-/HTML-Dateien bestanden. Zusätzliche Unit-Tests sind geschrieben, **noch nicht** unter Node/GitHub Actions ausgeführt. Kein Render-/Cloud-Run-Deployment, keine echte Firestore-Transaktion, keine E-Mails.
+- Detaillierte Abnahmehinweise: `docs/LSZH_AVV_PORTAL_HARDENING_20261015.md`. Historisches `docs/offertenannahme-konzept.md` oben mit Warnung über inzwischen veraltete Airtable-PATCH-Aussagen markiert.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

@@ -10,6 +10,7 @@ const {createGateway}=require('../app');
 const {createLocalFixtureClaim}=require('./localFixtureClaims');
 const {validateSettings,EMULATOR_PROJECT}=require('../../../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../../../stagingOfferSchema');
+const {LOCK_COLLECTION,bindingFingerprint}=require('../../../syntheticAirtableBinding');
 let enabled=false;
 try{
  validateSettings(process.env,'emulator');
@@ -38,13 +39,22 @@ test('local HTTP + two independent Firestore emulator clients commit only once',
    recipientEmail:'fake-tester@example.invalid',
    documents:{offer:d('offer'),terms:d('terms'),avv:d('avv')}};
  const ref=one.doc(documentPath(fixtureId));
+ const recordId='rec'+crypto.randomBytes(7).toString('hex');
+ const bindingRef=one.doc(LOCK_COLLECTION+'/'+recordId);
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-emulator-http-'));
  const htmlPath=path.join(dir,'index.html');fs.writeFileSync(htmlPath,'<html>Synthetic test</html>');
  let count=0,srv=null;
  const handlers=[one,two].map(db=>createLocalFixtureClaim({db,fixture,archiveBytes}));
  const oldNodeEnv=process.env.NODE_ENV;
  try{
-   await ref.create(state); // local emulator only, guarded before this test starts
+   state.airtableRecordId=recordId;
+   state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
+     boundAt:'2026-10-15T10:00:00.000Z',
+     fingerprint:bindingFingerprint(state,recordId)};
+   await Promise.all([ref.create(state),bindingRef.create({
+     fixtureId,recordId,fingerprint:state.airtableBinding.fingerprint,
+     boundAt:state.airtableBinding.boundAt,syntheticOnly:true
+   })]); // local emulator only, guarded before this test starts
    process.env.NODE_ENV='test';
    srv=createGateway({htmlPath,localFixtureClaim:(req,res,ctx)=>handlers[count++%2](req,res,ctx)});
    srv.listen(0,'127.0.0.1');await once(srv,'listening');
@@ -66,7 +76,7 @@ test('local HTTP + two independent Firestore emulator clients commit only once',
  }finally{
    if(srv)await new Promise(resolve=>srv.close(()=>resolve()));
    if(oldNodeEnv===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=oldNodeEnv;
-   await ref.delete().catch(()=>{});
+   await Promise.all([ref.delete().catch(()=>{}),bindingRef.delete().catch(()=>{})]);
    await Promise.all([one.terminate(),two.terminate()]);
    fs.rmSync(dir,{recursive:true,force:true});
  }

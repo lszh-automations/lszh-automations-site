@@ -1,7 +1,6 @@
 'use strict';
 // Pure helper for a future, explicitly approved Firestore-backed token issuer.
 // NEVER issues tokens, persists state, performs IO or sends email.
-const crypto=require('node:crypto');
 const TOKEN_RE=/^[A-Za-z0-9_-]{43}$/; // 32 secure random bytes encoded as base64url
 function buildOfferFragmentLink({origin,token,allowedOrigins}={}){
   if(!TOKEN_RE.test(String(token||'')))throw Error('invalid_offer_token');

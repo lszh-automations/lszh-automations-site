@@ -85,6 +85,7 @@ test('HTTP full journey – browser route → synthetic Airtable → Drive JWT/P
   await t.test('source files, configs and Render secret file names are never public',async()=>{
     for(const forbidden of [
       '/server.js', '/offerArchiveVerifier.js', '/offerAcceptance.js',
+      '/archiveStagingSmoke.js',
       '/package.json', '/README.txt', '/docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md',
       '/test/offerAcceptance.http.test.js',
       '/.env', '/.github/workflows/offer-acceptance-check.yml',

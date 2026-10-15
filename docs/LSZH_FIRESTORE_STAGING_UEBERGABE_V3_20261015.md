@@ -98,3 +98,7 @@ Durch den Nutzer in der angemeldeten Google Cloud Shell rein lesend ausgeführt:
 
 Als nächster enger read-only Prüfschritt: sicher gefilterte Startlog-Suche genau dieser Revision auf die ursprüngliche Cloud-Run-Platzhalter-Meldung. Das Vorhandensein der Meldung innerhalb dieser Revision ist ein starker Platzhalter-Hinweis; das Fehlen beweist die echte Anwendung nicht.
 
+
+## Cloud-Shell Logprüfung – 15.10.2026
+
+Die in der authentifizierten Cloud Shell ausgeführte gefilterte Leseabfrage nach `textPayload:"Hello from Cloud Run!"` für Revision `lszh-offer-portal-staging-00004-qt7` lieferte **keine Ausgabe**. Das beweist weder eine funktionierende Anwendung noch, dass der Platzhalter abgelöst wurde (beispielsweise können Logs fehlen, anders codiert oder nicht mehr aufbewahrt sein). Kein Live-Code-Befund aus diesem Filter. Die nächste Prüfung erfolgt über gefilterte Standardausgabe-/Fehler-Logs der exakt gerouteten Revision; ohne produktive Requests oder Cloud-Änderungen.

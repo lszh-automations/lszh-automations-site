@@ -111,6 +111,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Kein** echter Airtable-GET mit produktiven Berechtigungen, **kein** Airtable-PATCH, keine Live-Drive-PDF-Bytes, Cloud-Run-Deployments, Make- oder Mailaktionen; alle öffentlichen Offerten-APIs bleiben 503. Dokumentiert unter `docs/LSZH_BINDUNG_BIS_ANNAHME_20261015.md`.
 - Nächstes Risiko: Bindungs-Guard beweist nur die frühere Übereinstimmung. Vor einer echten Ausgabe/Annahme müssen autorisierte, frisch gelesene Airtable-Felder und endgültig archivierte PDFs erneut überprüft werden. RC1 und AVV bleiben juristisch ungeprüfte Freigabepunkte.
 
+### Neuer Airtable-Readback vor Ausstellung und Annahme – getestet (15.10.2026)
+
+- `syntheticAirtableReadback.js`: rein synthetische, vor jedem Transaktionsaufruf neu abgerufene **Mock-Airtable-Daten** werden im Firestore-Transaktionscallback gegen die eingefrorene eindeutige Airtable-Record-ID, Vertragsversion, Empfänger, Gültigkeit, PDF-Hashes, Drive-IDs und AVV geprüft. Linkausstellung verlangt `Entwurf` ohne Versand/Freigabe, der hypothetische Annahmepfad `Versendet` mit passenden Testfreigaben, Versandbeleg und Tokenhash. Unpassende Lebenszyklus-Stati sowie geänderte Archiv-/AVV-Daten blockieren den Commit.
+- Der gesicherte lokale HTTP-Test und beide Firestore-Emulator-Integrationstests nutzen jetzt einen explizit injizierten `readRecord`-Testadapter. **Er ist noch nicht mit echter Airtable-API authentifiziert**; keine externen Lese- oder Schreibzugriffe, keine produktiven Kundendaten oder Links.
+- [GitHub Actions #38778628864](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38778628864) **bestanden: 76/76 Unit-/HTTP-Tests und 6/6 echte Firestore-Emulatortests**, inklusive Änderung des Airtable-AVV-Hashes vor Ausgabe und Änderung des Versandstatus vor Annahme. Warnung des Firebase-Emulators zu benannten Datenbanken bleibt bestehen.
+- **Wichtige Grenze:** Zwischen dem Airtable-GET und dem Firestore-Commit kann Airtable theoretisch erneut geändert werden (keine verteilte Transaktion / TOCTOU). Deshalb bleibt die produktive Versionierungs-/Freeze- und Rechtsfreigabefrage offen. Kein produktives Deployment, E-Mail, Make, Airtable-PATCH oder echter Firestore-STAGING-Schreibtest.
+- Weitere Einzelheiten: `docs/LSZH_FRESH_AIRTABLE_READBACK_20261015.md`.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

@@ -103,6 +103,14 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Noch offen:** die Bindung ist noch nicht verpflichtender Bestandteil des vorherigen synthetischen Ausstellungs-/Annahmepfads, ein authentifizierter echter Airtable-GET mit minimaler Berechtigung, eine geprüfte Cloud-Identität, Laufzeit-Readback bei Änderungen in Airtable, sichere idempotente Echt-PATCH-/Outbox-Auslieferung und alle RC1-/AVV-Freigaben. Kein Cloud Run/Render/Make/Airtable produktiv verändert.
 - Detailbericht: `docs/LSZH_AIRTABLE_FIRESTORE_BINDING_20261015.md`.
 
+### Pflichtbindung vor Ausstellung und Annahme – Gesamtprüfung bestanden (15.10.2026)
+
+- Im GitHub-Entwicklungszweig sind `syntheticOfferIssuance.js` **und** `firestoreAcceptanceState.js` jetzt zwingend mit dem `syntheticAirtableBinding.js`-Zuordnungsfingerabdruck und dem eindeutigen `stagingAirtableBindings/{airtableRecordId}`-Guard verknüpft. Angebot und Guard werden jeweils **innerhalb derselben Firestore-Transaktion** geprüft, bevor ein synthetischer Tokenhash erstellt oder ein hypothetischer Annahmestatus geschrieben wird.
+- Ungültige/fehlende Bindungen, abweichende PDF-Drive-IDs, Hashes, AVV, Empfänger sowie Replay/Doppelannahme werden blockiert. Der vollständige synthetische Issuer bleibt **`TEST_ISSUED_NOT_DELIVERED`**, ohne Rechtfreigabe oder Zustellung. Positive Annahmetests setzen eine freigegebene Lage **nur künstlich im kurzlebigen lokalen Emulator**.
+- [GitHub-Actions-Gesamttest #38776417489](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38776417489) **erfolgreich: 66/66 Unit-/HTTP-Tests und 6/6 Emulator-Integrationstests**, 0 fehlgeschlagen. Unveränderte Warnung zur Multi-Datenbank-Unterstützung des Firebase-Emulators.
+- **Kein** echter Airtable-GET mit produktiven Berechtigungen, **kein** Airtable-PATCH, keine Live-Drive-PDF-Bytes, Cloud-Run-Deployments, Make- oder Mailaktionen; alle öffentlichen Offerten-APIs bleiben 503. Dokumentiert unter `docs/LSZH_BINDUNG_BIS_ANNAHME_20261015.md`.
+- Nächstes Risiko: Bindungs-Guard beweist nur die frühere Übereinstimmung. Vor einer echten Ausgabe/Annahme müssen autorisierte, frisch gelesene Airtable-Felder und endgültig archivierte PDFs erneut überprüft werden. RC1 und AVV bleiben juristisch ungeprüfte Freigabepunkte.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

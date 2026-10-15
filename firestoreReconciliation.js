@@ -39,6 +39,9 @@ function matchesAccepted(state,documentPath){
    !e.authorized||!e.acceptedTerms||typeof e.actorName!=='string'||
    e.actorName.trim().length<4||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.actorEmail||'')||
    e.offerNumber!==state.offerNumber||e.termsVersion!==state.termsVersion||
+   state.contractManifestVersion!==1||
+   !RE_SHA.test(state.contractManifestHash||'')||
+   e.contractManifestHash!==state.contractManifestHash||
    e.acceptedAvv!==state.avvRequired)return false;
  const docs=['offer','terms',...(state.avvRequired===true?['avv']:[])];
  if(state.avvRequired!==true&&state.avvRequired!==false)return false;
@@ -55,7 +58,8 @@ function eventId(state,documentPath){
  if(!matchesAccepted(state,documentPath))deny();
  const e=state.acceptanceEvidence;
  const digest=[documentPath,state.airtableRecordId,e.acceptedAt,
-   e.quoteSha256,e.termsSha256,e.avvSha256||'',e.termsVersion].join('|');
+   e.quoteSha256,e.termsSha256,e.avvSha256||'',e.termsVersion,
+   e.contractManifestHash].join('|');
  return 'lszh-staging-accept-'+crypto.createHash('sha256').update(digest).digest('hex');
 }
 function previewAirtableAcceptance(state,documentPath){
@@ -64,6 +68,7 @@ function previewAirtableAcceptance(state,documentPath){
  const id=eventId(state,documentPath);
  const evidence={schema:'LSZH_STAGING_RECONCILIATION_V1',source:'FIRESTORE_EMULATOR_ONLY',
    eventId:id,acceptedAt:e.acceptedAt,offerNumber:e.offerNumber,
+   contractManifestHash:e.contractManifestHash,
    quoteSha256:e.quoteSha256,termsSha256:e.termsSha256,
    termsVersion:e.termsVersion,acceptedTerms:true,authorized:true,
    acceptedAvv:state.avvRequired===true,

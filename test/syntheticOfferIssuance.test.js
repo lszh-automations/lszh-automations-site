@@ -6,6 +6,7 @@ const {issueSyntheticOfferOnce,SyntheticIssueRejected}=require('../syntheticOffe
 const {claimOfferOnce,ClaimRejected}=require('../firestoreAcceptanceState');
 const {bindingFingerprint,LOCK_COLLECTION}=require('../syntheticAirtableBinding');
 const {buildOfferFragmentLink}=require('../services/offer-acceptance-staging/offerLinks');
+const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
 const pdf=s=>Buffer.from('%PDF-1.7\nSYNTHETIC '+s+'\n%%EOF');
 const archiveBytes={offer:pdf('QUOTE'),terms:pdf('TERMS'),avv:pdf('AVV')};
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -62,7 +63,8 @@ function fakeDb(initial=draft(),options={}){
 }
 function call(s,options={}){
  return issueSyntheticOfferOnce({db:s.db,fixtureId,archiveBytes,now:NOW,
-  expiresAt:expiry,testMode:'offline-or-emulator-only',...options});
+  expiresAt:expiry,testMode:'offline-or-emulator-only',airtableRecordId:recordId,
+  readRecord:async id=>mockAirtableOffer(s.get(),'issuance'),...options});
 }
 async function denied(s,options={},reason){
  await assert.rejects(call(s,options),e=>{
@@ -111,6 +113,7 @@ test('link created by issuer is NOT an acceptable contract',async()=>{
  const s=fakeDb(),out=await call(s);
  await assert.rejects(claimOfferOnce({db:s.db,
   documentPath:'stagingOfferFixtures/'+fixtureId,
+  airtableRecordId:recordId,readRecord:async()=>mockAirtableOffer(s.get(),'issuance'),
   expected:{tokenHash:hash(out.token),quoteSha256:hash(archiveBytes.offer),
     termsSha256:hash(archiveBytes.terms),avvSha256:hash(archiveBytes.avv),
     termsVersion:'TEST_ONLY_TERMS',avvVersion:'TEST_ONLY_AVV',offerNumber:'DEMO-OFF-20991231-999'},
@@ -202,4 +205,33 @@ test('changing source PDF after binding invalidates the frozen fingerprint',asyn
  const state=draft();
  state.documents.offer={...state.documents.offer,driveFileId:'Z'.repeat(24)};
  await denied(fakeDb(state),{},'not_eligible');
+});
+
+test('a changed Airtable offer, PDF, recipient or AVV prevents issuance',async()=>{
+ for(const field of [
+   {'Offertennummer':'DEMO-OFF-CHANGED'},
+   {'Gültig bis':'2099-12-30'},
+   {'Lead E-Mail':['fake-other@example.invalid']},
+   {'Projektbedingungen Version':'CHANGED'},
+   {'Online-Annahme Offerten-SHA256':'f'.repeat(64)},
+   {'Online-Annahme Bedingungen Drive ID':'Z'.repeat(24)},
+   {'Online-Annahme AVV-SHA256':'a'.repeat(64)},
+   {'Online-Annahme AVV-Version':'TEST_ONLY_OTHER'},
+   {'AVV erforderlich':'Nein'},
+   {Status:'Versendet'},{'Online-Annahme rechtlich freigegeben':true},
+   {'Online-Annahme Token-Hash':'f'.repeat(64)}
+ ]){
+   const s=fakeDb();
+   await denied(s,{readRecord:async()=>({
+     ...mockAirtableOffer(s.get(),'issuance'),
+     fields:{...mockAirtableOffer(s.get(),'issuance').fields,...field}
+   })},'readback_mismatch');
+ }
+});
+test('no trustworthy fresh reader, wrong record ID and failed read refuse issuance',async()=>{
+ const s=fakeDb();
+ await denied(s,{readRecord:null},'invalid_input');
+ await denied(s,{airtableRecordId:'recOTHER000000000'},'binding_mismatch');
+ await denied(s,{readRecord:async()=>{throw Error('offline');}},'readback_unavailable');
+ await denied(s,{readRecord:async()=>null},'readback_unavailable');
 });

@@ -10,6 +10,7 @@ on:
       - 'test/stagingOfferSchema.test.js'
       - 'stagingFirestoreConnection.js'
       - 'test/stagingFirestoreConnection.test.js'
+      - 'test/firestoreEmulator.integration.test.js'
       - '.github/workflows/firestore-staging-check.yml'
   workflow_dispatch:
 permissions:
@@ -34,7 +35,8 @@ jobs:
           node --check test/stagingOfferSchema.test.js
           node --check stagingFirestoreConnection.js
           node --check test/stagingFirestoreConnection.test.js
+          node --check test/firestoreEmulator.integration.test.js
       - name: Run offline tests only
         run: |
-          node --test test/firestoreStagingDryrun.test.js test/firestoreAcceptanceState.test.js test/stagingOfferSchema.test.js test/stagingFirestoreConnection.test.js
+          node --test test/firestoreStagingDryrun.test.js test/firestoreAcceptanceState.test.js test/stagingOfferSchema.test.js test/stagingFirestoreConnection.test.js test/firestoreEmulator.integration.test.js
           # No gcloud authentication, Firebase credentials, cloud writes or deploys.

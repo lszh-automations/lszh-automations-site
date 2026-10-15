@@ -1,6 +1,6 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
-_Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
+_Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
 ## Update 15.10.2026 – Firestore-STAGING, ausschliesslich synthetisch
 

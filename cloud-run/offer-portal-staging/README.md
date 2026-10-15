@@ -1,5 +1,16 @@
 # LSZH – Kunden-Vertragsportal, isolierter Entwicklungsprototyp
 
+## Aktueller Infrastruktur- und Teststand (15.10.2026, Nachtrag)
+
+Die folgenden historisch datierten Abschnitte beschreiben frühere Planungsstände. **Aktueller Stand:** Im Google-Cloud-Geschäftsprojekt `lszh-automations` sind die benannte Firestore-Datenbank `lszh-offers-staging` (`europe-west6`), das getrennte Dienstkonto `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` mit bedingter `roles/datastore.user`-IAM-Rolle und Geschäftsstaging-Drive-Lesefreigabe sowie der separate Cloud-Run-Dienst `lszh-offer-portal-staging` inzwischen vorhanden. Cloud Run verwendet die sichere **read-only** Revision `00004-qt7` (100 % Traffic laut Kontoinhaber), die `IDENTITY_PASS`, `DRIVE_PASS`, `FIRESTORE_READ_PASS` und `PASS` in echten Google-Cloud-Logs nachgewiesen hat. Die zeitweise bereitgestellte schreibende Testrevision `00003-778` ist bei 0 % Traffic geblieben. Diese README-Dateien enthalten **nicht** den aktuell bereitgestellten Leseprüfer: Der Code für den ist unter `cloud-run/offer-portal-preflight/` abgelegt. Dieser Ordner bleibt ein **nicht bereitgestellter Entwurf des vollständigen Portals**.
+
+Weitere echte und simulierte Nachweise: Der getrennte echte Cloud-Firestore-Smoketest hat **12 konkurrierende synthetische Transaktionen, 1 Commit, 11 Duplikate und bestätigte Bereinigung** protokolliert; eine negative Zugriffsprüfung auf eine andere DB blieb `INCONCLUSIVE_DB_ABSENT`. Zusätzlich hat [GitHub Actions 38736777386](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38736777386) **67/67 reguläre Tests und 4/4 Firestore-Emulator-Integrationstests** bestanden. Die zwei neuen `test/offerPortalEndToEnd.emulator.test.js`-Fälle führen für AVV **Ja/Nein** den echten Portal-HTTP-Adapter, echte PDF-Hash-Validierungslogik mit **synthetisch simulierten Drive-HTTP-Antworten** und echte Firestore-SDK-Transaktionen gegen den **Emulator** durch. 12 HTTP-Annahmeversuche ergeben jeweils genau 1 erfolgreiche Annahme und 11 abgewiesene Wiederholungen, ohne irgendwelche echten Kunden, E-Mails oder Produktivschreibzugriffe.
+
+**Nicht ausgeführt:** ein vollständiges auf dem realen Cloud-Run-Dienst bereitgestelltes Vertragsportal, ein tatsächlicher Cloud-HTTP-/Browser-End-to-End-Kundenfluss, der automatische Airtable-zu-Firestore-Seed, idempotente Outbox-Verarbeitung und die spätere juristische Freigabe. Produktive Annahme bleibt blockiert. Das Freischalten/Deployen dieses Prototyps ist **kein** Teil der Emulator-Testfreigabe.
+
+---
+
+
 Stand: 15.10.2026. **Nicht bereitgestellt, kein Go-Live, kein Kunde kann damit einen Vertrag annehmen.** Quellcode nur auf dem ungemergten GitHub-Entwicklungsbranch `feature/optional-avv-acceptance-staging-20261014`.
 
 ## Bereits implementiert (synthetisch getestet)

@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {eventId,previewAirtableAcceptance,compareRemote,acquireLease,
- completeAfterVerifiedRemote,ReconciliationRejected}=require('../firestoreReconciliation');
+ completeAfterVerifiedRemote,resolveUnknownOutcome,ReconciliationRejected}=require('../firestoreReconciliation');
 const id='LSZH-EMULATOR-20261015AAAA';
 const documentPath='stagingOfferFixtures/'+id;
 const H=x=>x.repeat(64);
@@ -170,4 +170,33 @@ test('wrong environment or invalid test scope rejects before Firestore client ca
   }
  }
  assert.equal(s.writes(),0);
+});
+
+test('unknown outcome recovers ONLY when independent remote proof matches exact event',async()=>{
+ const s=fake(),lease=await acquireLease({...args,db:s.db});
+ assert.equal(lease.acquired,true);
+ await acquireLease({...args,db:s.db,now:new Date(now.getTime()+125000)});
+ const state=s.read(),p=previewAirtableAcceptance(state,documentPath);
+ const before=s.writes();
+ await assert.rejects(resolveUnknownOutcome({...args,db:s.db,now:new Date(now.getTime()+125000),
+   remoteFields:originalRemote(state)}),e=>assertRejected(e,'manual_review_required'));
+ assert.equal(s.writes(),before);
+ const recovery=await resolveUnknownOutcome({...args,db:s.db,now:new Date(now.getTime()+125000),
+   remoteFields:{...originalRemote(state),...p.fields}});
+ assert.equal(recovery.synced,true);
+ assert.equal(recovery.recoveredFromUnknown,true);
+ assert.equal(recovery.sendConfirmation,false);
+ assert.equal(s.read().reconciliationStatus,'SYNCED');
+ assert.equal(s.read().reconciliationReviewReason,null);
+ await assert.rejects(resolveUnknownOutcome({...args,db:s.db,remoteFields:{...originalRemote(),...p.fields}}),
+   e=>assertRejected(e,'not_eligible'));
+});
+test('a mismatching remote acceptance marker is never called verified',async()=>{
+ const s=fake(),l=await acquireLease({...args,db:s.db});
+ const p=previewAirtableAcceptance(s.read(),documentPath);
+ const remote={...originalRemote(),...p.fields,
+   'Online-Annahme Nachweis':JSON.stringify({eventId:'another-acceptance'})};
+ await assert.rejects(completeAfterVerifiedRemote({...args,db:s.db,
+   leaseId:l.leaseId,remoteFields:remote}),e=>assertRejected(e,'remote_unverified'));
+ assert.equal(s.read().reconciliationStatus,'LEASED');
 });

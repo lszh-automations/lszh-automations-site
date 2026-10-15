@@ -5,6 +5,7 @@
 const RECORD=/^rec[A-Za-z0-9]{14}$/;
 const BASE=/^app[A-Za-z0-9]{14}$/;
 const TABLE=/^tbl[A-Za-z0-9]{14}$/;
+const MAX_RESPONSE_BYTES=256*1024;
 class AirtableReadRejected extends Error {
  constructor(reason='airtable_read_unavailable'){
    super(reason);this.name='AirtableReadRejected';this.reason=reason;
@@ -19,7 +20,10 @@ function createReadOnlyAirtableRecordReader({fetchImpl,baseId,tableId,getAccessT
  return async function readRecord(recordId){
    if(!RECORD.test(String(recordId||'')))
      throw new AirtableReadRejected('invalid_record_id');
-   const key=await getAccessToken();
+   let key;
+   try{key=await getAccessToken();}catch{
+     throw new AirtableReadRejected('reader_not_configured');
+   }
    if(typeof key!=='string'||key.length<12||key.includes('\n')||
       key.includes('\r'))
      throw new AirtableReadRejected('reader_not_configured');
@@ -30,15 +34,34 @@ function createReadOnlyAirtableRecordReader({fetchImpl,baseId,tableId,getAccessT
      response=await fetchImpl(url,{method:'GET',
        headers:{Authorization:'Bearer '+key,Accept:'application/json'},
        redirect:'error',cache:'no-store',credentials:'omit',
-       referrerPolicy:'no-referrer'});
+       referrerPolicy:'no-referrer',signal:AbortSignal.timeout(5000)});
    }catch{
      throw new AirtableReadRejected();
    }
    // Never expose response body, Airtable token or remote error internals.
-   if(!response||response.status!==200||typeof response.json!=='function')
+   if(!response||response.status!==200||
+      (response.url&&response.url!==url))
+     throw new AirtableReadRejected();
+   const rawLength=response.headers?.get?.('content-length');
+   if(rawLength!=null&&(!/^\d+$/.test(rawLength)||
+      Number(rawLength)>MAX_RESPONSE_BYTES))
      throw new AirtableReadRejected();
    let data;
-   try{data=await response.json();}catch{throw new AirtableReadRejected();}
+   try{
+     // Prefer checking byte length before JSON parsing. Real fetch responses
+     // provide text(); legacy injected unit fakes can provide json() only.
+     if(typeof response.text==='function'){
+       const raw=await response.text();
+       if(typeof raw!=='string'||
+          Buffer.byteLength(raw,'utf8')>MAX_RESPONSE_BYTES)
+          throw new Error('oversize');
+       data=JSON.parse(raw);
+     }else if(typeof response.json==='function'){
+       data=await response.json();
+       if(Buffer.byteLength(JSON.stringify(data),'utf8')>MAX_RESPONSE_BYTES)
+         throw new Error('oversize');
+     }else throw new Error('no_body');
+   }catch{throw new AirtableReadRejected();}
    if(!data||data.id!==recordId||!data.fields||
       typeof data.fields!=='object'||Array.isArray(data.fields))
      throw new AirtableReadRejected('record_identity_mismatch');

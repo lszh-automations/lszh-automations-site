@@ -55,7 +55,10 @@ async function run(){
     console.info('LSZH_PORTAL_TX_SMOKE: CLEANUP_PASS');
     console.info('LSZH_PORTAL_TX_SMOKE: PASS');
   }catch(e){
-    const code=safeErrors.has(e?.message)?e.message:'unexpected';
+    const code=safeErrors.has(e?.message)?e.message:
+      e?.code===7?'firestore_iam_denied':
+      e?.code===5?'firestore_not_found':
+      e?.code===8?'firestore_resource_exhausted':'unexpected';
     console.error('LSZH_PORTAL_TX_SMOKE: FAIL ('+code+')');
   }finally{
     try{await db.terminate();}catch{console.error('LSZH_PORTAL_TX_SMOKE: CLOSE_FAILED');}

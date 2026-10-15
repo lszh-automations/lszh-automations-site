@@ -19,7 +19,7 @@
 
 [Workflow-Ergebnis #38771010960](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38771010960), GitHub Actions Branch `feature/firestore-staging-dryrun-20261015`, Node.js 22, Java 21, `@google-cloud/firestore@7`, `firebase-tools@15`, Firestore Emulator v1.22.0.
 
-- **17/17** Sicherheits- und Ausstellungs-Unit-Tests bestanden: 7 vorhandene Datenbankkonfigurations- und 10 neue Ausstellungs-/Negativtests. Unter anderem: parallele Ausgabe, Replay-Schutz, 256-Bit-Token, keine Klartext-Speicherung, keine Annahme trotz Token, geänderte PDFs, fehlende AVV, falsche Freigaben, TTL, falscher Testmodus.
+- **18/18** Sicherheits- und Ausstellungs-Unit-Tests bestanden: 7 vorhandene Datenbankkonfigurations- und 11 neue Ausstellungs-/Negativtests. Unter anderem: parallele Ausgabe, Replay-Schutz, 256-Bit-Token, keine Klartext-Speicherung, keine Annahme trotz Token, geänderte PDFs, fehlende AVV, falsche Freigaben, TTL, falscher Testmodus.
 - **3/3** echte Firestore-Emulator-Integrationstests bestanden: zwei frühere Annahme-/HTTP-Doppelannahme-Prüfungen und neu **zwei unabhängige parallele Aussteller** mit genau einem erfolgreichen Tokenhash-Commit. Der zweite wird als `already_issued` abgewiesen. Der Zustand bleibt `TEST_ISSUED_NOT_DELIVERED`; ein anschliessender Annahmeversuch wird abgewiesen. Getrennte Abfrage nach `(default)` bleibt leer.
 - Testumgebung verwendet ausschliesslich `demo-lszh-offers`, nicht `lszh-automations`, und den **Loopback-Emulator**. Keine Remote-Firestore-Schreibzugriffe, keine Credentials, kein Google-Cloud-Deployment.
 - Emulator meldet weiterhin: `Cloud Firestore Emulator does not support multiple databases yet.` Trotz beobachteter benannter Datenbanktrennung ist ein späterer tatsächlicher Google-Cloud-STAGING-Test weiterhin erforderlich.
@@ -33,3 +33,5 @@
 5. Vor echten STAGING-Schreibvorgängen **explizite Zustimmung** und eindeutige Trennung zum produktiven Projekt; keine Freigabe oder Aktivierung durch diese Tests.
 
 **Die aktuelle Cloud-Run-Preflight-Revision bleibt unberührt, und die Kunden-Endpunkte des geplanten Offerten-Gateways bleiben HTTP 503.**
+
+**Zusätzliche abschliessende Sicherheitsprüfung:** [GitHub Actions Run #38771458875](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38771458875), **18/18 Unit-/Sicherheitstests und 3/3 Firestore-Emulator-Tests bestanden**. Der synthetische Aussteller verweigert jetzt zusätzlich sämtliche Aufrufe bei gesetztem Cloud-Run-`K_SERVICE` oder `GOOGLE_CLOUD_PROJECT`/`GCLOUD_PROJECT=lszh-automations`. Ungültige Kalendertage werden abgelehnt. Keine kundenbezogene Freigabe.

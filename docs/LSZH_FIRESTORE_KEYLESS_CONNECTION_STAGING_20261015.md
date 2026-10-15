@@ -27,6 +27,13 @@ Neues Modul `stagingFirestoreConnection.js`:
 
 `test/stagingFirestoreConnection.test.js`: 7 Unit-Tests, mit injizierter Fake-Firestore-Klasse, prüfen geschlossene Default-Konfiguration, falsches Dienstkonto-/Projekt-/Datenbank-Setting, Verbot von Key-Dateien/remote Emulator, gültige DB-Auswahl, Read-only-Oberfläche und ID-Scope. **7/7 lokal unter Node.js 22 erfolgreich**; zusammen mit lokal verfügbaren bestehenden 9 Transaktions- und 3 Schema-Tests **19/19 bestanden**. Die separate GitHub-CI-Konfiguration wurde um den neuen Test erweitert; ein Actions-Lauf ist **noch nicht** bestätigt. Kein Firestore-Emulator und kein Live-Cloud-Lesetest wurden in dieser Phase durchgeführt.
 
+### Optionaler echter Emulator-Test (noch nicht ausgeführt)
+
+- Im Entwicklungszweig liegt jetzt `test/firestoreEmulator.integration.test.js`. Der Test sieht einen **ausschliesslich lokalen** Firestore-Emulator mit zwei unabhängigen SDK-Clients vor, erzeugt eine fiktive Offerte nur im Emulator, löst zwei konkurrierende Annahmen aus und erwartet genau einen erfolgreichen Abschluss.
+- Standardmässig wird dieser Test **übersprungen**. Er lässt sich nur bei nachweisbar lokaler `FIRESTORE_EMULATOR_HOST`-Adresse (`localhost`, `127.0.0.1` oder `[::1]`), gesetztem `LSZH_STAGING_EMULATOR_TEST=yes` und zusätzlich `LSZH_RUN_EMULATOR_TRANSACTION_TEST=I_UNDERSTAND_LOCAL_ONLY` ausführen. Erst für den späteren Emulator-Lauf werden die SDK-/Emulator-Abhängigkeiten benötigt.
+- Lokaler Syntax-/Node-Prüflauf **19 bestanden, 1 bewusst übersprungen, 0 fehlgeschlagen**. Dies ist **nicht** das Ergebnis einer realen Firestore-Emulator-Transaktion; die Integration bleibt ungeprüft. Die GitHub-CI führt denselben Test standardmässig im sicheren Skip-Modus.
+- Kein Emulator gestartet, keine Cloud-Ressource angesprochen, kein Firestore-Dokument beschrieben.
+
 ## Integrationsentscheidung vor einem echten Annahmetest
 
 Der bereits existierende Website-Host Render besitzt **keine nachgewiesene** kurzlebige Google-Cloud-Dienstidentität für den Aufruf eines IAM-geschützten Cloud-Run-Dienstes. Cloud Run verlangt für private Service-to-Service-Aufrufe ein Google-signiertes ID-Token mit korrekter `aud`-Angabe und expliziter Invoker-Berechtigung. Zwei sichere Wege:

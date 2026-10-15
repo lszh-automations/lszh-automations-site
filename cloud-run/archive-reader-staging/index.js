@@ -66,10 +66,21 @@ http('archiveHealth', async (req, res) => {
   }
 });
 
-// Nur beim Cloud-Run-Start: ohne externen HTTP-Aufruf prüfen.
+// Nur für diese isolierte STAGING-Prüfung: initiale Lesekontrolle VOR Abschluss
+// der Modulinitialisierung abwarten. Anfragebasierte Cloud-Run-Instanzen
+// können nicht abgewartete Hintergrundaufgaben unmittelbar drosseln.
+// Keine Kunden-, Vertrags- oder externen Schreibaktionen.
 if (process.env.K_SERVICE && process.env.K_REVISION) {
-  void checkArchive().then(
-    () => console.info('LSZH_ARCHIVE_READER_STAGING: PASS'),
-    () => console.error('LSZH_ARCHIVE_READER_STAGING: FAIL')
-  );
+  console.info('LSZH_ARCHIVE_READER_STAGING: START');
+  try {
+    await checkArchive();
+    console.info('LSZH_ARCHIVE_READER_STAGING: PASS');
+  } catch (error) {
+    const safeCodes = new Set([
+      'read_unavailable', 'wrong_service_identity', 'no_access_token',
+      'archive_metadata_invalid', 'oversized_pdf', 'bad_pdf', 'digest_mismatch'
+    ]);
+    const code = safeCodes.has(error?.message) ? error.message : 'unexpected';
+    console.error('LSZH_ARCHIVE_READER_STAGING: FAIL (' + code + ')');
+  }
 }

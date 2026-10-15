@@ -1,0 +1,14 @@
+{
+  "name": "lszh-portal-transaction-smoke",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "9.3.1",
+    "@google-cloud/functions-framework": "3.4.0"
+  }
+}

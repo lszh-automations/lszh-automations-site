@@ -44,6 +44,15 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Syntaktische Prüfung der betroffenen JS-/HTML-Dateien bestanden. Zusätzliche Unit-Tests sind geschrieben, **noch nicht** unter Node/GitHub Actions ausgeführt. Kein Render-/Cloud-Run-Deployment, keine echte Firestore-Transaktion, keine E-Mails.
 - Detaillierte Abnahmehinweise: `docs/LSZH_AVV_PORTAL_HARDENING_20261015.md`. Historisches `docs/offertenannahme-konzept.md` oben mit Warnung über inzwischen veraltete Airtable-PATCH-Aussagen markiert.
 
+
+### Keyless Firestore-Client – isolierte Read-only-Vorbereitung (15.10.2026)
+
+- Neu `stagingFirestoreConnection.js` und `test/stagingFirestoreConnection.test.js`, ausschliesslich im Entwicklungszweig. Der Client verweist **explizit** auf Google-Cloud-Projekt `lszh-automations`, benannte Datenbank `lszh-offers-staging`, Collection `stagingOfferFixtures`.
+- Strikte Schutzregeln: nur künftig **eigener** Dienst `lszh-offer-acceptance-staging` mit Cloud-Run-Dienstidentität, keine exportierten JSON-Key-Dateien, kein öffentlicher Remote-Emulator; die bestehende Preflight-Funktion bleibt unverändert. Die öffentliche Website erhält keinen direkten Datenbankzugriff.
+- Aktuell **nur read-only Fassade** `readFixture(id)`, keine rohe SDK-Referenz und keine Schreib-/Transaktionsmethoden. Dokument muss `schemaVersion=1`, `testOnly=true` und passende Fixture-ID enthalten. Der Cloud-Run-Backend-Dienst ist **noch nicht erstellt oder deployt**; der Website-Aufruf zu Cloud Run ist **noch nicht authentifiziert**.
+- 7 neue Unit-Tests und lokal mit den bisherigen 9 Transaktions- und 3 Schema-Tests insgesamt **19/19 bestanden**. Fake-Client-Test, **kein** echter Firestore-IAM-Test oder Cloud-Firestore-Emulator-Test. GitHub-Actions-Workflow für Offline-Prüfungen ergänzt, tatsächlicher CI-Lauf noch offen.
+- Technik-/Sicherheitsentscheidung und verbleibende Hosting-Optionen: `docs/LSZH_FIRESTORE_KEYLESS_CONNECTION_STAGING_20261015.md`. Vor echtem Firestore-STAGING-Schreibtest explizite gesonderte Autorisierung, Berechtigungskontrolle und sichere Authentifizierung nötig. Aktuelle RC1-Rechtsfreigabe fehlt.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

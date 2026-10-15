@@ -13,13 +13,14 @@ function accepted(changes={}){
    actorEmail:'fake-tester@example.invalid',authorized:true,acceptedTerms:true,
    acceptedAvv:true,offerNumber:'DEMO-OFF-20991231-999',
    termsVersion:'TEST_ONLY_TERMS',quoteSha256:H('2'),termsSha256:H('3'),
-   avvSha256:H('4'),avvVersion:'TEST_ONLY_AVV'};
+   avvSha256:H('4'),avvVersion:'TEST_ONLY_AVV',contractManifestHash:H('a')};
  const doc=x=>({mimeType:'application/pdf',sha256:H(x),
    driveFileId:'1'.repeat(24),archiveVerified:true});
  return {schemaVersion:1,fixtureId:id,testOnly:true,status:'ACCEPTED',
    legallyApproved:true,acceptanceEnabled:true,deliveryConfirmed:true,
    archiveVerified:true,airtableRecordId:'recTEST0000000000',
    acceptedAt:e.acceptedAt,acceptanceEvidence:e,termsVersion:e.termsVersion,
+   contractManifestHash:e.contractManifestHash,contractManifestVersion:1,
    offerNumber:e.offerNumber,avvRequired:true,avvVersion:'TEST_ONLY_AVV',
    reconciliationStatus:'PENDING',reconciliationLease:null,
    documents:{offer:doc('2'),terms:doc('3'),avv:doc('4')},...changes};

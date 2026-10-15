@@ -144,3 +144,14 @@ test('optional AVV still forces precise two-document manifest',()=>{
  assert.deepEqual(Object.keys(p.manifest.documents),['offer','terms']);
  assert.equal(p.manifest.avvVersion,null);
 });
+
+test('manifest digest is independent of Firestore map key ordering',()=>{
+ const p=prepare();
+ const reversed=(value)=>{
+  if(Array.isArray(value))return value.map(reversed);
+  if(!value||typeof value!=='object')return value;
+  return Object.fromEntries(Object.keys(value).reverse().map(k=>[k,reversed(value[k])]));
+ };
+ const {contractManifestDigest}=require('../syntheticContractFreeze');
+ assert.equal(contractManifestDigest(reversed(p.manifest)),p.manifestHash);
+});

@@ -6,8 +6,8 @@ const crypto=require('node:crypto');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
-const {COLLECTION,prepareSyntheticContractManifest,freezeSyntheticContractOnce}
- =require('../syntheticContractFreeze');
+const {COLLECTION,freezeSyntheticContractOnce}=require('../syntheticContractFreeze');
+const {prepareSyntheticContractFromDriveReadback}=require('../syntheticDriveRevisionReadback');
 let enabled=false;
 try{
  validateSettings(process.env,'emulator');
@@ -24,8 +24,10 @@ test('emulator: two independent clients can freeze a 3-PDF manifest only once',
  const b=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
  const fixtureId='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
  const recordId='rec'+crypto.randomBytes(7).toString('hex');
+ const fileIds={offer:'1'.repeat(24),terms:'2'.repeat(24),avv:'3'.repeat(24)};
+ const folderId='F'.repeat(24);
  const docs=Object.fromEntries(Object.entries(archiveBytes).map(([k,v])=>[k,{
-  mimeType:'application/pdf',sha256:hash(v),driveFileId:'1'.repeat(24),
+  mimeType:'application/pdf',sha256:hash(v),driveFileId:fileIds[k],
   archiveVerified:true}]));
  const state={schemaVersion:1,testOnly:true,fixtureId,airtableRecordId:recordId,
   status:'TEST_DRAFT_NOT_SENT',offerNumber:'DEMO-OFF-20991231-999',
@@ -44,8 +46,27 @@ test('emulator: two independent clients can freeze a 3-PDF manifest only once',
   await Promise.all([offer.create(state),
    lock.create({fixtureId,recordId,syntheticOnly:true,
      fingerprint:state.airtableBinding.fingerprint,boundAt:state.airtableBinding.boundAt})]);
-  const prepared=prepareSyntheticContractManifest({
-   state,archiveBytes,revisions,testMode:'offline-or-emulator-only'});
+  // The source below is an injected fake, NEVER the actual Google Drive API.
+  const kindByFileId=id=>Object.keys(fileIds).find(k=>fileIds[k]===id);
+  const checked=await prepareSyntheticContractFromDriveReadback({
+   state,archiveFolderId:folderId,revisions,
+   testMode:'offline-or-emulator-only',
+   readMetadata:async fileId=>({source:'SYNTHETIC_MOCK',id:fileId,
+     mimeType:'application/pdf',trashed:false,shared:false,
+     parents:[folderId],size:String(archiveBytes[kindByFileId(fileId)].length)}),
+   listRevisions:async fileId=>{
+     const kind=kindByFileId(fileId);
+     return {fileId,currentRevisionId:revisions[kind],
+      revisions:[{id:revisions[kind],mimeType:'application/pdf',
+       keepForever:true,size:String(archiveBytes[kind].length)}]};
+   },
+   readRevisionBytes:async(fileId,revisionId)=>{
+     const kind=kindByFileId(fileId);
+     assert.equal(revisionId,revisions[kind]);
+     return archiveBytes[kind];
+   }
+  });
+  const prepared=checked.prepared;
   const args={fixtureId,prepared,testMode:'offline-or-emulator-only',
     now:new Date('2026-10-15T12:00:00Z')};
   const responses=await Promise.allSettled([a,b].map(db=>freezeSyntheticContractOnce({...args,db})));

@@ -2,6 +2,8 @@
 
 **Keine produktive Annahme oder Cloud-Schreibberechtigung. Kein neuer Dienst wurde angelegt oder bereitgestellt.**
 
+> **Fortschreibung 15.10.2026:** Die nachfolgend beschriebenen Hostingoptionen waren Vorschläge. Der für die weitere Entwicklung gewählte risikoarme Pfad ist ein **separates Same-Origin-Offertenportal auf Cloud Run**, während die übrige Website auf Render bleibt. Kein Render→Cloud-Run-Proxy nötig; kein Dienst deployt. Details: [LSZH_OFFER_GATEWAY_STAGING_20261015.md](LSZH_OFFER_GATEWAY_STAGING_20261015.md). Der tatsächlich gespeicherte Gateway-Code liefert immer HTTP 503 für Annahmen, Dokumente und Preview. Eine spätere öffentliche Schnittstelle braucht trotzdem echte Token-/Missbrauchsabwehr und rechtliche Freigabe. Der alte Issuer mit `?code=` wurde im Entwicklungszweig deaktiviert.
+
 ## Ausgangslage
 
 - Bestehende Website: GitHub/Render (`server.js`), enthält Kunden-Offertenoberfläche und gesperrte Annahme-API.

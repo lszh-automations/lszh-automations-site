@@ -11,6 +11,7 @@ const {createLocalFixtureClaim}=require('./localFixtureClaims');
 const {validateSettings,EMULATOR_PROJECT}=require('../../../stagingFirestoreConnection');
 const {TARGET,documentPath}=require('../../../stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../../../syntheticAirtableBinding');
+const {mockAirtableOffer}=require('../../../test/helpers/mockAirtableOffer');
 let enabled=false;
 try{
  validateSettings(process.env,'emulator');
@@ -36,7 +37,7 @@ test('local HTTP + two independent Firestore emulator clients commit only once',
    expiresAt:'2099-12-31T23:59:59Z',tokenHash:hash(TOKEN),
    offerNumber:fixture.offerNumber,termsVersion:fixture.termsVersion,
    avvVersion:fixture.avvVersion,avvRequired:true,
-   recipientEmail:'fake-tester@example.invalid',
+   recipientEmail:'fake-tester@example.invalid',validUntil:'2099-12-31',
    documents:{offer:d('offer'),terms:d('terms'),avv:d('avv')}};
  const ref=one.doc(documentPath(fixtureId));
  const recordId='rec'+crypto.randomBytes(7).toString('hex');
@@ -44,9 +45,11 @@ test('local HTTP + two independent Firestore emulator clients commit only once',
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-emulator-http-'));
  const htmlPath=path.join(dir,'index.html');fs.writeFileSync(htmlPath,'<html>Synthetic test</html>');
  let count=0,srv=null;
- const handlers=[one,two].map(db=>createLocalFixtureClaim({db,fixture,archiveBytes}));
+ const handlers=[one,two].map(db=>createLocalFixtureClaim({db,fixture,archiveBytes,
+   readRecord:async()=>mockAirtableOffer(state,'acceptance')}));
  const oldNodeEnv=process.env.NODE_ENV;
  try{
+   fixture.airtableRecordId=recordId;
    state.airtableRecordId=recordId;
    state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
      boundAt:'2026-10-15T10:00:00.000Z',

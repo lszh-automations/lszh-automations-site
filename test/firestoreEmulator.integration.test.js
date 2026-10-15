@@ -6,6 +6,7 @@ const crypto=require('node:crypto');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {claimOfferOnce}=require('../firestoreAcceptanceState');
 const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
+const {mockAirtableOffer}=require('./helpers/mockAirtableOffer');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const config={...process.env};
 let canTest=false;
@@ -20,7 +21,7 @@ const initial=id=>({schemaVersion:1,fixtureId:id,testOnly:true,status:'ISSUED',
   acceptanceEnabled:true,legallyApproved:true,deliveryConfirmed:true,archiveVerified:true,
   acceptedAt:null,expiresAt:'2099-12-31T23:59:59Z',offerNumber:expected.offerNumber,
   termsVersion:expected.termsVersion,avvVersion:expected.avvVersion,avvRequired:true,
-  tokenHash:expected.tokenHash,recipientEmail:actor.email,
+  tokenHash:expected.tokenHash,recipientEmail:actor.email,validUntil:'2099-12-31',
   documents:{offer:doc('2'),terms:doc('3'),avv:doc('4')}});
 test('emulator: two independent SDK clients accept at most once', {skip:!canTest}, async()=>{
   // Lazy import: default npm test neither requires Firebase SDK nor contacts Google Cloud.
@@ -47,7 +48,8 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     assert.equal((await defaultRef.get()).exists,false,
       'Emulator did not isolate named Firestore database from (default)');
     const now=new Date('2026-10-15T12:00:00Z');
-    const results=await Promise.allSettled([a,b].map(db=>claimOfferOnce({db,documentPath:document,expected,actor,now})));
+    const results=await Promise.allSettled([a,b].map(db=>claimOfferOnce({db,documentPath:document,expected,actor,now,
+      airtableRecordId:recordId,readRecord:async()=>mockAirtableOffer(state,'acceptance')})));
     assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
     assert.equal(results.filter(r=>r.status==='rejected').length,1);
     const updated=(await ref.get()).data();

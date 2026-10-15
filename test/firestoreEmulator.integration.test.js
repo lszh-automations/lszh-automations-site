@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {claimOfferOnce}=require('../firestoreAcceptanceState');
+const {LOCK_COLLECTION,bindingFingerprint}=require('../syntheticAirtableBinding');
 const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const config={...process.env};
 let canTest=false;
@@ -30,9 +31,18 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
   const id='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
   const document=documentPath(id);
   const ref=a.doc(document);
+  const recordId='rec'+crypto.randomBytes(7).toString('hex');
+  const bindingRef=a.doc(LOCK_COLLECTION+'/'+recordId);
   // Emulator-only write; skip condition above excludes any non-loopback host.
   try{
-    await ref.create(initial(id));
+    const state=initial(id);
+    state.airtableRecordId=recordId;
+    state.airtableBinding={source:'SYNTHETIC_READ_ONLY',schemaVersion:1,
+      boundAt:'2026-10-15T10:00:00.000Z',
+      fingerprint:bindingFingerprint(state,recordId)};
+    await Promise.all([ref.create(state),bindingRef.create({fixtureId:id,recordId,
+      fingerprint:state.airtableBinding.fingerprint,boundAt:state.airtableBinding.boundAt,
+      syntheticOnly:true})]);
     const defaultRef=defaultDb.doc(document);
     assert.equal((await defaultRef.get()).exists,false,
       'Emulator did not isolate named Firestore database from (default)');
@@ -47,5 +57,8 @@ test('emulator: two independent SDK clients accept at most once', {skip:!canTest
     assert.equal(updated.acceptanceEvidence.avvSha256,H('4'));
     assert.equal((await defaultRef.get()).exists,false,
       'Named acceptance leaked into default database');
-  }finally{await ref.delete().catch(()=>{});await Promise.all([a.terminate(),b.terminate(),defaultDb.terminate()]);}
+  }finally{
+    await Promise.all([ref.delete().catch(()=>{}),bindingRef.delete().catch(()=>{})]);
+    await Promise.all([a.terminate(),b.terminate(),defaultDb.terminate()]);
+  }
 });

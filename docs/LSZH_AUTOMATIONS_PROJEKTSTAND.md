@@ -231,6 +231,16 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Exakter Condition-Titel: `LSZHOfferReaderOnlyStagingFirestore`, Ausdruck: `resource.name == "projects/lszh-automations/databases/lszh-offers-staging"`. Bedingte Rolle ist `roles/datastore.viewer` (keine Dokument-Schreibrechte). Bestehendes `lszh-offer-portal-staging`-Servicekonto samt `roles/datastore.user` und `LSZHOnlyStagingFirestore` wird nicht verändert.
 - Nächste Prüfphase nach Nutzerausgabe: Kontoexistenz und `disabled=false` bestätigen, exakte IAM-Condition auslesen; **kein Deployment**, keine Schlüsseldateien, keine Verbindung zu Drive/Airtable und kein echter Datenbank-Schreibtest ohne weitere Freigabe.
 
+### Verifizierte Einrichtung des isolierten STAGING-Lesekontos – 15.10.2026
+
+- Der Nutzer hat beide zuvor **explizit freigegebenen** Änderungen in Google Cloud Shell ausgeführt. Die Ausgabe bestätigt **`Created service account [lszh-offer-reader]`** und `Updated IAM policy for project [lszh-automations]`. Der abschliessende IAM-Abgleich liefert die erwartete Rolle, den Condition-Titel und den Datenbank-Ausdruck.
+- **Neues Servicekonto:** `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com`.
+- **Direkte IAM-Projektbindung:** `roles/datastore.viewer` nur für `serviceAccount:lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` mit **Condition** `title=LSZHOfferReaderOnlyStagingFirestore`, `expression=resource.name == "projects/lszh-automations/databases/lszh-offers-staging"`. Die gepostete vollständige Projekt-IAM-Policy zeigt für dieses Dienstkonto **nur dieses eine Binding**. Keine weiter gefasste Projektrolle in dieser Ausgabe vorhanden.
+- **Bestehender Cloud-Run-Preflight:** `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` behält `roles/datastore.user` und `title=LSZHOnlyStagingFirestore` mit gleichem Datenbank-Ausdruck. Die vorhandene Preflight-Identität wurde **nicht umgestellt**.
+- **Sicherheitsgrenze:** Die neue Viewer-Rolle enthält keine Firestore-Dokument-Schreibrechte. Die gepostete Projekt-IAM-Policy beweist **nicht** eine tatsächlich funktionierende SDK-Verbindung, die Abwesenheit von separaten/geerbten/gruppenbasierten Berechtigungen oder die korrekte Anwendung der IAM-Condition bei einer Laufzeitabfrage. Ein neues Cloud-Run-Deployment, Laufzeit-ID-Token- oder Dienstkonto-Key-Test, Drive-/Airtable-Lesezugriff und eine effektive Firestore-GET-Probe wurden **nicht** durchgeführt.
+- **Keine** weiteren IAM-Zuweisungen, Cloud-Run-Deployments, Firestore-Testdatensätze, Änderungen an Drive-Retention, RC1-/AVV-Freigaben, E-Mails oder Vertragsannahmen aus dieser Prüfung abgeleitet.
+- **Als Nächstes:** nur lesend `gcloud iam service-accounts describe` und `gcloud iam service-accounts keys list` (sowie gegebenenfalls IAM-Bindings) zur Nachkontrolle; danach die gesonderte Freigabe für einen **neuen**, mit diesem Konto laufenden Cloud-Run-Lesedienst vorbereiten, ohne den vorhandenen Preflight oder den Render-STAGING-Dienst zu überschreiben. Echte Firestore-Schreibtests weiterhin separat freigabepflichtig.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

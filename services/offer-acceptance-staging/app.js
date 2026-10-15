@@ -1,6 +1,7 @@
 'use strict';
-// Isolated STAGING only. This gateway NEVER reads CRM/Drive/Firestore and NEVER
-// accepts offers. No production routes, secrets, API keys or write adapters.
+// Isolated STAGING only. Production gateway NEVER reads CRM/Drive/Firestore,
+// never accepts offers. Its optional localhost harness hook is only usable
+// with explicit NODE_ENV=test, no Cloud Run identity and loopback HTTP.
 const http=require('node:http');
 const fs=require('node:fs/promises');
 const path=require('node:path');
@@ -37,7 +38,13 @@ function write(res,status,content,type,headers){
 function json(res,status,data,headers){
   write(res,status,JSON.stringify(data),'application/json; charset=utf-8',headers);
 }
-function createGateway({htmlPath=DOC_PATH}={}){
+function isLoopbackSocket(req){
+  const local=String(req.socket?.localAddress||'');
+  const remote=String(req.socket?.remoteAddress||'');
+  const ok=x=>x==='127.0.0.1'||x==='::1'||x==='::ffff:127.0.0.1';
+  return ok(local)&&ok(remote);
+}
+function createGateway({htmlPath=DOC_PATH,localFixtureClaim=null}={}){
   // Loading locally is the only IO performed; no Firestore SDK initialization.
   const htmlPromise=fs.readFile(htmlPath,'utf8');
   const server=http.createServer(async(req,res)=>{
@@ -50,6 +57,16 @@ function createGateway({htmlPath=DOC_PATH}={}){
       // Reject old query-shaped links without repeating tokens in responses.
       if(u.searchParams.has('code'))
         return json(res,400,{ok:false,error:'fragment_link_required'},headers);
+      // Test-only integration seam. The deployed entrypoint never injects it.
+      // Explicitly fail closed on Cloud Run, production Node and non-loopback peers.
+      if(pathname==='/__local_fixture/claim'){
+        if(process.env.NODE_ENV!=='test'||process.env.K_SERVICE||
+          typeof localFixtureClaim!=='function'||!isLoopbackSocket(req))
+          return json(res,404,{ok:false,error:'not_found'},headers);
+        if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'},
+          {...headers,Allow:'POST'});
+        return await localFixtureClaim(req,res,{json,headers});
+      }
       if(pathname==='/healthz'){
         if(req.method!=='GET')return json(res,405,{ok:false,error:'method_not_allowed'},
           {...headers,Allow:'GET'});

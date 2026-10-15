@@ -31,8 +31,7 @@ if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR || process.env.GCLOUD_PROJECT!
  test('emulator must be explicitly enabled; no real Firestore fallback', {skip:true},()=>{});
 }else{
  const {Firestore}=loadSDK('@google-cloud/firestore');
- const {createOfferPortal}=awaitImport('portalCore');
- function awaitImport(k){return import('../cloud-run/offer-portal-staging/'+k+'.mjs');}
+ const awaitImport=k=>import('../cloud-run/offer-portal-staging/'+k+'.mjs');
  test('Firestore Emulator real transaction: only one of 12 parallel acceptances commits', {timeout:25000},async t=>{
   const {createOfferPortal}=await awaitImport('portalCore');
   const {createFirestoreOfferStore}=await awaitImport('firestoreOfferStore');

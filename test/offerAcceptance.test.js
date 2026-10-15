@@ -122,6 +122,8 @@ test('only an injected atomic callback may commit; never direct Airtable PATCH o
   assert.equal(res.code,200);
   assert.deepEqual(order,['airtable_read','atomic_commit']);
   assert.deepEqual(docs,['quote','terms']);
+  assert.equal(res.body.reconciliation_pending,true);
+  assert.equal(res.body.confirmation_email_pending,false);
   assert.equal(claims[0].offerId,baseRecord.id);
   assert.equal(claims[0].evidence.terms_pdf_sha256,K);
   assert.equal(claims[0].evidence.ip_pseudonym.length,64);
@@ -250,4 +252,28 @@ test('AVV PDF downloadable only for AVV-required eligible offers',async()=>{
   });
   assert.equal(res.code,200);
   assert.match(res.headers['Content-Disposition'],/LSZH_AVV_TEST-001_TEST_ONLY_AVV.pdf/);
+});
+
+test('AVV mode unspecified is fail-closed',async()=>{
+  initEnv();
+  const f={...baseRecord.fields};delete f['AVV erforderlich'];
+  global.fetch=async()=>Response.json({records:[{...baseRecord,fields:f}]});
+  const res=await make(async(api,req,r)=>{req.body={code:token};await api.preview(req,r);return r;});
+  assert.equal(res.code,404);
+});
+test('damaged downloaded PDF prevents atomic claim and any Airtable write',async()=>{
+  initEnv();
+  global.fetch=async(url,options={})=>{
+    assert.notEqual(options.method,'PATCH');
+    return Response.json({records:[baseRecord]});
+  };
+  let committed=0;
+  const verifier={verify:async()=>true,pdf:async()=>{throw Error('archive_changed')}};
+  const res=await make(async(api,req,r)=>{
+    req.body={code:token,name:'Test Person',email:'test@example.com',
+      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+    await api.accept(req,r);return r;
+  },verifier,async()=>{committed++;return {accepted:true};});
+  assert.equal(res.code,409);
+  assert.equal(committed,0);
 });

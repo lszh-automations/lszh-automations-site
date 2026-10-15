@@ -25,13 +25,19 @@ function archiveShape(bundle){
   const ids=(bundle.avv_required==='Ja'?['quote','terms','avv']:['quote','terms']).map(k=>bundle[k].id);
   if(new Set(ids).size!==ids.length)throw bad('unavailable');
 }
-function stamp(s){
-  // Canonical key covering ALL facts that must remain unchanged until commit.
-  // Preserve field order under our own control (not controlled by external client).
-  return sha(JSON.stringify([
+function canonical(value) {
+  if(Array.isArray(value))return value.map(canonical);
+  if(value && typeof value==='object' && Object.getPrototypeOf(value)===Object.prototype)
+    return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));
+  return value;
+}
+export function offerFingerprint(s){
+  // Canonical comparison also detects changed PDF/recipient/version, regardless
+  // of Firestore object key order or whether writers incremented a revision.
+  return sha(JSON.stringify(canonical([
     s.tokenHash,s.status,s.approved,s.revision,s.termsVersion,s.expiresAt,
     s.recipientEmail,s.offerNumber,s.bundle,s.details
-  ]));
+  ])));
 }
 function validateOffer(s,tokenHash,now,approvedVersion){
   if(!s || s.tokenHash!==tokenHash || !SHA.test(s.tokenHash||'') ||
@@ -44,7 +50,7 @@ function validateOffer(s,tokenHash,now,approvedVersion){
      !s.details || typeof s.details!=='object' ||Array.isArray(s.details))
     throw bad('unavailable');
   archiveShape(s.bundle);
-  return stamp(s);
+  return offerFingerprint(s);
 }
 function consent(offer,b){
   if(!b||typeof b!=='object'||Array.isArray(b))throw bad('invalid_request');

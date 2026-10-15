@@ -4,6 +4,7 @@
 const crypto=require('node:crypto');
 const {SCHEMA_VERSION,isStagingPath}=require('./stagingOfferSchema');
 const {LOCK_COLLECTION,bindingFingerprint}=require('./syntheticAirtableBinding');
+const {fetchSyntheticReadback,verifySyntheticReadback}=require('./syntheticAirtableReadback');
 const RECORD_ID=/^rec[A-Za-z0-9]{14}$/;
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
 const HEX64=/^[a-f0-9]{64}$/;
@@ -58,7 +59,8 @@ function eligible(state,documentPath,expected,actor,now){
  * Firestore is the acceptance source of truth; an asynchronous reconciliation
  * worker must copy the result to Airtable safely, not the other way around.
  */
-async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
+async function claimOfferOnce({db,documentPath,expected,actor,now=new Date(),
+  airtableRecordId,readRecord}){
   check(db&&typeof db.doc==='function'&&typeof db.runTransaction==='function');
   // Staging-only path. NOT a live customer-acceptance endpoint.
   check(isStagingPath(documentPath));
@@ -70,6 +72,10 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
     actor.name.trim().length<=120&&EMAIL.test(email(actor.email))&&
     actor.authorized===true&&actor.acceptTerms===true);
   check(now instanceof Date&&Number.isFinite(now.getTime()));
+  check(RECORD_ID.test(String(airtableRecordId||''))&&typeof readRecord==='function');
+  // Trusted server-only fresh GET happens before the retryable Firestore tx.
+  const readback=await fetchSyntheticReadback(readRecord,airtableRecordId)
+    .catch(()=>{throw new ClaimRejected('readback_unavailable');});
   const ref=db.doc(documentPath);
   return db.runTransaction(async tx=>{
     const snap=await tx.get(ref);
@@ -80,7 +86,8 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
     eligible(state,documentPath,expected,actor,now);
     // A CRM record supplied by a browser or offer number is insufficient.
     // Demand the pre-existing, unique Airtable binding inside the SAME transaction.
-    if(!RECORD_ID.test(state.airtableRecordId||'')||
+    if(state.airtableRecordId!==airtableRecordId||
+       !RECORD_ID.test(state.airtableRecordId||'')||
        state.airtableBinding?.source!=='SYNTHETIC_READ_ONLY'||
        state.airtableBinding?.schemaVersion!==1)
       throw new ClaimRejected('binding_missing');
@@ -94,6 +101,8 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
        !equalHash(bound.fingerprint,state.airtableBinding.fingerprint)||
        !equalHash(currentFingerprint,state.airtableBinding.fingerprint))
       throw new ClaimRejected('binding_mismatch');
+    try{verifySyntheticReadback(state,readback,'acceptance');}
+    catch{throw new ClaimRejected('readback_mismatch');}
     const evidence={
       acceptedAt:now.toISOString(),
       actorName:actor.name.trim().replace(/\s+/g,' '),

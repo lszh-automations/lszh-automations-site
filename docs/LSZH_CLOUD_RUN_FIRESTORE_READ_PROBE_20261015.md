@@ -24,7 +24,7 @@ Der neue Code ergänzt den bereits vorhandenen **isolierten** Cloud-Run-Gateway-
 
 Die Bezeichnung `__internal` macht eine HTTP-Route nicht automatisch intern; ohne diese Cloud-Run-Zugriffssperren darf der Dienst nicht ausgerollt werden.
 
-Der Entwurf des `Dockerfile` enthält eine **noch nicht auf unveränderlichen Versions-/Image-Digest gepinnte** Firestore-SDK-Installation. Vor einer Deployfreigabe: Abhängigkeit und Container-Digest pinnen, Build/Supply-Chain-Scan, Konfigurations-/IAM-Review, vollständigen Remote-Read-Test separat abnehmen. Keine ausführbaren Setup-Skripte für IAM, Cloud Run, Cloud Storage, Drive oder Airtable wurden ausgeführt.
+**Update 15.10.2026:** Die Firestore-SDK-Abhängigkeit ist inzwischen exakt auf **9.3.1** festgelegt, das transitive npm-Lockfile eingecheckt und der Builder sowie das Nicht-Root-Distroless-Laufzeitimage auf geprüfte OCI-Digests gepinnt. Ein vollständiger Build, lokale HTTP-Smoke-Tests, npm-Audit ohne Befunde und ein Trivy-Scan ohne HIGH/CRITICAL-Befunde sind in [GitHub Actions #38801279138](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38801279138) bestanden. Die vollständige Korrektur des vorherigen gesperrten Basisimages ist dokumentiert in `docs/LSZH_STAGING_CONTAINER_HARDENING_20261015.md`. **Kein Deployment; Konfiguration-/IAM-Review und Remote-Lesetest stehen aus.**
 
 ## Tests und ihre Aussagekraft
 

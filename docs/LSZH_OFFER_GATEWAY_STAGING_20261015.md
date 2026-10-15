@@ -37,6 +37,16 @@
 - Zusätzlicher opt-in Firestore-Emulator-HTTP-Test mit zwei unabhängigen SDK-Clients im GitHub-Entwicklungszweig vorbereitet; standardmässig übersprungen, in dieser Testumgebung noch nicht durchführbar (kein SDK/Emulator vorhanden).
 - Umfang, Grenzen und genaue Folgearbeit: [LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md](LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md). Ältere Aussagen weiter oben über „nicht eingebunden“ meinen weiterhin: **kein produktiver Firestore-Adapter und keine Kundenschnittstelle**, nicht den nun vorhandenen lokalen Test.
 
+## Firestore-Emulator erfolgreich nachgeprüft (15.10.2026)
+
+Die zuvor als ausstehend dokumentierten Firestore-Emulatorläufe sind im GitHub-Workflow **tatsächlich ausgeführt und erfolgreich**:
+- [Emulatorlauf 38769381514](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38769381514)
+- [Isolationslauf 38769645834](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38769645834)
+
+Je 7 Security-Tests und 2 echte Firestore-Integrationstests bestanden. Genau eine Annahme bei parallelen Transaktionen, manipulierter AVV-Digest gesperrt. Der zweite Lauf verifiziert die Abgrenzung zu `(default)` **im Emulator**; Firebase-CLI wies zugleich auf eine Einschränkung bei mehreren Datenbanken hin. Konfiguration: nur `demo-lszh-offers`, lokaler Firestore-Emulator, keinerlei produktive Cloud-Aktionen.
+
+Ausführliches Testprotokoll: [LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md](LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md).
+
 ## Freigabefolge (nichts davon ausgelöst)
 
 1. Die echten Node-Tests der gesamten GitHub-Branch ausführen und Fehler beheben. Separater Firestore-Emulator-Test (zwei konkurrierende Annahmeversuche) nur lokal; keine Cloud-Schreibvorgänge.

@@ -2,6 +2,13 @@
 
 **Datum: 15.10.2026. Stand: Kontoerstellung und bedingte Viewer-Rolle per Google-Cloud-Shell-Ausgabe des Nutzers bestätigt.** Die nachfolgende Planung dokumentiert den ursprünglichen Freigabeumfang; **weitere Schritte bleiben unbewilligt**.
 
+## Nachprüfung: Dienstkonto und Schlüsselbestand (Nutzerausgabe vom 15.10.2026)
+
+- `gcloud iam service-accounts describe ... --format="table(email,disabled)"` gab die exakte Adresse `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` aus; die Spalte `DISABLED` war **leer**. **Kein `true` für deaktiviert gemeldet**. Ein leeres optionales Feld ist nicht dasselbe wie ein explizit verifizierter boolescher Wert `false`; vor Deployment ggf. mit gezieltem JSON-Readback verifizieren.
+- `gcloud iam service-accounts keys list --iam-account=... --managed-by=user` ergab **`Listed 0 items`**. Damit sind zum Zeitpunkt dieser Prüfung **keine nutzerverwalteten Servicekonto-Schlüssel** gelistet. Google-verwaltete interne Schlüssel sind eine andere Kategorie; es wurde kein eigenes JSON-Keyfile erstellt.
+- Die zuvor gepostete Projekt-IAM-Policy bestätigt das einzige direkte bedingte `roles/datastore.viewer`-Binding auf `lszh-offers-staging`; eine echte Cloud-Run-Laufzeitverbindung und die effektiven Firestore-Leserechte bleiben ungeprüft.
+- **Freigabegrenze:** Die IAM-Kontoerstellung ist abgeschlossen. Keine stillschweigende Genehmigung für Cloud-Run-Deployment, Cloud-Run-Invoker-Freigabe, IAM-Servicekonto-Impersonation/`actAs`, Firestore-Schreibrechte, zusätzliche Secret- oder Drive-/Airtable-Rechte.
+
 ## Umsetzungsnachweis (nach ursprünglicher Planerstellung)
 
 - **Erledigt:** Nutzer bestätigte ausdrücklich beide genau bezeichneten IAM-Änderungen und führte die Befehle in Google Cloud Shell aus: `Created service account [lszh-offer-reader]` und `Updated IAM policy for project [lszh-automations]`.

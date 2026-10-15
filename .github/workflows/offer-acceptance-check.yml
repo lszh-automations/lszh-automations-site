@@ -14,6 +14,7 @@ on:
       - 'cloud-run/archive-reader-staging/**'
       - 'cloud-run/offer-portal-staging/**'
       - 'cloud-run/offer-portal-preflight/**'
+      - 'cloud-run/offer-portal-transaction-smoke/**'
       - 'test/offerPortalStaging.test.js'
       - 'test/offerPortalHttp.test.js'
       - 'test/offerPortalConfig.test.js'
@@ -50,6 +51,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
           node --check cloud-run/offer-portal-preflight/index.js
+          node --check cloud-run/offer-portal-transaction-smoke/index.js
+          node --check cloud-run/offer-portal-transaction-smoke/transactionTest.mjs
           node --check test/offerPortalConfig.test.js
           node --check test/firestoreEmulator.integration.test.js
           node --check test/offerPortalHttp.test.js

@@ -215,6 +215,15 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Der geplante zusätzliche Cloud-Run-Service `lszh-offer-acceptance-staging` und der ehemalige Namensvorschlag `lszh-offer-reader@...` wurden per `NOT_FOUND` nicht gefunden. **Keine** neue SA/IAM-Rolle angelegt, keine Deployments, keine Firestore-Schreiboperationen, Drive-Retention oder Vertragsannahme durchgeführt.
 - Weiter offen: zusätzliche/indirekte Rollen, tatsächliche IAM-Permission-Evaluation (ggf. IAM Policy Troubleshooter unter geeigneter Leseberechtigung), Cloud-Run-Logs/Read-only-Prüfung und Zugriffe auf das Google-Drive-Archiv/Airtable ausserhalb der ChatGPT-Connectoren.
 
+### Dediziertes, zunächst rein lesendes STAGING-Dienstkonto zur Freigabe vorbereitet – 15.10.2026
+
+- Nach Auswertung der echten IAM-Antworten ist eine **separate** Cloud-Run-Dienstidentität für die spätere Annahmelogik sinnvoll. Bestehendes Archivkonto `lszh-archive-reader` und bestehender Cloud-Run-Preflight `lszh-offer-portal-staging` bleiben unverändert; das Compute-Standardkonto wird nicht als Ersatz verwendet.
+- Freigabeplan für **noch nicht erstelltes** `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com` erstellt: ausschliesslich `roles/datastore.viewer` mit **genauer Datenbankbedingung** `resource.name == "projects/lszh-automations/databases/lszh-offers-staging"`, Condition-Titel `LSZHOfferReaderOnlyStagingFirestore`; keine `roles/datastore.user`, `roles/editor`, `roles/owner`, keine privaten JSON-Keydateien.
+- Firestore Viewer ist eine **Lese**-Rolle (Daten `get/list`, kein `datastore.entities.create/update/delete`). IAM-Zuordnung allein gewährt **keinen** Zugriff auf das private Google-Drive-Archiv oder Airtable: diese Zugriffsfragen und Secret-/Cloud-Run-Identität bleiben gesondert zu prüfen. Zur späteren Dienstzuordnung kann der Deployer `iam.serviceAccounts.actAs` benötigen; noch nicht zugeteilt.
+- Ausschliesslich **nicht ausführbare Entscheidungsvorlage**: `docs/LSZH_READER_IAM_FREIGABEPLAN_20261015.md`. Eine automatische Erstellung/IAM-Änderung wurde **nicht** umgesetzt. Ein Versuch, einen ausführbaren Einrichtungsplan als GitHub-Datei zu speichern, wurde durch einen Tool-Sicherheitscheck blockiert. Keine Umgehung; es wurden **keine** Konten/Rollen verändert.
+- **Nächste Nutzerentscheidung:** getrennte, konkrete Genehmigung (A) zur Kontoerstellung und (B) zur datenbankbedingten Viewer-Zuweisung. **Noch nicht erfolgt.** Danach vor jedem Deployment erst live lesend die neue IAM-Policy und die Abwesenheit exportierter privater Schlüssel prüfen.
+- Externe Quellen wurden aktuell geprüft: https://cloud.google.com/iam/docs/roles-permissions/firestore, https://cloud.google.com/firestore/docs/manage-databases und https://cloud.google.com/run/docs/configuring/services/service-identity.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

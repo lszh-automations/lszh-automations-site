@@ -62,6 +62,22 @@ async function prepareSyntheticContractFromDriveReadback({state,archiveFolderId,
    const item=revInfo.revisions.find(r=>r.id===revisionId);
    if(!item||item.mimeType!=='application/pdf'||item.keepForever!==true)
       deny('revision_not_retained');
+   // A snapshot can drift while bytes are being read. Re-read revision
+   // identity and sharing/parent metadata after the download, then fail closed.
+   let finalMeta,finalRevision;
+   try{
+     [finalMeta,finalRevision]=await Promise.all([
+       readMetadata(fileId),listRevisions(fileId)
+     ]);
+   }catch{deny('archive_read_failed');}
+   if(finalMeta?.id!==fileId||finalMeta?.mimeType!=='application/pdf'||
+      finalMeta?.source!=='SYNTHETIC_MOCK'||finalMeta?.shared!==false||
+      finalMeta?.trashed!==false||!Array.isArray(finalMeta.parents)||
+      finalMeta.parents.length!==1||
+      finalMeta.parents[0]!==archiveFolderId||
+      finalRevision?.fileId!==fileId||
+      finalRevision.currentRevisionId!==revisionId)
+     deny('revision_changed_during_read');
    if(!Buffer.isBuffer(contents)||contents.length<12||contents.length>MAX||
       contents.subarray(0,5).toString('ascii')!=='%PDF-'||
       !contents.subarray(Math.max(0,contents.length-2048))

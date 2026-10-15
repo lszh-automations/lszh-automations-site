@@ -34,3 +34,20 @@ Als Chat-Artefakt: `LSZH_Firestore_Staging_Testpaket_V3_20261015.zip`.
 5. Mehrfachklick-, manipulierte-PDF-, falscher-Token- und Abbruchtests durchführen; die spätere Annahme atomar und testisoliert implementieren.
 
 **Kleines System:** Airtable = CRM, Google Drive = Dateien, Firestore = atomare Annahmezustände, Make = Folgeautomationen. Keine zusätzliche Datenbank und kein zweites CRM erforderlich.
+
+## Geschäftliches Google Drive – verifizierte Bestandsbelege vom 14./15.10.2026
+
+- Make-Verbindung `11904271` für Geschäftskonto `lars@lszh-automations.ch` meldet `ok`. Das **erfolgreiche** read-only Audit 7965546 vom 15.10.2026, 08:10 UTC bestätigt Eigentum des privaten geschäftlichen STAGING-Archivs.
+- Make-Test 7965246 hat am 14.10.2026 vier **ältere rein synthetische** PDF-Dateien (Offerte, Bedingungen, AVV, simulierter Annahmebeleg) tatsächlich aus dem geschäftlichen privaten Archiv gelesen. Vier-Dokumente-Modus `Ja`: `ok=true`, vier Binärdaten vorhanden, `send_permitted=false`.
+- Drei davon (Offerte, Bedingungen, AVV) hatten jeweils einen gültigen SHA-256, korrektes `application/pdf`, eigene Datei-ID, Geschäftsinhaber, `shared=false` und `contentRestrictions.readOnly=true`. Sie gehören zur früheren **TEST_ONLY**-Serie vom 14.10. und **nicht** zu den lokal erzeugten V3-PDFs vom 15.10. Wiederverwendung kann separate doppelte Uploads sparen; ihre Dateinummern gehören nur in **private** Testkonfigurationen, nicht in das öffentliche GitHub-Repository.
+- Schreibschutz ist keine unveränderliche WORM-Speicherung. Weitere Hash-/Zugriffsprüfung unmittelbar vor Annahme bleibt verpflichtend.
+- **Noch nicht bestätigt:** Die aktuellen V3-Dateien wurden nicht über Make oder Drive hochgeladen; kein synchroner Readback-Abgleich mit diesem Manifest; kein Nachweis des tatsächlichen Cloud-Run-Firestore-Collection-Schemas.
+
+## Minimaler nächste-Schritte-Plan ohne Neuaufbau
+
+1. Codex/Firebase MCP read-only im Projekt `lszh-automations`: Datenbank `lszh-offers-staging` und vorhandene Collections prüfen.
+2. Cloud Run `lszh-offer-portal-staging`: die **tatsächlich deployte** Revision, verwendetes Dienstkonto, gesperrte POST-Routen, Firestore-Zugriff und erwartete Feldstruktur überprüfen. Keine Secrets ausgeben.
+3. Die vorhandenen und schon archivierten fiktiven PDFs für einen getrennten Firestore-Test verwenden **oder** die drei V3-Dateien ins private Geschäftskonto übertragen; keinesfalls beide Dokumentserien zu einem Angebotsnachweis vermischen.
+4. Erst nach separat bestätigtem Staging-Schreibentscheid einen einzelnen synthetischen Datensatz mit garantiert geschlossenen Freigabefeldern importieren und read-back prüfen. Kein Token in Klartext und keinerlei Mail/Annahme aktivieren.
+
+**Wichtig:** Aktuelle Cloud-Run-Dienste gehören zu Google Cloud. Der separat angeschlossene Render-Account kann sie nicht stellvertretend verifizieren.

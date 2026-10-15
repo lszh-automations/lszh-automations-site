@@ -27,6 +27,15 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Auf `feature/firestore-staging-dryrun-20261015` neu `firestoreAcceptanceState.js` und `test/firestoreAcceptanceState.test.js`: rein isolierter, nirgendwo angebundener Firestore-Transaktionskandidat. 7 lokale synthetische Tests bestanden; Fake-Transaktionen sind kein Cloud-End-to-End-Test. GitHub-CI enthält Testbefehle; Ausführung offen.
 - Offen vor einem echten STAGING-Schreibtest: Feldmapping zwischen Offline-Fixture und Transaktionscode, Authentifizierungsarchitektur Render/Cloud Run, optionaler AVV-Archivpfad, tatsächliche Dienste/IAM/Deploystand, getrennte Test-Schreibfreigabe. **Cloud-Run-Preflight nicht überschreiben, keine E-Mails oder echten Annahmen aktivieren.**
 
+
+### Update V4 – einheitliches Firestore-Staging-Schema (15.10.2026)
+
+- `stagingOfferSchema.js` definiert ein **einheitliches Offline-Schema v1**; `scripts/prepare-firestore-staging.js` und `firestoreAcceptanceState.js` verwenden es. Der bisherige Unterschied von Fixture- und Annahmefeldern ist im Entwicklungszweig behoben.
+- Gesperrte synthetische Fixtures haben `status=TEST_DRAFT_NOT_SENT`, `tokenHash=null`, `expiresAt=null`, alle Freigabe-/Zustell-/Archiv-Flags `false`; eine Annahme ist damit im Code nicht möglich.
+- Lokaler Testnachweis: 12 neue Node-Sicherheitsprüfungen und 17 bestehende PDF-Python-Tests erfolgreich. Das ursprüngliche V3-PDF-Manifest ist mit dem V4-Mapping geprüft. **Keine GitHub-CI-/echte Firestore-Schreib-/Deployment-/End-to-End-Prüfung.**
+- Artefakt `LSZH_Firestore_Staging_Testpaket_V4_20261015.zip` enthält 3 unveränderte synthetische PDF-Dateien, Manifest, Schema, isolierten Transaktionskandidaten und Tests. GitHub-CI-Datei erweitert.
+- Unverändert offen: echte AVV-Prüfung im bestehenden Website-Backend, sichere Hosting-/Auth-Anbindung und benannter Firestore-Datenbankclient, allfälliger autorisierter Staging-Import sowie Rechtsprüfung RC1. Bestehender Preflight bleibt unangetastet.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

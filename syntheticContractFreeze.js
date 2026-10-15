@@ -25,6 +25,66 @@ function gate(testMode){
 function hash(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function sameHash(a,b){return HEX.test(String(a||''))&&HEX.test(String(b||''))&&
  crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));}
+// Canonical key ordering survives Firestore map serialization/reordering.
+function canonical(value){
+ if(Array.isArray(value))return value.map(canonical);
+ if(value&&typeof value==='object'){
+  const out={};
+  for(const key of Object.keys(value).sort())out[key]=canonical(value[key]);
+  return out;
+ }
+ return value;
+}
+function contractManifestDigest(manifest){
+ return hash(JSON.stringify(canonical(manifest)));
+}
+function verifyFrozenContractSnapshots(state,freezeSnapshot){
+ if(!state||state.testOnly!==true||!ID.test(state.fixtureId||'')||
+    !REC.test(state.airtableRecordId||'')||
+    state.contractManifestVersion!==1||
+    !HEX.test(String(state.contractManifestHash||''))||
+    !Number.isFinite(Date.parse(state.contractFrozenAt||''))||
+    !freezeSnapshot?.exists)deny('contract_not_frozen');
+ const frozen=freezeSnapshot.data();
+ const manifest=frozen?.manifest;
+ if(!frozen||frozen.testOnly!==true||
+    frozen.fixtureId!==state.fixtureId||
+    frozen.frozenAt!==state.contractFrozenAt||
+    !sameHash(frozen.manifestHash,state.contractManifestHash)||
+    !manifest||manifest.schema!=='LSZH_SYNTHETIC_CONTRACT_MANIFEST_V1'||
+    manifest.testOnly!==true||
+    !sameHash(contractManifestDigest(manifest),state.contractManifestHash))
+    deny('contract_mismatch');
+ if(manifest.fixtureId!==state.fixtureId||
+    manifest.airtableRecordId!==state.airtableRecordId||
+    !sameHash(manifest.bindingFingerprint,state.airtableBinding?.fingerprint)||
+    !sameHash(manifest.bindingFingerprint,
+      bindingFingerprint(state,state.airtableRecordId))||
+    manifest.offerNumber!==state.offerNumber||
+    manifest.recipientSha256!==hash(state.recipientEmail)||
+    manifest.validUntil!==state.validUntil||
+    manifest.termsVersion!==state.termsVersion||
+    manifest.avvRequired!==state.avvRequired||
+    (state.avvRequired!==true&&state.avvRequired!==false)||
+    manifest.avvVersion!==(state.avvRequired?state.avvVersion:null))
+    deny('contract_mismatch');
+ const required=['offer','terms',...(state.avvRequired?['avv']:[])];
+ if(Object.keys(manifest.documents||{}).sort().join(',')!==
+    required.slice().sort().join(','))deny('contract_mismatch');
+ for(const kind of required){
+  const pinned=manifest.documents[kind],doc=state.documents?.[kind];
+  if(!doc||!pinned||pinned.mimeType!=='application/pdf'||
+     doc.mimeType!=='application/pdf'||doc.archiveVerified!==true||
+     !sameHash(pinned.sha256,doc.sha256)||
+     pinned.driveFileId!==doc.driveFileId||
+     !REV.test(pinned.revisionId||'')||
+     !Number.isSafeInteger(pinned.sizeBytes)||
+     pinned.sizeBytes<12||pinned.sizeBytes>MAX_BYTES)
+    deny('contract_mismatch');
+ }
+ if(!state.avvRequired&&state.documents?.avv!=null)deny('contract_mismatch');
+ return state.contractManifestHash;
+}
 function deepFreeze(data){
  if(data&&typeof data==='object'){
   for(const x of Object.values(data))deepFreeze(x);
@@ -91,7 +151,7 @@ function prepareSyntheticContractManifest({state,archiveBytes,revisions,testMode
   avvVersion:state.avvRequired?state.avvVersion:null,
   documents
  };
- const manifestHash=hash(JSON.stringify(manifest));
+ const manifestHash=contractManifestDigest(manifest);
  return deepFreeze({manifest,manifestHash});
 }
 async function freezeSyntheticContractOnce({db,fixtureId,prepared,testMode,
@@ -103,7 +163,7 @@ async function freezeSyntheticContractOnce({db,fixtureId,prepared,testMode,
    !HEX.test(prepared.manifestHash||'')||
    prepared.manifest?.fixtureId!==fixtureId||
    prepared.manifest?.schema!=='LSZH_SYNTHETIC_CONTRACT_MANIFEST_V1'||
-   !sameHash(prepared.manifestHash,hash(JSON.stringify(prepared.manifest))))
+   !sameHash(prepared.manifestHash,contractManifestDigest(prepared.manifest)))
   deny('invalid_manifest');
  const offer=db.doc(documentPath(fixtureId));
  const freeze=db.doc(COLLECTION+'/'+fixtureId);
@@ -149,4 +209,4 @@ async function freezeSyntheticContractOnce({db,fixtureId,prepared,testMode,
  });
 }
 module.exports={SyntheticContractFreezeRejected,prepareSyntheticContractManifest,
- freezeSyntheticContractOnce,COLLECTION};
+ freezeSyntheticContractOnce,verifyFrozenContractSnapshots,contractManifestDigest,COLLECTION};

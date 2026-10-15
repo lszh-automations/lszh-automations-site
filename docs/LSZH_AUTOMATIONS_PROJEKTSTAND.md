@@ -324,6 +324,13 @@ _Stand: 15.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - Vom ursprünglichen Cloud Run weiterhin nur `LSZH_FIRESTORE_READ_PREFLIGHT: FAILED_OR_TIMED_OUT` ohne Fehlerklasse; keine neuen IAM-Änderungen oder tatsächlichen Zugriffe nachweisbar. Der Code-Fix (probe await vor listen) und die sanitisierten Fehlerklassen bleiben **nur im GitHub-Feature-Branch**, bislang nicht deployed.
 - Lokale Tests der Korrektur: [Unit-/Emulator-Lauf #38807537669](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38807537669) **SUCCESS** (120/120 Unit-/HTTP-Tests, 9/9 Emulator); [Container-Build/Sicherheitslauf #38807573965](https://github.com/lszh-automations/lszh-automations-site/actions/runs/38807573965) **SUCCESS**. Für Austausch der **bestehenden** Staging-Revision separate konkrete Freigabe nötig. Bis dahin nur lesende Ursachenanalyse, kein neuer Deploy.
 
+### Firestore-API-Aktivierung jetzt nachgewiesen (15.10.2026)
+
+- Nutzer führte den korrigierten read-only Cloud-Shell-Befehl `gcloud services list --enabled --project=lszh-automations --filter="config.name:firestore.googleapis.com" --format="value(config.name)"` aus. Ausgabe: **`firestore.googleapis.com`**. Firestore-API im Zielprojekt ist damit nachgewiesenermassen aktiviert, keine neue Aktivierung erforderlich.
+- Zusammen mit zuvor bestätigter benannter Firestore-Native-DB `lszh-offers-staging` in `europe-west6`, Dienstkonto `lszh-offer-reader@lszh-automations.iam.gserviceaccount.com`, `ingress=internal` und Revisions-`maxScale=1` sind die wesentlichen Cloud-Voraussetzungen bestätigt.
+- **Weiterhin offen:** In aktueller Revision `lszh-offer-acceptance-staging-00001-bhc` ergab der echte Firestore-Read-Preflight nur `FAILED_OR_TIMED_OUT`, kein erfolgreiches Lesen. Die im Feature-Branch vorbereitete Startup-Await-Korrektur ist CI-grün, aber **noch nicht deployed**. Alternativursachen (u.a. IAM-Condition/Firestore-SDK-Zugriff) bleiben möglich.
+- Nächster Freigabepunkt: **gesonderte ausdrückliche Genehmigung** zur Aktualisierung des *bereits existierenden neuen* internen STAGING-Cloud-Run-Dienstes auf den getesteten Fix. Keine weiteren IAM-Rollen, Firestore-Writes, öffentlichen Zugriffe, produktiven Mails oder Vertragsannahmen. Danach read-only Service/Invoker/Log-Verifikation.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

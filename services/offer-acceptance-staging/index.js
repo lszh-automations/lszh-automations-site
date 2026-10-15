@@ -1,6 +1,7 @@
 'use strict';
 const {createGateway}=require('./app');
 const {createStagingReadProbe}=require('./stagingReadProbe');
+const {runStartupReadProbe}=require('./startupReadProof');
 const port=Number(process.env.PORT||8080);
 if(!Number.isSafeInteger(port)||port<=0||port>65535)throw Error('Invalid PORT');
 // No Firestore SDK or network access during startup unless explicitly enabled.
@@ -10,4 +11,7 @@ const stagingReadProbe=process.env.LSZH_STAGING_READ_PROBE_ENABLED==='yes'
   : null;
 createGateway({stagingReadProbe}).listen(port,'0.0.0.0',()=>{
   console.log('LSZH_STAGING_GATEWAY: READY (ACCEPTANCE_DISABLED)');
+  // Internal ingress prevents direct Cloud Shell HTTP calls. One startup
+  // SDK GET proves Firestore access without opening HTTP to the internet.
+  if(stagingReadProbe)void runStartupReadProbe(stagingReadProbe);
 });

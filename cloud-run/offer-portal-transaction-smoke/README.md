@@ -1,3 +1,17 @@
+## WICHTIGER REALBETRIEBSBEFUND vom 15.10.2026
+
+**Dieses zuvor beschriebene Startup-Verfahren NICHT erneut anwenden.** Der erste echte Google-Cloud-Run-Test wurde am 15.10.2026 13:55 MESZ gestartet und protokollierte nur `START`, `IDENTITY_PASS`, `IAM_NEGATIVE_INCONCLUSIVE_DB_ABSENT`. In den vom Geschäftsführer übermittelten Logs fehlen bis zur letzten Aufnahme **`TRANSACTION_PASS`, `CLEANUP_PASS`, `PASS`, `FAIL`**. Der Datenzustand ist unbekannt.
+
+Der beschriebene Code führt Firestore-Schreib-/Parallelitätstest beim **Startup eines anfragebasiert abgerechneten Webdienstes** aus; Google Cloud Run kann CPU nach der Startphase begrenzen, wenn keine HTTP-Anfragen verarbeitet werden. Es ist daher *möglich*, dass der synthetische Test während der Durchführung stockt. Die Cloud-Run-Revision als `Ready` beweist keinen erfolgreichen Geschäfts-/Firestore-Test. Eine wiederholte Bereitstellung oder ein Kaltstart kann zudem weitere synthetische Testdokumente erzeugen. **Keine erneute Testbereitstellung.**
+
+**Sicheres Vorgehen:**
+1. Neueste Logs nach `LSZH_PORTAL_TX_SMOKE` prüfen (Filter, Zeitraum, Severity) und kontrollieren, ob inzwischen `PASS` oder `FAIL` sichtbar ist.
+2. In `lszh-offers-staging` nur die gesonderte `lszh_synthetic_txn_smoke_v1`-Collection ansehen. Bei vorhandenen Dokumenten deren `owner`, `synthetic`, `marker`, `status`, `revision` zunächst anhand Screenshots prüfen. Vorher **nichts löschen**.
+3. Nach gesicherter Diagnose die temporäre Testrevision durch den bisherigen **read-only** Preflight ersetzen (unter `cloud-run/offer-portal-preflight/`); ohne erneuten Schreibtest. Die Anwendung bleibt intern und IAM-geschützt.
+4. Für die Wiederholung statt eines Start-Hooks einen **separaten, einmalig ausgeführten Cloud Run Job** entwerfen. Dieser erhält für die kurze Laufzeit CPU, bestätigt Bereinigung und wird danach beendet. Zuerst Datenzustand des möglicherweise unvollständigen Tests klären.
+
+Der übrige Text ist lediglich die **ursprüngliche historische Testanleitung** und keine aktuelle Empfehlung zum erneuten Einsatz.
+ 
 # LSZH – Einmaliger Firestore-Transaktionstest auf echtem Cloud Run
 
 **Stand: 15.10.2026. Noch nicht in Google Cloud bereitgestellt.** Keine Kundendaten, keine E-Mails, kein Vertrag, kein produktives Portal. Der Test darf ausschliesslich mit dem getrennten Cloud-Run-Dienst `lszh-offer-portal-staging` und dem dafür erstellten Dienstkonto durchgeführt werden.

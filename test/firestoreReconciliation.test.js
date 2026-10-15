@@ -18,7 +18,7 @@ function accepted(changes={}){
    driveFileId:'1'.repeat(24),archiveVerified:true});
  return {schemaVersion:1,fixtureId:id,testOnly:true,status:'ACCEPTED',
    legallyApproved:true,acceptanceEnabled:true,deliveryConfirmed:true,
-   archiveVerified:true,airtableRecordId:'recTEST000000000',
+   archiveVerified:true,airtableRecordId:'recTEST0000000000',
    acceptedAt:e.acceptedAt,acceptanceEvidence:e,termsVersion:e.termsVersion,
    offerNumber:e.offerNumber,avvRequired:true,avvVersion:'TEST_ONLY_AVV',
    reconciliationStatus:'PENDING',reconciliationLease:null,
@@ -51,7 +51,7 @@ function assertRejected(e,reason){assert.ok(e instanceof ReconciliationRejected)
 test('projection uses existing schema only and never enables email or Make',()=>{
  const s=accepted(), p=previewAirtableAcceptance(s,documentPath);
  assert.equal(p.mode,'OFFLINE_PREVIEW_ONLY');
- assert.equal(p.recordId,'recTEST000000000');
+ assert.equal(p.recordId,'recTEST0000000000');
  assert.equal(p.fields.Status,'Angenommen');
  assert.equal(p.fields['Vertragsunterlagen akzeptiert'],true);
  assert.equal(p.fields['Online-Annahme AVV ausdrücklich akzeptiert'],true);

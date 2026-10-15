@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {TARGET,documentPath}=require('../stagingOfferSchema');
 const {claimOfferOnce}=require('../firestoreAcceptanceState');
-const {validateSettings}=require('../stagingFirestoreConnection');
+const {validateSettings,EMULATOR_PROJECT}=require('../stagingFirestoreConnection');
 const config={...process.env};
 let canTest=false;
 try{validateSettings(config,'emulator');canTest=config.LSZH_RUN_EMULATOR_TRANSACTION_TEST==='I_UNDERSTAND_LOCAL_ONLY';}
@@ -24,8 +24,8 @@ const initial=id=>({schemaVersion:1,fixtureId:id,testOnly:true,status:'ISSUED',
 test('emulator: two independent SDK clients accept at most once', {skip:!canTest}, async()=>{
   // Lazy import: default npm test neither requires Firebase SDK nor contacts Google Cloud.
   const {Firestore}=require('@google-cloud/firestore');
-  const a=new Firestore({projectId:TARGET.projectId,databaseId:TARGET.databaseId});
-  const b=new Firestore({projectId:TARGET.projectId,databaseId:TARGET.databaseId});
+  const a=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
+  const b=new Firestore({projectId:EMULATOR_PROJECT,databaseId:TARGET.databaseId});
   const id='LSZH-EMULATOR-'+crypto.randomBytes(12).toString('hex');
   const document=documentPath(id);
   const ref=a.doc(document);

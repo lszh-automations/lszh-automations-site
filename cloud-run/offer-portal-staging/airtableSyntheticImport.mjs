@@ -46,7 +46,7 @@ function pdf(id,hash){
 function chf(v){
   if(v===undefined||v===null)return 0;
   if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100000||
-     Math.round(v*100)!==v*100)reject('synthetic_price_invalid');
+     Math.abs(Math.round(v*100)-v*100)>0.0000001)reject('synthetic_price_invalid');
   return v;
 }
 // This function is PURE: data-read and dry-run, no writes of any sort.
@@ -107,11 +107,13 @@ export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOU
 }
 // This NEVER writes to cloud. Local emulator is hard-pinned; clients cannot
 // override project, database, collection or other records through input.
-export async function seedOnlyLocalEmulator(db,record,env=process.env){
-  if(env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088'||
-     env.GCLOUD_PROJECT!=='demo-lszh-automations'||env.K_SERVICE||
-     env.GOOGLE_APPLICATION_CREDENTIALS||
-     !db||typeof db.collection!=='function')
+export async function seedOnlyLocalEmulator(db,record){
+  // Environment must be read from the REAL process, never injected by callers.
+  if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088'||
+     process.env.GCLOUD_PROJECT!=='demo-lszh-automations'||
+     process.env.K_SERVICE||process.env.GOOGLE_APPLICATION_CREDENTIALS||
+     !db||typeof db.collection!=='function'||
+     db.databaseId!=='lszh-offers-staging'||db.projectId!=='demo-lszh-automations')
     reject('local_emulator_required');
   const item=mapSyntheticAirtableOffer(record);
   const ref=db.collection(STAGING_COLLECTION).doc(item.tokenHash);

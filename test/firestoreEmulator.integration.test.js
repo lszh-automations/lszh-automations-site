@@ -55,4 +55,15 @@ if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR || process.env.GCLOUD_PROJECT!
   assert.deepEqual(current.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
   await assert.rejects(()=>portal.accept(token,body()));
  });
+
+ test('LIVE-code synthetic transaction smoke: 12 concurrent SDK commits and verified cleanup', {timeout:60000},async t=>{
+  const {runSyntheticTransactionTest,SYNTHETIC_COLLECTION}=await import('../cloud-run/offer-portal-transaction-smoke/transactionTest.mjs');
+  const db=new Firestore({projectId:PROJECT,databaseId:DB_ID});
+  t.after(()=>db.terminate());
+  const before=await db.collection(SYNTHETIC_COLLECTION).get();
+  const result=await runSyntheticTransactionTest(db);
+  assert.deepEqual(result,{attempts:12,accepted:1,declined:11});
+  const after=await db.collection(SYNTHETIC_COLLECTION).get();
+  assert.equal(after.size,before.size);
+ });
 }

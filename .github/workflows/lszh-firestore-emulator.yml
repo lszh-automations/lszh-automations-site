@@ -20,6 +20,7 @@ on:
       - 'syntheticContractFreeze.js'
       - 'test/syntheticContractFreeze.test.js'
       - 'test/syntheticContractFreeze.integration.test.js'
+      - 'test/syntheticContractChain.integration.test.js'
       - 'test/syntheticAirtableReadback.test.js'
       - 'test/helpers/**'
       - 'test/airtableReadonlyRecord.test.js'
@@ -80,6 +81,8 @@ jobs:
           node --check syntheticContractFreeze.js
           node --check test/syntheticContractFreeze.test.js
           node --check test/syntheticContractFreeze.integration.test.js
+          node --check test/syntheticContractChain.integration.test.js
+          node --check test/helpers/mockContractFreeze.js
           node --check test/helpers/mockAirtableOffer.js
           node --check test/syntheticAirtableReadback.test.js
           node --check test/airtableReadonlyRecord.test.js
@@ -97,6 +100,6 @@ jobs:
             --config tests/emulator/firebase.json \
             --only firestore \
             --project demo-lszh-offers \
-            "node --test test/firestoreEmulator.integration.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js test/syntheticOfferIssuance.integration.test.js test/firestoreReconciliation.integration.test.js test/syntheticAirtableBinding.integration.test.js test/syntheticContractFreeze.integration.test.js"
+            "node --test test/firestoreEmulator.integration.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js test/syntheticOfferIssuance.integration.test.js test/firestoreReconciliation.integration.test.js test/syntheticAirtableBinding.integration.test.js test/syntheticContractFreeze.integration.test.js test/syntheticContractChain.integration.test.js"
       # No gcloud, Firebase login, Firebase deploy, service account keys, OAuth,
       # remote Firestore endpoints, Make, Airtable or email. Only local emulator.

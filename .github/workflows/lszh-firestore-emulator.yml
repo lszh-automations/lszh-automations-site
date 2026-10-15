@@ -14,6 +14,8 @@ on:
       - 'syntheticOfferIssuance.js'
       - 'firestoreReconciliation.js'
       - 'syntheticAirtableBinding.js'
+      - 'airtableReadonlyRecord.js'
+      - 'test/airtableReadonlyRecord.test.js'
       - 'test/syntheticAirtableBinding.test.js'
       - 'test/syntheticAirtableBinding.integration.test.js'
       - 'test/firestoreReconciliation.test.js'
@@ -62,6 +64,8 @@ jobs:
           node --check syntheticOfferIssuance.js
           node --check firestoreReconciliation.js
           node --check syntheticAirtableBinding.js
+          node --check airtableReadonlyRecord.js
+          node --check test/airtableReadonlyRecord.test.js
           node --check test/syntheticAirtableBinding.test.js
           node --check test/syntheticAirtableBinding.integration.test.js
           node --check test/firestoreReconciliation.test.js
@@ -69,7 +73,7 @@ jobs:
           node --check test/syntheticOfferIssuance.test.js
           node --check test/syntheticOfferIssuance.integration.test.js
           node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
-          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js
+          node --test test/stagingFirestoreConnection.test.js test/syntheticOfferIssuance.test.js test/firestoreReconciliation.test.js test/syntheticAirtableBinding.test.js test/airtableReadonlyRecord.test.js
       - name: Run real Firestore transactions on a local demo-project emulator
         run: |
           ./node_modules/.bin/firebase emulators:exec \

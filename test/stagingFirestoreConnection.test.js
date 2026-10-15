@@ -5,7 +5,7 @@ const {createStagingFirestoreConnection,StagingConfigError,ALLOWED_SERVICE}=requ
 let calls=0;
 class FakeFirestore {
   constructor(options){calls++;FakeFirestore.lastOptions=options;}
-  doc(path){FakeFirestore.lastPath=path;return {get:async()=>({exists:true,data:()=>({marker:'SYNTHETIC'})})};}
+  doc(path){FakeFirestore.lastPath=path;return {get:async()=>({exists:true,data:()=>({marker:'SYNTHETIC',schemaVersion:1,testOnly:true,fixtureId:path.split('/')[1]})})};}
 }
 const cloud={K_SERVICE:ALLOWED_SERVICE,GOOGLE_CLOUD_PROJECT:'lszh-automations',
   LSZH_FIRESTORE_PROJECT_ID:'lszh-automations',LSZH_FIRESTORE_DATABASE_ID:'lszh-offers-staging'};
@@ -63,4 +63,12 @@ test('read-only facade permits only explicit scoped fixture reads',async()=>{
   assert.equal(state.exists,true);
   assert.equal(state.data.marker,'SYNTHETIC');
   assert.ok(Object.isFrozen(state));
+});
+
+test('a fixture may not be read if its schema is live or forged',async()=>{
+  class ForgedFirestore extends FakeFirestore {
+    doc(path){return {get:async()=>({exists:true,data:()=>({schemaVersion:1,testOnly:false,fixtureId:path.split('/')[1]})})};}
+  }
+  const c=createStagingFirestoreConnection({Firestore:ForgedFirestore,env:cloud});
+  await assert.rejects(c.readFixture('LSZH-STAGING-20261015-001'),StagingConfigError);
 });

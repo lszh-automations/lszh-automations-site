@@ -36,6 +36,10 @@ Neues Modul `stagingFirestoreConnection.js`:
 - Lokaler Syntax-/Node-Prüflauf **19 bestanden, 1 bewusst übersprungen, 0 fehlgeschlagen**. Dies ist **nicht** das Ergebnis einer realen Firestore-Emulator-Transaktion; die Integration bleibt ungeprüft. Die GitHub-CI führt denselben Test standardmässig im sicheren Skip-Modus.
 - Kein Emulator gestartet, keine Cloud-Ressource angesprochen, kein Firestore-Dokument beschrieben.
 
+## Technischer Nachtrag: echter Emulatornachweis (15.10.2026)
+
+Der lokale Firestore-Test wurde zwischenzeitlich **zweimal erfolgreich über GitHub Actions ausgeführt**, in einer neuen, kurzlebigen Emulator-Umgebung. Der Client-Factory-Modus `emulator` wurde sicherheitshalber auf das **Demo-Firebase-Projekt** `demo-lszh-offers` umgestellt; nur der ungeänderte `cloud-run`-Modus referenziert weiter die echte Projekt-ID `lszh-automations`. Die benannte DB-ID `lszh-offers-staging` bleibt gleich, die Verbindung ist ausschliesslich `127.0.0.1`. Je 7 Unit-Sicherheitstests und 2 echte SDK-Integrationstests bestanden, insbesondere parallele Annahmen und benanntes-vs-default-Isolationsverhalten. Siehe [LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md](LSZH_FIRESTORE_EMULATOR_ABNAHME_20261015.md). Hinweise auf einen noch **nicht** ausgeführten Emulatorlauf in früheren Abschnitten sind historische Projektzwischenstände. **Kein** Google-Cloud-Firestore-Schreibzugriff erfolgte.
+
 ## Integrationsentscheidung vor einem echten Annahmetest
 
 Der bereits existierende Website-Host Render besitzt **keine nachgewiesene** kurzlebige Google-Cloud-Dienstidentität für den Aufruf eines IAM-geschützten Cloud-Run-Dienstes. Cloud Run verlangt für private Service-to-Service-Aufrufe ein Google-signiertes ID-Token mit korrekter `aud`-Angabe und expliziter Invoker-Berechtigung. Zwei sichere Wege:

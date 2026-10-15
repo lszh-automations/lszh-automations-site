@@ -13,7 +13,7 @@ const base={
   documents:{offer:{sha256:H('2')},terms:{sha256:H('3')},avv:{sha256:H('4')}}
 };
 const input={
-  documentPath:'stagingOfferAcceptanceStates/DEMO-OFF-20261015-001',
+  documentPath:'stagingOfferFixtures/DEMO-OFF-20261015-001',
   expected:{tokenHash:H('1'),quoteSha256:H('2'),termsSha256:H('3'),
     avvSha256:H('4'),termsVersion:'TEST_ONLY_TERMS',
     avvVersion:'TEST_ONLY_AVV',offerNumber:'DEMO-OFF-20261015-001'},

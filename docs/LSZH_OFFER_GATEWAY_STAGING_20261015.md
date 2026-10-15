@@ -22,9 +22,12 @@
 
 ## Überprüfungen
 
-- Lokaler Node-22-HTTP-Test `services/offer-acceptance-staging/test/app.test.js`: **8/8 bestanden** (Health-Status, Oberfläche/Headers, alle drei blockierten Routen, Fragment vs Query, falsche Methoden, kein CORS, keine internen Dateien, CSP).
+- Lokaler Node-22-HTTP-Test `services/offer-acceptance-staging/test/app.test.js`: **11/11 bestanden** (Health-Status, Oberfläche/Headers, alle drei blockierten Routen, Fragment vs Query, falsche Methoden, kein CORS, keine internen Dateien, CSP).
+- Zusätzlich `services/offer-acceptance-staging/offerLinks.js`: reiner, nebenwirkungsfreier Helfer, der einen 43 Zeichen langen Zufallstoken ausschliesslich in ein URL-Fragment unter einer explizit freigegebenen HTTPS-Origin einsetzt. Er **stellt selbst keine Tokens aus**. Drei zugehörige Tests prüfen HTTPS-Host-Whitelist, Query-Freiheit und Tokenformat.
 - Der Staging-Code wurde in GitHub gespeichert, der CI-Workflow `.github/workflows/offer-acceptance-check.yml` wurde ergänzt. **GitHub-Actions-Lauf nicht bestätigt; Docker-Image nicht gebaut; Cloud Run nicht deployed.**
 - Bestehende isolierte Firestore-Fassade `stagingFirestoreConnection.js` und Transaktionskandidat `firestoreAcceptanceState.js` sind **noch nicht eingebunden**. Offline-Fake-Tests oder HTTP-Gateway-Tests sind kein echter Firestore-End-to-End-Test.
+
+**Lokaler Abgleich nach Reparatur einer veralteten Testkopie:** 38 erfolgreiche Node-Tests über die lokal verfügbaren Firestore-/Gateway-Module, 1 bewusst übersprungener Emulator-Test, 0 Fehlschläge. Dieser Durchlauf ist kein bestätigter GitHub-CI-Lauf und kein echter Google-Cloud-Test.
 
 ## Freigabefolge (nichts davon ausgelöst)
 

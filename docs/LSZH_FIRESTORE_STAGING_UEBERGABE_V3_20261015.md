@@ -172,3 +172,23 @@ Der Betreiber hat per Cloud Shell die unveränderte Build-Source-ZIP von Revisio
 - Die GitHub-CI für offline only wurde um `test/firestoreAcceptanceState.test.js` erweitert. CI-Ausführung ist noch nicht verifiziert.
 
 **Sichere nächste Entwicklungsarbeit:** Schema/Mappings harmonisieren, Cloud-Run-/Render-Zuständigkeiten und Authentifizierung der Verbindung planen, AVV-Archivprüfung ergänzen, nach expliziter Testfreigabe Cloud-Firestore-Emulator und dann isolierte echte Staging-Transaktionen testen. Bis dahin keine Änderung am bestehenden `server.js`, keinerlei Deployment, keine produktiven Make-Mails oder Annahmen.
+
+## 15.10.2026 – Schema-Harmonisierung und Testpaket V4 (aktueller Entwicklungsstand)
+
+Die zuvor dokumentierte Abweichung zwischen **V3-Offline-Fixture** und dem separaten Transaktionsbaustein ist auf dem isolierten GitHub-Entwicklungszweig **behoben**. V3 bleibt unverändert als historischer Nachweis; neues Gesprächsartefakt `LSZH_Firestore_Staging_Testpaket_V4_20261015.zip`.
+
+- Neues gemeinsames Modul `stagingOfferSchema.js` definiert Zielprojekt `lszh-automations`, **benannte** Datenbank `lszh-offers-staging`, Region `europe-west6`, Collection `stagingOfferFixtures` sowie `schemaVersion=1`.
+- `scripts/prepare-firestore-staging.js` verwendet dieses Modul, prüft drei echte lokale PDF-Byte-Hashes und erzeugt den gemeinsamen Datensatz. Wichtigste Sperren: `status=TEST_DRAFT_NOT_SENT`, `tokenHash=null`, `expiresAt=null`, `legallyApproved=false`, `acceptanceEnabled=false`, `deliveryEnabled=false`, `deliveryConfirmed=false`, `archiveVerified=false`, `acceptedAt=null`, `reconciliationStatus=NOT_STARTED`.
+- `firestoreAcceptanceState.js` setzt nun `schemaVersion=1`, `testOnly=true`, geprüften Fixture-Pfad sowie **pro PDF** Dateityp, gültige Drive-ID und `archiveVerified=true` voraus. Das verhindert, dass ein ungeprüfter / ungeeigneter Fixture als annehmbar behandelt wird. Für den separaten positiven Simulationsfall sind sämtliche Freigabefelder in einer **nur lokalen Fake-Datenbank** gesetzt.
+- `test/stagingOfferSchema.test.js` belegt Vertrag zwischen dem Mapping und dem gesperrten Annahmebaustein, einschliesslich Verarbeitung des unveränderten V3-PDF-Manifests.
+- **Offline überprüft:** 12 neue Node-Tests erfolgreich (9 Transaktionskandidat plus 3 Schema-/Mappingtests), 17 bestehende Python-PDF-/Manifest-Tests erfolgreich; zusätzlich die vorhandenen geschützten drei V3-PDF-Bytes und das echte V3-Manifest mit dem neuen Mapping erfolgreich gelesen. Das V4-ZIP wurde lokal auf Integrität geprüft (15 Einträge, genau 3 PDFs). GitHub CI-Ausführung / Live-Firestore-Transaktion **nicht** bestätigt.
+- `.github/workflows/firestore-staging-check.yml` ergänzt, damit GitHub künftig auch das gemeinsame Modul und die Mappingtests prüft.
+
+### Unverändert offen – sichere Reihenfolge
+
+1. Die bestehende Render-Website und `server.js` werden **nicht** automatisch mit Firestore verbunden. Ein Authentifizierungs-/Hostingkonzept ohne langfristige Dienstkonto-Schlüssel braucht separate Entscheidung. Die bestehende Cloud-Run-Preflight-Funktion bleibt unverändert.
+2. Geschützte AVV-PDF-Auslieferung, bytegenaue Drive-Hashverifikation und Einwilligungsprotokoll mit Bedingungen/AVV sind in der **bestehenden Website-API** weiterhin unvollständig.
+3. Erst nach ausdrücklicher Zustimmung zu einem isolierten **Staging-Schreibtest** und Berechtigungskontrolle wird ein synthetisches Dokument in die benannte Firestore-Datenbank geschrieben. Weder V4 noch GitHub-CI bewirken einen Import.
+4. Firebase-Emulator-/echter Transaktionskonflikttest, Wiederanlauf des Airtable-Abgleichs, Rechtsprüfung und produktive Freigaben bleiben offen.
+
+**Nicht verwechseln:** Der Transaktionsbaustein ist noch **nicht** an die Website angebunden. Die erfolgreiche simulierte Doppelannahme beweist keine echte Firestore-Transaktion. Dieses Staging-Modul mit `testOnly=true` ist **keine produktionsfertige Annahme-API**.

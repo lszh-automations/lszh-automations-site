@@ -67,6 +67,13 @@ test('emulator: two independent issuers generate exactly one non-deliverable tok
   assert.equal((await bindingRef.get()).data().fixtureId,fixtureId);
   const input={fixtureId,archiveBytes:bytes,now,expiresAt,testMode:'offline-or-emulator-only',
     airtableRecordId:recordId,readRecord:async()=>mockRecord};
+  // Airtable changed AFTER binding. The new independent snapshot must veto
+  // issuance even though the pinned Firestore offer/guard remain identical.
+  await assert.rejects(issueSyntheticOfferOnce({...input,db:a,
+    readRecord:async()=>({...mockRecord,fields:{
+      ...mockRecord.fields,'Online-Annahme AVV-SHA256':'f'.repeat(64)
+    }})}),e=>e.reason==='readback_mismatch');
+  assert.equal((await ref.get()).data().status,'TEST_DRAFT_NOT_SENT');
   const results=await Promise.allSettled([a,b].map(db=>issueSyntheticOfferOnce({...input,db})));
   const success=results.filter(r=>r.status==='fulfilled');
   const failed=results.filter(r=>r.status==='rejected');

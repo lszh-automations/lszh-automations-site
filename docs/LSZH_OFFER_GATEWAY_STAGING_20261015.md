@@ -1,0 +1,40 @@
+# LSZH – getrenntes Offertenportal auf Cloud Run (Entwicklungsstand 15.10.2026)
+
+**Status: nur Code im Entwicklungszweig; KEIN Deployment, KEIN IAM-/DNS-Wechsel, KEINE Echtannahmen, KEINE Firestore-Schreibzugriffe.**
+
+## Architekturlösung – kleine Schnittstellenfläche
+
+1. **Render bleibt die bestehende LSZH-Hauptwebsite und CRM-Kontaktstrecke.** Der bestehende Live-Webserver wird nicht umkonfiguriert.
+2. **Ein eigener späterer Cloud-Run-Dienst** `lszh-offer-acceptance-staging` soll ausschliesslich die Offerten-Webseite und ihre API unter **demselben Origin** bereitstellen. Das reduziert gegenüber einem Render→Cloud-Run-Proxy den Bedarf an plattformübergreifender Authentifizierung.
+3. **Noch ist dieser Dienst weder eingerichtet noch öffentlich.** Für private interne Tests soll Cloud Run IAM aktiv bleiben. Externe Kunden werden sich später nicht mit dem LSZH-Google-Konto anmelden können; ein Go-live setzt daher eine **gesonderte öffentliche Zugangsarchitektur** samt Rate-Limiting, über HTTPS übertragener Einmalcode-Prüfung, Freigabe des individuellen Angebots und Transaktionsschutz voraus. Eine öffentliche URL allein ist **keine** Authentifizierung und ein Kundenlink ist **keine** starke Identitätsprüfung.
+4. Der Cloud-Run-Dienst erhält künftig ein **eigenes, minimal berechtigtes Dienstkonto**, nutzt Google Application Default Credentials (ADC) für die **benannte** Firestore-Datenbank `lszh-offers-staging` und getrennte Drive-Leserechte. Kein exportierter Dienstkonto-Schlüssel wird in Render oder auf Clients hinterlegt. Die vorhandene Preflight-Revision `lszh-offer-portal-staging-00004-qt7` bleibt unberührt.
+5. Airtable bleibt CRM; nur die endgültige **einmalige Annahme** soll Firestore transaktional entscheiden. Synchronisation zu Airtable/Make **danach** asynchron, dedupliziert und wiederaufnehmbar. Vertrags-AVV, Offerte, Bedingungen und Beweisprotokoll müssen mit vollständigen SHA-256-Werten verbunden werden.
+
+## Jetzt wirklich implementiert (ohne Aktivierung)
+
+- `services/offer-acceptance-staging/app.js`: Node.js-HTTP-App mit `GET /healthz`, `GET /offerte-annehmen/` und drei vollständig **blockierten** POST-Routen `/api/offer/preview`, `/api/offer/document`, `/api/offer/accept`. Alle drei geben stets HTTP 503 `not_available` zurück, unabhängig von Umgebungsvariablen.
+- `services/offer-acceptance-staging/index.js`: HTTP-Server auf Cloud-Run-`PORT`, bindet `0.0.0.0`. Keine SDK-Datenbankverbindung und keine externen Anfragen.
+- `services/offer-acceptance-staging/Dockerfile`: kleiner Node-22-Bauplan ohne SDK-Abhängigkeiten, nichtroot-Betrieb, kopiert die **bereits vorhandene** Seite statt ein zweites Frontend zu entwickeln. **Vor jedem künftigen Deployment:** Node-Basisimage auf geprüften Digest pinnen, Image scannen, Cloud-Run-Servicekonto und Ingress überprüfen.
+- Sicherheitsheader: No-Store, No-Referrer, No-Index, MIME-Sniffing-Schutz, Frame-Verbot und **hashbasiertes CSP** statt `unsafe-inline`. Der Dienst antwortet ohne CORS-Freigaben.
+- `offerte-annehmen/index.html`: liest den Einmalcode nur aus `location.hash` (`#code=...`), nicht mehr aus `location.search` (`?code=...`). Der Fragmentteil einer URL wird vom Browser **nicht** im HTTP-Request an den Server gesendet und reduziert das Risiko, dass der Token in regulären HTTP-Requestlogs landet; Token bleibt dennoch ein Geheimnis, das durch Browser-Erweiterungen/Script und Linkweiterleitung ausgelesen werden kann. **Bestehende Query-Links würden nicht mehr funktionieren und dürfen nicht ohne Migrationsplan verwendet werden.**
+- `scripts/issue-offer-link.js`: die alte direkte Airtable-Tokenausstellung mit `?code=` ist **hart deaktiviert** (ohne Runtime-Flag zur Reaktivierung). Sie würde nur den Airtable-Hash speichern, nicht den Firestore-Ausgabestatus; neue Ausstellung muss künftig transaktional zu Firestore passen. Alter Quellcode in Git-Historie erhalten.
+- Die API antwortet auf Legacy-`?code=` mit HTTP 400 (ohne Echo des Tokens). **Achtung:** Der HTTP-Request selbst kann einen Querytoken dennoch in Cloud-Run-Zugriffslogs hinterlassen; niemals Tokens als Query versenden.
+
+## Überprüfungen
+
+- Lokaler Node-22-HTTP-Test `services/offer-acceptance-staging/test/app.test.js`: **8/8 bestanden** (Health-Status, Oberfläche/Headers, alle drei blockierten Routen, Fragment vs Query, falsche Methoden, kein CORS, keine internen Dateien, CSP).
+- Der Staging-Code wurde in GitHub gespeichert, der CI-Workflow `.github/workflows/offer-acceptance-check.yml` wurde ergänzt. **GitHub-Actions-Lauf nicht bestätigt; Docker-Image nicht gebaut; Cloud Run nicht deployed.**
+- Bestehende isolierte Firestore-Fassade `stagingFirestoreConnection.js` und Transaktionskandidat `firestoreAcceptanceState.js` sind **noch nicht eingebunden**. Offline-Fake-Tests oder HTTP-Gateway-Tests sind kein echter Firestore-End-to-End-Test.
+
+## Freigabefolge (nichts davon ausgelöst)
+
+1. Die echten Node-Tests der gesamten GitHub-Branch ausführen und Fehler beheben. Separater Firestore-Emulator-Test (zwei konkurrierende Annahmeversuche) nur lokal; keine Cloud-Schreibvorgänge.
+2. Einen noch fehlenden **sicheren, geprüften** Firestore-Issuance-/Acceptance-Adapter hinter denselben Cloud-Run-Dienst integrieren, inklusive 3 PDF-Byte-Hashprüfungen, AVV-Einwilligung, Token-Hash, Ablauf, Atomizität, Nachweis und Wiederaufnahme nach Cloud-/Make-Abbruch.
+3. Nur nach ausdrücklicher Zustimmung: eigene Cloud-Run-STAGING-Serviceidentität und least-privilege IAM konzipieren, sichere Vorabtests, Image-Digest-Pinning und später kontrolliertes Deployment **ohne Kundenaktivierung**.
+4. Für externe Kunden erst nach Rechts-/Security-Freigabe öffentlich erreichbaren Origin und Domain/DNS einrichten (z. B. `angebote.lszh-automations.ch`; **Vorschlag, nicht bestätigt oder konfiguriert**). Die Google-Dokumentation empfiehlt für eigene Domains einen HTTPS Load Balancer; Kosten/Domainregeln separat prüfen.
+5. Linkausstellung und Make-Automationen niemals vor Freigabe einschalten. Juristische Prüfung RC1-Projektbedingungen und AVV bleiben separate offene Punkte.
+
+Offizielle technische Referenzen:
+- https://docs.cloud.google.com/run/docs/securing/service-identity
+- https://docs.cloud.google.com/run/docs/authenticating/overview
+- https://docs.cloud.google.com/run/docs/mapping-custom-domains

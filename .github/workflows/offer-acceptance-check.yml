@@ -38,6 +38,7 @@ jobs:
           node --check services/offer-acceptance-staging/test/offerLinks.test.js
           node --check services/offer-acceptance-staging/test/localFixtureClaims.js
           node --check services/offer-acceptance-staging/test/localFixtureClaims.test.js
+          node --check services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js
       - name: Browser page script syntax
         run: |
           node - <<'NODE'
@@ -51,4 +52,4 @@ jobs:
       - name: Unit tests and inactive gateway checks
         run: |
           npm test
-          node --test services/offer-acceptance-staging/test/app.test.js services/offer-acceptance-staging/test/offerLinks.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js
+          node --test services/offer-acceptance-staging/test/app.test.js services/offer-acceptance-staging/test/offerLinks.test.js services/offer-acceptance-staging/test/localFixtureClaims.test.js services/offer-acceptance-staging/test/firestoreEmulatorGateway.integration.test.js

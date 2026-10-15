@@ -51,3 +51,22 @@ Als Chat-Artefakt: `LSZH_Firestore_Staging_Testpaket_V3_20261015.zip`.
 4. Erst nach separat bestätigtem Staging-Schreibentscheid einen einzelnen synthetischen Datensatz mit garantiert geschlossenen Freigabefeldern importieren und read-back prüfen. Kein Token in Klartext und keinerlei Mail/Annahme aktivieren.
 
 **Wichtig:** Aktuelle Cloud-Run-Dienste gehören zu Google Cloud. Der separat angeschlossene Render-Account kann sie nicht stellvertretend verifizieren.
+
+## Codex-Abgleich 15.10.2026 – belegte Architekturabweichungen
+
+- GitHub-Lesung des Branchs `feature/firestore-staging-dryrun-20261015` erfolgreich. Google-Cloud-Verwaltungs-APIs konnten in der Codex-Umgebung **wegen Netzwerkproxy HTTP 403** nicht erreicht werden. Das ist **kein** belastbarer Beleg für fehlende IAM-Rechte.
+- `offerAcceptance.js` verwendet weiterhin Airtable für Token-Lookup und Status-PATCH. **Keine Firestore-Lese-/Schreiblogik** existiert in der betrachteten Anwendung.
+- `inFlight` ist eine lokale `Set`-Sperre pro Prozess; nicht atomar über Cloud-Run-Instanzen. Ein späterer Firestore-Zustandswechsel muss transaktional erfolgen, ohne den Vertrieb in Firestore doppelt zu speichern.
+- `offerArchiveVerifier.js` und die Dokument-API behandeln in diesem Stand nur Offerte und Bedingungen. Die optionale AVV aus dem synthetischen Test muss zusätzlich geschützt ausgeliefert und vor Annahme auf Integrität geprüft werden.
+- `scripts/prepare-firestore-staging.js` ist **nur ein Offline-Mapping**, keine Portalimplementierung und kein importfertiges Cloud-Schema. Collection `stagingOfferFixtures` niemals ohne bewusste Entscheidung anlegen.
+- Welche Git-Revision tatsächlich in Cloud Run läuft, ist weiter unbestätigt.
+
+### Read-only Cloud-Shell-Abgleich statt Proxy-Umgehung mittels zusätzlicher Schlüssel
+
+GitHub-Skript: `scripts/audit-gcp-staging-readonly.sh`. **Läuft nur lokal in einer bereits angemeldeten Google Cloud Shell**, liest ausschliesslich Datenbankmetadaten und Cloud-Run-Revision/Servicekonto/Image-Digest zweier Staging-Dienste. Keine IAM-Änderung, API-Key-Erstellung, Firestore-Schreiboperation, Deployments oder Ausgabe von Umgebungsvariablen.
+
+1. Im Google-Cloud-Projekt `lszh-automations` oben Cloud Shell öffnen.
+2. GitHub-Skript vor Ausführung lesen; dann in der eigenen Shell herunterladen und ausführen.
+3. Die zurückgelieferte Ausgabe prüfen (keine Secrets weitergeben). Ein Image-Digest **allein** beweist noch keine Commit-Zuordnung.
+4. Erst anhand dieser realen Revision die kleinste Firestore-Transaktionsanbindung spezifizieren; produktive Freigabeflags bleiben weiterhin aus.
+

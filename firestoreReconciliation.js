@@ -59,6 +59,7 @@ function eventId(state,documentPath){
  return 'lszh-staging-accept-'+crypto.createHash('sha256').update(digest).digest('hex');
 }
 function previewAirtableAcceptance(state,documentPath){
+ liveGuard();
  const e=state?.acceptanceEvidence;
  const id=eventId(state,documentPath);
  const evidence={schema:'LSZH_STAGING_RECONCILIATION_V1',source:'FIRESTORE_EMULATOR_ONLY',
@@ -85,6 +86,20 @@ function compareRemote(fields,preview){
  if(!fields||typeof fields!=='object'||!preview||preview.mode!=='OFFLINE_PREVIEW_ONLY')
    return 'MANUAL_REVIEW';
  const target=preview.fields;
+ let proof;
+ try{proof=JSON.parse(target['Online-Annahme Nachweis']);}catch{return 'MANUAL_REVIEW';}
+ // Refuse any drift in the original CRM offer version, archive fingerprints
+ // or AVV applicability; source documents must not be silently overwritten.
+ if(fields['Offertennummer']!==proof.offerNumber||
+    fields['Projektbedingungen Version']!==proof.termsVersion||
+    fields['Online-Annahme Offerten-SHA256']!==proof.quoteSha256||
+    fields['Online-Annahme Bedingungen-SHA256']!==proof.termsSha256||
+    (fields['AVV erforderlich']==='Ja')!==proof.acceptedAvv||
+    !['Ja','Nein'].includes(fields['AVV erforderlich'])||
+    (proof.acceptedAvv&&
+      (fields['Online-Annahme AVV-SHA256']!==proof.avvSha256||
+       fields['Online-Annahme AVV-Version']!==proof.avvVersion)))
+   return 'MANUAL_REVIEW';
  let existing;
  try{existing=JSON.parse(String(fields['Online-Annahme Nachweis']||''));}
  catch{existing=null;}

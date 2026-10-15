@@ -102,3 +102,21 @@ Als nächster enger read-only Prüfschritt: sicher gefilterte Startlog-Suche gen
 ## Cloud-Shell Logprüfung – 15.10.2026
 
 Die in der authentifizierten Cloud Shell ausgeführte gefilterte Leseabfrage nach `textPayload:"Hello from Cloud Run!"` für Revision `lszh-offer-portal-staging-00004-qt7` lieferte **keine Ausgabe**. Das beweist weder eine funktionierende Anwendung noch, dass der Platzhalter abgelöst wurde (beispielsweise können Logs fehlen, anders codiert oder nicht mehr aufbewahrt sein). Kein Live-Code-Befund aus diesem Filter. Die nächste Prüfung erfolgt über gefilterte Standardausgabe-/Fehler-Logs der exakt gerouteten Revision; ohne produktive Requests oder Cloud-Änderungen.
+
+## Authentifizierte Cloud-Shell-Logprüfung – 15.10.2026
+
+Vom Nutzer per `gcloud logging read` (nur Lesen) direkt aus Cloud Logging, Filter `resource.type="cloud_run_revision"`, Revision `lszh-offer-portal-staging-00004-qt7`, `stdout`/`stderr`:
+
+| Zeitpunkt UTC | Startlog |
+| --- | --- |
+| 2026-10-15T12:34:58.969966Z | `LSZH_PORTAL_PREFLIGHT: START` |
+| 2026-10-15T12:34:59.071192Z | `LSZH_PORTAL_PREFLIGHT: IDENTITY_PASS` |
+| 2026-10-15T12:35:00.179213Z | `LSZH_PORTAL_PREFLIGHT: DRIVE_PASS` |
+| 2026-10-15T12:35:00.287765Z | `LSZH_PORTAL_PREFLIGHT: FIRESTORE_READ_PASS` |
+| 2026-10-15T12:35:00.287779Z | `LSZH_PORTAL_PREFLIGHT: PASS` |
+
+**Bestätigt:** Die mit 100 % Traffic belegte und als Ready gemeldete Cloud-Run-Revision gibt LSZH-spezifische Startprüfungen mit erfolgreichem Identitäts-, Google-Drive- und Firestore-Lesetest aus. Dies ist wesentlich stärkere Evidenz für eine echte LSZH-Preflight-Anwendung als das Fehlen der Standard-Platzhaltermeldung.
+
+**Nicht bestätigt:** welchen Dokumentpfad/welche Firestore-Collection die Startprüfung liest; ob es eine geschützte Angebotsvorschau, AVV-Dokumentenprüfung und eine Transaktionslogik für mehrfache Annahmen gibt; welcher Git-Commit im Image-Digest enthalten ist; ob Frontend/API und die eigentliche Annahme überhaupt implementiert bzw. deaktiviert sind. Startup-PASS ist kein End-to-End-Test. Keine Annahme-/Versand-/Schreibfunktion aktivieren.
+
+**Nächster sicherer Schritt:** Ohne Deployments und ohne Geheimnisoffenlegung nur lesend die Cloud-Run-Revisionsmetadaten auf Herkunfts-/Build-Informationen prüfen und die Anwendungsschnittstellen (falls vorhanden) ohne produktive Zustandsänderung ermitteln. Anschliessend Designentscheidung für Firestore: nur atomaren Annahmestatus transaktional ergänzen, Airtable weiterhin CRM; kein zweites CRM bauen.

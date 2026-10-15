@@ -71,6 +71,33 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Offline rollback package deployability test
+        working-directory: cloud-run/offer-portal-preflight
+        env:
+          # Prevent startup from contacting metadata, Drive, or Firestore.
+          K_SERVICE: offline-preflight-unit-test
+          GOOGLE_CLOUD_PROJECT: demo-offline-never-deploy
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --ignore-scripts
+          node --check index.js
+          ./node_modules/.bin/functions-framework --target=lszhPortalPreflight --source=index.js --port=18080 > /tmp/lszh-readonly-boot.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          result=""
+          for attempt in $(seq 1 30); do
+            result=$(curl -sS --max-time 2 -o /tmp/lszh-readonly-body -w "%{http_code}" "http://127.0.0.1:18080/anything" 2>/dev/null || true)
+            if [ "$result" = "503" ]; then break; fi
+            sleep 1
+          done
+          if [ "$result" != "503" ]; then
+            echo "Readonly preflight boot failure (local only)"
+            sed -n '1,25p' /tmp/lszh-readonly-boot.log
+            exit 1
+          fi
+          grep -Fq '"error":"staging_disabled"' /tmp/lszh-readonly-body
+          echo "PASS: rollback source installed, server booted, and all requests return 503; no cloud credentials used"
+
   firestore-emulator:
     name: Synthetic named Firestore transactions (emulator only)
     runs-on: ubuntu-latest

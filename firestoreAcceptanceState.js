@@ -2,6 +2,8 @@
 // Offline-tested transaction component. NOT wired to HTTP, Make, Airtable or live Cloud Run.
 // Dependency injection: caller provides a Firestore client later, after explicit staging approval.
 const crypto=require('node:crypto');
+const {SCHEMA_VERSION,isStagingPath}=require('./stagingOfferSchema');
+const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
 const HEX64=/^[a-f0-9]{64}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 class ClaimRejected extends Error {
@@ -13,32 +15,42 @@ function equalHash(a,b){
   return crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 }
 const email=s=>String(s||'').trim().toLowerCase();
-function eligible(state,expected,actor,now){
-  if(!state||state.status!=='ISSUED'||state.acceptanceEnabled!==true||
+function eligible(state,documentPath,expected,actor,now){
+  if(!state||state.schemaVersion!==SCHEMA_VERSION||state.testOnly!==true||
+    !isStagingPath(documentPath)||documentPath!=='stagingOfferFixtures/'+state.fixtureId||
+    state.status!=='ISSUED'||state.acceptanceEnabled!==true||
     state.legallyApproved!==true||state.deliveryConfirmed!==true||
     state.archiveVerified!==true||state.acceptedAt!=null||
-    typeof state.expiresAt!=='string'||!Number.isFinite(Date.parse(state.expiresAt))||
-    Date.parse(state.expiresAt)<now.getTime())
-      throw new ClaimRejected('not_eligible');
+    typeof state.expiresAt!=='string'||
+    !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(state.expiresAt)||
+    !Number.isFinite(Date.parse(state.expiresAt))||Date.parse(state.expiresAt)<=now.getTime())
+    throw new ClaimRejected('not_eligible');
+  if(state.avvRequired!==true&&state.avvRequired!==false)
+    throw new ClaimRejected('not_eligible');
+  // All expected hashes MUST be verified against independently retrieved archive bytes by caller.
+  const verifiedPdf=(kind,hash)=>{
+    const doc=state.documents?.[kind];
+    return doc?.mimeType==='application/pdf'&&doc?.archiveVerified===true&&
+      DRIVE_ID.test(doc.driveFileId||'')&&equalHash(doc.sha256,hash);
+  };
   if(!equalHash(state.tokenHash,expected.tokenHash)||
-    !equalHash(state.documents?.offer?.sha256,expected.quoteSha256)||
-    !equalHash(state.documents?.terms?.sha256,expected.termsSha256)||
+    !verifiedPdf('offer',expected.quoteSha256)||
+    !verifiedPdf('terms',expected.termsSha256)||
     state.termsVersion!==expected.termsVersion||
     state.offerNumber!==expected.offerNumber||
     email(state.recipientEmail)!==email(actor.email))
-      throw new ClaimRejected('document_changed');
+    throw new ClaimRejected('document_changed');
   if(state.avvRequired===true&&
-    (!equalHash(state.documents?.avv?.sha256,expected.avvSha256)||
+    (!verifiedPdf('avv',expected.avvSha256)||
      state.avvVersion!==expected.avvVersion||actor.acceptAvv!==true))
-      throw new ClaimRejected('document_changed');
-  if(state.avvRequired!==true&&state.avvRequired!==false)
-    throw new ClaimRejected('not_eligible');
+    throw new ClaimRejected('document_changed');
 }
 /*
  * Proposed future adapter: Firestore db.doc(path) and
  * db.runTransaction(async tx => { await tx.get(ref); tx.update(ref, data) }).
  * IMPORTANT: caller MUST independently authenticate, rate-limit, verify
- * archived PDF bytes, and check legally authorized offering before calling.
+ * archived PDF bytes from an INDEPENDENT trusted source and legally authorized
+ * offering before calling. Never trust a client-supplied PDF hash alone.
  * NO network calls or other side effects inside the transaction callback;
  * Firestore might retry that callback on conflicts.
  * Firestore is the acceptance source of truth; an asynchronous reconciliation
@@ -47,7 +59,7 @@ function eligible(state,expected,actor,now){
 async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
   check(db&&typeof db.doc==='function'&&typeof db.runTransaction==='function');
   // Staging-only path. NOT a live customer-acceptance endpoint.
-  check(/^stagingOfferFixtures\/[A-Za-z0-9_-]{10,100}$/.test(documentPath||''));
+  check(isStagingPath(documentPath));
   check(expected&&[expected.tokenHash,expected.quoteSha256,expected.termsSha256]
     .every(x=>HEX64.test(String(x||''))));
   check(typeof expected.offerNumber==='string'&&expected.offerNumber.length>5&&
@@ -63,7 +75,7 @@ async function claimOfferOnce({db,documentPath,expected,actor,now=new Date()}){
     const state=snap.data();
     if(state?.status==='ACCEPTED'||state?.acceptedAt!=null)
       throw new ClaimRejected('already_processed');
-    eligible(state,expected,actor,now);
+    eligible(state,documentPath,expected,actor,now);
     const evidence={
       acceptedAt:now.toISOString(),
       actorName:actor.name.trim().replace(/\s+/g,' '),

@@ -29,6 +29,14 @@
 
 **Lokaler Abgleich nach Reparatur einer veralteten Testkopie:** 38 erfolgreiche Node-Tests über die lokal verfügbaren Firestore-/Gateway-Module, 1 bewusst übersprungener Emulator-Test, 0 Fehlschläge. Dieser Durchlauf ist kein bestätigter GitHub-CI-Lauf und kein echter Google-Cloud-Test.
 
+## Nachtrag: lokaler HTTP-zu-Transaktions-Test (15.10.2026)
+
+- `app.js` bietet neu eine **nur bei NODE_ENV=test, ohne Cloud-Run-K_SERVICE, bei beidseitiger Loopback-Verbindung und expliziter injizierter Testfunktion** erreichbare Sonderroute `/__local_fixture/claim`. Die reguläre Cloud-Run-Entrypoint injiziert diese Funktion **nicht**; der Docker-Bauplan nimmt den Testordner nicht auf.
+- Die Sonderroute ruft mit nur **synthetischen lokalen PDF-Bytes** und Fake-Firestore-Transaktionen `firestoreAcceptanceState.claimOfferOnce` auf. Der ganze HTTP-Pfad ist also lokal testbar, ohne echte Annahmen zuzulassen. Kundenschnittstellen bleiben unverändert 503.
+- **20 Gateway- und Linktests lokal unter Node 22 bestanden, 0 fehlgeschlagen, 0 übersprungen**; darin parallele HTTP-Annahmen mit genau einem simulierten Commit sowie Negativtests (AVV, Token, PDF-Änderung und Produktionssperre). Dies ist **keine echte Firestore-Emulator-Transaktion**.
+- Zusätzlicher opt-in Firestore-Emulator-HTTP-Test mit zwei unabhängigen SDK-Clients im GitHub-Entwicklungszweig vorbereitet; standardmässig übersprungen, in dieser Testumgebung noch nicht durchführbar (kein SDK/Emulator vorhanden).
+- Umfang, Grenzen und genaue Folgearbeit: [LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md](LSZH_LOKALER_HTTP_TRANSAKTIONSTEST_20261015.md). Ältere Aussagen weiter oben über „nicht eingebunden“ meinen weiterhin: **kein produktiver Firestore-Adapter und keine Kundenschnittstelle**, nicht den nun vorhandenen lokalen Test.
+
 ## Freigabefolge (nichts davon ausgelöst)
 
 1. Die echten Node-Tests der gesamten GitHub-Branch ausführen und Fehler beheben. Separater Firestore-Emulator-Test (zwei konkurrierende Annahmeversuche) nur lokal; keine Cloud-Schreibvorgänge.

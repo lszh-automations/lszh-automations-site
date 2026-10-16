@@ -1,95 +1,78 @@
-# LSZH – dauerhafte Benachrichtigungsentwürfe (Staging, KEIN Versand)
+# LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
-Stand: 16.10.2026. **Codeentwurf; kein Deployment, keine aktiven Scheduler, keine E-Mails.**
+**Stand:** 16.10.2026. Nur Entwurf auf Branch `feature/onboarding-notification-outbox-20261016` / Draft PR #8; nicht gemergt, nicht deployt, nicht aktiv.
 
-## Warum diese zusätzliche Komponente?
+## Bestätigte Infrastruktur aus Geschäftskonto (diagnostiziert am 16.10.2026)
 
-Eine Browserantwort oder Make-"Accepted" beweist nicht, dass die gesamte technische Onboarding-Eingabeverarbeitung fertig ist. Um einen Kunden *später* zuverlässig benachrichtigen zu können, muss ein Abschlussereignis dauerhaft, wiederholbar und ohne Duplikate vorgemerkt werden. Diese Stufe implementiert **nur dieses Vormerken**, noch nicht den Versand.
+- Google-Cloud-Projekt: `lszh-automations`; aktives Geschäftskonto bestätigt.
+- Firestore Native: **bestehende benannte** Datenbank `lszh-offers-staging`, Region **`europe-west6` (Zürich)**. Es gibt **keine** `(default)`-Datenbank. Keine neue Datenbank nur für diesen synthetischen Versuch erstellen.
+- Artifact Registry: **bestehendes** Docker-Repository `cloud-run-source-deploy`, Standort `europe-west6`. Kein neues Repository erforderlich.
+- APIs aktiviert: Cloud Run, Cloud Build, Artifact Registry, Firestore, Secret Manager.
+- Vorhandene Cloud-Run-Staging-Services: `lszh-archive-reader-staging`, `lszh-offer-acceptance-staging`, `lszh-offer-portal-staging`. **Nicht verändern.**
+- Outbox-spezifisches Dienstkonto `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`: **fehlt**.
+- Outbox-spezifischer Cloud-Run-Dienst `lszh-onboarding-outbox-staging`: **fehlt**.
 
-- Die unabhängig lesende Funktion `onboarding/confirmation.js` prüft das Onboarding in Airtable inklusive gegenseitiger Auftragsverknüpfung, Kundendaten und nötiger Datenschutz-Prüfaufgabe.
-- Ein interner Abgleich ruft nur Onboardings mit Status `Eingegangen` oder `Vollständig` aus Airtable ab; ein 200 vom Make-Webhook genügt ausdrücklich nicht.
-- Ausschliesslich bei `state=completed` wird ein Firestore-Dokument erzeugt:
-  - ID = SHA-256 aus technischem Onboarding-Record-ID + fester Ereignisversion.
-  - `eventType=ONBOARDING_INPUT_PROCESSED_V1`, `state=DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`.
-  - **Keine** Empfängeradresse, kein Projektcode, keine Kontakt- oder Rechnungsdaten in Firestore.
-- Firestore `createDocument(documentId)` ist atomar: erneute Abgleiche und parallele Worker erhalten 409, anschliessend prüft ein lesender GET die unveränderlichen Eigenschaften. **Keine** zweite Erzeugung, **kein** automatischer Versand.
-- Nach Fehlern kann derselbe Vorgang erneut geprüft werden; bei Airtable-/Firestore-Ausfall wird kein positiver Abschluss behauptet. Das ist **keine** Garantie, dass eine zukünftige E-Mail exakt einmal beim Empfänger ankommt.
+**Sicherheitshinweis:** Die vorhandene Firestore-Datenbank ist für Offerten-Staging benannt. Eine zusätzliche, getrennte Collection für rein synthetische Onboarding-Tests ist funktional möglich und vermeidet eine neue Datenbank. **IAM lässt sich per Bedingung auf diese Datenbank, aber nicht auf unsere einzelne Collection begrenzen.** Daher darf das Servicekonto nur für den isolierten synthetischen Staging-Test genutzt werden; vor Livebetrieb separate Datenbank oder stärker isolierte Architektur prüfen.
 
-## Architektur und Sicherheitsgrenzen
+## Datenfluss (nur Testentwürfe)
 
-```text
-Airtable Website CRM (read-only)
-  -> interne, zeitgesteuerte Cloud-Run-Abgleichsinstanz (später, STAGING)
-       -> serverseitige Abschlussprüfung
-       -> Firestore lszh_onboarding_notification_drafts_staging
-            -> DRAFT_NOT_SENT / TEST_ONLY / DELIVERY_DISABLED
-            X  KEIN Sendeszenario / KEIN Gmail / KEIN SMTP
+```
+privater Cloud-Run-Worker (im Code standardmässig DEAKTIVIERT)
+   + explizit genehmigter synthetischer Onboarding-Projektcode
+   -> Airtable lesend: Onboarding -> Auftrag -> Kunde -> ggf. DSG-Aufgabe
+   -> nur wenn alle Persistenzprüfungen erfolgreich sind:
+      Firestore projects/lszh-automations/databases/lszh-offers-staging/
+       documents/lszh_onboarding_notification_drafts_staging/<SHA256-key>
+      status DRAFT_NOT_SENT, testOnly=true, deliveryEnabled=false, emailSent=false
+   X kein Gmail, Make-Mail-Modul, SMTP oder Versand-Consumer
 ```
 
-Der Worker wird *nicht* in der öffentlichen Website gestartet. Nur die separate, authentifizierungspflichtige Cloud-Run-Instanz darf `POST /internal/reconcile` verarbeiten. Zusätzlich ist ein 32+ Zeichen Secret im Header `x-lszh-outbox-key` erforderlich. Cloud Run braucht eine dedizierte Dienstidentität mit minimalen Firestore-Rechten. Google Application Default Credentials kommen über die Cloud-Run-Metadatenidentität, **kein** JSON-Private-Key.
+Der technische Abschluss der **Onboarding-Eingabe** ist *nicht* der Abschluss des Kundenprojekts. Es wird nur ein Entwurf für eine spätere Benachrichtigung vorgemerkt; es ist keine Empfangs- oder Versandgarantie.
 
-Pflicht-Konfiguration nur für gesondertes internes Staging:
-- `LSZH_OUTBOX_STAGE_ENABLED=true` (standardmässig aus)
-- `FIRESTORE_PROJECT_ID=lszh-automations` (zusätzlich zu intern fest verdrahtetem Projekt)
-- `AIRTABLE_ONBOARDING_READ_TOKEN` (ausschliesslich `data.records:read` für die Website-CRM-Base; als Cloud Secret)
-- `OUTBOX_CONTROL_SECRET` (zufällig, min. 32 Zeichen; als Cloud Secret)
-- Firestore `(default)` muss im geschäftlichen Google-Cloud-Projekt existieren; tatsächlicher IAM-Zugriff noch **nicht geprüft**.
+### Sicherheitsgates
 
-**Deployment-Plan, kein ausgeführter Befehl:** Vom Repository-Hauptordner aus den Worker in einem **separaten** Cloud-Run-Staging-Service deployen, Build-Kontext Repository-Stamm (wegen `../../onboarding/confirmation.js`) und Container-Startbefehl `node workers/onboarding-notifications/server.js`. Cloud Run `--no-allow-unauthenticated`, dediziertes Dienstkonto, geeignete Service-Account-IAM-Freigaben, kurze Requestfristen und Secret-Manager-Referenzen; vorher ohne Aktivierungsflag smoke-testen. **Nicht** das bestehende `lszh-offer-portal-staging` oder die Live-Website überschreiben.
+- Der Dienst ist ohne `LSZH_OUTBOX_STAGE_ENABLED=true` deaktiviert. **Keine** produktiven Aktivierungen, Scheduler oder E-Mails.
+- `FIRESTORE_PROJECT_ID=lszh-automations` **und** `FIRESTORE_DATABASE_ID=lszh-offers-staging` sind erforderlich und intern noch einmal hart verdrahtet.
+- `LSZH_STAGING_FIXTURE_CODES` muss **1 bis maximal 3** ausdrücklich genehmigte synthetische Codes enthalten (Kommatrennung, `ob_<UUID>`). Der Dienst scannt **nicht mehr** alle CRM-Onboardings. Ohne Fixture-Allowlist keine Verarbeitung. Diese Codes als Secret behandeln, nicht ins GitHub-Repo oder Logs schreiben.
+- `AIRTABLE_ONBOARDING_READ_TOKEN`: Airtable Personal Access Token mit **ausschliesslich Lesezugriff** auf die Website-CRM-Base; als Google-Secret, nicht im Repo.
+- `OUTBOX_CONTROL_SECRET`: zufällig gewählter, mindestens 32 Zeichen langer Header-Wert; nur als Secret.
+- Nur privates Cloud Run mit `--no-allow-unauthenticated`, eigener Laufzeitidentität, `POST /internal/reconcile` über Cloud-Run-Invoker-Authentisierung **plus** zusätzlichem Header-Secret; keine beliebigen HTTP-Body-Inhalte.
+- Firestore-REST-Zugriff über kurzfristiges Metadaten-Token der Cloud-Run-Dienstidentität; **kein JSON-Dienstkontoschlüssel**.
+- Atomare `createDocument(documentId)` mit Event-ID SHA-256 aus Record-ID und Ereignisversion; bei 409 nur verifizierte identische `DRAFT_NOT_SENT`-Dokumente als existent behandeln. Fehler bleiben fail-closed; keine erneuten Sendungen.
+- Entwürfe enthalten keine Projektcode-Links, Empfängeradressen oder Rechnungsangaben. **Airtable-Lesezugriff kann diese Daten dennoch sehen**, deshalb beschränkte Fixture-Allowlist.
+- Erst **vor** echtem Einsatz dedizierte Firestore-Datenbank sowie kontrollierte Versandzustände, Provider-Idempotenz, Retention und Fehler-Reconciliation festlegen.
 
-Nach bestätigtem synthetischem Staging-Lauf kann ein privater Cloud-Scheduler-Job mit OIDC und dem zusätzlichen Secret `POST /internal/reconcile` periodisch auslösen. Bis dahin fehlt die **automatische Auslösung**; alleine mit diesem Branch erscheinen keine neuen Firestore-Ereignisse.
+## Bereits vorbereitete, nicht ausgeführte Dateien
 
-## Umsetzungsstand Cloud-Run-Staging (16.10.2026)
+- `Dockerfile`: separater Node-Worker, Docker COPY-Allowlist, kein .env, keine Website, keine Git-Metadaten im Container.
+- `cloudbuild.staging.yaml`: baut/pusht ein separat benanntes Image unter **`europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-onboarding-outbox`**; **kein** Deployment. Ausführen erst nach ausdrücklicher Freigabe.
+- `staging-preflight.sh`: rein lesender Check der **tatsächlich vorhandenen** benannten Datenbank und Docker-Registry sowie fehlender Staging-Laufzeitidentität.
+- `staging-diagnostics.sh`: rein lesende detaillierte Google-Cloud-Inspektion.
+- `airtable-candidates.js`: ausdrücklich genehmigte synthetische Codes, **kein vollständiger Airtable-Scan**.
+- `firestore-store.js`: fest verdrahtete benannte Staging-Datenbank und Collection.
+- `.github/workflows/onboarding-notification-outbox.yml`: synthetische Offline-/HTTP-Integrations- und Docker-Build-Tests, ohne Push/Deploy.
 
-Neu im gleichen, nicht gemergten Feature-Branch:
-- `Dockerfile`: eigenständiges Node-22-Staging-Image, explizites COPY nur der sechs benötigten Runtime-Dateien; kein Kopieren von Docs, Tests, lokalen Secret-Dateien, .git oder Live-Website-Server.
-- `cloudbuild.staging.yaml`: baut und pusht **ausschliesslich** ein separates, explizit benanntes Image, **ohne** Cloud-Run-Deployment, Secret-Änderung oder Scheduler-Aktivierung.
-- `staging-preflight.sh`: ausschliesslich lesende `gcloud`-Bestandsaufnahme des **geschäftlichen Google-Kontos**, der korrekten Projekt-ID, benötigten APIs, Firestore-`(default)`, dedizierten Staging-Identität, separaten Artifact-Registry-Ablage und des bestehenden Cloud-Run-Staging-Namens.
-- Vollständiger synthetischer HTTP-End-to-End-Test des Worker-Codes: Airtable-Prüfung, Firestore-Create, 409-Idempotenz, unvollständiger Datenstand, Servicefehler. Keine externen Konten oder Ressourcen betroffen.
-- GitHub CI prüft die Syntax, synthetische Tests und den Image-Build ohne Push/Deployment. **Ein erfolgreicher CI-Build ist noch kein echter Cloud-Run-Test.**
+## Nächste Entscheidungen und Grenzen
 
-**Nächste rein lesende Aktion für den Geschäftsführer in Google Cloud Shell:** Nur mit `lars@lszh-automations.ch` im bestehenden Projekt `lszh-automations`:
+1. Für die reine Staging-Prüfung das dedizierte Outbox-Dienstkonto **nach ausdrücklicher Freigabe** anlegen. KEIN Service-Account-Key erzeugen.
+2. Der Identität **nur** `roles/datastore.user` mit IAM-Bedingung `resource.name=="projects/lszh-automations/databases/lszh-offers-staging"` geben. Das ist **datenbankweit**, nicht collection-spezifisch. Nur Staging; vor Produktiveinsatz getrennte Datenbank.
+3. Gegebenenfalls Cloud-Build-/Artifact-Registry- und Cloud-Run-Invoker-Rechte separat prüfen. Kein Admin-/Editor-Projektrollenpaket pauschal verleihen.
+4. Private Cloud-Run-Testinstanz getrennt von bestehendem Angebotssystem erstellen und zuerst mit `LSZH_OUTBOX_STAGE_ENABLED=false` auf `/health` prüfen. Testcodes/Secrets nicht als Klartext im Repository oder Chat veröffentlichen.
+5. **Nur** nach verifizierten synthetischen Airtable-Fixtures und ausdrücklicher Testfreigabe `LSZH_OUTBOX_STAGE_ENABLED=true` und einen **manuellen** Testlauf durchführen. Der Dienst legt höchstens einen gesperrten Firestore-Entwurf pro Fixture an. Kein Scheduler, kein Sendetransport.
+6. Für spätere Produktivbenachrichtigungen erst getrennten Outbox-Consumer, echte E-Mail-Freigabe, Vertrags-/AVV-Gates, Zustandsautomaten und Provider-ID-Abgleich konzipieren. Make Szenario `7777695` und seine `0=1`-Kundenmail-Sperre unverändert lassen.
 
-```bash
-git clone https://github.com/lszh-automations/lszh-automations-site.git
-cd lszh-automations-site
-git checkout feature/onboarding-notification-outbox-20261016
-bash workers/onboarding-notifications/staging-preflight.sh
-```
+## Wiederholbare Kontrollen
 
-Falls der Ordner schon vorhanden ist, keinen zweiten Klon erzeugen; stattdessen im vorhandenen Klon `git fetch origin` und den Branch mit `git switch --track origin/feature/onboarding-notification-outbox-20261016` wählen, sofern noch nicht angelegt. **Der Preflight ändert nichts.**
-
-**Freigabegrenze:** Fehlende APIs, Service Accounts, Firestore-Berechtigungen, separate Artifact Registry und tatsächliche Deploy-Rechte werden erst nach Prüfung explizit eingerichtet. Niemals JSON-Dienstkontoschlüssel erzeugen oder in Chat/GitHub hochladen. Cloud Run zunächst **privat und disabled** testen; keine produktiven Kundendaten oder Benachrichtigungen verarbeiten. Ein erneuter manueller Abgleich benötigt technische Authentisierung zusätzlich zum Control-Secret. Kosten und Google-Cloud-Region separat gegen das Geschäftskonto prüfen.
-
-## Diagnose nach Cloud-Shell-Preflight vom 16.10.2026
-
-Der vom Geschäftsführer ausgeführte read-only Preflight hat Geschäftskonto, Projekt `lszh-automations` und die fünf erforderlichen APIs bestätigt. Für `(default)`-Firestore, das noch nicht angelegte bzw. nicht lesbare Outbox-Dienstkonto und das separate Container-Repository gab es keine erfolgreiche `describe`-Antwort. **Das beweist noch nicht, dass diese Ressourcen fehlen:** 404 und 403 wurden im ersten Skript bewusst zusammengefasst.
-
-Daher neu `staging-diagnostics.sh`: listet ausschließlich lesend alle Firestore-Datenbanken mit Region und Typ, liest die Fehlerantwort für `(default)`, listet vorhandene Dienstkonten und Artifact-Registry-Repositories in `europe-west6` sowie Cloud-Run-Dienste. **Keine** Konfigurations- oder Ressourcenänderung. Es darf erst nach Auswertung der Diagnose über Firestore-Erstellung (beachte feste Datenbankregion und mögliche Kosten), dedizierte IAM-Identität, Registry-Repo und spätere Cloud-Run-Deploys entschieden werden.
-
+Im bestehenden Cloud-Shell-Klon (nur lesend):
 ```bash
 cd ~/lszh-outbox-review
 git pull --ff-only
-bash workers/onboarding-notifications/staging-diagnostics.sh
+bash workers/onboarding-notifications/staging-preflight.sh
 ```
 
-Der Cloud-Build-Platzhalter für das Docker-Image wurde auf das tatsächliche `lszh-outbox-staging`-Repository vereinheitlicht. **Image nicht pushen oder Cloud Run deployen**, solange Diagnose und Freigaben fehlen.
-
-## Betriebsgrenzen / Abnahme vor Einsatz
-
-1. Der Scanner liest seitenweise höchstens 200 passende Datensätze; bei mehr bricht er bewusst ohne Outbox-Anlagen ab. Vor einer Skalierung auf grössere Kundenmengen muss inkrementelles, dauerhaftes Paging oder eine separate Änderungs-Queue entwickelt werden.
-2. Der Scanner begrenzt Airtable-GETs auf ca. vier Anfragen pro Sekunde und wiederholt 429/temporäre 5xx begrenzt. Ein abgebrochener Gesamt-Lauf ist unverbindlich; **keine** E-Mail wird ausgelöst.
-3. Eine `409` auf existierenden, aber nicht plausiblen Ereignisdatensatz löst einen Fehler aus statt Überschreiben.
-4. Abschluss meint die **technische Verarbeitung der Onboarding-Angaben**, **nicht** Projektabschluss, Make-Berechtigungsprüfung, Datenschutzfreigabe oder Offertenannahme.
-5. Die spätere Versandkomponente benötigt ein **separates** Freigabe-/Zustandsmodell (sendefreigegeben, beansprucht, providerbestätigt, unsicher/manuell prüfen), robuste Provider-ID-Reconciliation und doppelte Sendesperre. Eine unklare Providerantwort darf **nicht** blind erneut senden. Dieser Versand ist **nicht implementiert**.
-6. Inaktiv bleiben: Make-Originalscenario `7777695`, dessen Kundenmail `0=1`, sämtliche produktiven Offerten-/Annahmesysteme und rechtlichen Freigabepunkte.
-7. HTTP-Gegenprobe des Website-Servers muss unautorisierte Zugriffe auf `/workers/**`, `/server.js`, `/.env`, `/docs/**` und Tests mit 404 ablehnen; die bekannten öffentlichen Routen bleiben erreichbar.
-
-## Tests
-
-Lokal im Repository:
-```sh
+Synthetische Tests:
+```bash
 node --test workers/onboarding-notifications/*.test.mjs
 ```
 
-GitHub Actions: `.github/workflows/onboarding-notification-outbox.yml`. Es werden **nur synthetische Offline-Tests** ausgeführt; keine echten Airtable- oder Firestore-Schreiboperationen. Freigabeentscheidungen und Cloud-Konfiguration sind separat und ausdrücklich vom Geschäftsführer zu bestätigen.
+Diese Dokumentation und der Code bereiten die Staging-Integration vor, führen sie aber **nicht** aus.

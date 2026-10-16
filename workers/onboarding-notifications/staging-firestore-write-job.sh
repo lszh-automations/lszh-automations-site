@@ -13,7 +13,7 @@ REGISTRY='cloud-run-source-deploy'
 SA="lszh-onboarding-outbox-staging@${PROJECT}.iam.gserviceaccount.com"
 BRANCH='feature/onboarding-notification-outbox-20261016'
 JOB='lszh-firestore-write-probe-staging'
-SOURCE_COMMIT='1502a6da6eed50d16e0746ad556dccfa2aacfff4'
+SOURCE_COMMIT='a20757439a34cfbf9f4c4a919da5047c38222920'
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REGISTRY}/lszh-firestore-write-probe:staging-${SOURCE_COMMIT:0:12}"
 MODE="${1:---plan}"
 if [[ "$#" -gt 1 ]]; then echo 'STOP: Exactly zero or one argument required.';exit 2;fi

@@ -50,6 +50,14 @@ Der Test verwendet nur `127.0.0.1` als lokale HTTP-Schnittstelle, fiktive `recAA
 
 **Es gab noch keinen realen zusammenhängenden Airtable→Cloud-Run→Firestore-End-to-End-Lauf.**
 
+## C.1 – Tatsächlich aktive Automationen (ebenfalls nur gelesen)
+
+Der verbundene Airtable-Automationsbestand der Basis `LSZH Automations – Website CRM` wurde geprüft: **9 Automationen, davon 8 aktiv**. Insbesondere `LSZH Projekte – Standard-Onboarding` ist **aktiv** und reagiert auf bestimmte `Aufträge`-Bedingungen. Die per Lesezugriff geprüfte Konfiguration erzeugt bei Zutreffen mehrere `Projektaufgaben` und aktualisiert den Auftrag. `LSZH Projekte – Abschluss & Betreuung` ist aktiv und kann bei erfüllten Abschlussbedingungen einen Folgecheck erzeugen; `LSZH Betreuung – Folgecheck anlegen` ist ebenfalls aktiv. Zudem existieren zwei aktive tägliche Rechnungs-Automationen. Die Aktionen wurden **nicht ausgeführt oder umgestellt**. Diese Beobachtungen reichen aus, um das Erzeugen einer Test-Auftragskette im gemeinsamen CRM **ohne Prüfung der Triggerbedingungen und der Make-Seite** zu untersagen. Ein Testdatensatz in `Kunden-Onboarding` allein reicht nicht für einen vollständigen positiven E2E-Fall, weil der Code eine intakte Auftrags- und Kundenreferenz verlangt.
+
+Über die verbundene Make-Organisation wurde ebenfalls **nur lesend** geprüft: Das Team hat aktuell **2 aktive Szenarien**, keines davon ein Airtable-/LSZH-Onboarding-Szenario (die beiden aktiven Szenarien betreffen iOS bzw. Mail-Löschung). Sieben mit `Onboarding` im Namen gefundene Szenarien sind aktuell `inactive`, darunter das ursprüngliche `LSZH Kunden-Onboarding – Eingang` (Szenario `7777695`), ein isolierter synthetischer Guard und die Make-Einrichtungs-/Folgecheck-Mailszenarien. **Keine** dieser Szenarien wurde aktiviert oder gestartet. Dies sind Momentaufnahmen; ein späteres Aktivieren oder Ändern der Trigger verändert den Befund.
+
+**Konsequenz:** Die wesentlichste Gefahr einer unkontrollierten Test-Fixture liegt derzeit insbesondere in den **aktiven Airtable-Automationen und deren möglichen Folgewirkungen**. Ein vollwertiger realer Test braucht eine separat isolierte Fixture-Strategie bzw. eine vorab verifizierte Ausnahme von Triggerbedingungen. Keinesfalls pauschal alle bestehenden Automationen abschalten.
+
 ## D. Nächste risikoarme Reihenfolge
 
 1. **Keine weiteren Firestore-Probejobs** und keine erneute Ausführung der bereits erfolgreichen Einmal-Jobs.

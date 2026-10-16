@@ -39,6 +39,28 @@ Pflicht-Konfiguration nur für gesondertes internes Staging:
 
 Nach bestätigtem synthetischem Staging-Lauf kann ein privater Cloud-Scheduler-Job mit OIDC und dem zusätzlichen Secret `POST /internal/reconcile` periodisch auslösen. Bis dahin fehlt die **automatische Auslösung**; alleine mit diesem Branch erscheinen keine neuen Firestore-Ereignisse.
 
+## Umsetzungsstand Cloud-Run-Staging (16.10.2026)
+
+Neu im gleichen, nicht gemergten Feature-Branch:
+- `Dockerfile`: eigenständiges Node-22-Staging-Image, explizites COPY nur der sechs benötigten Runtime-Dateien; kein Kopieren von Docs, Tests, lokalen Secret-Dateien, .git oder Live-Website-Server.
+- `cloudbuild.staging.yaml`: baut und pusht **ausschliesslich** ein separates, explizit benanntes Image, **ohne** Cloud-Run-Deployment, Secret-Änderung oder Scheduler-Aktivierung.
+- `staging-preflight.sh`: ausschliesslich lesende `gcloud`-Bestandsaufnahme des **geschäftlichen Google-Kontos**, der korrekten Projekt-ID, benötigten APIs, Firestore-`(default)`, dedizierten Staging-Identität, separaten Artifact-Registry-Ablage und des bestehenden Cloud-Run-Staging-Namens.
+- Vollständiger synthetischer HTTP-End-to-End-Test des Worker-Codes: Airtable-Prüfung, Firestore-Create, 409-Idempotenz, unvollständiger Datenstand, Servicefehler. Keine externen Konten oder Ressourcen betroffen.
+- GitHub CI prüft die Syntax, synthetische Tests und den Image-Build ohne Push/Deployment. **Ein erfolgreicher CI-Build ist noch kein echter Cloud-Run-Test.**
+
+**Nächste rein lesende Aktion für den Geschäftsführer in Google Cloud Shell:** Nur mit `lars@lszh-automations.ch` im bestehenden Projekt `lszh-automations`:
+
+```bash
+git clone https://github.com/lszh-automations/lszh-automations-site.git
+cd lszh-automations-site
+git checkout feature/onboarding-notification-outbox-20261016
+bash workers/onboarding-notifications/staging-preflight.sh
+```
+
+Falls der Ordner schon vorhanden ist, keinen zweiten Klon erzeugen; stattdessen im vorhandenen Klon `git fetch origin` und den Branch mit `git switch --track origin/feature/onboarding-notification-outbox-20261016` wählen, sofern noch nicht angelegt. **Der Preflight ändert nichts.**
+
+**Freigabegrenze:** Fehlende APIs, Service Accounts, Firestore-Berechtigungen, separate Artifact Registry und tatsächliche Deploy-Rechte werden erst nach Prüfung explizit eingerichtet. Niemals JSON-Dienstkontoschlüssel erzeugen oder in Chat/GitHub hochladen. Cloud Run zunächst **privat und disabled** testen; keine produktiven Kundendaten oder Benachrichtigungen verarbeiten. Ein erneuter manueller Abgleich benötigt technische Authentisierung zusätzlich zum Control-Secret. Kosten und Google-Cloud-Region separat gegen das Geschäftskonto prüfen.
+
 ## Betriebsgrenzen / Abnahme vor Einsatz
 
 1. Der Scanner liest seitenweise höchstens 200 passende Datensätze; bei mehr bricht er bewusst ohne Outbox-Anlagen ab. Vor einer Skalierung auf grössere Kundenmengen muss inkrementelles, dauerhaftes Paging oder eine separate Änderungs-Queue entwickelt werden.

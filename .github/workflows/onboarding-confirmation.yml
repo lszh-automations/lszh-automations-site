@@ -1,0 +1,25 @@
+name: Onboarding completion verification (synthetic only)
+on:
+  push:
+    branches:
+      - feature/onboarding-server-confirmation-20261016
+  pull_request:
+    paths:
+      - 'server.js'
+      - 'onboarding/**'
+      - '.github/workflows/onboarding-confirmation.yml'
+jobs:
+  offline-tests:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check server syntax
+        run: node --check server.js
+      - name: Synthetic offline tests (no API keys, emails or deployments)
+        run: node --test onboarding/*.test.mjs

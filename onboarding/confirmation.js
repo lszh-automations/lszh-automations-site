@@ -23,7 +23,9 @@ async function readAirtable({token, fetchImpl, table, id, formula, fields, timeo
     url.searchParams.set('filterByFormula', formula);
     url.searchParams.set('maxRecords', '2');
   }
-  for (const field of fields) url.searchParams.append('fields[]', field);
+  // Airtable accepts fields[] on LIST, not GET by record ID.
+  // Single-record reads return the fields necessary for server-only verification.
+  if (!id) for (const field of fields) url.searchParams.append('fields[]', field);
   const result = await fetchImpl(url.href, {
     method: 'GET',
     headers: {Authorization: 'Bearer ' + token, Accept: 'application/json'},

@@ -179,6 +179,29 @@ Wenn die Token-Erzeugung erfolgreich ist, sendet es genau **zwei GET-Requests** 
 
 Ein solcher PASS beweist einen technischen GET-Zugriff unter dieser Identität, aber **keine Firestore-Schreibberechtigung**, keinen echten Outbox-Lauf und keine Abwesenheit geerbter Berechtigungen. Dafür wären gesonderte, ausdrücklich freigegebene synthetische Tests notwendig. Die Firestore-Conditional-IAM-Syntax wurde mit der Google-Dokumentation abgeglichen.
 
+## Impersonations-Test am 16.10.2026: NICHT NACHGEWIESEN
+
+Der Geschäftsführer führte den getrennt freigegebenen Befehl `staging-firestore-read-probe.sh --probe-read` aus. Der Preflight für Konto, Ziel und Staging-Dienstkonto war erfolgreich. Die Ausgabe stoppte danach korrekt:
+
+```
+UNVERIFIED: Could not impersonate dedicated STAGING service account.
+No IAM role changes were made.
+```
+
+**Wichtig:** Die zwei geplanten Firestore-GETs wurden **gar nicht** ausgeführt. Die Meldung betrifft den Versuch der Benutzeridentität, einen kurzlebigen Token für das Dienstkonto zu erzeugen. Sie belegt **keinen** Firestore-403 und keinen Cloud-Run-Fehler. Eine Ursache könnte sein, dass `iamcredentials.googleapis.com` nicht aktiviert ist oder dem Cloud-Shell-Benutzer die separate Berechtigung `iam.serviceAccounts.getAccessToken` fehlt. Die bereits erfolgreiche `--no-allow-unauthenticated`-Cloud-Run-Bereitstellung belegt nicht, dass der Benutzer auch Service-Account-Token erzeugen darf. **Keine** Editor-/Owner- oder projektweiten Token-Creator-Rechte als Workaround einrichten.
+
+Neu hinzugefügt: `staging-impersonation-diagnostics.sh` (nur lesen; **erzeugt keine Tokens**) prüft den Status der IAM-Credentials-API und das Vorhandensein **direkter** Token-Creator-Bindings für den Geschäftsbenutzer auf dem einzelnen Dienstkonto bzw. dem Projekt. Es beurteilt weder Gruppen, geerbte Berechtigungen noch Custom Roles und ändert keinerlei Konfiguration.
+
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-impersonation-diagnostics.sh
+```
+
+Alternative in Vorbereitung, ohne zusätzliche Token-Creator-Vergabe: eine **eigenständige, nur nach separater Freigabe zu erstellende und einmalig auszuführende** Cloud-Run-Job-Identitätsprobe. `firestore-runtime-probe.js` und `Dockerfile.firestore-probe` sind Entwürfe, **nicht** in der Cloud gebaut, deployt oder ausgeführt. Die Probe verwendet die an den Job angehängte bestehende Outbox-Dienstidentität und fragt ausschliesslich Firestore-Metadaten (GET 200) sowie einen festen nicht existierenden synthetischen Dokumentpfad (GET 404) ab; keine echten Datensatzantworten, Keys, E-Mails oder Schreiboperationen. Diese Cloud-Run-Job-Architektur vermeidet die Impersonationsberechtigung im Geschäftsbenutzerkonto, braucht aber eine eigene ausdrückliche Build-/Job-/Ausführungsentscheidung und kann Kosten auslösen.
+
+Die laufende Cloud-Run-**Service**-Revision bleibt `00001-pz6` mit `enabled=false` und unveränderten Secrets/IAM-Konfigurationen; alle Produktions- und Mailfunktionen bleiben gesperrt.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

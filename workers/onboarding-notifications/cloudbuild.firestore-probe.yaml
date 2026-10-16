@@ -1,0 +1,17 @@
+# LSZH Firestore STAGING one-shot READ-ONLY probe. Build and push ONLY.
+# The source archive is allowlisted by staging-firestore-job.sh.
+# NO Cloud Run service/job deployment, execution, scheduler or database writes.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.firestore-probe
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

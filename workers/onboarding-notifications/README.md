@@ -48,6 +48,7 @@ Der technische Abschluss der **Onboarding-Eingabe** ist *nicht* der Abschluss de
 - `cloudbuild.staging.yaml`: baut/pusht ein separat benanntes Image unter **`europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-onboarding-outbox`**; **kein** Deployment. Ausführen erst nach ausdrücklicher Freigabe.
 - `staging-preflight.sh`: rein lesender Check der **tatsächlich vorhandenen** benannten Datenbank und Docker-Registry sowie fehlender Staging-Laufzeitidentität.
 - `staging-diagnostics.sh`: rein lesende detaillierte Google-Cloud-Inspektion.
+- `staging-identity-setup.sh`: ohne Argumente nur Plan/Prüfung; **nur mit** `--apply` explizites Erstellen des eigenen Staging-Dienstkontos und Setzen einer **datenbankbezogenen** IAM Condition. Keine Schlüssel, Datenbank, Deploys oder Kundenmails.
 - `airtable-candidates.js`: ausdrücklich genehmigte synthetische Codes, **kein vollständiger Airtable-Scan**.
 - `firestore-store.js`: fest verdrahtete benannte Staging-Datenbank und Collection.
 - `.github/workflows/onboarding-notification-outbox.yml`: synthetische Offline-/HTTP-Integrations- und Docker-Build-Tests, ohne Push/Deploy.
@@ -60,6 +61,24 @@ Der technische Abschluss der **Onboarding-Eingabe** ist *nicht* der Abschluss de
 4. Private Cloud-Run-Testinstanz getrennt von bestehendem Angebotssystem erstellen und zuerst mit `LSZH_OUTBOX_STAGE_ENABLED=false` auf `/health` prüfen. Testcodes/Secrets nicht als Klartext im Repository oder Chat veröffentlichen.
 5. **Nur** nach verifizierten synthetischen Airtable-Fixtures und ausdrücklicher Testfreigabe `LSZH_OUTBOX_STAGE_ENABLED=true` und einen **manuellen** Testlauf durchführen. Der Dienst legt höchstens einen gesperrten Firestore-Entwurf pro Fixture an. Kein Scheduler, kein Sendetransport.
 6. Für spätere Produktivbenachrichtigungen erst getrennten Outbox-Consumer, echte E-Mail-Freigabe, Vertrags-/AVV-Gates, Zustandsautomaten und Provider-ID-Abgleich konzipieren. Make Szenario `7777695` und seine `0=1`-Kundenmail-Sperre unverändert lassen.
+
+### Opt-in Staging-Identität (noch NICHT ausgeführt)
+
+Ausschliesslich im bestehenden geschäftlichen Cloud-Shell-Klon:
+
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-identity-setup.sh
+```
+
+Das gibt die geplante Dienstkonto-/IAM-Änderung rein lesend aus. Nach persönlicher Entscheidung, die isolierte **synthetische Staging-Identität** anzulegen, ist die separate Freigabehandlung:
+
+```bash
+bash workers/onboarding-notifications/staging-identity-setup.sh --apply
+```
+
+Dadurch wird nur eine neue STAGING-Identität mit `roles/datastore.user` beschränkt auf die **existierende** `lszh-offers-staging`-Datenbank eingerichtet. **Diese IAM-Rolle umfasst alle Collections dieser Datenbank**, nicht nur die Benachrichtigungs-Collection. Bei Fehlern (z.B. fehlenden IAM-Berechtigungen) keine breitreichende Rolle als Workaround vergeben; konkrete Fehlermeldung prüfen. Weiterhin kein Cloud-Run-Deployment und keine E-Mails.
 
 ## Wiederholbare Kontrollen
 

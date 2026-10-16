@@ -264,6 +264,20 @@ bash workers/onboarding-notifications/staging-firestore-job.sh
 
 Bei `PLAN ONLY` kann der Geschäftsführer separat erneut `--create-only` ausführen; das führt noch keine Firestore-Anfrage aus. **`--build-only` nicht erneut ausführen.**
 
+## 16.10.2026 – Cloud-Run-Job angelegt, nicht ausgeführt
+
+Der Geschäftsführer hat `staging-firestore-job.sh --create-only` nach der 512-MiB-Korrektur erfolgreich ausgeführt. Google Cloud meldet `Job [lszh-firestore-read-probe-staging] has successfully been created`, das Skript `PASS: New Cloud Run Job CREATED but NOT EXECUTED. No Firestore traffic.` Das bestehende Image `staging-49297f5b6cb0` wurde wiederverwendet. Das ist der **einzige neu angelegte Job**; bislang keine Firestore-Testoperationen und keine E-Mails.
+
+**Jetzt niemals den Plan-/Build-/Create-Modus blind wiederholen:** `--plan`, `--build-only` und `--create-only` verweigern absichtlich einen bereits vorhandenen Job. Der einzig vorgesehene nächste Schritt ist die bewusst freizugebende, **einmalige Ausführung** mit `--execute-once`. Dieser Modus prüft zunächst die gespeicherte Jobkonfiguration auf exakt das freigegebene Image, das isolierte Servicekonto, die Testumgebung, einen Task und null Retries. Erst bei PASS wird der Job gestartet.
+
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-firestore-job.sh --execute-once
+```
+
+Erwartet: `gcloud run jobs execute ... --wait`, dann separate Prüfung der tatsächlichen Job-Logs. Bei STOP/FAIL oder Cloud-Firestore-403 **keine** Rollen ausweiten und keine zweite Ausführung starten, sondern Fehlermeldung untersuchen. Dieser einmalige Test kann geringe Cloud-Kosten verursachen.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

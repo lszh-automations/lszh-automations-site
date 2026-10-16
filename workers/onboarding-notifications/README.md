@@ -97,6 +97,41 @@ bash workers/onboarding-notifications/staging-identity-setup.sh --apply
 
 Die IAM-Rolle wurde mit Bedingung auf die **existierende** `lszh-offers-staging`-Datenbank angelegt. **Diese IAM-Rolle umfasst alle Collections dieser Datenbank**, nicht nur die Benachrichtigungs-Collection. Bei Fehlern (z.B. fehlenden IAM-Berechtigungen) keine breitreichende Rolle als Workaround vergeben. Weiterhin kein Cloud-Run-Deployment und keine E-Mails.
 
+## Vorbereitet: getrenntes privates Cloud-Run-Staging – weiterhin NICHT erstellt
+
+Nachdem der Geschäftsführer das Dienstkonto, die Datenbankregion, den **exakten** Datenbank-IAM-Binding, das Fehlen zusätzlicher Projektrollen und das Fehlen von nutzerverwalteten Schlüsseln erfolgreich **lesend** geprüft hat, ist der nächste Schritt eine **separate, standardmässig deaktivierte** Cloud-Run-Instanz. Die tatsächliche Datenbankberechtigung und vererbte Rollen sind noch offen. Es gibt noch keinen Outbox-Service, kein Deployment, keine aktiven Scheduler und keine Sendefunktion.
+
+Die neue Datei `staging-service.sh` hat **drei getrennte Modi**:
+
+1. **Nur Plan/Preflight**, ohne Änderungen:
+   ```bash
+   cd ~/lszh-outbox-review
+   git pull --ff-only
+   bash workers/onboarding-notifications/staging-service.sh
+   ```
+   Überprüft geschäftliches Konto, Projekt, richtigen Git-Branch/Commit, sauberes Checkout, benannte Datenbank und vorhandene Container-Registry, Dienstkonto und **Abwesenheit** eines gleichnamigen Cloud-Run-Service.
+2. **Image-Build und Upload** nur nach eigener Freigabe; kann Google-Cloud-Kosten verursachen:
+   ```bash
+   bash workers/onboarding-notifications/staging-service.sh --build-only
+   ```
+   Packt **ausschliesslich acht ausdrücklich geprüfte** Quelldateien in ein temporäres Verzeichnis (keine .git-, .env-, Dokumentations- oder Secret-Dateien). Erzeugt über Cloud Build ein nach Commit versioniertes Container-Image im **bestehenden** Container-Repository. **Kein Deployment.**
+3. **Erst nach erfolgreichem Build eine neue, deaktivierte private Cloud-Run-Instanz**:
+   ```bash
+   bash workers/onboarding-notifications/staging-service.sh --deploy-disabled
+   ```
+   Führt `gcloud run deploy` ausschliesslich für den **neuen** Service `lszh-onboarding-outbox-staging` aus und bricht ab, falls der Name bereits vergeben ist. Bestehende Offer-/Archiv-Services werden nie verändert. Setzt `LSZH_OUTBOX_STAGE_ENABLED=false`, keine Airtable-PAT, keine Fixture-Codes, kein Control-Secret, kein Scheduler; daher kann `POST /internal/reconcile` keine Daten verarbeiten.
+   
+   Der Endpoint hat **Ingress `all`, aber Cloud-Run-IAM-Authentisierung ist erforderlich** (`--no-allow-unauthenticated`). Das ist *authentifiziert privat, nicht netzwerkintern*: Netzverkehr erreicht zwar die Cloud-Run-Kante, **unautorisierte** Besucher erhalten keinen API-Zugriff. Für spätere produktive Inter-Service-Aufrufe gegebenenfalls auf `internal` umstellen.
+   
+   Limitierungen: `min-instances=0`, `max-instances=1`, Concurrency 1, 256 MiB, Timeout 30 Sekunden. Je nach IAM/Billing können Cloud-Build, Container-Speicherung oder Cloud Run Gebühren verursachen. Bei einem Rechtefehler **keine pauschalen Editor-/Owner-Rechte** nachtragen; erst den Fehler prüfen.
+4. **Rein lesender, authentifizierter Gesundheitscheck** nach einem solchen Deploy:
+   ```bash
+   bash workers/onboarding-notifications/staging-health-check.sh
+   ```
+   Prüft den Cloud-Run-Service, die Laufzeitidentität, die abgeschalteten Umgebungsvariablen und die fehlende öffentliche Invoker-Freigabe. Ruft nur `GET /health` mit einem temporären Identity Token der aktiven Cloud-Shell-Identität ab und verlangt `{"service":"lszh-onboarding-draft-outbox","enabled":false}`. Kein POST und keine Firestore-/Airtable-Abfrage. Falls `403`, nicht den Dienst öffentlich machen; Berechtigung `run.routes.invoke` für den eigenen Benutzer auf dem **einzelnen Service** prüfen.
+
+**Wichtige Grenze:** Das Setup ist Staging und *ohne* Versandkomponenten. Ein grüner Healthcheck beweist, dass der deaktivierte Worker erreichbar ist, **nicht**, dass der Dienstkonto-IAM-Zugriff auf Firestore tatsächlich funktioniert. Ein synthetischer Datenbank-Schreibtest und der Versand bleiben separate, noch nicht freigegebene Schritte.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

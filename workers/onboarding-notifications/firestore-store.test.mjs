@@ -12,7 +12,8 @@ function fakeFirestore({badExisting=false,writeStatus=200,existing=false}={}) {
     schemaVersion:{integerValue:'1'},
     eventType:{stringValue:badExisting?'FAKE':draft.eventType},
     recordId:{stringValue:draft.recordId},testOnly:{booleanValue:true},
-    deliveryEnabled:{booleanValue:false}
+    deliveryEnabled:{booleanValue:false},emailSent:{booleanValue:false},
+    state:{stringValue:'DRAFT_NOT_SENT'}
   }});
   let creates=0,reads=0,metadataCalls=0;
   return {
@@ -60,6 +61,11 @@ test('wrong existing event is conflict, never overwritten',async()=>{
  const fake=fakeFirestore({existing:true,badExisting:true});
  await assert.rejects(createFirestoreStore(fake.fetchImpl).createOnce(key,draft),/duplicate_conflict/);
  assert.equal(fake.files.size,1);
+});
+test('409 existing emailSent=true is a conflict even if event identity matches',async()=>{
+ const fake=fakeFirestore({existing:true});
+ fake.files.get(key).fields.emailSent.booleanValue=true;
+ await assert.rejects(createFirestoreStore(fake.fetchImpl).createOnce(key,draft),/duplicate_conflict/);
 });
 test('API server error must not silently become duplicate or sent',async()=>{
  const fake=fakeFirestore({writeStatus:503});

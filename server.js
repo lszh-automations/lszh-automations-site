@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const {verifyOnboardingState} = require('./onboarding/confirmation');
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 10000;
@@ -163,8 +164,18 @@ async function handleCustomerOnboarding(req,res) {
       // Make may acknowledge the webhook while later modules still run.
       // Report confirmed success only with the explicit saved-record receipt.
       if(answer?.ok===true && typeof answer?.record_id==='string' &&
-         /^rec[A-Za-z0-9]{14}$/.test(answer.record_id))
-        return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+         /^rec[A-Za-z0-9]{14}$/.test(answer.record_id)) {
+        // A Make receipt alone does not prove all linked writes / DSG checks.
+        // Never turn an upstream HTTP 200 into a customer completion claim.
+        try {
+          const evidence=await verifyOnboardingState(token,process.env.AIRTABLE_ONBOARDING_READ_TOKEN);
+          if(evidence.state==='completed' && evidence.recordId===answer.record_id)
+            return send(res,200,JSON.stringify({ok:true,state:'completed',confirmed:true,verified:true}));
+          if(evidence.state==='requires_review')
+            return send(res,409,JSON.stringify({error:'manual_review_required'}));
+        } catch { /* No permission or upstream failure: still not confirmed. */ }
+        return send(res,202,JSON.stringify({ok:true,state:'processing',pending:true}));
+      }
       if(answer?.duplicate===true || answer?.error==='already_submitted')
         return send(res,409,JSON.stringify({error:'already_submitted_or_invalid'}));
       // 202 is intentionally NOT a claim that Airtable has saved the submission.
@@ -177,6 +188,34 @@ async function handleCustomerOnboarding(req,res) {
     if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
     if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
     return send(res,502,JSON.stringify({error:'temporary_failure'}));
+  }
+}
+
+// Independent server-side status check; never retry the original customer POST.
+// Only a read of persisted Airtable records can move processing -> completed.
+async function handleOnboardingStatus(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(rateLimited(req)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  if(!process.env.AIRTABLE_ONBOARDING_READ_TOKEN)
+    return send(res,503,JSON.stringify({error:'status_not_configured'}));
+  try {
+    const payload=await readJson(req,2048);
+    if(!payload || typeof payload!=='object' || Array.isArray(payload))
+      return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    const token=String(payload.project_code||'');
+    if(!/^ob_[a-fA-F0-9-]{36}$/.test(token))
+      return send(res,400,JSON.stringify({error:'invalid_project_link'}));
+    const evidence=await verifyOnboardingState(token,process.env.AIRTABLE_ONBOARDING_READ_TOKEN);
+    if(evidence.state==='completed')
+      return send(res,200,JSON.stringify({ok:true,state:'completed',confirmed:true,verified:true}));
+    if(evidence.state==='requires_review')
+      return send(res,409,JSON.stringify({ok:false,state:'requires_review'}));
+    return send(res,202,JSON.stringify({ok:true,state:'processing',pending:true}));
+  } catch(e) {
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    if(e.message==='invalid_project_link') return send(res,400,JSON.stringify({error:'invalid_project_link'}));
+    return send(res,502,JSON.stringify({error:'status_unavailable'}));
   }
 }
 
@@ -721,6 +760,7 @@ const server=http.createServer(async (req,res)=>{
 
   if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
+  if (req.method==='POST' && pathname==='/api/onboarding/status') return handleOnboardingStatus(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);

@@ -6,7 +6,7 @@ const {run,FLAGS,ID,DOCUMENT_NAME,DRAFT}=require('./firestore-write-probe');
 const {toFirestore}=require('./firestore-store');
 const address='https://firestore.googleapis.com/v1/'+DOCUMENT_NAME;
 const updateTime='2026-10-17T00:01:00.000000Z';
-function fake({preexisting=false,failCreate=false,badFields=false,deleteStatus=200,denyGet=false}={}) {
+function fake({preexisting=false,failCreate=false,badFields=false,deleteStatus=200,denyGet=false,normalizedTimestamp='2026-10-17T00:00:00Z'}={}) {
   const calls=[],logs=[];
   let doc=preexisting?{name:DOCUMENT_NAME,fields:toFirestore(DRAFT).fields,updateTime}:null;
   let priorGet=true;
@@ -33,7 +33,7 @@ function fake({preexisting=false,failCreate=false,badFields=false,deleteStatus=2
       assert.deepEqual(body.fields,toFirestore(DRAFT).fields);
       if(failCreate)return {ok:false,status:403};
       if(doc)return {ok:false,status:409};
-      doc={name:DOCUMENT_NAME,fields:badFields?{...body.fields,emailSent:{booleanValue:true}}:body.fields,updateTime};
+      doc={name:DOCUMENT_NAME,fields:{...body.fields,createdAt:{timestampValue:normalizedTimestamp},...(badFields?{emailSent:{booleanValue:true}}:{})},updateTime};
       return {ok:true,status:200,json:async()=>({name:DOCUMENT_NAME})};
     }
     if(init.method==='DELETE'){
@@ -66,6 +66,24 @@ test('successful write checks exact source fields, deletes same version, confirm
   assert.equal(m.fixture(),null);
   assert.match(m.logs.join(' '),/WRITE\/READ\/DELETE cycle completed/);
   assert.doesNotMatch(m.logs.join(' '),/SYNTHETIC_ACCESS_TOKEN_NOT_REAL|recZZZZ|updateTime/);
+});
+test('Firestore Z-normalized zero fractional timestamps are verified, not treated as mutation',async()=>{
+ for (const timestamp of ['2026-10-17T00:00:00.000Z','2026-10-17T00:00:00.000000Z','2026-10-17T00:00:00.000000000Z']) {
+  const m=fake({normalizedTimestamp:timestamp});
+  assert.equal(await run({...m,env:FLAGS}),true);
+  assert.equal(m.fixture(),null);
+ }
+});
+test('unexpected microsecond timestamp is never silently accepted or deleted',async()=>{
+ const m=fake({normalizedTimestamp:'2026-10-17T00:00:00.000001Z'});
+ await assert.rejects(run({...m,env:FLAGS}),/fields_mismatch/);
+ assert.ok(!methods(m).includes('DELETE'));
+ assert.notEqual(m.fixture(),null);
+});
+test('unexpected nonzero second timestamp stops before cleanup',async()=>{
+ const m=fake({normalizedTimestamp:'2026-10-17T00:00:01Z'});
+ await assert.rejects(run({...m,env:FLAGS}),/fields_mismatch/);
+ assert.ok(!methods(m).includes('DELETE'));
 });
 test('existing fixture: never overwrite nor delete pre-existing document',async()=>{
   const m=fake({preexisting:true});

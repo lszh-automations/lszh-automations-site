@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – Staging-Dienstidentität vom Geschäftsführer angelegt
+
+Google Cloud Shell hat nach der ausdrücklich ausgeführten Aktion `bash workers/onboarding-notifications/staging-identity-setup.sh --apply` **`Created service account [lszh-onboarding-outbox-staging]`** und **`Updated IAM policy for project [lszh-automations]`** gemeldet. Die Identität ist `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`. Die eingerichtete `roles/datastore.user`-Bedingung zielt auf `resource.name=="projects/lszh-automations/databases/lszh-offers-staging"`. Keine Schlüsseldatei, kein Cloud-Run-Deployment, keine Firestore-Datenoperationen und keine Kundenmails.
+
+**Nächster Gate:** Projekt-Policy ist noch keine bewiesene effektive Firestore-Berechtigung. Neu ergänzt: `workers/onboarding-notifications/staging-identity-verify.sh` und `verify_iam_policy.py` für eine rein lesende Prüfung des Konto-/Datenbank-/IAM-Zustands, zusätzlicher Projektrollen und user-managed SA-Keys; synthetische Policy-Tests in CI. Ererbte IAM-Berechtigungen und tatsächliche REST-Lese-/Schreibrechte sind mit diesem Check weiterhin nicht nachgewiesen. Vor Einsatz ausschliesslich synthetischen Staging-End-to-End-Test durch separate private Cloud Run durchführen; produktive Systeme bleiben unverändert.
+
 ## Nachtrag 16.10.2026 – Cloud-Shell-Diagnose und sichere Staging-Anpassungen
 
 Die vom Geschäftsführer ausgeführte rein lesende Cloud-Shell-Diagnose bestätigt die **bestehende** Firestore-Native-Datenbank `lszh-offers-staging` in Zürich (`europe-west6`) und das bestehende Container-Repository `cloud-run-source-deploy`. Das zuvor hartkodierte Firestore-Ziel `(default)` war falsch: Eine solche Datenbank existiert hier nicht. Der Outbox-Worker und seine Tests wurden auf die **bestehende benannte Staging-Datenbank** und die separate Test-Collection `lszh_onboarding_notification_drafts_staging` angepasst. Cloud-Build verweist auf das vorhandene Registry-Repository. Somit aktuell **keine zweite Datenbank / kein zweites Registry-Repository nötig**.

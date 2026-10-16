@@ -202,6 +202,43 @@ Alternative in Vorbereitung, ohne zusätzliche Token-Creator-Vergabe: eine **eig
 
 Die laufende Cloud-Run-**Service**-Revision bleibt `00001-pz6` mit `enabled=false` und unveränderten Secrets/IAM-Konfigurationen; alle Produktions- und Mailfunktionen bleiben gesperrt.
 
+## Einmaliger Cloud-Run-Job statt Benutzer-Impersonation: Bedienung (noch NICHT ausgeführt)
+
+Die lesende Cloud-Shell-Diagnose bestätigte:
+- `iamcredentials.googleapis.com` ist **aktiviert**.
+- Für den Geschäftsbenutzer `lars@lszh-automations.ch` existiert **keine direkte Token-Creator-Rolle** am Ziel-Dienstkonto und keine direkte Token-Creator-Projektrolle.
+- Rollen aus Gruppen/Custom Roles/Hierarchie wurden dabei nicht ausgeschlossen.
+- Der manuelle Impersonations-Test blieb ohne Firestore-REST-Requests stehen. Keine zusätzliche IAM-Rolle vergeben.
+
+Google Cloud Run Jobs können eine eigene Serviceidentität verwenden, deren kurzlebige Access Tokens innerhalb des laufenden Jobs vom Metadatenserver bezogen werden. Der bestehende Outbox-HTTP-Dienst wird dafür **nicht verändert**. Der separate, nur lesende Job basiert auf `firestore-runtime-probe.js` und `Dockerfile.firestore-probe`: genau zwei Firestore-GETs zu starren Zielen, kein Schreiben, kein Kunden-Datensatzinhalt, kein Mailversand. Eine einmalige Jobausführung kostet möglicherweise geringe Cloud-Run-Ressourcen.
+
+**Der neue `staging-firestore-job.sh` erzwingt vier strikt getrennte Schritte**, unabhängig von `staging-service.sh`. Keiner wurde bisher in Google Cloud ausgeführt.
+
+1. **Nur Prüfung, keine Änderungen (jetzt zulässig):**
+   ```bash
+   cd ~/lszh-outbox-review
+   git pull --ff-only
+   bash workers/onboarding-notifications/staging-firestore-job.sh
+   ```
+   Dieses Kommando bestätigt exakten Geschäftskonto-/Projekt-/Git-Zustand, benannte DB, Registry, Dienstkonto und dass noch kein gleichnamiger Probe-Job existiert. `PLAN ONLY` ist zwingend.
+2. **Nur Image bauen und hochladen, nach separater bewusster Ausführung:**
+   ```bash
+   bash workers/onboarding-notifications/staging-firestore-job.sh --build-only
+   ```
+   Build-Archiv besteht ausschliesslich aus drei geprüften Dateien. Container wird in der bestehenden Artifact Registry unter dem geprüften Git-Commit getaggt. Kein Cloud-Run-Job wird angelegt/gestartet.
+3. **Nur neuen Job anlegen, nach separater bewusster Ausführung:**
+   ```bash
+   bash workers/onboarding-notifications/staging-firestore-job.sh --create-only
+   ```
+   Legt nur einen neuen Job `lszh-firestore-read-probe-staging` mit dem bereits vorhandenen eingeschränkten Dienstkonto an. `--tasks=1`, `--max-retries=0`, feste Datenbank und Read-only-Flag, **keine automatische Ausführung**, kein Scheduler und keine Trigger. Ein bereits bestehender Job wird nicht überschrieben. Noch kein Firestore-GET.
+4. **Einmaliger echter Firestore-Lesetest, nach separater bewusster Ausführung:**
+   ```bash
+   bash workers/onboarding-notifications/staging-firestore-job.sh --execute-once
+   ```
+   Das Skript prüft vor dem Ausführen nochmals Name, Container-Image, Service-Account, ausschliesslich die drei erwarteten Variablen, Task-Anzahl und Retry-Konfiguration. Dann genau eine `gcloud run jobs execute --wait`-Anforderung. Der Job selbst ruft ausschliesslich seine Metadatenidentität und die zwei definierten GETs auf. Ergebnis im Job-Log: erst `PASS: Named Zurich STAGING Firestore metadata GET 200.`, dann `PASS: Missing, fixed synthetic document GET 404.`. Bei `403`/Fehlern keine IAM-Rechte erweitern, sondern Ausführung untersuchen.
+
+**Wichtig:** Der Job nutzt `roles/datastore.user` **nur in der bestehenden Staging-Datenbank**, wo diese Rolle alle Collections umfassen kann. Der Probe-Code greift aber ausdrücklich auf keinen bestehenden Offerten-Datensatz zu. Ein PASS bestätigt ausschliesslich die geprüften Leseoperationen, **nicht** die Schreibberechtigung oder sichere Isolation von geerbten Rollen. Es wird keine bestehende Outbox-Revisionskonfiguration verändert; insbesondere bleibt `LSZH_OUTBOX_STAGE_ENABLED=false` aktiv.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

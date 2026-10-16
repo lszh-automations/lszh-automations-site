@@ -289,12 +289,47 @@ function classifyOnboardingReply(httpStatus, body) {
   const obj = body !== null && typeof body === 'object' && !Array.isArray(body);
   if (httpStatus === 409 || (obj && (body.duplicate === true || body.error === 'already_submitted' || body.error === 'conflict'))) return 'conflict';
   if (httpStatus >= 200 && httpStatus < 300) {
-    if (obj && body.ok === true && typeof body.record_id === 'string' && /^rec[A-Za-z0-9]{14}$/.test(body.record_id)) {
-      return body.already_complete === true ? 'already_complete' : 'confirmed';
-    }
+    if (httpStatus === 200 && obj && body.confirmed === true &&
+        body.verified === true && body.state === 'completed') return 'confirmed';
     return 'pending';
   }
   return 'error';
+}
+
+// Poll only the READ-ONLY status endpoint; never repeat the original submission.
+async function checkOnboardingCompletion(projectCode, form, status, button) {
+  for (const delayMs of [1500, 3000, 5000, 8000]) {
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+    let response, reply;
+    try {
+      response = await fetch('/api/onboarding/status', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({project_code:projectCode})
+      });
+      const raw = await response.text();
+      try { reply = JSON.parse(raw); } catch { reply = null; }
+    } catch {
+      continue; // Unknown network outcome is never completion.
+    }
+    const result = classifyOnboardingReply(response.status, reply);
+    if (result === 'confirmed') {
+      form.reset();
+      status.textContent = 'Bestätigt: Die Verarbeitung Ihrer Onboarding-Angaben ist technisch abgeschlossen. Der Projektabschluss und weitere Freigaben erfolgen separat.';
+      status.style.color = '#16794b';
+      button.textContent = 'Verarbeitung bestätigt';
+      return;
+    }
+    if (result === 'conflict') {
+      status.textContent = 'Für Ihre Angaben ist eine manuelle Prüfung erforderlich. Bitte kontaktieren Sie LSZH Automations und senden Sie das Formular nicht erneut.';
+      status.style.color = '#9b5c00';
+      button.textContent = 'Prüfung erforderlich';
+      return;
+    }
+    if (response.status !== 202) break; // Error/outage: do not claim a result.
+  }
+  status.textContent = 'Die Verarbeitung konnte noch nicht abschliessend bestätigt werden. Bitte senden Sie die Angaben nicht erneut ab; LSZH Automations kann den Status prüfen.';
+  status.style.color = '#9b5c00';
+  button.textContent = 'Abschluss noch offen';
 }
 
 document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
@@ -330,11 +365,9 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     let reply = null;
     try { reply = JSON.parse(raw); } catch (_) { /* Make can return plain text. */ }
     const decision = classifyOnboardingReply(response.status, reply);
-    if (decision === 'confirmed' || decision === 'already_complete') {
+    if (decision === 'confirmed') {
       form.reset();
-      status.textContent = decision === 'confirmed'
-        ? 'Vielen Dank. Ihr Onboarding wurde nachweislich gespeichert. Wir melden uns wegen der nächsten Schritte.'
-        : 'Ihre Angaben waren bereits vollständig gespeichert. Sie müssen nichts erneut senden.';
+      status.textContent = 'Bestätigt: Die Verarbeitung Ihrer Onboarding-Angaben ist technisch abgeschlossen. Der Projektabschluss und weitere Freigaben erfolgen separat.';
       status.style.color = '#16794b';
       button.textContent = 'Abgeschlossen';
     } else if (decision === 'conflict') {
@@ -342,9 +375,10 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
       status.style.color = '#9b5c00';
       button.textContent = 'Prüfung erforderlich';
     } else if (decision === 'pending') {
-      status.textContent = 'Ihre Anfrage wurde entgegengenommen. Die Speicherung ist noch nicht bestätigt. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.';
+      status.textContent = 'Ihre Anfrage wurde entgegengenommen. Der technische Abschluss wird serverseitig geprüft. Bitte senden Sie das Formular nicht erneut ab.';
       status.style.color = '#9b5c00';
-      button.textContent = 'Eingang in Prüfung';
+      button.textContent = 'Abschluss wird geprüft';
+      await checkOnboardingCompletion(String(payload.project_code||''), form, status, button);
     } else {
       status.textContent = 'Die Speicherung konnte nicht bestätigt werden. Bitte senden Sie nicht erneut ab, bevor Sie den Status mit LSZH Automations geklärt haben.';
       status.style.color = '#b42318';
@@ -352,9 +386,10 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     }
   } catch (_) {
     // A network failure is ambiguous: the server may have accepted the data.
-    status.textContent = 'Die Übermittlung konnte nicht bestätigt werden. Bitte senden Sie nicht erneut ab, bevor Sie den Status mit LSZH Automations geklärt haben.';
-    status.style.color = '#b42318';
-    button.textContent = 'Status unklar';
+    status.textContent = 'Die Übermittlung ist unklar. Wir prüfen den Status, ohne Ihre Daten erneut abzusenden.';
+    status.style.color = '#9b5c00';
+    button.textContent = 'Statusprüfung läuft';
+    await checkOnboardingCompletion(String(payload.project_code||''), form, status, button);
   }
   // Keep disabled after a request until the user deliberately reloads.
   // This avoids accidental duplicate POSTs while Make may be processing.

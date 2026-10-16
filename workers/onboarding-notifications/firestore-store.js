@@ -4,9 +4,10 @@ const {eventId, TYPE} = require('./outbox');
 // Cloud Run metadata identity (short-lived token). No JSON service-account key.
 // This worker is hard-pinned to the TEST outbox in LSZH's business GCP project.
 const PROJECT = 'lszh-automations';
+const DATABASE = 'lszh-offers-staging';  // EXISTING named Zurich database, staging only.
 const COLLECTION = 'lszh_onboarding_notification_drafts_staging';
 const DOCUMENTS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT +
-  '/databases/(default)/documents/' + COLLECTION;
+  '/databases/' + DATABASE + '/documents/' + COLLECTION;
 const METADATA = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
 
 function toFirestore(draft) {
@@ -55,7 +56,7 @@ function createFirestoreStore(fetchImpl = fetch) {
     });
     if (response.ok) {
       const saved=await response.json();
-      if (!saved?.name?.endsWith('/'+id)) throw new Error('draft_persistence_unverified');
+      if (saved?.name !== 'projects/' + PROJECT + '/databases/' + DATABASE + '/documents/' + COLLECTION + '/' + id) throw new Error('draft_persistence_unverified');
       return 'created';
     }
     if (response.status !== 409) throw new Error('draft_persistence_unavailable');
@@ -65,7 +66,7 @@ function createFirestoreStore(fetchImpl = fetch) {
     });
     if (!existing.ok) throw new Error('draft_duplicate_unverifiable');
     const document=await existing.json();
-    if (document?.name !== 'projects/' + PROJECT + '/databases/(default)/documents/' +
+    if (document?.name !== 'projects/' + PROJECT + '/databases/' + DATABASE + '/documents/' +
         COLLECTION + '/' + id ||
         document?.fields?.schemaVersion?.integerValue !== '1' ||
         document?.fields?.eventType?.stringValue !== TYPE ||
@@ -77,4 +78,4 @@ function createFirestoreStore(fetchImpl = fetch) {
   }
   return {createOnce};
 }
-module.exports = {createFirestoreStore, toFirestore};
+module.exports = {createFirestoreStore, toFirestore, PROJECT, DATABASE, COLLECTION};

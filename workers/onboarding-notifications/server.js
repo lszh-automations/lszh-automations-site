@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const {listCandidateCodes} = require('./airtable-candidates');
 const {createFirestoreStore} = require('./firestore-store');
 const {reconcile} = require('./outbox');
+const {createPacedAirtableFetch} = require('./paced-fetch');
 
 function safeEqual(a,b) {
   const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));
@@ -15,6 +16,7 @@ function safeEqual(a,b) {
 function createServer({env=process.env, fetchImpl=fetch, list=listCandidateCodes,
                        store=createFirestoreStore(fetchImpl), work=reconcile}={}) {
   let running=false;
+  const pacedAirtableFetch=createPacedAirtableFetch(fetchImpl);
   function respond(res,status,data) {
     res.writeHead(status,{
       'Content-Type':'application/json; charset=utf-8',
@@ -41,10 +43,10 @@ function createServer({env=process.env, fetchImpl=fetch, list=listCandidateCodes
     if (running) return respond(res,503,{error:'busy'});
     running=true;
     try {
-      const candidateCodes=await list(env.AIRTABLE_ONBOARDING_READ_TOKEN,fetchImpl);
+      const candidateCodes=await list(env.AIRTABLE_ONBOARDING_READ_TOKEN,pacedAirtableFetch);
       const counts=await work({
         candidateCodes,readToken:env.AIRTABLE_ONBOARDING_READ_TOKEN,
-        fetchImpl,store
+        fetchImpl:pacedAirtableFetch,store
       });
       // No addresses, tokens or record ids are included in response/logs.
       return respond(res,200,{ok:true,mode:'STAGING_DRAFT_ONLY',...counts});

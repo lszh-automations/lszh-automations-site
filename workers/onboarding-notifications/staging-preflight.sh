@@ -9,7 +9,7 @@ ACCOUNT='lars@lszh-automations.ch'
 REGION='europe-west6'
 SERVICE='lszh-onboarding-outbox-staging'
 SA="${SERVICE}@${PROJECT}.iam.gserviceaccount.com"
-ARTIFACT_REPO='lszh-outbox-staging'
+ARTIFACT_REPO='cloud-run-source-deploy'
 
 command -v gcloud >/dev/null || { echo 'FAIL: gcloud CLI fehlt'; exit 2; }
 current_account="$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n 1)"
@@ -35,11 +35,11 @@ for api in run.googleapis.com cloudbuild.googleapis.com artifactregistry.googlea
   fi
 done
 
-if gcloud firestore databases describe --project="$PROJECT" --database='(default)' \
+if gcloud firestore databases describe --project="$PROJECT" --database='lszh-offers-staging' \
      --format='value(name)' >/dev/null 2>&1; then
-  echo 'PASS: Firestore (default) lesbar'
+  echo 'PASS: Firestore lszh-offers-staging lesbar'
 else
-  echo 'OFFEN: Firestore (default) nicht bestaetigt (nicht automatisch erstellen)'
+  echo 'OFFEN: Firestore lszh-offers-staging nicht lesbar'
   missing=1
 fi
 if gcloud iam service-accounts describe "$SA" --project="$PROJECT" \
@@ -51,7 +51,7 @@ else
 fi
 if gcloud artifacts repositories describe "$ARTIFACT_REPO" --project="$PROJECT" \
      --location="$REGION" --format='value(name)' >/dev/null 2>&1; then
-  echo 'PASS: Separates Container-Repository vorhanden'
+  echo 'PASS: Bestehendes Container-Repository vorhanden'
 else
   echo 'OFFEN: Separates Container-Repository fehlt oder nicht lesbar'
   missing=1

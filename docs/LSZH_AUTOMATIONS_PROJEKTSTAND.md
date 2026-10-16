@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Update 17.10.2026 – Airtable-Fixture-Nebenwirkungen auditiert; keine CRM-Schreibfreigabe
+
+**Ausschliesslich lesende Live-Bestandsaufnahme:** In der Website-CRM-Airtable-Base `appzJiskpAdaR1HEv` sind 9 Automationen vorhanden, davon **8 deployed/aktiv**. Die vier wichtigsten Bedingungen wurden in der aktuell bereitgestellten Automation-Konfiguration kontrolliert:
+- `LSZH Projekte – Standard-Onboarding` läuft nur bei Aufträgen `Leistung=Automation-Projekt` plus Kunden-Link, leerer Aufgaben-Linkliste und `Standardaufgaben erstellt=false`; Folge: **sechs Projektaufgaben** und ein Auftragsupdate. Für E2E-Test daher **Leistung=Beratung** und **Standardaufgaben erstellt=true**.
+- `LSZH Projekte – Abschluss & Betreuung` reagiert auf `Projekt vollständig=1`, fehlendes Abschlussdatum und Nicht-Storniert; synthetischer Auftrag darf **Projektabschluss durchgeführt nicht setzen**.
+- Zwei aktive Rechnungs-Automationen laufen **täglich 08:00 / 08:05 Europe/Zurich** und suchen Aufträge mit `Auto-Fakturierung fällig=1`; nur wiederkehrende beziehungsweise einmalige Abrechnungsmodelle. Für die Fixture `Abrechnungsmodell=Individuell`, `Status=Pausiert`, **kein Fakturierungstermin** und CHF-Entgelte 0.
+- Die übrigen aktiven Trigger betreffen Website-Leads, Rechnungsstatus oder Projektaufgaben; wir erstellen **keinen** Website-Lead und keine Projektaufgabe. Keine direkte aktive Airtable-Automation wird von der `Kunden-Onboarding`- oder `Kunden`-Tabelle getriggert. Änderungen an Triggern unmittelbar vor einem echten Live-Test erneut lesen.
+
+Make wurde ebenfalls live read-only geprüft: Organisation `LZSH AUTOMATIONS`, Team `My Team`; **zwei aktive** Szenarien (`Integration Apple iOS`, `MG - Delete`) ohne Airtable-App und sieben spezifische LSZH-Make-Onboarding-Szenarien (inkl. `7777695`, `7963278`, `7963329`, `7963343`, `7936546`, `7835639`, `7936151`) **inaktiv**. Die Verbindung im alten Onboarding-Szenario ist technisch OK, aber die produktive E-Mail-Sperre bleibt bestehen. **Kein** Szenario ausgeführt oder geändert.
+
+**Neuer Live-Testentwurf ohne Cloud-Veränderungen:** [LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md](./LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md) beschreibt drei *später* anzulegende ausschliesslich synthetische CRM-Records (Kunde, Auftrag, Onboarding) mit `example.invalid`-Kontaktfeldern, zufälligem einmaligen `ob_<UUID4>`-Token, sicheren Leistungs-/Status-/Fakturierungswerten, exakten Verknüpfungen und kontrolliertem Cleanup. Das bisherige all-zero-Offline-Token ist als echter Link-Token ausdrücklich **verboten**. Der neue Code `synthetic-crm-fixture-gate.js` validiert diesen fixierten Datensatzumschlag vollständig **offline**; der Test lehnt Rechnungsdatum, realistische Empfänger, Automation-Projekt-Typ, Make-Einladungsbestätigung und unerwartete Felder ab. Code enthält **keine** Airtable-Schreiboperation.
+
+**Wichtiger Gate:** Trotz der sorgfältigen Feldwahl garantiert nichts, dass ein gemeinsames, bereits aktives Website-CRM keinerlei weitere Trigger hat. **Bis auf ausdrückliche zusätzliche Genehmigung KEINE CRM-Fixture erstellen, keine Airtable-/Make-Automationen deaktivieren, keine E-Mails senden und den Cloud-Run-Outbox-Dienst nicht aktivieren.** Ein erfolgreiches Eingangsformular ist weiterhin kein vollständig abgeschlossenes Kunden-Onboarding.
+
 ## UPDATE 17.10.2026 – Automationstrigger vor echter synthetischer Airtable-Fixture geprüft
 
 **Reine Metadaten-Leseprüfung mit verbundenen Apps:**

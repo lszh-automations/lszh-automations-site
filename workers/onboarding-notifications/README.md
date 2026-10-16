@@ -359,6 +359,16 @@ gcloud beta run jobs executions logs read lszh-firestore-write-probe-staging-cb7
 ```
 Nur wenn sie die PASS-Zeilen zu vorherigem 404, erfolgreichem `createOnce`, exaktem Readback, versionsbedingtem DELETE und abschliessendem 404 enthalten, sind effektiver Firestore-Schreibzugriff und automatische synthetische Fixture-Bereinigung einzeln dokumentiert. Bei unklaren Logs nichts löschen oder nochmal laufen lassen; Zustand rein lesend überprüfen.
 
+## 17.10.2026 – Keine Live-Fixture im CRM ohne Trigger-Risikoabklärung
+
+Ein synthetischer Airtable-End-to-End-Test wird für **drei** verknüpfte Datensätze in `LSZH Automations – Website CRM` vorbereitet (Kunde → Auftrag → Onboarding). Die Live-Airtable-Konfiguration wurde read-only geprüft: **8 aktive von 9 Automationen**. Insbesondere erstellt das aktive Standard-Onboarding bei `Leistung=Automation-Projekt` automatisch **sechs** Projektaufgaben; zwei tägliche Rechnungs-Automationen erzeugen unter bestimmten fälligen Auftragsbedingungen Rechnungen. Make hat derzeit **zwei andere aktive** und **sieben LSZH-Onboarding-Szenarien, alle inaktiv**. Es wurden keine Szenarien oder Automationen verändert.
+
+Die feste sichere Datensatzhülle wird in `synthetic-crm-fixture-gate.js` offline vor jeder etwaigen zukünftigen CRM-Erstellung validiert, etwa `Leistung=Beratung`, `Status=Pausiert`, `Abrechnungsmodell=Individuell`, keine Fakturierungstermine, alle Geldbeträge 0, `Standardaufgaben erstellt=true`, keine echte E-Mail-Adresse, keine behauptete Make-Einladung oder Freigabe. Das Live-Test-Projektcode-Token darf **nicht** das aus der Offline-Suite bekannte all-zero-Token sein; nur ein neues zufälliges `ob_<UUID4>` und nachgeprüfte Eindeutigkeit im CRM sind zulässig.
+
+Die detaillierte Sicherheits-, Zwischenprüfungs- und Bereinigungsplanung steht in `docs/LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md`. Das Guard-Modul hat **keinen** Airtable-Client, keine Netzwerkanbindung und **keine** Schreibfunktionen.
+
+**Nicht freigegeben:** CRM-Testdaten anlegen, Automationen ausschalten/ändern, Cloud Run `enabled=true` setzen oder Make-/E-Mail-Szenarien aktivieren. Die Daten müssen bei einem späteren ausdrücklich genehmigten Test schrittweise einzeln mit unabhängigen Zwischenprüfungen angelegt werden. Ein CRM-Fixture-Plan allein ist noch kein durchgängiger Live-E2E-Nachweis.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

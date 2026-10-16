@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – dauerhafte Onboarding-Benachrichtigungsentwürfe (nur Code, STAGING)
+
+Auf dem getrennten Branch `feature/onboarding-notification-outbox-20261016` ist ein **privater Cloud-Run-Outbox-Worker** vorbereitet. Er liest mögliche Onboarding-Abschlüsse aus Airtable, verifiziert den gesamten bisherigen Verarbeitungspfad mit der read-only Prüfkomponente und legt erst nach erfolgreich nachgewiesenem technischen Abschluss einen eindeutigen `DRAFT_NOT_SENT`-Eintrag per atomarem Firestore-Create an. Wiederholungen finden denselben Eintrag; Fehler erzeugen weder Erfolgsbehauptung noch Nachricht. Keine Kunden-E-Mail-Adresse und kein Geheimtoken werden gespeichert. Zugriffe sollen künftig über privates Cloud Run, dediziertes Google-Dienstkonto und separates Secret erfolgen. Keine JSON-Schlüsseldateien.
+
+**Status:** Offline-/HTTP-Synthetiktests im GitHub-Branch; kein Cloud-Run-Deployment, kein aktiver Scheduler, kein Firestore-Live-Test, kein produktiver E-Mail-Versand. Das originale Make-Szenario `7777695` und dessen `0=1`-Mail-Sperre bleiben unverändert. Ein separater Sender mit Freigabegates und Provider-Deduplikation muss später noch gebaut werden. Branch enthält ausserdem eine öffentliche Static-File-Allowlist des Website-Servers, sodass `/workers/**`, interne Dateien und Dokumentation nicht öffentlich abrufbar sind. Laufende Tests für diese Grenzen.
+
+Betriebs- und technische Einzelheiten: [Outbox-Staging README](../workers/onboarding-notifications/README.md).
+
+
+
 ## Nachtrag 16.10.2026 – serverseitige Onboarding-Vorgangsbestätigung (Entwicklungsbranch)
 
 **Nur im isolierten Feature-Branch** `feature/onboarding-server-confirmation-20261016`: Das Website-Onboarding prüft nach einem Make-Eingang den technischen Abschluss durch **read-only** Airtable-Nachverifikation (Onboarding, Auftrag, Kundendaten und ggf. Datenschutz-Prüfaufgabe). Neuer `POST /api/onboarding/status`, fail-closed: nur tatsächliche geprüfte Persistenz = `completed`; Make-`Accepted`/200 = kein Erfolgsbeleg; sonst `processing`, `requires_review` oder Ausfall. Das Frontend fragt den Status nach einer unbestätigten Einsendung lesend nach, ohne erneut ein Formular zu senden.

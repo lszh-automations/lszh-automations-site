@@ -9,7 +9,7 @@ const ID='rec'+'A'.repeat(14);
 const ORDER='rec'+'B'.repeat(14);
 const CUSTOMER='rec'+'C'.repeat(14);
 const SECRET='SYNTHETIC_PRIVATE_TEST_SECRET_0123456789';
-const collection='projects/lszh-automations/databases/(default)/documents/lszh_onboarding_notification_drafts_staging/';
+const collection='projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_onboarding_notification_drafts_staging/';
 const invoice={
   'Rechnungsstrasse':'Synthetic 1','Rechnungs-PLZ':'5610',
   'Rechnungsort':'Wohlen','Rechnungsland':'Schweiz',

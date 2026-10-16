@@ -1,0 +1,11 @@
+# One-shot synthetic STAGING write/read/delete test of the real outbox store.
+# Separate Cloud Run JOB, NEVER replace the existing HTTP outbox service.
+FROM node:22.16.0-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --chown=node:node onboarding/confirmation.js onboarding/confirmation.js
+COPY --chown=node:node workers/onboarding-notifications/outbox.js workers/onboarding-notifications/outbox.js
+COPY --chown=node:node workers/onboarding-notifications/firestore-store.js workers/onboarding-notifications/firestore-store.js
+COPY --chown=node:node workers/onboarding-notifications/firestore-write-probe.js workers/onboarding-notifications/firestore-write-probe.js
+USER node
+CMD ["node", "workers/onboarding-notifications/firestore-write-probe.js"]

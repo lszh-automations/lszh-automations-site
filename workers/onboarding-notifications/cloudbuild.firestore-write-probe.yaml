@@ -1,0 +1,15 @@
+# Build ONLY – does not create/execute a Cloud Run Job, no scheduler or IAM grants.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.firestore-write-probe
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

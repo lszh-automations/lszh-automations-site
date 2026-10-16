@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – Firestore-Zugriffstest vor IAM-Impersonation gestoppt
+
+Der separate `staging-firestore-read-probe.sh --probe-read`-Lauf wurde vom Geschäftsführer ausdrücklich gestartet. Geschäftskonto, benannte Staging-Datenbank und Ziel-Servicekonto waren bestätigt. Bei der anschliessenden **Benutzer-zu-Servicekonto-Impersonation** stoppte das Skript mit `UNVERIFIED: Could not impersonate dedicated STAGING service account`; es wurden **keine** Firestore-REST-GET-Requests ausgeführt. Das ist **kein** Nachweis einer fehlenden Firestore-Berechtigung des bereits bereitgestellten Cloud-Run-Dienstes. Der deaktivierte Health-Check war zuvor erfolgreich, das beweist jedoch ebenfalls keinen Firestore-Zugriff.
+
+Neues rein lesendes Diagnose-Skript `workers/onboarding-notifications/staging-impersonation-diagnostics.sh`: kontrolliert aktive Geschäftsidentität, IAM-Credentials-API-Aktivierung und **direkte** Token-Creator-Rollen auf Ziel-Servicekonto und Projekt; keine Tokens, keine IAM-Änderungen. Als spätere, alternative sichere Prüfung sind `firestore-runtime-probe.js` + separates minimales `Dockerfile.firestore-probe` entworfen und offline getestet; ein einmaliger Cloud-Run-Job würde über **seine eigene** Service-Identität nur feste Firestore-Metadaten und ein absichtlich fehlendes Testdokument lesen. **Kein Job erstellt, kein neues Image hochgeladen, keine Probe ausgeführt.** Build, Bereitstellung und Test brauchen jeweils gesonderte manuelle Zustimmung. Bestehende Cloud-Run-Revision bleibt deaktiviert, keine Kundendaten, keine produktiven E-Mails.
+
 ## Nachtrag 16.10.2026 – Cloud-Run-Healthcheck bestanden, Firestore-Leseprobe vorbereitet
 
 **Durch Geschäftsführer ausgeführter STAGING-Test:** `staging-health-check.sh` bestätigte die erwartete Cloud-Run-Laufzeitidentität, die ausschliesslich deaktivierten/no-secret Umgebungsvariablen, das Fehlen öffentlicher Invoker-Bindings *auf Service-Ebene* und den authentifizierten `GET /health` mit `enabled:false`. Alles PASS. Keine produktiven Onboardings, keine Firestore-Operation, kein Scheduler und kein Mailversand. Geerbte Invoker-Rechte und die tatsächliche Firestore-IAM-Wirksamkeit sind damit weiterhin **nicht** belegt.

@@ -143,7 +143,9 @@ test('provider outage cannot become completed or sent',async()=>{
   try{
     mock.state.airtableOutage=true;
     const failed=await app.reconcile();
-    assert.equal(failed.status,503);
+    assert.equal(failed.status,200);
+    assert.equal(failed.body.unavailable,1);
+    assert.equal(failed.body.created,0);
     assert.equal(mock.firestore.size,0);
     mock.state.airtableOutage=false;
     mock.state.firestoreOutage=true;

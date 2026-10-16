@@ -6,6 +6,8 @@ const {createServer}=require('./server');
 const SECRET='abcdefghijklmnopqrstuvwxyz0123456789';
 const env={
  LSZH_OUTBOX_STAGE_ENABLED:'true',FIRESTORE_PROJECT_ID:'lszh-automations',
+ FIRESTORE_DATABASE_ID:'lszh-offers-staging',
+ LSZH_STAGING_FIXTURE_CODES:'ob_00000000-0000-4000-8000-000000000000',
  AIRTABLE_ONBOARDING_READ_TOKEN:'SYNTHETIC',OUTBOX_CONTROL_SECRET:SECRET
 };
 

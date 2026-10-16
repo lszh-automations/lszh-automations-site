@@ -27,6 +27,7 @@ jobs:
           node --check workers/onboarding-notifications/airtable-candidates.js
           node --check workers/onboarding-notifications/firestore-store.js
           node --check workers/onboarding-notifications/firestore-runtime-probe.js
+          node --check workers/onboarding-notifications/firestore-write-probe.js
       - name: Run synthetic offline tests
         run: node --test workers/onboarding-notifications/*.test.mjs
       - name: Verify read-only Cloud Shell preflight syntax
@@ -40,6 +41,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-firestore-read-probe.sh
           bash -n workers/onboarding-notifications/staging-impersonation-diagnostics.sh
           bash -n workers/onboarding-notifications/staging-firestore-job.sh
+          bash -n workers/onboarding-notifications/staging-firestore-write-job.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)
@@ -50,6 +52,18 @@ jobs:
         run: |
           docker run --rm --network none lszh-firestore-probe-ci:synthetic sh -c \
             'test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/.env && node --check /app/probe.js'
+      - name: Build isolated synthetic STAGING write-probe (no push/deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.firestore-write-probe -t lszh-firestore-write-ci:synthetic .
+      - name: Confirm write probe cannot run unless explicitly enabled
+        run: |
+          docker run --rm --network none lszh-firestore-write-ci:synthetic sh -c \
+            'test ! -e /app/.env && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/workers/onboarding-notifications/server.js && node --check /app/workers/onboarding-notifications/firestore-write-probe.js'
+          if docker run --rm --network none lszh-firestore-write-ci:synthetic > /tmp/lszh-write-probe.log 2>&1; then
+            echo "FAIL: probe unexpectedly ran without its explicit approval flag"
+            exit 1
+          fi
+          grep -q 'FAIL: synthetic_write_probe_disabled' /tmp/lszh-write-probe.log
+          ! grep -E 'Bearer |access_token|@gmail.com' /tmp/lszh-write-probe.log
       - name: Inspect packaged code without network or credentials
         run: |
           docker run --rm --network none lszh-outbox-ci:synthetic sh -c \

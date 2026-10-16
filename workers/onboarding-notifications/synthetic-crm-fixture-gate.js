@@ -2,7 +2,6 @@
 // OFFLINE-ONLY guard for the specifically approved LSZH synthetic Airtable CRM
 // test-record envelope. No SDK, API, network calls, Airtable writes or credentials.
 // This is a necessary preflight and not proof that unseen automations won't fire.
-const crypto=require('node:crypto');
 const CODE=/^ob_[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const ID=/^rec[A-Za-z0-9]{14}$/;
 const LABEL='LSZH SYNTHETISCH – NUR TEST – E2E';

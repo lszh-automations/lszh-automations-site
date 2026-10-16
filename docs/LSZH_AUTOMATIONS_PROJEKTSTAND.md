@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## AKTUELL – 17.10.2026: Synthetischer Airtable-CRM-Onboarding-Test LIVE bestanden UND VOLLSTÄNDIG bereinigt
+
+Der Geschäftsführer erteilte ausdrücklich die Freigabe für die kontrollierte Erstellung und anschliessende Bereinigung von **genau drei** synthetischen Datensätzen in der real verbundenen Website-CRM-Airtable-Basis `appzJiskpAdaR1HEv`. Vorher wurden live die neun Airtable-Automationen (acht aktiv), zwei aktiven Make-Szenarien (ohne Airtable) und sieben inaktiven Make-Onboarding-Szenarien überprüft. Die aktuellen Feldschema-Optionen und Berechnungsformeln bestätigten den geplanten risikoarmen Datensatztyp. Der einmalig zufällig generierte, nicht veröffentlichte synthetische Onboarding-Code hatte vor Anlage **0** exakte CRM-Treffer. Kein laufendes System wurde deaktiviert oder aktiviert.
+
+In dieser Reihenfolge angelegt: fiktiver `Kunden`-Record `rec6Mu0uaBdy4H3K7`, fiktiver `Aufträge`-Record `recPbqkocPYokgK2n`, fiktiver `Kunden-Onboarding`-Record `recx6PnnpSgpbZbYn`. Nur `synthetisch@example.invalid` als Kontaktadresse, keine echten Personen-/Kundendaten, keine Offerte oder Rechnung, kein Versand. Der Auftrag war `Leistung=Beratung`, `Status=Pausiert`, `Abrechnungsmodell=Individuell`, `Standardaufgaben erstellt=true`, CHF 0 und ohne Fakturierungsdatum. **13/13 unabhängige Live-Leseprüfungen** der Verknüpfungen, Rechnungsdaten-/Make-Status-Konsistenz, Versandsperren und Sicherheitsformeln waren positiv. `Auto-Fakturierung fällig=0`, `Projekt vollständig=0`, keine automatisch angelegten Projektaufgaben-/Rechnungslinks.
+
+Danach ausdrücklich **alle drei angelegten synthetischen Datensätze bereinigt**: Onboarding → Auftrag → Kunde. Vor jeder Löschung wurden Identität und fehlende nicht autorisierte Verknüpfungen kontrolliert. Die Cloud-Airtable-Schnittstelle bestätigte jede Delete-Aktion und gesonderte nachfolgende Reads meldeten **für jede der drei Record-IDs null Treffer**; die abschliessende projektcodegenaue Onboarding-Suche ergab ebenfalls **0 Treffer**. Keine synthetische Fixture blieb zurück. Keine Make-Einladung, Gmail-Nachricht, Cloud-Run-Reconcile, Firestore-Aktion oder Aktivierung des weiterhin gesperrten Cloud-Run-HTTP-Outbox-Dienstes. Die bestehenden erfolgreichen Firestore-Lese-/Schreib-/bereinigten Tests sind getrennte technische Nachweise.
+
+**Wichtiges Gate bleibt bestehen:** Durchgängiger Live-Codepfad `verifyOnboardingState()` über echtes Airtable-REST-Token auf einem Cloud-Run-Ausführungsdienst und anschliessend Outbox-Speicherung **wurde NICHT ausgeführt**. Das Ergebnis ist ein nachweislich sauberer realer Airtable-Fixture-/Referenzdaten-/Konsistenz-/Cleanup-Test, ergänzt durch bereits grüne synthetische Offline-E2E-Tests. Rechtliche RC1-/AVV-Freigaben und produktive Systeme bleiben separat offen. Für erneute CRM-Fixtures oder Cloud-Run-Verbindung eigene erneute Freigaben einholen; **nicht** heimlich neue Testdaten anlegen.
+
+**Einzelheiten:** [LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md](./LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md).
+
 ## Update 17.10.2026 – Airtable-Fixture-Nebenwirkungen auditiert; keine CRM-Schreibfreigabe
 
 **Ausschliesslich lesende Live-Bestandsaufnahme:** In der Website-CRM-Airtable-Base `appzJiskpAdaR1HEv` sind 9 Automationen vorhanden, davon **8 deployed/aktiv**. Die vier wichtigsten Bedingungen wurden in der aktuell bereitgestellten Automation-Konfiguration kontrolliert:

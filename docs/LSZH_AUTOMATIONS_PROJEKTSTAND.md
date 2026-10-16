@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## AKTUELLER STAND – 17.10.2026: Cloud-Run-Outbox auch für anonymen Zugriff gesperrt; synthetischer Schreibtest OFFLINE vorbereitet
+
+**Neue tatsächliche Gesundheitsprüfung vom Geschäftsführer:** `staging-health-check.sh` meldet
+`PASS: Cloud Run name, identity, ingress and disabled no-secret runtime environment`;
+`PASS: No allUsers/allAuthenticatedUsers entries in service IAM policy`;
+`PASS: Anonymous caller rejected with HTTP 403`;
+`PASS: Authenticated health returned enabled=false`;
+und `PASS: Disabled private STAGING health check`.
+Damit ist die Ablehnung des anonymen Aufrufs **am echten Cloud-Run-HTTP-Endpoint** zusätzlich zu den direkten IAM-Bindings nachgewiesen. Der Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert und verwendet weiterhin keine Airtable-Credentials, Fixture-Codes, E-Mail-Dienste oder Scheduler. Geerbte IAM-Zugriffsrechte wurden dadurch nicht formal vollständig auditiert.
+
+**Neu nur im ungemergten PR #8 vorbereitet:** Der streng begrenzte synthetische Firestore-Schreibtest `firestore-write-probe.js` verwendet exakt die **vorhandene** Outbox-`createFirestoreStore().createOnce()`-Schreibroutine und `makeDraft()` für den ausdrücklich fiktiven Datensatz `recZZZZZZZZZZZZZZ`. Er verweigert einen bereits vorhandenen Dokumentpfad; legt maximal **ein** synthetisches `DRAFT_NOT_SENT`-Dokument mit `testOnly=true`, `deliveryEnabled=false`, `emailSent=false` in der vorhandenen dedizierten Staging-Collection an; liest das exakte Dokument samt Flags zurück; löscht es nur per Firestore-REST-`currentDocument.updateTime`-Precondition und prüft danach HTTP 404. Bei unbekannten Daten oder unpassenden Werten **keine** Löschung; bei Teilausfall kann das synthetische Dokument zur manuellen Nachkontrolle bestehen bleiben. Kein Airtable-/Make-/E-Mail-Zugriff oder Kundenrecord. Separates Minimal-Dockerfile und offline Mock-Tests; kein Aufruf oder Änderung an bestehenden Cloud-Run-HTTP-Diensten. Die noch nicht live gebaute/ausgeführte Probe verlangt neben den festen Datenbank- und Identitätswerten ausdrücklich `LSZH_SYNTHETIC_WRITE_PROBE_ONLY=true` und `LSZH_OUTBOX_STAGE_ENABLED=false`.
+
+`staging-firestore-write-job.sh` sieht vier getrennte bewusst auszuführende Schritte vor: zuerst ausschliesslich `--plan` (read-only), danach optional `--build-only` (Image), `--create-only` (neuer Job ohne Execution) und zuletzt **nach ausdrücklicher Genehmigung** `--execute-once`. Das Skript bindet das Image an den überprüften Source-Commit, blockiert Job-Überschreibungen, verlangt 1 Task/0 Retries/512 MiB und verweigert einen zweiten Lauf auch nach fehlgeschlagener Ausführung. Es baut/deployt/startet **nichts automatisch**. Die Firestore-Leserechte sind bereits real geprüft; die Schreibrechte weiterhin **UNGETESTET**.
+
+**Empfohlener nächster Schritt:** Im Geschäfts-Cloud-Shell-Checkout `git pull --ff-only`, anschliessend **nur** `bash workers/onboarding-notifications/staging-firestore-write-job.sh` (kein Cloud-Write). Vor späterem Live-Test synthetischen Schreibzugriff und mögliche Restfixture-Bereinigung ausdrücklich freigeben. Kein produktiver Versand/Vertragsabschluss/Deploy.
+
 ## AKTUELLER STAND – 17.10.2026: Firestore-REST-LESERECHTE NACHGEWIESEN (STAGING)
 
 **Bestätigtes Ergebnis:** Der Geschäftsführer hat die Logs der am 16.10.2026 einmalig abgeschlossenen Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` (Region Zürich, `europe-west6`) ausgelesen. Die relevanten Logzeilen lauteten:

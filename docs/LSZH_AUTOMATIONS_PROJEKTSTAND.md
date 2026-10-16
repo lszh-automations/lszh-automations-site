@@ -1,5 +1,18 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Update 17.10.2026 – Erster synthetischer Firestore-Schreibtest Cloud Run JOB: 1/1 erfolgreich, Logs noch offen
+
+**Vom Geschäftsführer ausdrücklich in Cloud Shell ausgeführt:** `staging-firestore-write-job.sh --execute-once`, nachdem ein neuer, isolierter, nicht automatisch gestarteter Staging-Job angelegt worden war. Die vorangestellte Sicherheitskontrolle meldete `PASS: reviewed image, only test env vars, dedicated identity, task=1, retries=0.` Die eine Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` wurde in `europe-west6` mit `1 / 1 complete` und `Execution [...] has successfully completed` beendet. Gepinntes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34`. Keine automatischen Retries, keine Änderung bestehender HTTP-Services/IAM/Make/E-Mail-Szenarien.
+
+**Prüfstand:** Der Job-Exit-Code 0 ist ein starkes Indiz für den erfolgreichen vorgesehenen Zyklus (GET auf fehlende fixe synthetische ID, `createOnce` via echter Outbox-Firestore-Routine, strikte Readback-Prüfung, bedingtes DELETE, GET erwartet 404). **Noch nicht anhand der separaten Ausführungslogs einzeln bestätigt** sind alle PASS-Zeilen und damit die endgültige Bestätigung der Bereinigung. Nicht behaupten, dass Cleanup bereits anhand von Logdaten nachgewiesen sei. Als nächster *rein lesender* Schritt gezielt die Logs **dieser** Execution abrufen:
+
+```bash
+gcloud beta run jobs executions logs read lszh-firestore-write-probe-staging-cb7mm \
+  --project=lszh-automations --region=europe-west6 --limit=50
+```
+
+Bei `PASS: Test fixture removal verified (HTTP 404).` und `PASS: Outbox Firestore synthetic WRITE/READ/DELETE cycle completed.` zusammen mit vorangegangenen Create/Readback/Cleanup-PASS als durchgängig verifiziert markieren. **Job keinesfalls erneut ausführen**; Skript verhindert einen Zweitlauf. Bei fehlenden PASS/unerwarteten Fehlern nur read-only analysieren, vor jeglicher manueller Bereinigung ausdrücklich entscheiden. Bestehender Outbox-HTTP-Dienst bleibt weiterhin `enabled=false`; produktiver Versand und Verträge nicht aktiviert.
+
 ## Update 17.10.2026 – Synthetischer Firestore-Schreibprobe-Job erfolgreich angelegt, nicht ausgeführt
 
 Bestätigt durch Geschäftskonto/Cloud Shell: `staging-firestore-write-job.sh --create-only` lief erfolgreich, Google Cloud meldet `Job [lszh-firestore-write-probe-staging] has successfully been created` in `europe-west6`. Geplantes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34` (zuvor bereits Cloud Build SUCCESS). Das Skript bestätigte `PASS: New STAGING write-probe Job CREATED; NOT EXECUTED.`. Es hat damit bislang **noch keinen** Firestore-Testdatensatz geschrieben, gelesen oder gelöscht, keine Scheduler eingerichtet, keine IAM-Rollen geändert und keine E-Mails verschickt. Der ursprüngliche Cloud-Run-HTTP-Outbox-Dienst bleibt weiterhin deaktiviert (`enabled=false`).

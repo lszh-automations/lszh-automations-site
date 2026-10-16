@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## UPDATE 17.10.2026 – Onboarding→Outbox Offline-End-to-End bestanden; reale CRM-Fixture fehlt
+
+Fortsetzung nach vollständig abgeschlossenem Firestore-Lese-/Schreib-/Löschtest. Über den verbundenen Airtable-Zugang wurde die **tatsächliche Tabellen-/Feldstruktur ohne Kundendatenänderungen** geprüft. Die Basis `LSZH Automations – Website CRM` (`appzJiskpAdaR1HEv`) enthält die vier vom bestehenden `onboarding/confirmation.js` benötigten Tabellen `Kunden-Onboarding`, `Aufträge`, `Kunden`, `Projektaufgaben` mit den geprüften Feldern, Links und Auswahlwerten (einschliesslich `Eingegangen`/`Vollständig`, `Sensible Daten`, `AVV erforderlich=Prüfen`, Make-Statusfeldern). Die technisch referenzierten Spalten stimmen mit der Live-Metadatenstruktur überein.
+
+**Sieben zusätzliche synthetische End-to-End-Testfälle** nutzen den bestehenden HTTP-Server, reale `listCandidateCodes`, `reconcile`, `verifyOnboardingState` und die echte Firestore-`createOnce`-Logik mit lokal abgefangenen Airtable-/Firestore-Antworten. Geprüft wurden vollständige Verknüpfung mit einem nicht sendbaren Draft, erneuter Aufruf mit idempotentem 409/GET, fehlende DSG-Aufgabe, Rechnungsdaten-Widerspruch, Doppelbelegung des Projektcodes, Airtable 401 und abgeschalteter/Falsch-Secret-Zugriff. GitHub CI meldet `82/82` JavaScript- und `8/8` separate IAM-Tests erfolgreich, **ohne** Cloud-Deployment oder Änderung echter Kundendaten. Neue Datei: `workers/onboarding-notifications/onboarding-e2e.synthetic.test.mjs`. Detaillierte Prüfmatrix: [LSZH_ONBOARDING_OUTBOX_E2E_20261017.md](./LSZH_ONBOARDING_OUTBOX_E2E_20261017.md).
+
+**Live-Fixture-Existenz:** Eine gezielt auf den festen synthetischen Projektcode `ob_00000000-0000-4000-8000-000000000000` begrenzte Airtable-**Leseabfrage** der Onboarding-Tabelle ergab exakt **0 Datensätze**. Damit ist ein durchgängiger, real verbundener Airtable→Cloud-Run→Firestore-Test **noch NICHT durchgeführt**; diese Aussage nicht mit dem erfolgreichen Offline-Test oder dem separaten Firestore-Google-Cloud-Test verwechseln.
+
+**Sicherer nächster Entscheidungspunkt:** Bevor wir eine echte Test-Fixture im gemeinsamen Website-CRM schreiben, müssen die dadurch möglicherweise ausgelösten Airtable-/Make-Automationen und Nebeneffekte gezielt geprüft werden. Keine neuen Testkunden im Live-CRM, keine Einladungen, keine externen E-Mails, keine Aktivierung des deaktivierten Cloud-Run-Outbox-Dienstes ohne separate ausdrückliche Freigabe. Make-Mitgliedseinladungen bleiben bislang nur kundenseitige Statusangaben, keine verifizierte Berechtigung.
+
 ## Bestätigter Abschluss 17.10.2026 – Firestore-Outbox-STAGING Lese- UND Schreibpfad bestanden
 
 **Echter Cloud-Run-Nachweis aus den vom Geschäftsführer kontrollierten Execution-Logs** am 16.10.2026, 22:20:11 (UTC), für die genau einmal ausgeführte Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` im Projekt `lszh-automations`, Region `europe-west6`, benannte Firestore-Datenbank `lszh-offers-staging`, eigenes Staging-Dienstkonto:

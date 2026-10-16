@@ -1,5 +1,27 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Bestätigter Abschluss 17.10.2026 – Firestore-Outbox-STAGING Lese- UND Schreibpfad bestanden
+
+**Echter Cloud-Run-Nachweis aus den vom Geschäftsführer kontrollierten Execution-Logs** am 16.10.2026, 22:20:11 (UTC), für die genau einmal ausgeführte Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` im Projekt `lszh-automations`, Region `europe-west6`, benannte Firestore-Datenbank `lszh-offers-staging`, eigenes Staging-Dienstkonto:
+
+```text
+PASS: Fixed synthetic STAGING document was absent before the write.
+PASS: Actual outbox createOnce persisted one test-only, send-disabled draft.
+PASS: Created draft read back with exact testOnly=true and delivery=false fields.
+PASS: Test fixture deleted with a version precondition.
+PASS: Test fixture removal verified (HTTP 404).
+PASS: Outbox Firestore synthetic WRITE/READ/DELETE cycle completed.
+No Airtable calls, emails, customer records or credentials logged.
+```
+
+**Technischer Befund: BESTANDEN.** Die echte `createFirestoreStore().createOnce()`-Implementierung konnte mit der Laufzeit-Dienstidentität ein **festes, fiktives Testdokument** in `lszh_onboarding_notification_drafts_staging` anlegen, als `DRAFT_NOT_SENT` mit `testOnly=true`, `deliveryEnabled=false`, `emailSent=false` vollständig zurücklesen, über die aktuelle `updateTime`-Versionsbedingung löschen und die Abwesenheit mit einem abschliessenden HTTP 404 bestätigen. Das synthetische Dokument ist nach dieser Abfrage nicht mehr vorhanden. Weitere Cloud-Firestore-Testarbeiten sind für diese eng umrissene Speicherfunktion **nicht nötig**. Den Einmal-Job **nicht nochmals starten**.
+
+Bereits zuvor separat erfolgreich: Firestore-Metadaten-GET 200, absichtlich fehlendes Staging-Testdokument GET 404 durch dieselbe Cloud-Run-Identität; Cloud-Run-HTTP-Outbox-Service `lszh-onboarding-outbox-staging` meldete authentifiziert `enabled=false`; ein anonymer `GET /health` wurde nachweislich mit HTTP **403** verweigert. Es wurden keine Benutzer-Token-Creator-Rechte ergänzt, keine JSON-Schlüssel genutzt und keine produktiven E-Mails, Make-Szenarien, Airtable-Kundendaten oder Vertragsannahmen aktiviert.
+
+**Weiterhin ausdrücklich OFFEN:** Der eigentliche Airtable→Onboarding-Verifikations→Outbox-End-to-End-Lauf wurde **nicht** live geprüft, und der bestehende Cloud-Run-HTTP-Dienst bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` und ohne Airtable-Zugangsdaten, Fixture-Codes oder Scheduler gesperrt. Auch rechtliche RC1-/AVV-Freigaben, produktive Vertragsannahme/Archivierungsfreigabe, echtes Kunden-Onboarding, Versandpfad und allfällige vererbte IAM-Rechte sind nicht durch diesen synthetischen Speichertest abgedeckt. Der Code liegt weiterhin im nicht gemergten Draft-PR #8 (auf Draft-PR #7 aufbauend).
+
+**Empfohlene nächste Arbeit:** Nicht noch einen Firestore-Probejob bauen. Stattdessen den gesamten bislang nur offline getesteten **Onboarding-Zustandsprüfpfad** für einen ausdrücklich synthetischen Airtable-Fall vorbereiten und über die App-/GitHub-Verbindungen lesend prüfen; keine produktiven Daten ändern und den Outbox-Dienst ohne ausdrückliche Freigabe nicht aktivieren. Ergebnisse fortlaufend hier festhalten.
+
 ## Update 17.10.2026 – Erster synthetischer Firestore-Schreibtest Cloud Run JOB: 1/1 erfolgreich, Logs noch offen
 
 **Vom Geschäftsführer ausdrücklich in Cloud Shell ausgeführt:** `staging-firestore-write-job.sh --execute-once`, nachdem ein neuer, isolierter, nicht automatisch gestarteter Staging-Job angelegt worden war. Die vorangestellte Sicherheitskontrolle meldete `PASS: reviewed image, only test env vars, dedicated identity, task=1, retries=0.` Die eine Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` wurde in `europe-west6` mit `1 / 1 complete` und `Execution [...] has successfully completed` beendet. Gepinntes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34`. Keine automatischen Retries, keine Änderung bestehender HTTP-Services/IAM/Make/E-Mail-Szenarien.

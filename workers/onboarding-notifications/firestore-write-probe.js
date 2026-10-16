@@ -71,7 +71,7 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
     const expectedFields=toFirestore(DRAFT).fields;
     const actualTime=document.fields?.createdAt?.timestampValue;
     if (typeof actualTime!=='string' ||
-        !/^2026-10-17T00:00:00(?:\\.(?:000|000000|000000000))?Z$/.test(actualTime))
+        !/^2026-10-17T00:00:00(?:\.(?:000|000000|000000000))?Z$/.test(actualTime))
       throw new Error('wrong_created_at');
     assert.deepStrictEqual(
       {...document.fields,createdAt:{timestampValue:expectedFields.createdAt.timestampValue}},

@@ -782,4 +782,6 @@ const server=http.createServer(async (req,res)=>{
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);
   return send(res,405,JSON.stringify({error:'method_not_allowed'}));
 });
-server.listen(PORT, ()=>console.log(`LSZH Automations listening on ${PORT}`));
+if (require.main === module)
+  server.listen(PORT, ()=>console.log(`LSZH Automations listening on ${PORT}`));
+module.exports = {server};

@@ -1,0 +1,31 @@
+name: Onboarding notification outbox (synthetic only)
+on:
+  push:
+    branches:
+      - feature/onboarding-notification-outbox-20261016
+  pull_request:
+    paths:
+      - 'workers/onboarding-notifications/**'
+      - '.github/workflows/onboarding-notification-outbox.yml'
+jobs:
+  offline-tests:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check worker syntax
+        run: |
+          node --check workers/onboarding-notifications/server.js
+          node --check workers/onboarding-notifications/outbox.js
+          node --check workers/onboarding-notifications/airtable-candidates.js
+          node --check workers/onboarding-notifications/firestore-store.js
+      - name: Run synthetic offline tests
+        run: node --test workers/onboarding-notifications/*.test.mjs
+      - name: Assert no mail transport in worker
+        run: |
+          ! grep -RE 'gmail\.com|sendMail\(|sendAnEmail|nodemailer|smtp://' workers/onboarding-notifications/*.js

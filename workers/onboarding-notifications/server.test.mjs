@@ -28,9 +28,9 @@ async function serve(overrides={}) {
 }
 async function post(base,secret=SECRET,options={}) {
  return fetch(base+'/internal/reconcile',{
+  ...options,
   method:'POST',
-  headers:{'x-lszh-outbox-key':secret,...(options.headers||{})},
-  ...options
+  headers:{...(options.headers||{}),'x-lszh-outbox-key':secret}
  });
 }
 test('internal API defaults to disabled and creates no documents',async()=>{

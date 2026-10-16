@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## AKTUELLER STAND – 17.10.2026: Firestore-REST-LESERECHTE NACHGEWIESEN (STAGING)
+
+**Bestätigtes Ergebnis:** Der Geschäftsführer hat die Logs der am 16.10.2026 einmalig abgeschlossenen Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` (Region Zürich, `europe-west6`) ausgelesen. Die relevanten Logzeilen lauteten:
+
+```text
+2026-10-16 22:01:33 PASS: Named Zurich STAGING Firestore metadata GET 200.
+2026-10-16 22:01:33 PASS: Missing, fixed synthetic document GET 404.
+2026-10-16 22:01:33 PASS: Cloud Run service identity effective Firestore READ probe successful.
+2026-10-16 22:01:33 NO document body, personal data, token, customer info, write or email operation.
+```
+
+Damit sind **die technische Erreichbarkeit der benannten Firestore-Staging-Datenbank und die effektive Leseoperation mit der dedizierten Google-Cloud-Run-Dienstidentität** erstmals real belegt, **ohne** Token-Creator-Berechtigungen für den Cloud-Shell-Benutzer, Dienstkontoschlüssel oder separate Service-Credentials. Die Dokumentenabfrage betraf ausschliesslich eine **absichtlich nicht existente** synthetische Dokument-ID und bestätigte HTTP 404; die Probe hat keine vorhandenen Datensatzinhalte geladen.
+
+**Weiterhin bewusst offen / nicht bewiesen:** Firestore-Schreibrechte (`createDocument`) sowie End-to-End-Airtable-/Outbox-Verarbeitung, produktiver Vertrags-/Rechnungs-/E-Mail-Versand, rechtliche RC1/AVV-Freigaben und übergeordnete IAM-Zugriffe. Es fand **kein** Schreibtest statt. Bestehender Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` ist weiterhin gesperrt: `LSZH_OUTBOX_STAGE_ENABLED=false`, keine Credentials/Fixture-Codes/Scheduler. Ein Service-Health-Test mit IAM wurde bereits bestanden; der später ergänzte anonyme HTTP-401/403-Gegencheck ist **noch ohne bestätigte Nutzerausgabe**.
+
+**Sicherer nächster Schritt:** Ausschliesslich die erweiterte `staging-health-check.sh` mit Prüfung auf verweigerten anonymen Zugriff durchführen (kein POST, keine Datenbank, keine Änderungen). Erst danach separat einen exakt begrenzten synthetischen Firestore-Schreibtest vorbereiten, vor dessen Durchführung ausdrücklich die Ziel-Collection, den Testinhalt, die Idempotenz und Bereinigung festlegen. Der erfolgreiche Read-Job soll **nicht nochmals ausgeführt** werden. Vorhandene STAGING-Services niemals überschreiben oder aktivieren, ohne erneute manuelle Entscheidung.
+
 ## Nachtrag 16./17.10.2026 – Firestore-Leseprobe-Job einmalig erfolgreich abgeschlossen; Logs noch zu verifizieren
 
 Der Geschäftsführer führte **ausdrücklich** den separat gesicherten `staging-firestore-job.sh --execute-once` in Cloud Shell aus. Der Sicherungscheck bestätigte `PASS: Job pinned to reviewed image, exact service identity and fixed read-only config.` Danach wurde die **eine** Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` in `europe-west6` gestartet und von Google Cloud mit `1 / 1 complete` und `Execution [...] has successfully completed` abgeschlossen. Genaue Container-Version weiterhin `lszh-firestore-read-probe:staging-49297f5b6cb0`; es gab **keine automatische Wiederholung**. Der separate HTTP-Outbox-Staging-Dienst bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` deaktiviert; keine produktiven E-Mails, keine Änderungen an Airtable/Firestore-Daten oder IAM-Rollen vorgesehen.

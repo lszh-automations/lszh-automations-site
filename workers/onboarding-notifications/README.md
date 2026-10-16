@@ -1,6 +1,6 @@
 # LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
-**Stand:** 16.10.2026. Nur Entwurf auf Branch `feature/onboarding-notification-outbox-20261016` / Draft PR #8; nicht gemergt, nicht deployt, nicht aktiv.
+**Stand:** 16.10.2026. Code weiterhin Draft PR #8 (nicht gemergt); **Container gebaut und separater Cloud-Run-STAGING-Dienst am 16.10.2026 bereitgestellt, aber Verarbeitung deaktiviert**. Keine Kundenmails, kein Scheduler, keine Onboarding-Datenverarbeitung.
 
 ## Bestätigte Infrastruktur aus Geschäftskonto (diagnostiziert am 16.10.2026)
 
@@ -10,7 +10,7 @@
 - APIs aktiviert: Cloud Run, Cloud Build, Artifact Registry, Firestore, Secret Manager.
 - Vorhandene Cloud-Run-Staging-Services: `lszh-archive-reader-staging`, `lszh-offer-acceptance-staging`, `lszh-offer-portal-staging`. **Nicht verändern.**
 - Outbox-spezifisches Dienstkonto `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`: **am 16.10.2026 von Geschäftsführer in Google Cloud Shell erstellt**; Cloud IAM-Änderung mit `Updated IAM policy` bestätigt. **Tatsächliche REST-Berechtigung und Scope noch nicht nachgewiesen**.
-- Outbox-spezifischer Cloud-Run-Dienst `lszh-onboarding-outbox-staging`: **fehlt**.
+- Outbox-spezifischer Cloud-Run-Dienst `lszh-onboarding-outbox-staging`: **seit 16.10.2026 bereitgestellt**, Revision `00001-pz6`, Image-Tag `staging-4075f23f47b8`, 100 % Traffic zur deaktivierten Revision. **Authentifizierter `/health`-Test noch offen.**
 
 **Sicherheitshinweis:** Die vorhandene Firestore-Datenbank ist für Offerten-Staging benannt. Eine zusätzliche, getrennte Collection für rein synthetische Onboarding-Tests ist funktional möglich und vermeidet eine neue Datenbank. **IAM lässt sich per Bedingung auf diese Datenbank, aber nicht auf unsere einzelne Collection begrenzen.** Daher darf das Servicekonto nur für den isolierten synthetischen Staging-Test genutzt werden; vor Livebetrieb separate Datenbank oder stärker isolierte Architektur prüfen.
 
@@ -131,6 +131,17 @@ Die neue Datei `staging-service.sh` hat **drei getrennte Modi**:
    Prüft den Cloud-Run-Service, die Laufzeitidentität, die abgeschalteten Umgebungsvariablen und die fehlende öffentliche Invoker-Freigabe. Ruft nur `GET /health` mit einem temporären Identity Token der aktiven Cloud-Shell-Identität ab und verlangt `{"service":"lszh-onboarding-draft-outbox","enabled":false}`. Kein POST und keine Firestore-/Airtable-Abfrage. Falls `403`, nicht den Dienst öffentlich machen; Berechtigung `run.routes.invoke` für den eigenen Benutzer auf dem **einzelnen Service** prüfen.
 
 **Wichtige Grenze:** Das Setup ist Staging und *ohne* Versandkomponenten. Ein grüner Healthcheck beweist, dass der deaktivierte Worker erreichbar ist, **nicht**, dass der Dienstkonto-IAM-Zugriff auf Firestore tatsächlich funktioniert. Ein synthetischer Datenbank-Schreibtest und der Versand bleiben separate, noch nicht freigegebene Schritte.
+
+## Aktueller Folgecheck nach Deployment
+
+Das isolierte Staging-Image wurde über Cloud Build `46e3293e-8b9b-44b1-b7ec-34dd330b3e44` erfolgreich erzeugt und in der bestehenden Artifact Registry gespeichert. `--deploy-disabled` wurde **erfolgreich** ausgeführt, wodurch der neue Cloud-Run-Dienst `lszh-onboarding-outbox-staging` in Zürich angelegt wurde. **Nicht erneut ausführen.** Der nächste Schritt ist ausschliesslich:
+
+```bash
+cd ~/lszh-outbox-review
+bash workers/onboarding-notifications/staging-health-check.sh
+```
+
+Erwartung: Service-IAM ohne `allUsers`/`allAuthenticatedUsers`, Staging-Dienstkonto, `LSZH_OUTBOX_STAGE_ENABLED=false` und `GET /health` mit `enabled:false`. **Cloud Run kann Kosten verursachen**; min Instances 0. Keine Airtable-Credentials, keine Fixtures, keine Scheduler, keine E-Mails aktiviert. Bei `403` wegen fehlender Aufruferrechte **nicht** öffentlich schalten.
 
 ## Wiederholbare Kontrollen
 

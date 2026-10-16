@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – private Cloud-Run-Staging-Bereitstellung vorbereitet
+
+Der Geschäftsführer hat die *read-only* IAM-Sicherheitsprüfung bestanden: separate Staging-Dienstidentität vorhanden und aktiv; die benannte Firestore-Zürichdatenbank stimmt; exakt ein konditionierter `roles/datastore.user`-Projekt-IAM-Binding für diese Identität; keine weiteren Projektrollen für das Konto; keine nutzerverwalteten privaten Schlüssel. **Noch offen:** Vererbte Rechte und tatsächliche Firestore-REST-Wirksamkeit. Es erfolgte kein Firestore-Lese-/Schreibzugriff.
+
+Im nicht gemergten Outbox-Branch sind danach die **sicher getrennten, ausdrücklich auszuführenden** Cloud-Shell-Schritte ergänzt:
+- `workers/onboarding-notifications/staging-service.sh` ohne Argumente: prüft nur die vorhandenen Ressourcen, Geschäftskonto, exakten Git-Commit und Abwesenheit eines existierenden Cloud-Run-Outbox-Diensts (keine Änderungen).
+- `--build-only`: nach expliziter Ausführung ausschliesslich die acht für den Worker nötigen Quelldateien über Cloud Build in die vorhandene Zürcher Artifact Registry bauen/hochladen; keine Geheimnisse und kein Deployment.
+- `--deploy-disabled`: nach expliziter Ausführung **nur einen neuen** Cloud-Run-Service `lszh-onboarding-outbox-staging` mit separatem Dienstkonto, verpflichtender IAM-Authentisierung, `LSZH_OUTBOX_STAGE_ENABLED=false`, ohne Secrets, Testcodes, Scheduler und Mailtransporte deployen. Ein vorhandener Service wird nie aktualisiert. Es können Cloud-Kosten entstehen.
+- `staging-health-check.sh`: liest Konfiguration/Service-IAM und führt nur einen authentifizierten `GET /health` aus; erwartet `enabled=false`, kein Kunden-/Datenbankzugriff.
+
+**Momentaner Zustand:** Nur Code/CI/Dokumentation vorbereitet; **kein** Container-Push, **kein** Cloud-Run-Deployment, **keine** Kundenmails oder Onboarding-Schreibzugriffe. Vor späterer Aktivierung zusätzlich Test-Fixures und Firestore-Rechte isoliert prüfen. Erläuterungen in `workers/onboarding-notifications/README.md`.
+
 ## Nachtrag 16.10.2026 – Staging-Dienstidentität vom Geschäftsführer angelegt
 
 Google Cloud Shell hat nach der ausdrücklich ausgeführten Aktion `bash workers/onboarding-notifications/staging-identity-setup.sh --apply` **`Created service account [lszh-onboarding-outbox-staging]`** und **`Updated IAM policy for project [lszh-automations]`** gemeldet. Die Identität ist `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`. Die eingerichtete `roles/datastore.user`-Bedingung zielt auf `resource.name=="projects/lszh-automations/databases/lszh-offers-staging"`. Keine Schlüsseldatei, kein Cloud-Run-Deployment, keine Firestore-Datenoperationen und keine Kundenmails.

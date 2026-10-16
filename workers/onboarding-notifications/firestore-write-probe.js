@@ -65,7 +65,18 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
       !Number.isFinite(Date.parse(document.updateTime)))
     throw new Error('synthetic_document_identity_mismatch');
   try {
-    assert.deepStrictEqual(document.fields,toFirestore(DRAFT).fields);
+    // Firestore REST normalizes RFC3339 timestamps to Z with 0/3/6/9
+    // fractional digits: a submitted ".000Z" may return just "Z".
+    // Only zero fractions at this *exact fixed UTC instant* are accepted.
+    const expectedFields=toFirestore(DRAFT).fields;
+    const actualTime=document.fields?.createdAt?.timestampValue;
+    if (typeof actualTime!=='string' ||
+        !/^2026-10-17T00:00:00(?:\\.(?:000|000000|000000000))?Z$/.test(actualTime))
+      throw new Error('wrong_created_at');
+    assert.deepStrictEqual(
+      {...document.fields,createdAt:{timestampValue:expectedFields.createdAt.timestampValue}},
+      expectedFields
+    );
   }catch {
     // If the document ever changed, DO NOT delete it; manual review is safer.
     throw new Error('synthetic_document_fields_mismatch');

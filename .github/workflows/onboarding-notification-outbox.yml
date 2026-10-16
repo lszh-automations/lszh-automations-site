@@ -34,6 +34,8 @@ jobs:
           bash -n workers/onboarding-notifications/staging-diagnostics.sh
           bash -n workers/onboarding-notifications/staging-identity-setup.sh
           bash -n workers/onboarding-notifications/staging-identity-verify.sh
+          bash -n workers/onboarding-notifications/staging-service.sh
+          bash -n workers/onboarding-notifications/staging-health-check.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

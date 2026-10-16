@@ -26,6 +26,7 @@ jobs:
           node --check workers/onboarding-notifications/outbox.js
           node --check workers/onboarding-notifications/airtable-candidates.js
           node --check workers/onboarding-notifications/firestore-store.js
+          node --check workers/onboarding-notifications/firestore-runtime-probe.js
       - name: Run synthetic offline tests
         run: node --test workers/onboarding-notifications/*.test.mjs
       - name: Verify read-only Cloud Shell preflight syntax
@@ -42,6 +43,12 @@ jobs:
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)
         run: docker build -f workers/onboarding-notifications/Dockerfile -t lszh-outbox-ci:synthetic .
+      - name: Build isolated Firestore runtime probe image (no push or deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.firestore-probe -t lszh-firestore-probe-ci:synthetic .
+      - name: Verify runtime probe disabled by default and contains no website or secrets
+        run: |
+          docker run --rm --network none lszh-firestore-probe-ci:synthetic sh -c \
+            'test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/.env && node --check /app/probe.js'
       - name: Inspect packaged code without network or credentials
         run: |
           docker run --rm --network none lszh-outbox-ci:synthetic sh -c \

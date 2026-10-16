@@ -43,9 +43,6 @@ if [[ "$active_account" != "$ACCOUNT" || "$active_project" != "$PROJECT" ]]; the
   echo 'STOP: Wrong Google account or Cloud project.'
   exit 2
 fi
-for binary in \
-  'firestore databases describe --database=lszh-offers-staging' \
-  'iam service-accounts describe'; do :; done
 gcloud firestore databases describe --project="$PROJECT" --database="$DATABASE" \
   --format='value(name)' >/dev/null
 gcloud artifacts repositories describe "$REPO" --project="$PROJECT" \
@@ -55,8 +52,9 @@ gcloud iam service-accounts describe "$SA" --project="$PROJECT" \
 
 COMMIT="$(git rev-parse --short=12 HEAD)"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/lszh-onboarding-outbox:staging-${COMMIT}"
-if gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" \
-  --format='value(metadata.name)' >/dev/null 2>&1; then
+# Listing must succeed. An IAM failure must NOT be mistaken for 'not found'.
+KNOWN_SERVICES="$(gcloud run services list --project="$PROJECT" --region="$REGION" --format='value(metadata.name)')"
+if printf '%s\n' "$KNOWN_SERVICES" | grep -Fxq "$SERVICE"; then
   echo 'STOP: The named Outbox Cloud Run service already exists; refusing to modify it.'
   exit 2
 fi

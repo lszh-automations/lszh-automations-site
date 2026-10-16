@@ -1,6 +1,34 @@
 # LSZH Automations – Sichere Airtable-Fixture für den E2E-Onboarding-Test
 
-**Stand:** 17.10.2026 · **STATUS: NUR PLANUNG – KEINE AIRTABLE-RECORDS ANGELEGT**
+**Stand:** 17.10.2026 · **STATUS: GENEHMIGTER SYNTHETISCHER LIVE-CRM-TEST ERFOLGREICH DURCHGEFÜHRT UND VOLLSTÄNDIG BEREINIGT**
+
+## Ergebnis der ausdrücklich genehmigten Ausführung am 17.10.2026
+
+Der Geschäftsführer erteilte nach Vorlage dieses Plans ausdrücklich die Freigabe, **genau drei synthetische Datensätze** im vorhandenen `LSZH Automations – Website CRM` anzulegen und anschliessend kontrolliert zu löschen. Nur diese Freigabe wurde ausgeübt; **keine** Freigabe für reale Kundendaten, Cloud Run-Reconcile, Make-Szenario-Aktivierung, E-Mail, Vertragsannahme oder Rechnungsversand.
+
+**Frischer Preflight direkt vor dem Schreiben:**
+- Airtable-Basis: unverändert 9 Automationen, davon 8 aktiv; die Trigger betrafen weiterhin Website-Leads, Rechnungen, Projektaufgaben und spezifische Auftragseigenschaften. Keine Automationskonfiguration geändert.
+- Make-Team: genau 2 aktive Szenarien, `Integration Apple iOS` und `MG - Delete`, ohne Airtable-App; 7 Make-Onboarding-Szenarien weiterhin inaktiv. Kein Szenario gestartet/geändert.
+- Airtable-Einzelauswahlen und Formeln aus dem **aktuellen Live-Schema** überprüft. `Auto-Fakturierung fällig` ist nur bei passendem Datum, nicht pausiertem Auftrag, nicht individuellem Abrechnungsmodell und positivem Betrag 1; `Projekt vollständig` hängt vom Abschlussflag ab.
+- Ein eigens zufällig erzeugter, nicht in GitHub oder dieser Dokumentation hinterlegter `ob_<UUIDv4>`-Code wurde vor der Anlage durch einen **exakten** CRM-Filter geprüft: 0 Treffer.
+
+**Exakt angelegte Datensätze (ausschliesslich fiktiv):**
+
+| Tabelle | Angelegte eindeutige Airtable-Record-ID | Ergebnis |
+|---|---|---|
+| `Kunden` | `rec6Mu0uaBdy4H3K7` | Fiktiver Firmenname/Ansprechpartner, `synthetisch@example.invalid`, künstliche Rechnungsadresse |
+| `Aufträge` | `recPbqkocPYokgK2n` | Genau dieser synthetische Kunde, `Leistung=Beratung`, `Status=Pausiert`, `Abrechnungsmodell=Individuell`, CHF 0, kein Fakturierungsdatum, Standard-Aufgaben-Sperre gesetzt |
+| `Kunden-Onboarding` | `recx6PnnpSgpbZbYn` | Genau dieser synthetische Auftrag/Kunde, Eingangstatus, Rechnungsdaten identisch, `Sensible Daten=Nein`, Make nicht eingeladen |
+
+**Live-Zustandsprüfung: 13/13 explizite Assertions bestanden.** Dazu gehörten korrekte wechselseitige Link-Beziehungen, ausschliesslich synthetische E-Mail-Felder, identische Projektcodes, übereinstimmende Rechnungsangaben, korrekte Make-/AVV-Statuswerte, `Standardaufgaben erstellt=true`, `Auto-Fakturierung fällig=0`, `Projekt vollständig=0`, **keine** Rechnungs- oder Projektaufgabenverknüpfungen. Nach Anlage des Auftrags wurden diese Flags separat überprüft, vor Löschung ebenfalls.
+
+**Kontrollierte Bereinigung:** In umgekehrter Reihenfolge wurde zuerst das exakt identifizierte Onboarding `recx6PnnpSgpbZbYn` gelöscht und seine Abwesenheit per Record-ID-Read nachgewiesen. Anschliessend wurde der Auftrag `recPbqkocPYokgK2n` erst nach erneuter Prüfung auf `0` Rechnungen, `0` Projektaufgaben, `0` Onboarding-Links und sichere Status-/Formelwerte gelöscht und als fehlend nachgewiesen. Zum Schluss wurde `rec6Mu0uaBdy4H3K7` nach Prüfung von `0` verknüpften Aufträgen/Onboardings gelöscht. **Abschliessender unabhängiger Read:** alle drei IDs geben 0 Record-Treffer, der genaue temporäre Projektcode ebenfalls 0 Treffer. **Keine Test-Fixture zurückgeblieben.**
+
+**Strikt abgegrenzter Befund:** Dies ist ein echter, verbundener **Airtable-CRUD-/Verknüpfungs-/Status-Sicherheitstest mit synthetischen Datensätzen**, NICHT die Ausführung der Node.js-`verifyOnboardingState()`-Funktion mit einem echten Airtable-REST-Read-Token in Cloud Run und NICHT ein zusammenhängender Live-Airtable→Cloud-Run→Firestore-End-to-End-Test. Vorherige 82/82 synthetische Offline-JS-Tests sowie die getrennte reale Firestore-Schreibprobe bleiben eigenständige Nachweise. Der Cloud-Run-HTTP-Outbox-Dienst bleibt `enabled=false`, keine Secrets, kein Scheduler, kein Mailtransport oder produktive Vertragsbearbeitung aktiviert.
+
+**Nächster Gate:** Weiterhin ausgeschalteten Staging-HTTP-Dienst belassen; eine gezielt isolierte **read-only** Node.js-`verifyOnboardingState()`-Probe mit echtem Zugriff müsste separat geplant und freigegeben werden. Für ihre Durchführung wäre eine erneut geschaffene synthetische Fixture bzw. isolierte Testbasis erforderlich; ohne erneute Freigabe **keinen** Testkunden nochmals anlegen. Die Speichertests müssen nicht wiederholt werden.
+
+---
 
 ## 1. Ziel und Begrenzung
 

@@ -2,7 +2,7 @@
 # Invoke from repository root with:
 # gcloud builds submit . --project=lszh-automations \
 #   --config=workers/onboarding-notifications/cloudbuild.staging.yaml \
-#   --substitutions=_IMAGE=europe-west6-docker.pkg.dev/lszh-automations/lszh-stage/lszh-onboarding-outbox:staging-<git-sha>
+#   --substitutions=_IMAGE=europe-west6-docker.pkg.dev/lszh-automations/lszh-outbox-staging/lszh-onboarding-outbox:staging-<git-sha>
 steps:
   - name: gcr.io/cloud-builders/docker
     args:

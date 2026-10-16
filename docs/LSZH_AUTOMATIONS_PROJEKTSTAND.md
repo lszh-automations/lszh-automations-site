@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Update 17.10.2026 – Synthetischer Firestore-Schreibprobe-Job erfolgreich angelegt, nicht ausgeführt
+
+Bestätigt durch Geschäftskonto/Cloud Shell: `staging-firestore-write-job.sh --create-only` lief erfolgreich, Google Cloud meldet `Job [lszh-firestore-write-probe-staging] has successfully been created` in `europe-west6`. Geplantes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34` (zuvor bereits Cloud Build SUCCESS). Das Skript bestätigte `PASS: New STAGING write-probe Job CREATED; NOT EXECUTED.`. Es hat damit bislang **noch keinen** Firestore-Testdatensatz geschrieben, gelesen oder gelöscht, keine Scheduler eingerichtet, keine IAM-Rollen geändert und keine E-Mails verschickt. Der ursprüngliche Cloud-Run-HTTP-Outbox-Dienst bleibt weiterhin deaktiviert (`enabled=false`).
+
+**Nächster expliziter Gate:** `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-firestore-write-job.sh --execute-once`. Dieser Modus muss vorher prüfen, dass es **keine frühere Execution** des neuen Jobs gibt, dass Image und Dienstidentität exakt stimmen, dass die Umgebungswerte nur den synthetischen Test mit deaktiviertem Outbox-HTTP-Dienst betreffen, sowie `taskCount=1` und `maxRetries=0`. Er startet maximal einmal den bewusst auf eine künstliche `recZZZZZZZZZZZZZZ`-ID begrenzten Test: vorheriges GET 404, echte Outbox-`createOnce`-Routine, strikte GET-Feldprüfung, versionsbedingte DELETE-Anfrage und erneutes GET 404. **Bei Fehlern nicht wiederholen und etwaige synthetische Restfixture zuerst separat überprüfen.** Das Ausführen verursacht reale synthetische Schreib-/Löschoperationen und ist von der vorausgegangenen Job-Erstellung unabhängig.
+
+Die tatsächliche Firestore-Schreibberechtigung und die erfolgreiche Bereinigung sind aktuell **noch nicht verifiziert**; erst nach Ausführungs- und Container-Lognachweis als PASS markieren. Weiterhin keine produktiven Onboarding-, Vertragsannahme- oder Versandfreigaben.
+
 ## Update 17.10.2026 – Synthetisches Firestore-Schreibprobe-Image gebaut, Job noch nicht angelegt
 
 Der Geschäftsführer hat den Build `bash workers/onboarding-notifications/staging-firestore-write-job.sh --build-only` erfolgreich in Google Cloud Shell ausgeführt. Cloud Build `59efd378-075e-4a53-8bc3-e72de99a5551` meldete **SUCCESS** (12 Sekunden, nur sechs explizit erlaubte Quelldateien). Das Image ist in der bestehenden Zürcher Artifact Registry gespeichert:

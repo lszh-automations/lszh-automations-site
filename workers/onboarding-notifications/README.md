@@ -152,6 +152,8 @@ Der Geschäftsführer hat den **bereits bereitgestellten**, weiterhin deaktivier
 - `PASS: Disabled private STAGING health check; no onboarding/Firestore/write path executed.`
 
 Es wurde ausschliesslich ein authentifiziertes `GET /health` ausgeführt; der Worker führt weiterhin keine Aufträge aus, hat keine Airtable-Zugangsdaten und keine E-Mail-Funktion. Die Kontrolle deckt **nicht** geerbte IAM-Freigaben ab.
+**Zusätzliche Sicherheit (neu, noch nicht ausgeführt):** `staging-health-check.sh` prüft bei der nächsten Ausführung auch einen **anonymen** `GET /health`-Aufruf. Nur HTTP 401/403 ist zulässig; HTTP 200 wäre ein Sicherheitsfehler und stoppt den Test. Damit wird die fehlende öffentliche Aufrufberechtigung auch am echten Endpoint geprüft, nicht nur anhand der direkten IAM-Richtlinie. Es bleibt ein ausschliesslich lesender Test.
+
 
 ### Als Nächstes: effektive Firestore-REST-Leseberechtigung separat prüfen
 

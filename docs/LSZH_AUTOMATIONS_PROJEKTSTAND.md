@@ -1,5 +1,14 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## UPDATE 17.10.2026 – Automationstrigger vor echter synthetischer Airtable-Fixture geprüft
+
+**Reine Metadaten-Leseprüfung mit verbundenen Apps:**
+- `LSZH Automations – Website CRM`: **9 Airtable-Automationen**, davon **8 deployed/aktiv**. Die aktive `LSZH Projekte – Standard-Onboarding` erzeugt bei erfüllten Auftragsbedingungen automatisch mehrere Projektaufgaben und setzt Statusfelder. Die ebenfalls aktiven `LSZH Projekte – Abschluss & Betreuung` und `LSZH Betreuung – Folgecheck anlegen` können Folgeaufgaben auslösen; zwei weitere aktive Automationen betreffen die Fakturierung. Sie wurden **nicht** verändert.
+- Make-Organisation `LZSH AUTOMATIONS` (verbundenes Team): Aktuell **2 aktive Szenarien**, keines davon das LSZH-Onboarding oder ein Airtable-Onboarding-Trigger. Sieben Szenarien mit `Onboarding` im Namen sind `inactive`, darunter `LSZH Kunden-Onboarding – Eingang` (`7777695`) und Make-Einrichtungs-/Folgecheck-Szenarien. Kein Szenario gestartet oder aktiviert.
+- Ein gefilterter Airtable-Read auf den explizit fiktiven Projektcode `ob_00000000-0000-4000-8000-000000000000` ergab 0 Onboarding-Records. Der vollverbundene Test bleibt noch offen.
+
+**Sicherheitsentscheid:** Keine künstlichen Kunden-/Auftrags-/Onboarding-Datensätze in der gemeinsam genutzten Website-CRM-Basis ohne gezielte Prüfung der aktiven Airtable-Trigger und eventueller automatischer Kettenreaktionen. Keine pauschalen Abschaltungen oder Änderungen am CRM. Für eine risikoarme fortgesetzte Staging-Integration zuerst ein isoliertes Testdatenkonzept ausarbeiten; nur mit separater Zustimmung erstellen/ausführen. Die Offline-E2E-Suite läuft erfolgreich über die echten Kernfunktionen (82/82 JavaScript-Tests plus 8/8 IAM). Verweis: [LSZH_ONBOARDING_OUTBOX_E2E_20261017.md](./LSZH_ONBOARDING_OUTBOX_E2E_20261017.md).
+
 ## UPDATE 17.10.2026 – Onboarding→Outbox Offline-End-to-End bestanden; reale CRM-Fixture fehlt
 
 Fortsetzung nach vollständig abgeschlossenem Firestore-Lese-/Schreib-/Löschtest. Über den verbundenen Airtable-Zugang wurde die **tatsächliche Tabellen-/Feldstruktur ohne Kundendatenänderungen** geprüft. Die Basis `LSZH Automations – Website CRM` (`appzJiskpAdaR1HEv`) enthält die vier vom bestehenden `onboarding/confirmation.js` benötigten Tabellen `Kunden-Onboarding`, `Aufträge`, `Kunden`, `Projektaufgaben` mit den geprüften Feldern, Links und Auswahlwerten (einschliesslich `Eingegangen`/`Vollständig`, `Sensible Daten`, `AVV erforderlich=Prüfen`, Make-Statusfeldern). Die technisch referenzierten Spalten stimmen mit der Live-Metadatenstruktur überein.

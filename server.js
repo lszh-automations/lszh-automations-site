@@ -716,9 +716,18 @@ async function handleSecureSubmit(req,res) {
   }
 }
 
+// Explicit public allowlist: never expose worker source, credentials, tests or docs.
+const PUBLIC_STATIC_FILES = new Set([
+  '/', '/index.html', '/robots.txt',
+  '/onboarding', '/onboarding/', '/onboarding/index.html',
+  '/make-start', '/make-start/', '/make-start/index.html',
+  '/secure', '/secure/', '/secure/index.html',
+  '/secure-admin', '/secure-admin/', '/secure-admin/index.html'
+]);
 function staticFile(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
+  if (!PUBLIC_STATIC_FILES.has(pathname)) return send(res,404,'Not found','text/plain; charset=utf-8');
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
   if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';

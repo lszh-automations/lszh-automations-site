@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – serverseitige Onboarding-Vorgangsbestätigung (Entwicklungsbranch)
+
+**Nur im isolierten Feature-Branch** `feature/onboarding-server-confirmation-20261016`: Das Website-Onboarding prüft nach einem Make-Eingang den technischen Abschluss durch **read-only** Airtable-Nachverifikation (Onboarding, Auftrag, Kundendaten und ggf. Datenschutz-Prüfaufgabe). Neuer `POST /api/onboarding/status`, fail-closed: nur tatsächliche geprüfte Persistenz = `completed`; Make-`Accepted`/200 = kein Erfolgsbeleg; sonst `processing`, `requires_review` oder Ausfall. Das Frontend fragt den Status nach einer unbestätigten Einsendung lesend nach, ohne erneut ein Formular zu senden.
+
+**Wichtiger Unterschied:** Technischer Abschluss der Eingabeverarbeitung bedeutet **nicht** abgeschlossenes Kundenprojekt, geprüften Make-Zugriff oder versandte E-Mail. Tests synthetisch/offline; **keine produktiven Sends, Aktivierungen oder Deploys**, `main` unberührt. Für einen echten Staging-Nachweis wird noch ein auf die Website-CRM-Base begrenzter Airtable-Read-only-PAT als geschütztes Server-Secret benötigt. E-Mail bei späterem Abschluss nach Verlassen der Website ist noch nicht implementiert; separater persistenter Benachrichtigungsprozess erforderlich. Details: [Serverseitige Vorgangsbestätigung](./LSZH_ONBOARDING_VORGANGSBESTAETIGUNG_20261016.md).
+
+
+
 _Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
 ## Geschäftsmodell / Eigentümerschaft

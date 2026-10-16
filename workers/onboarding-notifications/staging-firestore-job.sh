@@ -61,7 +61,24 @@ gcloud artifacts repositories describe "$REGISTRY" --project="$PROJECT" \
 KNOWN_JOBS="$(gcloud run jobs list --project="$PROJECT" --region="$REGION" \
   --format='value(metadata.name)')"
 COMMIT="$(git rev-parse --short=12 HEAD)"
-IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REGISTRY}/lszh-firestore-read-probe:staging-${COMMIT}"
+# Cloud Build SUCCESS 609819f8-4597-4a6f-8779-0a23283df24c.
+# Reuse this ALREADY REVIEWED image; changing this orchestration script does
+# not require (or authorize) rebuilding unchanged container source.
+IMAGE_BUILD_COMMIT='49297f5b6cb0'
+if ! git diff --quiet "$IMAGE_BUILD_COMMIT" HEAD -- \
+    workers/onboarding-notifications/firestore-runtime-probe.js \
+    workers/onboarding-notifications/Dockerfile.firestore-probe \
+    workers/onboarding-notifications/cloudbuild.firestore-probe.yaml; then
+  echo 'STOP: Probe runtime/build source differs from the ALREADY BUILT image.'
+  echo 'Do not reuse the pinned image until a new reviewed build is performed.'
+  exit 2
+fi
+IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REGISTRY}/lszh-firestore-read-probe:staging-${IMAGE_BUILD_COMMIT}"
+if [[ "$MODE" == '--build-only' && "$COMMIT" != "$IMAGE_BUILD_COMMIT" ]]; then
+  echo 'STOP: This pinned image already built. Do not overwrite the reviewed tag.'
+  echo 'A future changed build needs a new independently reviewed image tag.'
+  exit 2
+fi
 
 if [[ "$MODE" == '--plan' || "$MODE" == '--build-only' || "$MODE" == '--create-only' ]]; then
   if printf '%s\n' "$KNOWN_JOBS" | grep -Eq "(^|/)$JOB$"; then
@@ -114,7 +131,7 @@ if [[ "$MODE" == '--create-only' ]]; then
     --image="$IMAGE" \
     --service-account="$SA" \
     --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=60s \
-    --cpu=1 --memory=256Mi \
+    --cpu=1 --memory=512Mi \
     --set-env-vars="LSZH_FIRESTORE_READ_PROBE_ONLY=true,FIRESTORE_PROJECT_ID=$PROJECT,FIRESTORE_DATABASE_ID=$DATABASE" \
     --labels='environment=staging,purpose=firestore-read-probe' \
     --quiet

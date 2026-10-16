@@ -5,7 +5,7 @@ const require=createRequire(import.meta.url);
 const {createFirestoreStore}=require('./firestore-store');
 const {eventId,makeDraft}=require('./outbox');
 const ID='rec'+'A'.repeat(14),key=eventId(ID),draft=makeDraft(ID,new Date('2026-10-16T10:00:00.000Z'));
-const path='projects/lszh-automations/databases/(default)/documents/lszh_onboarding_notification_drafts_staging/'+key;
+const path='projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_onboarding_notification_drafts_staging/'+key;
 function fakeFirestore({badExisting=false,writeStatus=200,existing=false}={}) {
   const files=new Map();
   if(existing)files.set(key,{name:path,fields:{

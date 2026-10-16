@@ -72,7 +72,7 @@ test('plan only reads known infrastructure and never builds or creates Cloud Run
 test('job name preexists: fail closed before build and creation',()=>{
  const v=run({existing:true});
  assert.equal(v.code,2,v.text);
- assert.match(v.text,/refusing overwrite/);
+ assert.match(v.text,/Refusing overwrite/i);
  assert.doesNotMatch(v.calls,/run jobs create|builds submit/);
 });
 

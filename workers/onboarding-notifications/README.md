@@ -1,6 +1,6 @@
 # LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
-**Stand:** 16.10.2026. Code weiterhin Draft PR #8 (nicht gemergt); **Container gebaut und separater Cloud-Run-STAGING-Dienst am 16.10.2026 bereitgestellt, aber Verarbeitung deaktiviert**. Keine Kundenmails, kein Scheduler, keine Onboarding-Datenverarbeitung.
+**Stand:** 17.10.2026. Code weiterhin Draft PR #8 (nicht gemergt). Separater Cloud-Run-STAGING-HTTP-Dienst bereitgestellt und weiterhin **deaktiviert**. Einmaliger isolierter Cloud-Run-Job mit bestätigtem Firestore-GET-Zugriff erfolgreich abgeschlossen. Keine Kundenmails, kein Scheduler, keine Onboarding-Verarbeitung und kein Firestore-Schreibtest.
 
 ## Bestätigte Infrastruktur aus Geschäftskonto (diagnostiziert am 16.10.2026)
 
@@ -277,6 +277,23 @@ bash workers/onboarding-notifications/staging-firestore-job.sh --execute-once
 ```
 
 Erwartet: `gcloud run jobs execute ... --wait`, dann separate Prüfung der tatsächlichen Job-Logs. Bei STOP/FAIL oder Cloud-Firestore-403 **keine** Rollen ausweiten und keine zweite Ausführung starten, sondern Fehlermeldung untersuchen. Dieser einmalige Test kann geringe Cloud-Kosten verursachen.
+
+## 16.10.2026 – Laufzeit-Firestore-Leseprobe: PASS (tatsächliche Job-Logs verifiziert)
+
+Ausführung: `lszh-firestore-read-probe-staging-s76jq`, Cloud Run Job `lszh-firestore-read-probe-staging` in `europe-west6`; Google Cloud meldete `1 / 1 complete`. Danach hat der Geschäftsführer die Ausführungslogs mit folgenden Zeilen geteilt:
+
+```text
+2026-10-16 22:01:33 PASS: Named Zurich STAGING Firestore metadata GET 200.
+2026-10-16 22:01:33 PASS: Missing, fixed synthetic document GET 404.
+2026-10-16 22:01:33 PASS: Cloud Run service identity effective Firestore READ probe successful.
+2026-10-16 22:01:33 NO document body, personal data, token, customer info, write or email operation.
+```
+
+Ergebnis: Die dedizierte **Cloud-Run-Laufzeit-Serviceidentität besitzt wirksamen technischen Lesezugriff** auf die benannte Zürcher STAGING-Firestore-Datenbank. Kein userseitiges Service-Account-Impersonation-Token, kein JSON-Schlüssel, kein Firestore-Schreibzugriff und keine bestehenden Kundendaten ausgelesen. **Nicht erneut ausführen**: der Zweck dieser einmaligen Leseprobe ist erfüllt.
+
+Verbleibende Sicherheitsgrenze: Der ausgeführte Probe-Job ist **nicht** der deaktivierte Outbox-HTTP-Dienst, nutzt jedoch dessen dediziertes Staging-Dienstkonto. Ein grüner GET-Test beweist **keine** Write-/Create-Berechtigung und **keinen** funktionsfähigen Onboarding-Prozess. Das HTTP-Outbox-Deployment bleibt bei `enabled=false` ohne Airtable-Credentials, Fixture-Codes oder Scheduler.
+
+**Nächster ausnahmslos lesender Check:** `bash workers/onboarding-notifications/staging-health-check.sh` aus dem aktualisierten lokalen Git-Checkout. Er prüft nun zusätzlich explizit, dass anonyme Zugriffe auf den bestehenden Cloud-Run-Outbox-Dienst HTTP 401 oder 403 liefern, und bestätigt danach authentifiziert `enabled=false`. Die vorangegangene erfolgreiche authentifizierte Health-Prüfung lag vor der zusätzlichen anonymen Teststufe. **Ein anschliessender synthetischer Firestore-Schreibtest ist noch nicht freigegeben und nicht ausgeführt.**
 
 ## Wiederholbare Kontrollen
 

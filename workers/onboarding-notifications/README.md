@@ -304,7 +304,7 @@ Der erneute, vom Geschäftsführer ausgeführte Staging-Healthcheck bestätigte 
 - `firestore-write-probe.js`: fest kodiertes fiktives Record-ID `recZZZZZZZZZZZZZZ`, daraus SHA-256-Dokument-ID im vorhandenen Staging-Outbox-Pfad; prüft zuerst 404, führt über die reale `createOnce`-Routine höchstens einen POST-Create aus, GET/inhaltliche Rückprüfung von `DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`; DELETE **nur des gerade erstellten identischen Dokuments** mit `currentDocument.updateTime`-Versionsbedingung; erneutes GET erwartet 404. Keine vorhandenen Datensätze gelesen oder überschrieben, kein E-Mail-Code.
 - **Bei unerwartet vorhandenem Dokument** sofortiger Abbruch vor POST. **Bei abweichendem Inhalt** nach Erstellung kein DELETE (manuelle Überprüfung). **Bei Abbruch nach POST kann eine Testfixture zurückbleiben; nicht blind erneut ausführen**.
 - Der neue getrennte `Dockerfile.firestore-write-probe`-Container enthält nur sechs geprüfte Quelldateien (inkl. Original-Firestore-Store und Original-Outbox-Entwurfsformat). Die aktive Cloud-Run-Service-Revision wird nicht modifiziert.
-- `staging-firestore-write-job.sh`: vier bewusst getrennte Modi, jeweils mit Geschäftskonto-/Staging-/Git-/Dienstkonto-Prüfung, Quellcodebindung an geprüften Commit `1502a6da6eed`, maximal ein Task, null Retries, 512 MiB. Vor einer `--execute-once`-Aktion wird auch überprüft, dass **keine frühere Jobausführung** vorliegt. Geplantes Job-Label `lszh-firestore-write-probe-staging`. Alle Cloud-Ressourcen für diesen **neuen** Test sind weiterhin **nicht** angelegt.
+- `staging-firestore-write-job.sh`: vier bewusst getrennte Modi, jeweils mit Geschäftskonto-/Staging-/Git-/Dienstkonto-Prüfung, Quellcodebindung an geprüften Commit `a20757439a34`, maximal ein Task, null Retries, 512 MiB. Vor einer `--execute-once`-Aktion wird auch überprüft, dass **keine frühere Jobausführung** vorliegt. Geplantes Job-Label `lszh-firestore-write-probe-staging`. Alle Cloud-Ressourcen für diesen **neuen** Test sind weiterhin **nicht** angelegt.
 
 **Nur der erste Schritt ist derzeit sinnvoll (rein lesend):**
 ```bash
@@ -315,6 +315,20 @@ bash workers/onboarding-notifications/staging-firestore-write-job.sh
 Erwartet `PLAN ONLY`. **Kein `--build-only`, `--create-only` oder `--execute-once` ohne separate bewusste Entscheidung.** Ein nachfolgender Build bzw. ein Cloud-Run-Job kann Kosten verursachen. Ein tatsächlicher Schreibtest verändert ein einzelnes fiktives Dokument in der bestehenden benannten Staging-Datenbank und versucht es nach exakter Bestätigung wieder zu löschen. Er belegt erst nach Cloud-Logs PASS/FAIL.
 
 Die Google Firestore REST API unterstützt Create/Get/Delete samt `currentDocument`-Precondition. Entscheidend ist, **niemals** die ganze Collection oder die benannte Datenbank zu löschen. Das Script weist Testidentität, Datenbank und Dokumentpfad fest zu und ermöglicht keine externen Parameter.
+
+## 17.10.2026 – Schreibroutine: Firestore-RFC3339-Normalisierung vor dem Build korrigiert
+
+Nach dem erfolgreich rein lesenden Schreibtest-Preflight entdeckte die Code-Review einen wichtigen Real-API-Randfall: Firestore liefert Timestamp-Werte RFC3339-Z-normalisiert zurück; ein ursprünglich gesendetes `.000Z` kann als `Z` oder `.000000Z` zurückkommen. Ein unveränderter strikter Stringvergleich hätte **nach einem erfolgreichen POST** einen falschen Fehler verursacht und zur Sicherheit die synthetische Fixture stehen gelassen. Dies wurde **vor einem Container-Build** im gesonderten `firestore-write-probe.js` behoben: Akzeptiert werden nur die präzisen UTC-Darstellungen des **identischen festgelegten Zeitpunkts** mit 0, 3, 6 oder 9 ausschliesslich nullwertigen Nachkommastellen. Alle übrigen Felder müssen weiter exakt übereinstimmen; ein abweichender Zeitpunkt oder eine Mikrosekundenänderung führt zum sicheren Abbruch ohne DELETE. Offline-Tests emulieren die realistischen Rückgabeformate.
+
+**Geprüfter neuer Quell-Commit:** `a20757439a34`. `staging-firestore-write-job.sh` ist auf dieses Quell-Image fixiert und verweigert den Build, wenn sich die sechs verpackten Quelldateien gegenüber diesem Commit geändert haben. Das zuvor geprüfte **PLAN ONLY** für `staging-1502a6da6eed` bleibt korrekt, bezog sich aber auf eine ältere Test-Implementierung; **noch kein synthetisches Schreib-Image wurde gebaut, kein entsprechender Job wurde erstellt oder ausgeführt.**
+
+Nach dem Pull zuerst **erneut nur**:
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-firestore-write-job.sh
+```
+Erst danach gesonderter `--build-only`-Befehl, sofern `PLAN ONLY` bestätigt. Kein `--create-only` oder `--execute-once` in diesem Schritt.
 
 ## Wiederholbare Kontrollen
 

@@ -10,7 +10,7 @@ function mock({existing=false,previousExecution=false,wrongUser=false,badService
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-write-job-'));
  const callLog=path.join(tmp,'calls.txt');
  const specPath=path.join(tmp,'spec.json');
- const expectedImage='europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-1502a6da6eed';
+ const expectedImage='europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34';
  const spec={spec:{template:{spec:{taskCount:1,template:{spec:{
   serviceAccountName:badServiceIdentity?'other@invalid.example':'lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com',
   maxRetries:0,containers:[{image:expectedImage,env:[
@@ -76,7 +76,7 @@ test('default plan is read only and holds original source-pin',()=>{
  const r=check();
  assert.equal(r.status,0,r.text);
  assert.match(r.text,/PLAN ONLY/);
- assert.match(r.text,/staging-1502a6da6eed/);
+ assert.match(r.text,/staging-a20757439a34/);
  assert.doesNotMatch(r.logs,/builds submit|run jobs create|run jobs execute/);
 });
 test('mismatch identity fails before listing or writing resources',()=>{

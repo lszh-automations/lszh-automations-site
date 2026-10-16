@@ -143,6 +143,40 @@ bash workers/onboarding-notifications/staging-health-check.sh
 
 Erwartung: Service-IAM ohne `allUsers`/`allAuthenticatedUsers`, Staging-Dienstkonto, `LSZH_OUTBOX_STAGE_ENABLED=false` und `GET /health` mit `enabled:false`. **Cloud Run kann Kosten verursachen**; min Instances 0. Keine Airtable-Credentials, keine Fixtures, keine Scheduler, keine E-Mails aktiviert. Bei `403` wegen fehlender Aufruferrechte **nicht** öffentlich schalten.
 
+## Authentifizierter Cloud-Run-Gesundheitscheck: BESTANDEN
+
+Der Geschäftsführer hat den **bereits bereitgestellten**, weiterhin deaktivierten Cloud-Run-Staging-Dienst lesend getestet. Bestätigte Resultate:
+- `PASS: Cloud Run name, identity, ingress and disabled no-secret runtime environment.`
+- `PASS: No allUsers/allAuthenticatedUsers entries in service IAM policy.`
+- `PASS: Authenticated health returned enabled=false.`
+- `PASS: Disabled private STAGING health check; no onboarding/Firestore/write path executed.`
+
+Es wurde ausschliesslich ein authentifiziertes `GET /health` ausgeführt; der Worker führt weiterhin keine Aufträge aus, hat keine Airtable-Zugangsdaten und keine E-Mail-Funktion. Die Kontrolle deckt **nicht** geerbte IAM-Freigaben ab.
+
+### Als Nächstes: effektive Firestore-REST-Leseberechtigung separat prüfen
+
+`staging-firestore-read-probe.sh` ist als **ausschliesslich lesender**, manuell zu genehmigender Test vorbereitet, mit Offline-Mocktests in GitHub Actions. Er benötigt **kein Deployment** und ändert keine Cloud-Run-Einstellungen.
+
+Vorprüfung in der bestehenden Cloud Shell:
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-firestore-read-probe.sh
+```
+
+Das ruft **noch keine Firestore-REST-URL** auf, erstellt keine Zugangstokens und verändert nichts.
+
+Wenn der Geschäftsführer danach selbst den einmaligen REST-Lesetest autorisiert, ist der separate Aufruf:
+```bash
+bash workers/onboarding-notifications/staging-firestore-read-probe.sh --probe-read
+```
+
+Der Test versucht zunächst, mit einer **kurzlebigen** und **nicht angezeigten** Dienstkonto-Identität zu arbeiten. Das erfordert bereits vorhandene Berechtigung `iam.serviceAccounts.getAccessToken` bzw. die auf das **einzelne Dienstkonto** beschränkte Token-Creator-Rolle und gegebenenfalls die aktivierte IAM-Credentials-API. Diese Rechte **nicht** unbesehen erstellen oder projektweit vergeben. Wenn Impersonation nicht möglich ist, endet das Skript mit `UNVERIFIED`; kein Workaround mit Editor/Owner.
+
+Wenn die Token-Erzeugung erfolgreich ist, sendet es genau **zwei GET-Requests** an die Firestore-REST-API: zuerst nur Metadaten der benannten Datenbank `lszh-offers-staging` (erwartet HTTP 200), danach ein **absichtlich nicht angelegtes** Dokument der dedizierten Test-Collection `lszh_onboarding_notification_drafts_staging` (erwartet HTTP 404). Antwortinhalte und Tokens werden niemals ausgegeben oder gespeichert. **Keine Dokumente lesen, anlegen oder verändern**. 401/403/sonstige Ergebnisse werden nicht als bestanden behauptet.
+
+Ein solcher PASS beweist einen technischen GET-Zugriff unter dieser Identität, aber **keine Firestore-Schreibberechtigung**, keinen echten Outbox-Lauf und keine Abwesenheit geerbter Berechtigungen. Dafür wären gesonderte, ausdrücklich freigegebene synthetische Tests notwendig. Die Firestore-Conditional-IAM-Syntax wurde mit der Google-Dokumentation abgeglichen.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – Cloud Run Job Speichergrenze korrigiert
+
+Der vom Geschäftsführer gestartete `staging-firestore-job.sh --create-only` ist beim Google-Cloud-Deploy wegen **256 MiB RAM mit 1 vCPU in Cloud Run Gen2** abgewiesen worden (Cloud Run Job verlangt mindestens 512 MiB). Die Ausgabe `Job failed to deploy` zeigt **keinen erfolgreichen Job-Deploy**; es erfolgte auch **keine Jobausführung, keine Firestore-Abfrage, keine Kundenmail**. Andere Cloud-Run-Dienste unverändert.
+
+Korrektur ausschliesslich im Entwicklungsbranch: `--memory=512Mi`; der bestehende **erfolgreich gebaute** Container `lszh-firestore-read-probe:staging-49297f5b6cb0` wird absichtlich wiederverwendet, ohne Image-Rebuild. Das Job-Skript prüft dazu, dass Container-Code, Dockerfile und Cloud-Build-Definition seit dem Original-Build unverändert sind. Es verweigert weiterhin Überschreiben vorhandener Jobs und automatische Ausführung. Neue synthetische Tests prüfen die Cloud-Run-Gen2-Grenze und Image-Tag-Pinning. **Nächste userseitige Aktion: nach Pull rein lesendes `staging-firestore-job.sh`-Preflight**, dann ausdrücklich `--create-only` bei Erfolg. Bei unerwartet doch existierendem Job vor jeder Änderung stoppen.
+
 ## Nachtrag 16.10.2026 – Ursache des abgebrochenen Impersonations-Tests eingegrenzt; Cloud-Run-Job vorbereitet
 
 Geschäftskonto bestätigte lesend mit `staging-impersonation-diagnostics.sh`: `iamcredentials.googleapis.com` ist **aktiv**. Für `lars@lszh-automations.ch` ist weder direkt am einzelnen Outbox-Dienstkonto noch direkt am Projekt eine `roles/iam.serviceAccountTokenCreator`-Bindung vorhanden. Die Prüfung beweist nicht, ob Gruppen-/Custom-/vererbte Berechtigungen existieren. Die vorherige Impersonation war `UNVERIFIED`, ohne dass Firestore auch nur einen Request erhalten hat. **Keine** neuen Rollen anlegen.

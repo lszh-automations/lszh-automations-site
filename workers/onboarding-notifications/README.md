@@ -295,6 +295,27 @@ Verbleibende Sicherheitsgrenze: Der ausgeführte Probe-Job ist **nicht** der dea
 
 **Nächster ausnahmslos lesender Check:** `bash workers/onboarding-notifications/staging-health-check.sh` aus dem aktualisierten lokalen Git-Checkout. Er prüft nun zusätzlich explizit, dass anonyme Zugriffe auf den bestehenden Cloud-Run-Outbox-Dienst HTTP 401 oder 403 liefern, und bestätigt danach authentifiziert `enabled=false`. Die vorangegangene erfolgreiche authentifizierte Health-Prüfung lag vor der zusätzlichen anonymen Teststufe. **Ein anschliessender synthetischer Firestore-Schreibtest ist noch nicht freigegeben und nicht ausgeführt.**
 
+## 17.10.2026: Anonymes HTTP 403 – PASS; synthetischer Firestore-Schreibtest vorbereitet (NICHT AUSGEFÜHRT)
+
+Der erneute, vom Geschäftsführer ausgeführte Staging-Healthcheck bestätigte **anonym HTTP 403**, danach authentifiziert `enabled=false`, die dedizierte Staging-Identität und keine öffentlich freigegebenen Service-IAM-Members. Bestehender Outbox-Dienst unverändert und keine Onboarding-Verarbeitung.
+
+**Ziel des nächsten Tests:** Die echte Firestore-`createOnce()`-Implementierung des Outbox-Workers (nicht eine vereinfachte zweite Schreibimplementierung) mit genau einem ausdrücklich **synthetischen** Draft testen.
+
+- `firestore-write-probe.js`: fest kodiertes fiktives Record-ID `recZZZZZZZZZZZZZZ`, daraus SHA-256-Dokument-ID im vorhandenen Staging-Outbox-Pfad; prüft zuerst 404, führt über die reale `createOnce`-Routine höchstens einen POST-Create aus, GET/inhaltliche Rückprüfung von `DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`; DELETE **nur des gerade erstellten identischen Dokuments** mit `currentDocument.updateTime`-Versionsbedingung; erneutes GET erwartet 404. Keine vorhandenen Datensätze gelesen oder überschrieben, kein E-Mail-Code.
+- **Bei unerwartet vorhandenem Dokument** sofortiger Abbruch vor POST. **Bei abweichendem Inhalt** nach Erstellung kein DELETE (manuelle Überprüfung). **Bei Abbruch nach POST kann eine Testfixture zurückbleiben; nicht blind erneut ausführen**.
+- Der neue getrennte `Dockerfile.firestore-write-probe`-Container enthält nur sechs geprüfte Quelldateien (inkl. Original-Firestore-Store und Original-Outbox-Entwurfsformat). Die aktive Cloud-Run-Service-Revision wird nicht modifiziert.
+- `staging-firestore-write-job.sh`: vier bewusst getrennte Modi, jeweils mit Geschäftskonto-/Staging-/Git-/Dienstkonto-Prüfung, Quellcodebindung an geprüften Commit `1502a6da6eed`, maximal ein Task, null Retries, 512 MiB. Vor einer `--execute-once`-Aktion wird auch überprüft, dass **keine frühere Jobausführung** vorliegt. Geplantes Job-Label `lszh-firestore-write-probe-staging`. Alle Cloud-Ressourcen für diesen **neuen** Test sind weiterhin **nicht** angelegt.
+
+**Nur der erste Schritt ist derzeit sinnvoll (rein lesend):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-firestore-write-job.sh
+```
+Erwartet `PLAN ONLY`. **Kein `--build-only`, `--create-only` oder `--execute-once` ohne separate bewusste Entscheidung.** Ein nachfolgender Build bzw. ein Cloud-Run-Job kann Kosten verursachen. Ein tatsächlicher Schreibtest verändert ein einzelnes fiktives Dokument in der bestehenden benannten Staging-Datenbank und versucht es nach exakter Bestätigung wieder zu löschen. Er belegt erst nach Cloud-Logs PASS/FAIL.
+
+Die Google Firestore REST API unterstützt Create/Get/Delete samt `currentDocument`-Precondition. Entscheidend ist, **niemals** die ganze Collection oder die benannte Datenbank zu löschen. Das Script weist Testidentität, Datenbank und Dokumentpfad fest zu und ermöglicht keine externen Parameter.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

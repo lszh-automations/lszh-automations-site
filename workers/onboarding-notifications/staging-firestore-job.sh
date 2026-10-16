@@ -29,7 +29,7 @@ case "$MODE" in
   --plan|--build-only|--create-only|--execute-once) ;;
   *) echo 'STOP: Valid options are --plan, --build-only, --create-only, --execute-once.'; exit 2;;
 esac
-for cmd in gcloud git mktemp; do
+for cmd in gcloud git mktemp python3; do
   command -v "$cmd" >/dev/null || { echo "STOP: Missing command: $cmd"; exit 2; }
 done
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
@@ -64,7 +64,7 @@ COMMIT="$(git rev-parse --short=12 HEAD)"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REGISTRY}/lszh-firestore-read-probe:staging-${COMMIT}"
 
 if [[ "$MODE" == '--plan' || "$MODE" == '--build-only' || "$MODE" == '--create-only' ]]; then
-  if printf '%s\n' "$KNOWN_JOBS" | grep -Fqx "$JOB"; then
+  if printf '%s\n' "$KNOWN_JOBS" | grep -Eq "(^|/)$JOB$"; then
     echo 'STOP: A job with the intended name exists. Refusing overwrite or unexpected build.'
     exit 2
   fi
@@ -123,7 +123,7 @@ if [[ "$MODE" == '--create-only' ]]; then
 fi
 
 # --execute-once
-if ! printf '%s\n' "$KNOWN_JOBS" | grep -Fqx "$JOB"; then
+if ! printf '%s\n' "$KNOWN_JOBS" | grep -Eq "(^|/)$JOB$"; then
   echo 'STOP: Exact staging probe job not found, refusing execution.'
   exit 2
 fi

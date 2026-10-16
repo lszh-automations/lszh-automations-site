@@ -56,6 +56,19 @@ URL="$(gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$R
 if [[ ! "$URL" =~ ^https://[A-Za-z0-9.-]+\.run\.app$ ]]; then
   echo 'STOP: Cloud Run returned an invalid service URL'; exit 2
 fi
+echo 'Testing anonymous access denial (GET only, no Authorization header)...'
+ANON_HTTP="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+  --connect-timeout 8 --max-time 20 "$URL/health")"
+case "$ANON_HTTP" in
+  401|403)
+    echo "PASS: Anonymous caller rejected with HTTP $ANON_HTTP.";;
+  200)
+    echo 'FAIL: Anonymous GET /health unexpectedly succeeded; investigate public inherited access.'
+    exit 2;;
+  *)
+    echo "UNVERIFIED: Anonymous GET returned HTTP $ANON_HTTP (expected 401 or 403)."
+    exit 2;;
+esac
 echo 'Invoking authenticated health check (GET only, no data writes)...'
 curl -fsS --connect-timeout 8 --max-time 20 \
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \

@@ -16,6 +16,7 @@ case "$1" in
    elif [ "$2" = "--short=12" ]; then echo "1234567890ab"
    else echo "1234567890abcdef1234567890abcdef12345678"; fi;;
  branch) echo 'feature/onboarding-notification-outbox-20261016';;
+ diff) :;;
  status) :;;
  *) exit 48;;
 esac
@@ -39,7 +40,7 @@ esac
 `;
  fs.writeFileSync(path.join(dir,'git'),git,{mode:0o755});
  fs.writeFileSync(path.join(dir,'gcloud'),gcloud,{mode:0o755});
- const task={containers:[{image:'europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-read-probe:staging-1234567890ab',env:[
+ const task={containers:[{image:'europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-read-probe:staging-49297f5b6cb0',env:[
   {name:'LSZH_FIRESTORE_READ_PROBE_ONLY',value:'true'},
   {name:'FIRESTORE_PROJECT_ID',value:'lszh-automations'},
   {name:'FIRESTORE_DATABASE_ID',value:'lszh-offers-staging'}
@@ -89,8 +90,17 @@ test('create-only does NOT execute and has zero retries and read-only probe imag
  assert.match(v.text,/CREATED but NOT EXECUTED/);
  assert.match(v.calls,/run jobs create lszh-firestore-read-probe-staging/);
  assert.match(v.calls,/--max-retries=0/);
+ assert.match(v.calls,/--memory=512Mi/);
+ assert.doesNotMatch(v.calls,/--memory=256Mi/);
  assert.match(v.calls,/--service-account=lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com/);
  assert.doesNotMatch(v.calls,/--execute-now|run jobs execute|run deploy|run services/);
+});
+
+test('reviewed prior image remains pinned even after script/doc update',()=>{
+ const v=run();
+ assert.equal(v.code,0,v.text);
+ assert.match(v.text,/staging-49297f5b6cb0/);
+ assert.doesNotMatch(v.text,/staging-1234567890ab/);
 });
 
 test('execution refuses missing job and makes no changes',()=>{

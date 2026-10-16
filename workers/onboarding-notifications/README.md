@@ -61,6 +61,20 @@ Falls der Ordner schon vorhanden ist, keinen zweiten Klon erzeugen; stattdessen 
 
 **Freigabegrenze:** Fehlende APIs, Service Accounts, Firestore-Berechtigungen, separate Artifact Registry und tatsächliche Deploy-Rechte werden erst nach Prüfung explizit eingerichtet. Niemals JSON-Dienstkontoschlüssel erzeugen oder in Chat/GitHub hochladen. Cloud Run zunächst **privat und disabled** testen; keine produktiven Kundendaten oder Benachrichtigungen verarbeiten. Ein erneuter manueller Abgleich benötigt technische Authentisierung zusätzlich zum Control-Secret. Kosten und Google-Cloud-Region separat gegen das Geschäftskonto prüfen.
 
+## Diagnose nach Cloud-Shell-Preflight vom 16.10.2026
+
+Der vom Geschäftsführer ausgeführte read-only Preflight hat Geschäftskonto, Projekt `lszh-automations` und die fünf erforderlichen APIs bestätigt. Für `(default)`-Firestore, das noch nicht angelegte bzw. nicht lesbare Outbox-Dienstkonto und das separate Container-Repository gab es keine erfolgreiche `describe`-Antwort. **Das beweist noch nicht, dass diese Ressourcen fehlen:** 404 und 403 wurden im ersten Skript bewusst zusammengefasst.
+
+Daher neu `staging-diagnostics.sh`: listet ausschließlich lesend alle Firestore-Datenbanken mit Region und Typ, liest die Fehlerantwort für `(default)`, listet vorhandene Dienstkonten und Artifact-Registry-Repositories in `europe-west6` sowie Cloud-Run-Dienste. **Keine** Konfigurations- oder Ressourcenänderung. Es darf erst nach Auswertung der Diagnose über Firestore-Erstellung (beachte feste Datenbankregion und mögliche Kosten), dedizierte IAM-Identität, Registry-Repo und spätere Cloud-Run-Deploys entschieden werden.
+
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-diagnostics.sh
+```
+
+Der Cloud-Build-Platzhalter für das Docker-Image wurde auf das tatsächliche `lszh-outbox-staging`-Repository vereinheitlicht. **Image nicht pushen oder Cloud Run deployen**, solange Diagnose und Freigaben fehlen.
+
 ## Betriebsgrenzen / Abnahme vor Einsatz
 
 1. Der Scanner liest seitenweise höchstens 200 passende Datensätze; bei mehr bricht er bewusst ohne Outbox-Anlagen ab. Vor einer Skalierung auf grössere Kundenmengen muss inkrementelles, dauerhaftes Paging oder eine separate Änderungs-Queue entwickelt werden.

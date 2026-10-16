@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – Cloud-Shell-Diagnose und sichere Staging-Anpassungen
+
+Die vom Geschäftsführer ausgeführte rein lesende Cloud-Shell-Diagnose bestätigt die **bestehende** Firestore-Native-Datenbank `lszh-offers-staging` in Zürich (`europe-west6`) und das bestehende Container-Repository `cloud-run-source-deploy`. Das zuvor hartkodierte Firestore-Ziel `(default)` war falsch: Eine solche Datenbank existiert hier nicht. Der Outbox-Worker und seine Tests wurden auf die **bestehende benannte Staging-Datenbank** und die separate Test-Collection `lszh_onboarding_notification_drafts_staging` angepasst. Cloud-Build verweist auf das vorhandene Registry-Repository. Somit aktuell **keine zweite Datenbank / kein zweites Registry-Repository nötig**.
+
+Sicherheitskorrektur: Der Test-Worker führt **keine vollständige CRM-Liste** mehr durch, sondern lässt nur 1–3 explizit freigegebene synthetische Codes über `LSZH_STAGING_FIXTURE_CODES` zu. Ein falscher/unbekannter Code führt zum fail-closed Ergebnis. Zusätzlich wird `FIRESTORE_DATABASE_ID=lszh-offers-staging` verlangt; die Firestore-Duplikatprüfung blockiert auch vorhandene Einträge mit abweichendem Versandstatus. Alle Versandfunktionen sind weiterhin nicht implementiert.
+
+**Noch nicht durchgeführt:** eigenes Dienstkonto `lszh-onboarding-outbox-staging` erstellen und nur für die benannte Firestore-Datenbank konditional autorisieren; Private-Cloud-Run-Testinstanz; eigene Airtable-Read-only-Secrets/Scheduler-Freigabe; echter rein synthetischer End-to-End-Lauf. Weil die benannte Datenbank Offerten-Staging enthält, gewährt ein IAM-Recht auf sie technisch auch Zugriff auf deren andere Collections. Nutzung nur für isolierte synthetische Tests; vor Produktionsanbindung separate Datenbank entscheiden. Keine bestehenden Offer-Dienste, Make-Szenarien oder Kundendaten wurden verändert.
+
+Einzelheiten: `workers/onboarding-notifications/README.md`.
+
 ## Nachtrag 16.10.2026 – dauerhafte Onboarding-Benachrichtigungsentwürfe (nur Code, STAGING)
 
 Auf dem getrennten Branch `feature/onboarding-notification-outbox-20261016` ist ein **privater Cloud-Run-Outbox-Worker** vorbereitet. Er liest mögliche Onboarding-Abschlüsse aus Airtable, verifiziert den gesamten bisherigen Verarbeitungspfad mit der read-only Prüfkomponente und legt erst nach erfolgreich nachgewiesenem technischen Abschluss einen eindeutigen `DRAFT_NOT_SENT`-Eintrag per atomarem Firestore-Create an. Wiederholungen finden denselben Eintrag; Fehler erzeugen weder Erfolgsbehauptung noch Nachricht. Keine Kunden-E-Mail-Adresse und kein Geheimtoken werden gespeichert. Zugriffe sollen künftig über privates Cloud Run, dediziertes Google-Dienstkonto und separates Secret erfolgen. Keine JSON-Schlüsseldateien.

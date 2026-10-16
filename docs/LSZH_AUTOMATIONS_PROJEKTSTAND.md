@@ -8,6 +8,8 @@ Sicherheitskorrektur: Der Test-Worker führt **keine vollständige CRM-Liste** m
 
 **Noch nicht durchgeführt:** eigenes Dienstkonto `lszh-onboarding-outbox-staging` erstellen und nur für die benannte Firestore-Datenbank konditional autorisieren; Private-Cloud-Run-Testinstanz; eigene Airtable-Read-only-Secrets/Scheduler-Freigabe; echter rein synthetischer End-to-End-Lauf. Weil die benannte Datenbank Offerten-Staging enthält, gewährt ein IAM-Recht auf sie technisch auch Zugriff auf deren andere Collections. Nutzung nur für isolierte synthetische Tests; vor Produktionsanbindung separate Datenbank entscheiden. Keine bestehenden Offer-Dienste, Make-Szenarien oder Kundendaten wurden verändert.
 
+Das Opt-in-Skript `workers/onboarding-notifications/staging-identity-setup.sh` ist vorbereitet. Ohne Parameter zeigt es nur eine reine Leseprüfung und den Berechtigungsplan; erst ein vom Geschäftsführer selbst ausgeführtes `--apply` erstellt das eigene Dienstkonto und die auf `lszh-offers-staging` konditionierte Firestore-IAM-Berechtigung. Es erzeugt **keine** Schlüsseldatei, startet keine Cloud-Run-Dienste, schreibt keine Datensätze und versendet nichts.
+
 Einzelheiten: `workers/onboarding-notifications/README.md`.
 
 ## Nachtrag 16.10.2026 – dauerhafte Onboarding-Benachrichtigungsentwürfe (nur Code, STAGING)

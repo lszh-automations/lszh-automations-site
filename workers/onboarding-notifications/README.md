@@ -239,6 +239,31 @@ Google Cloud Run Jobs können eine eigene Serviceidentität verwenden, deren kur
 
 **Wichtig:** Der Job nutzt `roles/datastore.user` **nur in der bestehenden Staging-Datenbank**, wo diese Rolle alle Collections umfassen kann. Der Probe-Code greift aber ausdrücklich auf keinen bestehenden Offerten-Datensatz zu. Ein PASS bestätigt ausschliesslich die geprüften Leseoperationen, **nicht** die Schreibberechtigung oder sichere Isolation von geerbten Rollen. Es wird keine bestehende Outbox-Revisionskonfiguration verändert; insbesondere bleibt `LSZH_OUTBOX_STAGE_ENABLED=false` aktiv.
 
+## Cloud-Run-Job-Fehler beim ersten Erstellen – korrigiert, keine Ausführung
+
+Beim ausdrücklich gestarteten `--create-only` meldete Google Cloud am 16.10.2026:
+
+```
+Job failed to deploy
+spec.template.spec.task_spec.containers[0].limits.memory:
+Total memory < 512 Mi is not supported with gen2 execution environment
+with cpu always allocated (unthrottled).
+```
+
+**Ursache:** Im Job-Deploy-Skript war für `1 CPU` versehentlich `--memory=256Mi` angegeben. Cloud Run Jobs verlangen mindestens **512 MiB**. **Korrektur:** `--memory=512Mi` in `staging-firestore-job.sh`, geprüft mit Offline-Tests. Bestehende Cloud-Run-Dienste und das Outbox-System wurden nicht geändert. Ein Job wurde laut der Fehlermeldung nicht erfolgreich deployed und **nicht ausgeführt**. Der genaue Ressourcenbestand wird beim nächsten Skriptlauf erneut lesend geprüft; falls ein Job trotz Fehlermeldung existiert, verweigert das Skript eine Überschreibung.
+
+**Kein erneuter Build nötig:** Der Container selbst wurde vorher bereits erfolgreich unter `staging-49297f5b6cb0` gebaut (Cloud Build `609819f8-4597-4a6f-8779-0a23283df24c`, SUCCESS). Geändert wurde ausschliesslich das Betriebs-/Erstellungsskript, **nicht** `firestore-runtime-probe.js`, das Dockerfile oder die Cloud-Build-Definition. Der Deploy-Ablauf behält darum den **explizit festgelegten ursprünglichen Image-Tag**; ein Git-Diff prüft, dass die drei relevanten Quelldateien dem bereits gebauten Commit entsprechen. Ein versehentliches Überschreiben des Tags über `--build-only` wird abgewiesen.
+
+**Nächster Schritt (erst nach grünem CI):**
+
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-firestore-job.sh
+```
+
+Bei `PLAN ONLY` kann der Geschäftsführer separat erneut `--create-only` ausführen; das führt noch keine Firestore-Anfrage aus. **`--build-only` nicht erneut ausführen.**
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

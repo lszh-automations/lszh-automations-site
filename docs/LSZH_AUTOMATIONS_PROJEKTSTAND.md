@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Update 17.10.2026 – Synthetisches Firestore-Schreibprobe-Image gebaut, Job noch nicht angelegt
+
+Der Geschäftsführer hat den Build `bash workers/onboarding-notifications/staging-firestore-write-job.sh --build-only` erfolgreich in Google Cloud Shell ausgeführt. Cloud Build `59efd378-075e-4a53-8bc3-e72de99a5551` meldete **SUCCESS** (12 Sekunden, nur sechs explizit erlaubte Quelldateien). Das Image ist in der bestehenden Zürcher Artifact Registry gespeichert:
+`europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34`.
+Prüf-Basis: GitHub-Review-Branch `feature/onboarding-notification-outbox-20261016`, Runtime-/Dockerfile-Quellstand `a20757439a34`, mit korrigierter Firestore-RFC3339-Zeitstempel-Normalisierung.
+
+**Nachweisliche Grenzen:** `PASS: Isolated synthetic probe image pushed; no job deployed/executed.` Es wurde kein Firestore-Dokument geschrieben oder gelöscht. Der Schreibprobe-Job `lszh-firestore-write-probe-staging` wurde noch nicht erstellt. Der bestehende Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert, ohne Airtable-/E-Mail-/Scheduler-Funktionen. Kein neues IAM gewährt.
+
+**Nächster strikt getrennter Schritt:** Beim User ausschliesslich `bash workers/onboarding-notifications/staging-firestore-write-job.sh --create-only` auf dem bereits synchronisierten Branch; erzeugt maximal den **neuen**, nicht automatisch ausgeführten Testjob (1 Task, 0 Retries, 512 MiB). Bei `STOP` nicht umgehen. Erst danach nach separater bewusster Freigabe `--execute-once` und die tatsächlichen Cloud-Run-Logs prüfen. Der Test kann für genau eine fiktive Fixture Firestore-Create/Read/Conditional-Delete durchführen; es entstehen mögliche Cloud-Kosten. Das Image ist bereits gebaut, deshalb **kein erneuter `--build-only`-Aufruf**.
+
 ## Update 17.10.2026 – Firestore-Schreibprobe vor Container-Build um RFC3339-Normalisierung ergänzt
 
 Der Geschäftsführer führte `staging-firestore-write-job.sh` erfolgreich im Modus `PLAN ONLY` aus: richtiges LSZH-Konto, benannte Zürcher Staging-Datenbank, eigenes Dienstkonto, kein bereits existierender Write-Probe-Job; es erfolgten weder Cloud-Build/Deployment noch Firestore-Operationen. Im anschliessenden Code-Review wurde eine **potenzielle Live-Falschfehlermeldung** entdeckt: Die echte Firestore-REST-API Z-normalisiert Zeitstempel beim Lesen (gesendet `.000Z`, zurückgeliefert unter Umständen `Z` oder `.000000Z`). Das vormals strikte Gleichsetzen aller JSON-Timestamp-Strings hätte nach erfolgreichem Schreibversuch einen unberechtigten Abbruch und ein stehen gebliebenes synthetisches Dokument verursachen können. **Vor dem ersten Build behoben:** Der Test akzeptiert nur 0/3/6/9 Nachkommastellen mit exakt null für den fest verankerten Testzeitpunkt; zusätzliche oder veränderte Mikrosekunden werden abgewiesen, alle anderen Felder strikt geprüft; DELETE weiterhin nur nach erfolgreicher Prüfung per `currentDocument.updateTime`-Precondition. Synthetische Offline-Testfälle umfassen die Firestore-Normalisierung und ablehnende Fehlerpfade.

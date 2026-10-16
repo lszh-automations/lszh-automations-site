@@ -1,5 +1,18 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16./17.10.2026 – Firestore-Leseprobe-Job einmalig erfolgreich abgeschlossen; Logs noch zu verifizieren
+
+Der Geschäftsführer führte **ausdrücklich** den separat gesicherten `staging-firestore-job.sh --execute-once` in Cloud Shell aus. Der Sicherungscheck bestätigte `PASS: Job pinned to reviewed image, exact service identity and fixed read-only config.` Danach wurde die **eine** Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` in `europe-west6` gestartet und von Google Cloud mit `1 / 1 complete` und `Execution [...] has successfully completed` abgeschlossen. Genaue Container-Version weiterhin `lszh-firestore-read-probe:staging-49297f5b6cb0`; es gab **keine automatische Wiederholung**. Der separate HTTP-Outbox-Staging-Dienst bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` deaktiviert; keine produktiven E-Mails, keine Änderungen an Airtable/Firestore-Daten oder IAM-Rollen vorgesehen.
+
+**Noch nicht unabhängig anhand der Container-Logs nachgewiesen:** Ob beide beabsichtigten Firestore-REST-GETs exakt `PASS: Named Zurich STAGING Firestore metadata GET 200.` und `PASS: Missing, fixed synthetic document GET 404.` protokollierten. Die erfolgreich abgeschlossene Jobausführung ist ein starkes Indiz, aber die Bestätigung soll über die Logs der **konkreten** Execution erfolgen. Nächster Schritt ausschliesslich lesend:
+
+```bash
+gcloud beta run jobs executions logs read lszh-firestore-read-probe-staging-s76jq \
+  --project=lszh-automations --region=europe-west6 --limit=50
+```
+
+Die Antwort soll genau drei erwartete PASS-Zeilen zum benannten Datenbank- und fehlenden Dokumentzugriff zeigen. **Job nicht wiederholen**, bevor die konkreten Logs geprüft sind. Danach kann der read-only Firestore-IAM-Nachweis als bestanden dokumentiert werden; Schreibzugriff ist separat ungetestet.
+
 ## Nachtrag 16.10.2026 – Firestore-Leseprobe-Job erfolgreich erstellt (NOCH NICHT AUSGEFÜHRT)
 
 Der Geschäftsführer hat nach Behebung des Cloud-Run-Gen2-Mindestwerts von 512 MiB RAM die Aktion `staging-firestore-job.sh --create-only` erfolgreich im LSZH-Geschäftskonto ausgeführt. Google Cloud bestätigt `Job [lszh-firestore-read-probe-staging] has successfully been created` in `europe-west6`, mit unverändert wiederverwendetem, zuvor gebauten Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-read-probe:staging-49297f5b6cb0`. Das Tool meldet ausdrücklich: `PASS: New Cloud Run Job CREATED but NOT EXECUTED. No Firestore traffic.` Keine Scheduler, Schlüssel, Kunden- oder Firestore-Datenoperationen; der separate bestehende Outbox-HTTP-Dienst bleibt mit `enabled=false` deaktiviert.

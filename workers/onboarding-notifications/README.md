@@ -1,6 +1,24 @@
 # LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
-**Stand:** 17.10.2026. Code weiterhin Draft PR #8 (nicht gemergt). Separater Cloud-Run-STAGING-HTTP-Dienst bereitgestellt und weiterhin **deaktiviert**. Einmaliger isolierter Cloud-Run-Job mit bestätigtem Firestore-GET-Zugriff erfolgreich abgeschlossen. Keine Kundenmails, kein Scheduler, keine Onboarding-Verarbeitung und kein Firestore-Schreibtest.
+**Stand:** 17.10.2026. Code weiterhin Draft PR #8 (nicht gemergt). Separater Cloud-Run-STAGING-HTTP-Dienst bereitgestellt und weiterhin **deaktiviert**. Isolierte Cloud-Run-Jobs bestätigten echten Firestore-GET-Zugriff sowie das synthetische **createOnce → Readback → versionsgebundene Löschung → abschliessendes 404**. Keine Kundenmails, kein Scheduler und keine Onboarding-End-to-End-Verarbeitung.
+
+## 17.10.2026 – Tatsächlicher Firestore STAGING WRITE/READ/DELETE-Nachweis: PASS
+
+Der Geschäftsführer hat nach erfolgreicher einmaliger Jobausführung `lszh-firestore-write-probe-staging-cb7mm` (Cloud Run, `europe-west6`) die nachfolgenden **konkreten Container-Logs** bestätigt:
+
+```text
+2026-10-16 22:20:11 PASS: Fixed synthetic STAGING document was absent before the write.
+2026-10-16 22:20:11 PASS: Actual outbox createOnce persisted one test-only, send-disabled draft.
+2026-10-16 22:20:11 PASS: Created draft read back with exact testOnly=true and delivery=false fields.
+2026-10-16 22:20:11 PASS: Test fixture deleted with a version precondition.
+2026-10-16 22:20:11 PASS: Test fixture removal verified (HTTP 404).
+2026-10-16 22:20:11 PASS: Outbox Firestore synthetic WRITE/READ/DELETE cycle completed.
+2026-10-16 22:20:11 No Airtable calls, emails, customer records or credentials logged.
+```
+
+**Abgeschlossen:** Effektive **Lese- und Schreibberechtigung der Cloud-Run-Laufzeitidentität** für einen ausdrücklich fiktiven Datensatz der benannten Firestore-STAGING-Collection, echte `createOnce`-Speicherung mit allen Test-/Versandsperren, verifizierte bedingte Einzeldokumentlöschung und abschliessender 404. Kein unbereinigter Testdatensatz gemäss dem abschliessenden GET. Beide Einmal-Probejobs **nicht erneut starten**.
+
+**Weiterhin gesperrt/ungeprüft:** Der bestehende HTTP-Outbox-Dienst bleibt bei `LSZH_OUTBOX_STAGE_ENABLED=false`, hat weder Airtable-Read-Token noch Fixture-Codes, Control-Secret oder Scheduler. Kein vollständiger Airtable→Onboarding→Outbox-End-to-End-Test durchgeführt. Kein Produktivversand, keine Vertragsannahme, kein RC1-/AVV-Rechtsentscheid; PR #8 ist weiterhin Draft und nicht gemergt. Eine sichere nächste Phase sollte den vollständig synthetischen Airtable-Zustandsnachweis **lesend** vorbereiten, ohne weitere Firestore-Infrastruktur zu erstellen.
 
 ## Bestätigte Infrastruktur aus Geschäftskonto (diagnostiziert am 16.10.2026)
 

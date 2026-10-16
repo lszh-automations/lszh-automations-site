@@ -15,7 +15,7 @@ const DRAFT = makeDraft(RECORD_ID, new Date('2026-10-17T00:00:00.000Z'));
 const ID = eventId(RECORD_ID);
 const DOCUMENT_NAME = 'projects/' + PROJECT + '/databases/' + DATABASE +
   '/documents/' + COLLECTION + '/' + ID;
-const URL = 'https://firestore.googleapis.com/v1/' + DOCUMENT_NAME;
+const DOCUMENT_URL = 'https://firestore.googleapis.com/v1/' + DOCUMENT_NAME;
 const METADATA =
   'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
 const FLAGS = Object.freeze({
@@ -44,7 +44,7 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
 
   // Before creating, reject even a synthetically shaped document from an
   // earlier execution. Never overwrite or delete a pre-existing document.
-  const pre=await fetchImpl(URL,{
+  const pre=await fetchImpl(DOCUMENT_URL,{
     method:'GET',headers,signal:AbortSignal.timeout(10000)
   });
   if (pre.status!==404) throw new Error('test_document_not_verified_absent');
@@ -55,7 +55,7 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
   if (result!=='created') throw new Error('synthetic_create_not_exclusive');
   log('PASS: Actual outbox createOnce persisted one test-only, send-disabled draft.');
 
-  const read=await fetchImpl(URL,{
+  const read=await fetchImpl(DOCUMENT_URL,{
     method:'GET',headers,signal:AbortSignal.timeout(10000)
   });
   if (read.status!==200) throw new Error('synthetic_document_readback_failed');
@@ -74,7 +74,7 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
 
   // Conditioned deletion only of the *specific version* we just read.
   // No bulk deletes, no collection/database deletion, no unrelated records.
-  const deleteURL=new URL(URL);
+  const deleteURL=new URL(DOCUMENT_URL);
   deleteURL.searchParams.set('currentDocument.updateTime',document.updateTime);
   const deleted=await fetchImpl(deleteURL.toString(),{
     method:'DELETE',headers,signal:AbortSignal.timeout(10000)
@@ -82,7 +82,7 @@ async function run({env=process.env, fetchImpl=fetch, log=console.log,
   if (!deleted.ok) throw new Error('synthetic_cleanup_unverified');
   log('PASS: Test fixture deleted with a version precondition.');
 
-  const after=await fetchImpl(URL,{
+  const after=await fetchImpl(DOCUMENT_URL,{
     method:'GET',headers,signal:AbortSignal.timeout(10000)
   });
   if (after.status!==404) throw new Error('synthetic_cleanup_unverified');

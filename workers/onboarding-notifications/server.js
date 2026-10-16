@@ -2,7 +2,7 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
 const {listCandidateCodes} = require('./airtable-candidates');
-const {createFirestoreStore} = require('./firestore-store');
+const {createFirestoreStore, DATABASE} = require('./firestore-store');
 const {reconcile} = require('./outbox');
 const {createPacedAirtableFetch} = require('./paced-fetch');
 
@@ -33,6 +33,8 @@ function createServer({env=process.env, fetchImpl=fetch, list=listCandidateCodes
       return respond(res,404,{error:'not_found'});
     if (env.LSZH_OUTBOX_STAGE_ENABLED!=='true' ||
         env.FIRESTORE_PROJECT_ID!=='lszh-automations' ||
+        env.FIRESTORE_DATABASE_ID!==DATABASE ||
+        !env.LSZH_STAGING_FIXTURE_CODES ||
         !env.AIRTABLE_ONBOARDING_READ_TOKEN ||
         !env.OUTBOX_CONTROL_SECRET || env.OUTBOX_CONTROL_SECRET.length<32)
       return respond(res,503,{error:'outbox_disabled'});
@@ -43,7 +45,7 @@ function createServer({env=process.env, fetchImpl=fetch, list=listCandidateCodes
     if (running) return respond(res,503,{error:'busy'});
     running=true;
     try {
-      const candidateCodes=await list(env.AIRTABLE_ONBOARDING_READ_TOKEN,pacedAirtableFetch);
+      const candidateCodes=await list(env.LSZH_STAGING_FIXTURE_CODES);
       const counts=await work({
         candidateCodes,readToken:env.AIRTABLE_ONBOARDING_READ_TOKEN,
         fetchImpl:pacedAirtableFetch,store

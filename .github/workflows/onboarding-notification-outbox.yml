@@ -28,6 +28,14 @@ jobs:
           node --check workers/onboarding-notifications/firestore-store.js
       - name: Run synthetic offline tests
         run: node --test workers/onboarding-notifications/*.test.mjs
+      - name: Verify read-only Cloud Shell preflight syntax
+        run: bash -n workers/onboarding-notifications/staging-preflight.sh
+      - name: Build isolated STAGING container (no push, no deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile -t lszh-outbox-ci:synthetic .
+      - name: Inspect packaged code without network or credentials
+        run: |
+          docker run --rm --network none lszh-outbox-ci:synthetic sh -c \
+            'node --check /app/workers/onboarding-notifications/server.js && test ! -e /app/.env && test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/docs'
       - name: Assert no mail transport in worker
         run: |
           ! grep -RE 'gmail\.com|sendMail\(|sendAnEmail|nodemailer|smtp://' workers/onboarding-notifications/*.js

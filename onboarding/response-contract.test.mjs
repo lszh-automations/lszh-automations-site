@@ -17,7 +17,7 @@ const responseOf = x => ({status:x.status, ok:x.status>=200 && x.status<300, tex
 async function simulate(initial, subsequent=[]) {
   const status = {textContent:'',style:{}};
   const button = {textContent:'Onboarding übermitteln',disabled:false};
-  let submit, resets=0, posts=0, statusReads=0;
+  let submit, checkStatus, resets=0, posts=0, statusReads=0;
   const form = {
     dataset:{makeWebhook:'/api/onboarding'},
     querySelector:()=>button,
@@ -26,7 +26,8 @@ async function simulate(initial, subsequent=[]) {
   const fields={
     project_code:{value:''}, company:{value:''}, project_name:{value:''},
     projectCodeFallback:{classList:{remove:()=>{}}},
-    status, onboardingForm:{addEventListener:(event,fn)=>{assert.equal(event,'submit');submit=fn;}}
+    status, onboardingForm:{addEventListener:(event,fn)=>{assert.equal(event,'submit');submit=fn;}},
+    checkOnboardingStatus:{addEventListener:(event,fn)=>{assert.equal(event,'click');checkStatus=fn;}}
   };
   class FakeFormData {
     constructor(f){assert.equal(f,form);}
@@ -55,6 +56,7 @@ async function simulate(initial, subsequent=[]) {
   };
   runInNewContext(source,sandbox,{timeout:1000,filename:'onboarding/index.html'});
   assert.equal(typeof submit,'function');
+  assert.equal(typeof checkStatus,'function');
   await submit({currentTarget:form,preventDefault:()=>{}});
   return {status,button,resets,posts,statusReads};
 }

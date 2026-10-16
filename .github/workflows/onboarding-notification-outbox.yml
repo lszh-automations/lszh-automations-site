@@ -32,6 +32,7 @@ jobs:
         run: |
           bash -n workers/onboarding-notifications/staging-preflight.sh
           bash -n workers/onboarding-notifications/staging-diagnostics.sh
+          bash -n workers/onboarding-notifications/staging-identity-setup.sh
       - name: Build isolated STAGING container (no push, no deploy)
         run: docker build -f workers/onboarding-notifications/Dockerfile -t lszh-outbox-ci:synthetic .
       - name: Inspect packaged code without network or credentials

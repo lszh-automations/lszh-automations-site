@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Update 17.10.2026 – Firestore-Schreibprobe vor Container-Build um RFC3339-Normalisierung ergänzt
+
+Der Geschäftsführer führte `staging-firestore-write-job.sh` erfolgreich im Modus `PLAN ONLY` aus: richtiges LSZH-Konto, benannte Zürcher Staging-Datenbank, eigenes Dienstkonto, kein bereits existierender Write-Probe-Job; es erfolgten weder Cloud-Build/Deployment noch Firestore-Operationen. Im anschliessenden Code-Review wurde eine **potenzielle Live-Falschfehlermeldung** entdeckt: Die echte Firestore-REST-API Z-normalisiert Zeitstempel beim Lesen (gesendet `.000Z`, zurückgeliefert unter Umständen `Z` oder `.000000Z`). Das vormals strikte Gleichsetzen aller JSON-Timestamp-Strings hätte nach erfolgreichem Schreibversuch einen unberechtigten Abbruch und ein stehen gebliebenes synthetisches Dokument verursachen können. **Vor dem ersten Build behoben:** Der Test akzeptiert nur 0/3/6/9 Nachkommastellen mit exakt null für den fest verankerten Testzeitpunkt; zusätzliche oder veränderte Mikrosekunden werden abgewiesen, alle anderen Felder strikt geprüft; DELETE weiterhin nur nach erfolgreicher Prüfung per `currentDocument.updateTime`-Precondition. Synthetische Offline-Testfälle umfassen die Firestore-Normalisierung und ablehnende Fehlerpfade.
+
+Der geplante Container ist nun quellengebunden an den neuen Commit `a20757439a34`; bei späteren Änderungen der sechs Runtime-/Build-Dateien verweigert das Skript die Wiederverwendung des Image-Tags. **Nicht deployed, keine produktiven Daten angefasst, noch kein Schreibrecht live nachgewiesen.** Nächster Schritt nach Git-Pull erneut nur Preflight `staging-firestore-write-job.sh` (PLAN ONLY), danach separat ggf. Build-only. Bestehender Outbox-HTTP-Dienst bleibt deaktiviert; anonymer HTTP-Zugriff bereits mit 403 abgewiesen.
+
 ## AKTUELLER STAND – 17.10.2026: Cloud-Run-Outbox auch für anonymen Zugriff gesperrt; synthetischer Schreibtest OFFLINE vorbereitet
 
 **Neue tatsächliche Gesundheitsprüfung vom Geschäftsführer:** `staging-health-check.sh` meldet

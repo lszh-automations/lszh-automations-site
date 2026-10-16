@@ -20,7 +20,9 @@ jobs:
           node-version: '22'
       - name: Check worker syntax
         run: |
+          node --check server.js
           node --check workers/onboarding-notifications/server.js
+          node --check workers/onboarding-notifications/paced-fetch.js
           node --check workers/onboarding-notifications/outbox.js
           node --check workers/onboarding-notifications/airtable-candidates.js
           node --check workers/onboarding-notifications/firestore-store.js

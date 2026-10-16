@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Nachtrag 16.10.2026 – Firestore-Leseprobe-Job erfolgreich erstellt (NOCH NICHT AUSGEFÜHRT)
+
+Der Geschäftsführer hat nach Behebung des Cloud-Run-Gen2-Mindestwerts von 512 MiB RAM die Aktion `staging-firestore-job.sh --create-only` erfolgreich im LSZH-Geschäftskonto ausgeführt. Google Cloud bestätigt `Job [lszh-firestore-read-probe-staging] has successfully been created` in `europe-west6`, mit unverändert wiederverwendetem, zuvor gebauten Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-read-probe:staging-49297f5b6cb0`. Das Tool meldet ausdrücklich: `PASS: New Cloud Run Job CREATED but NOT EXECUTED. No Firestore traffic.` Keine Scheduler, Schlüssel, Kunden- oder Firestore-Datenoperationen; der separate bestehende Outbox-HTTP-Dienst bleibt mit `enabled=false` deaktiviert.
+
+**Nächster Gate:** Der `--execute-once`-Modus muss vor einer einzigen Ausführung die vorhandene Job-Spezifikation (Image-Tag, Laufzeit-Dienstkonto, ausschliesslich drei festgelegte Umgebungsvariablen, ein Task, null Retries) lesen und gegen die fest codierten Sicherheitswerte prüfen. Erst nach ausdrücklicher Aktion darf er `gcloud run jobs execute ... --wait` aufrufen. Dieser einmalige Job bezieht Tokens ausschliesslich von seiner Cloud-Run-Dienstidentität und führt nur zwei feste Firestore-GET-Abfragen aus (benannte DB-Metadaten und absichtlich fehlender synthetischer Dokumentpfad); keine Writes oder E-Mails. Der Erfolg dieser tatsächlichen Leseprobe ist noch **nicht bestätigt**. Bei unerwarteter Job-Konfiguration abbrechen, nicht ungeprüft neu deployen/ausführen.
+
 ## Nachtrag 16.10.2026 – Cloud Run Job Speichergrenze korrigiert
 
 Der vom Geschäftsführer gestartete `staging-firestore-job.sh --create-only` ist beim Google-Cloud-Deploy wegen **256 MiB RAM mit 1 vCPU in Cloud Run Gen2** abgewiesen worden (Cloud Run Job verlangt mindestens 512 MiB). Die Ausgabe `Job failed to deploy` zeigt **keinen erfolgreichen Job-Deploy**; es erfolgte auch **keine Jobausführung, keine Firestore-Abfrage, keine Kundenmail**. Andere Cloud-Run-Dienste unverändert.

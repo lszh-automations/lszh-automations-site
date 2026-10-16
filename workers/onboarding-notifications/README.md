@@ -330,6 +330,17 @@ bash workers/onboarding-notifications/staging-firestore-write-job.sh
 ```
 Erst danach gesonderter `--build-only`-Befehl, sofern `PLAN ONLY` bestätigt. Kein `--create-only` oder `--execute-once` in diesem Schritt.
 
+## 17.10.2026 – Einmalige synthetische Firestore-Schreibprobe: Job erfolgreich beendet, Logs noch prüfen
+
+Nach bestätigtem Container-Build und separat bestätigter Erstellung des Jobs `lszh-firestore-write-probe-staging` führte der Geschäftsführer `staging-firestore-write-job.sh --execute-once` ausdrücklich aus. Der vorgeschaltete Job-Sicherheitscheck hat exakte Image-ID `staging-a20757439a34`, dediziertes Laufzeit-Dienstkonto, nur erlaubte synthetische Variablen, einen Task und null Retries mit PASS geprüft. Google Cloud meldete **`1 / 1 complete`** und **`Execution [lszh-firestore-write-probe-staging-cb7mm] has successfully completed.`** Der Job wurde nicht erneut ausgeführt. Kein bestehender Outbox-HTTP-Service oder Scheduler geändert, kein Versand ausgelöst.
+
+**Erfolgslauf bestätigen:** Vor der endgültigen Bewertung bitte die Logs **dieser spezifischen Execution** rein lesend auswerten:
+```bash
+gcloud beta run jobs executions logs read lszh-firestore-write-probe-staging-cb7mm \
+  --project=lszh-automations --region=europe-west6 --limit=50
+```
+Nur wenn sie die PASS-Zeilen zu vorherigem 404, erfolgreichem `createOnce`, exaktem Readback, versionsbedingtem DELETE und abschliessendem 404 enthalten, sind effektiver Firestore-Schreibzugriff und automatische synthetische Fixture-Bereinigung einzeln dokumentiert. Bei unklaren Logs nichts löschen oder nochmal laufen lassen; Zustand rein lesend überprüfen.
+
 ## Wiederholbare Kontrollen
 
 Im bestehenden Cloud-Shell-Klon (nur lesend):

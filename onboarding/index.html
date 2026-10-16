@@ -251,6 +251,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
       </div>
 
       <button type="submit">Onboarding übermitteln</button>
+      <button type="button" id="checkOnboardingStatus" style="margin-top:10px;background:#fff;color:#2553a2;border:1px solid #b7c9e5">Status der Übermittlung prüfen</button>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </form>
   </div>
@@ -284,7 +285,8 @@ if (!code) {
 
 // Transport success is NOT processing success: Make may answer 200 "Accepted"
 // while a webhook delivery is still queued. Only a completed, record-bound
-// JSON response may confirm storage; don't echo names, token or record ID.
+// Only the verified backend response may confirm full technical processing.
+ // Do not echo names, token or record ID.
 function classifyOnboardingReply(httpStatus, body) {
   const obj = body !== null && typeof body === 'object' && !Array.isArray(body);
   if (httpStatus === 409 || (obj && (body.duplicate === true || body.error === 'already_submitted' || body.error === 'conflict'))) return 'conflict';
@@ -297,8 +299,8 @@ function classifyOnboardingReply(httpStatus, body) {
 }
 
 // Poll only the READ-ONLY status endpoint; never repeat the original submission.
-async function checkOnboardingCompletion(projectCode, form, status, button) {
-  for (const delayMs of [1500, 3000, 5000, 8000]) {
+async function checkOnboardingCompletion(projectCode, form, status, button, delays = [1500, 3000, 5000, 8000]) {
+  for (const delayMs of delays) {
     await new Promise(resolve => setTimeout(resolve, delayMs));
     let response, reply;
     try {
@@ -331,6 +333,21 @@ async function checkOnboardingCompletion(projectCode, form, status, button) {
   status.style.color = '#9b5c00';
   button.textContent = 'Abschluss noch offen';
 }
+
+// Customers can re-open their personal link and recheck later without resending data.
+document.getElementById('checkOnboardingStatus').addEventListener('click', async () => {
+  const projectCode = code || document.getElementById('project_code').value ||
+    (document.getElementById('project_code_visible')?.value.trim() || '');
+  const status = document.getElementById('status');
+  if (!projectCode) {
+    status.textContent = 'Bitte öffnen Sie Ihren persönlichen Onboarding-Link, um den Status zu prüfen.';
+    return;
+  }
+  const form = document.getElementById('onboardingForm');
+  const submitButton = form.querySelector('button[type="submit"]');
+  status.textContent = 'Der aktuelle Verarbeitungsstatus wird geprüft …';
+  await checkOnboardingCompletion(projectCode, form, status, submitButton, [0]);
+});
 
 document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
   e.preventDefault();

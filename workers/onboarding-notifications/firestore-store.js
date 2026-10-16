@@ -72,7 +72,9 @@ function createFirestoreStore(fetchImpl = fetch) {
         document?.fields?.eventType?.stringValue !== TYPE ||
         document?.fields?.recordId?.stringValue !== draft.recordId ||
         document?.fields?.testOnly?.booleanValue !== true ||
-        document?.fields?.deliveryEnabled?.booleanValue !== false)
+        document?.fields?.deliveryEnabled?.booleanValue !== false ||
+        document?.fields?.emailSent?.booleanValue !== false ||
+        document?.fields?.state?.stringValue !== 'DRAFT_NOT_SENT')
       throw new Error('draft_duplicate_conflict');
     return 'exists';
   }

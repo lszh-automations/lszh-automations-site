@@ -1,5 +1,30 @@
 # LSZH Automations – Staging Airtable→Cloud Run reine Leseprobe
 
+## UPDATE 17.10.2026 – Eigenständiges Cloud-Dienstkonto: Freigabe in Etappen
+
+Der Geschäftsführer bestätigte mit `vamos` die Weiterarbeit an den zuvor vorgeschlagenen **separaten, rein synthetischen STAGING-Ressourcen**; noch kein Ausführen, Erzeugen, Hinterlegen oder Freigeben eines realen Google-Cloud-Secrets durch diesen Schritt.
+
+Neu: `workers/onboarding-notifications/staging-airtable-identity.sh` (per Default `--plan`) prüft:
+- ausschliesslich `lars@lszh-automations.ch` in `lszh-automations`, sauberen und mit `origin` synchronisierten Git-Review-Branch;
+- lesende Inventarisierung von Dienstkonten, Secret-Manager-Secretnamen und Cloud-Run-Jobs (`europe-west6`). Enumeration-Fehler = STOP;
+- exklusiv reservierte neue Namen `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, `lszh-airtable-readonly-staging`, `lszh-airtable-read-probe-staging`; bereits vorhandene namensgleiche Ressourcen führen bei `--create-identity` zum STOP ohne Überschreiben.
+
+Einzige ausdrücklich aktivierbare Änderung per `--create-identity`: **nur ein neues Google-Dienstkonto**, ohne IAM-Rollen, SA-Key, Secret-Version oder Cloud-Run-Job. Die sofortige `describe`-Rückleseprüfung bestätigt den korrekten Namen. Das Skript enthält keine Berechtigung zum Start eines Jobs, zum Zugriff auf Airtable-Daten oder zur Erstellung des PAT-Secrets.
+
+**GitHub Actions Offline-Tests (STAGING-only):** Die neue `staging-airtable-identity.test.mjs` testet PLAN ONLY, separate Dienstkontoanlage ohne IAM-Binding, vorhandene Ressourcen, falsche Kontoidentität und fehlerhafte Inventarisierung, ungültige Flags sowie `bash -n` syntaktisch. Im Workflow am Commit `510d77825f75d8b25c653800bad2f0b426727d17` **112/112 JavaScript-Tests, 8/8 IAM-Tests bestanden**. Es wurden dabei keine Cloud-Ressourcen erstellt.
+
+**Sicherer nächster Nutzerbefehl:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-identity.sh
+```
+Erwartet `PLAN ONLY`; danach getrennt entscheiden, ob `--create-identity` ausgeführt wird. Keine Secret- oder Jobaktion im selben Schritt.
+
+**Spätere Schritte (jeweils eigener Preflight und ausdrückliche Ausführung):** (1) überprüfte neue Dienstkontoidentität, (2) neues Secret im *globalen* Secret Manager, mit expliziter `user-managed` Replikation nur in `europe-west6`, danach Secret-Version nur über sicheren Kanal ohne Chat/GitHub/Shell-History, (3) `roles/secretmanager.secretAccessor` **nur auf dem einen Secret**, (4) review-gebundener Container-Build ohne PAT, (5) isolierter Cloud Run Job mit **Datei-Secret-Mount** und Versionspin, 1 Task/0 Retries, nicht automatisch ausführen, (6) getrennt freigegebene einmalige Execution und nur aggregierte PASS/STOP-Logs. Keine Cloud Run *regionalen Secrets* verwenden – diese werden laut aktueller Google-Dokumentation nicht als Cloud-Run-Job-Secrets unterstützt; ein globales Secret mit einer Zürcher benutzerverwalteten Replik ist die vorgesehene Form.
+
+`--plan` kann auch bestehen, wenn Ressourcen schon existieren; **nicht** daraus auf Berechtigungen oder Benutzerzugriff schliessen. Vor jedem Folgeschritt tatsächliche IAM-Bindings und Secret-/Jobmetadaten getrennt prüfen. Die bestehenden Cloud-Run-HTTP-Dienste und vorher abgeschlossenen Firestore-Jobs nicht verändern.
+
 **Stand 17.10.2026.** PR #8, isolierter Vorbereitungscode, **nicht in Google Cloud bereitgestellt oder gestartet**. Freigabe zum Lesen aus Cloud Shell ist keine Freigabe zur Ablage von Zugangsdaten im Cloud Secret Manager oder zum Job-Deployment.
 
 ## Aktueller verifizierter Nachweis

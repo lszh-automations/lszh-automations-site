@@ -32,6 +32,20 @@ function firestoreTime(x) {
  const parts=x.match(/\.(\d{9})Z$/);
  return !parts || parts[1].endsWith('000');
 }
+// Firestore normalizes timestampValue to 0/3/6/9 fractional digits. Our
+// audited event schema uses milliseconds only; normalize only equivalent
+// milliseconds and reject actual sub-millisecond values or invalid dates.
+function auditedMillisTimestamp(x) {
+ if(typeof x!=='string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3}|\.\d{6}|\.\d{9})?Z$/.test(x))
+  throw Error('quarantine_snapshot_fields_invalid');
+ const fraction=x.match(/\.(\d+)Z$/)?.[1]??'';
+ if(fraction.length>3 && !/^0*$/.test(fraction.slice(3)))
+  throw Error('quarantine_snapshot_fields_invalid');
+ const date=new Date(x);
+ if(!Number.isFinite(date.getTime()) || date.toISOString().slice(0,19)!==x.slice(0,19))
+  throw Error('quarantine_snapshot_fields_invalid');
+ return date.toISOString();
+}
 const str=s=>({stringValue:s});
 const num=n=>({integerValue:String(n)});
 const bool=b=>({booleanValue:b});
@@ -86,7 +100,7 @@ function readFields(doc,draftId) {
    status:field('status','stringValue'),
    reason:field('reason','stringValue'),
    resultingState:field('resultingState','stringValue'),
-   reviewedAt:field('reviewedAt','timestampValue')
+   reviewedAt:auditedMillisTimestamp(field('reviewedAt','timestampValue'))
   };
  });
  const record={

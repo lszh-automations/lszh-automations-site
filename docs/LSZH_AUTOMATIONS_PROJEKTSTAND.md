@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Airtable→Cloud-Run-Staging-Identität vorbereitet, NOCH KEINE Ressourcen erstellt
+
+Der Geschäftsführer gab mit `vamos` den Auftrag, an der zuvor vorgeschlagenen Einrichtung von separatem Service Account, Secret und STAGING-Probejob weiterzuarbeiten. Die Sicherheitsarbeit wurde bewusst auf den ersten isolierten Schritt begrenzt: **eigenes Google-Dienstkonto ohne zusätzliche Rollen**. Datei `workers/onboarding-notifications/staging-airtable-identity.sh` hat Default `--plan` (GCP-Konto-/Projektcheck, reines Listen der bereits vorhandenen Service Accounts, Secrets und Cloud-Run-Jobs) und optional `--create-identity` für maximal **ein** Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` – nur wenn die drei geplanten Resource-Namen komplett frei sind. Kein Erzeugen von IAM-Keys, keine Projekt-/Firestore-Rollen, keine Secrets, keine Cloud-Run-Jobs, keine Änderungen bestehender Dienste, keine Kunden-/Make-/E-Mail-Operationen. Identitäts- und Kollisions-Fehler brechen vor Schreiboperationen ab.
+
+In GitHub Actions bestätigt: **112/112 JavaScript- und 8/8 IAM-Tests** am Source-Commit `510d77825f75d8b25c653800bad2f0b426727d17`; sechs neue Shell-/Cloud-Simulationstests beweisen PLAN ONLY, bewusstes Identitäts-Anlegen ohne Rollen, STOP bei Bestandskollision, fehlerhafter Geschäftsidentität und unsicherem Git-Checkout. Detaillierter Folgeplan [LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md](./LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md).
+
+**Nächster rein lesender Schritt, bevor irgendetwas in GCP erstellt wird:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-identity.sh
+```
+Der erwartete Abschluss `PLAN ONLY` erstellt keinerlei Cloud-Ressourcen. **Offen:** Dienstkonto in Cloud wirklich erstellen, dann getrennt Secret/Zürich-Replikation/engste Secret-Zugriffsrolle/PAT-Version, review-pinned Build, separaten Job, einmalige Execution und anschliessende Prüfung. Keine PAT-Eingabe in den Chat; früherer Airtable-REST-Test aus Cloud Shell bleibt separat als PASS. Bestehender Outbox-Service bleibt disabled. Noch kein realer End-to-End-Cloud-Run→Airtable→Firestore-Lauf.
+
 ## 17.10.2026 – Separater Cloud-Run-Airtable-Lesetest entwickelt, NOCH NICHT DEPLOYED
 
 Nach dem ausdrücklich bestandenen echten Airtable-REST-GET **aus Cloud Shell** (ein erster 401/403-ähnlicher Berechtigungsfehler, zweiter Durchlauf PASS) wurde **nur in GitHub PR #8** ein ausfallsicherer *separater* Job-Baustein vorbereitet:

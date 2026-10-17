@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – IAM-Abfrage Cloud-Run-Staging: direkte Bindings leer
+
+- Betreiber hat read-only ausgeführt: `gcloud run services get-iam-policy lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(bindings)"`; Ergebnis: **`null`**.
+- Bedeutung: Im ausgegebenen servicebezogenen IAM-Policy-`bindings`-Feld wurden **keine direkten Rollenbindungen** angezeigt, insbesondere kein explizites `allUsers: roles/run.invoker` an diesem Dienst. Das Ergebnis ist **keine** Aussage über projekt- oder organisationsweit geerbte Berechtigungen oder alternative interne Aufrufwege.
+- Bereits separat bestätigt: `ingress=internal`, Status `100 %` auf Read-only-Preflight-Revision `lszh-offer-portal-staging-00004-qt7`, Dienstkonto `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com`.
+- **Entscheidung:** Bestehenden Dienst, IAM, Ingress und Traffic unverändert lassen. Der vollständige Cloud-Test braucht einen zuvor bewusst definierten, isolierten Testzugang; keine unautorisierte Deployment-, Freigabe-, Mail- oder Vertragsannahme-Aktion.
+
+---
+
+
 ## 17.10.2026 – Cloud Run Ingress (betreiberseitig read-only geprüft)
 
 **Neue Ist-Bestätigung** aus `gcloud run services describe lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(metadata.annotations)"`:

@@ -84,7 +84,10 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
   });
   if (!VALID_ID.test(customer.id) || !customer.fields) throw new Error('invalid_status_response');
   for (const field of ['Rechnungsstrasse','Rechnungs-PLZ','Rechnungsort','Rechnungsland','Rechnungs-E-Mail']) {
-    if (norm(customer.fields[field]) !== norm(f[field])) return {state:'processing'};
+    // Two missing mirrored fields are not evidence of a completed billing profile.
+    // This is a fail-closed readiness check; no customer records are modified.
+    if (!norm(f[field]) || norm(customer.fields[field]) !== norm(f[field]))
+      return {state:'processing'};
   }
   if (['Ja','Unsicher'].includes(f['Sensible Daten'])) {
     const code = orderId + '-DSG-01';

@@ -1,5 +1,19 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Read-only-Postflight und direkte Invoker-IAM-Bindung bestätigt
+
+**Vom Geschäftsführer tatsächlich ausgeführt:** `--verify-disabled` hat die reale Image-Version, alle deaktivierten Receiver-Gates, dediziertes Ziel-Dienstkonto und fehlende direkte öffentliche IAM-Invoker-Bindungen mit zwei PASS-Meldungen bestätigt. Anschliessend `--bind-invoker`: Google Cloud Run meldete `Updated IAM policy for service [lszh-quarantine-handoff-staging]`; der nachgelagerte Check meldete `PASS: Only source SA has direct service-level run.invoker grant.`. Das berechtigt ausschliesslich das separate Outbox-Staging-Servicekonto direkt am Receiver, **nicht** die Öffentlichkeit. Keine andere Service-IAM-Bindung wurde durch diesen Aufruf erzeugt. Geerbte/org-seitige Berechtigungen wurden nicht nachgewiesen.
+
+**Als Nächstes nur ein einzelner Secret-Schritt im Cloud-Shell-Checkout:**
+
+```bash
+cd "$HOME/lszh-handoff-staging"
+git pull --ff-only
+bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --create-secret
+```
+
+Dieser Modus erstellt `lszh-stg-quarantine-handoff-hmac` und eine neue Version mit **32 zufälligen Bytes, kanonisch Base64 kodiert**, vergibt die auf **dieses** Secret beschränkte `roles/secretmanager.secretAccessor`-Rolle für Quell- und Ziel-Servicekonten und liefert keine Payload in die Ausgaben. Der Schritt **aktiviert weder HTTP noch Firestore-Replay-Claims oder E-Mail-Versand**. Falls er mit Fehler endet: keine blinde Wiederholung, zuerst Secret/IAM-Metadaten prüfen. `--deploy-private-disabled` und `--bind-invoker` nicht wiederholen.
+
 ## Geltungsbereich / Genehmigung
 Freigabe des Geschäftsführers im Projektchat: private Cloud-Run-Verbindung, Identitätsprüfung, persistenter Firestore-Replay-Schutz und ausschliesslich synthetischer End-to-End-Test. **Nicht genehmigt:** produktive Kundenverarbeitung, automatische Verträge, E-Mails, Einladungen, Website-/Main-Deploy, fremde Cloud-Projekte, Datenmigration oder pauschale IAM-Rechte.
 

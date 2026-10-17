@@ -22,14 +22,14 @@ const VALID_DB_TYPES=new Set(['FIRESTORE_NATIVE','FIRESTORE_NATIVE_MODE']);
 function assessQuarantineIam({serviceAccount,database,customRole,projectPolicy}={}) {
  const failed=[];
  if(!serviceAccount || serviceAccount.email!==SA ||
-   serviceAccount.disabled!==false)
+   serviceAccount.disabled===true)
   failed.push('IDENTITY_NOT_VERIFIED');
  if(!database ||
    database.name!=='projects/'+PROJECT+'/databases/'+DATABASE ||
    database.locationId!==REGION || !VALID_DB_TYPES.has(database.type))
   failed.push('DATABASE_NOT_VERIFIED');
  if(!customRole || customRole.name!==ROLE ||
-   customRole.deleted===true || customRole.stage==='DISABLED' ||
+   customRole.deleted===true || customRole.stage!=='GA' ||
    !Array.isArray(customRole.includedPermissions) ||
    customRole.includedPermissions.length!==PERMISSIONS.length ||
    new Set(customRole.includedPermissions).size!==PERMISSIONS.length ||

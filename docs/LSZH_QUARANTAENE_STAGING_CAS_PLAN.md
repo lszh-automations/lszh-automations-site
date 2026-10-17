@@ -1,8 +1,27 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
-Status: **Quarantäne-Named-Database am 17.10.2026 erfolgreich erstellt, Löschschutz bestätigt; Service-Account, Rolle, IAM-Bindung, Cloud-Run-Runtime und Dokument-Schreibtests noch NICHT eingerichtet/freigegeben.** Ältere nachfolgende Abschnitte dokumentieren den vorherigen Planungsstand.
+Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
 
-## Dedizierte IAM-Einrichtung: separat ausdrücklich genehmigt, Cloud Shell noch ausstehend
+## Nachweis der einmaligen Quarantäne-IAM-Einrichtung (17.10.2026)
+
+Auf Grundlage der ausdrücklich auf Service-Account, Custom Role und DB-konditionierten IAM-Grant begrenzten Freigabe führte der Geschäftsführer nach dem Update des Review-Branches `staging-quarantine-iam-setup.sh --apply-once` aus. Die Terminalausgabe bestätigte nacheinander:
+- `PASS: New quarantine service identity matches approved name.`
+- `PASS: Custom role exactly matches the 3 approved permissions.`
+- `PASS: Exact quarantine SA, minimal custom role, single DB-scoped IAM condition.`
+- `PASS: No user-managed service account keys detected.`
+- `DONE: One isolated quarantine IAM setup completed; DO NOT RERUN.`
+
+**Verifiziert nach diesen GCP-Metadaten:** dedizierter Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`, Rolle `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit exakt `datastore.entities.create/get/update`, eine Bedingung auf die separate Datenbank `lszh-quarantine-staging`. Die bisherige `lszh-offers-staging`-Datenbank wurde nicht verändert.
+
+**STOP:** Alle Einmal-Provisionierungsskripte (`staging-quarantine-db-provision.sh --create-once`, `staging-quarantine-iam-setup.sh --apply-once`) **niemals wiederholen**. Zunächst nur Metadaten erneut lesen:
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan
+```
+Dieser Aufruf hat keinen Änderungsmodus. Bei `BLOCKED` zunächst die Sachlage ermitteln, nicht zusätzliche Rechte vergeben. **Geerbte Rollen und tatsächlicher Firestore-REST-Zugriff durch die neue Identität sind noch nicht bestätigt.** Für jeden echten Firestore-Dokument-Schreibtest, Cloud-Run-Build/Deployment und E-Mail-Versand sind weitere gesonderte Freigaben erforderlich.
+
+## Dedizierte IAM-Einrichtung: historischer freigegebener Plan (bereits ausgeführt)
 
 **Freigabe des Geschäftsführers am 17.10.2026:** Auf den konkret genannten nächsten Schritt «Service-Account, minimale Custom Role, nur auf `lszh-quarantine-staging` begrenzte IAM-Zuweisung» antwortete er `du hast meine freigabe, vamos`. **Umfang dieser Genehmigung:** genau eine dedizierte IAM-Dienstidentität und eine benutzerdefinierte Rolle mit **nur** `datastore.entities.create`, `datastore.entities.get`, `datastore.entities.update`, mit genau einer auf `projects/lszh-automations/databases/lszh-quarantine-staging` beschränkten projektweiten IAM-Bedingung. **Nicht freigegeben:** Cloud Run/Build, Firebase-Dokumentzugriffe, Testdaten-Schreiboperationen, E-Mails, Kunden-Onboarding oder Produktivbetrieb.
 

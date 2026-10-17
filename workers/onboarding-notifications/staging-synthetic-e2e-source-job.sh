@@ -52,6 +52,14 @@ gcloud firestore databases describe --project="$PROJECT" \
 bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh \
  --verify-review-only >/dev/null ||
  { echo 'STOP: Private review-only receiver state changed.';exit 2; }
+# The source later obtains an OIDC audience for this exact URL. The real live
+# private receiver URL must match, not merely pass a hostname-regex check.
+if ! gcloud run services describe lszh-quarantine-handoff-staging \
+ --project="$PROJECT" --region="$REGION" \
+ --format='value(status.url)' >"$TMP/receiver-url";then
+ echo 'STOP: Cannot inspect live receiver URL.';exit 2;fi
+[[ "$(cat "$TMP/receiver-url")" == "$RECEIVER" ]] ||
+ { echo 'STOP: Live receiver URL differs from pinned OIDC audience; do not create Job.';exit 2; }
 for secret in "$FIXTURE" "$AIRT" "$HMAC";do
  if ! gcloud secrets versions describe 1 --secret="$secret" --project="$PROJECT" \
  --format='value(state)' >"$TMP/state-$secret";then

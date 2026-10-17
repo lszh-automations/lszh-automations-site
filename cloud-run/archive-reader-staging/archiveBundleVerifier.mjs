@@ -54,28 +54,51 @@ async function readCapped(response){
   return Buffer.concat(chunks,total);
 }
 
-export async function verifyArchiveBundle(payload,{fetcher=fetch,accessToken,archiveFolderId}={}){
+// Single implementation of the archival metadata + actual byte integrity
+// check, reused by whole-bundle acceptance and by individual PDF downloads.
+async function verifiedBytes(part,{fetcher,accessToken,archiveFolderId}){
+  const path=DRIVE+encodeURIComponent(part.id);
+  const response=await withTimeout(fetcher,path+'?'+new URLSearchParams({fields:META_FIELDS}),accessToken);
+  const info=await response.json();
+  const length=Number(info.size);
+  const allowed=info.id===part.id &&
+    info.mimeType==='application/pdf' && info.trashed!==true &&
+    Array.isArray(info.parents) && info.parents.includes(archiveFolderId) &&
+    Array.isArray(info.contentRestrictions) &&
+    info.contentRestrictions.some(x=>x && x.readOnly===true) &&
+    Number.isSafeInteger(length) && length>=8 && length<=MAX_BYTES &&
+    info.sha256Checksum===part.sha256;
+  if(!allowed)return null;
+  const contents=await withTimeout(fetcher,path+'?alt=media',accessToken);
+  const bytes=await readCapped(contents);
+  if(bytes.length!==length || bytes.subarray(0,5).toString('ascii')!=='%PDF-')return null;
+  const actual=createHash('sha256').update(bytes).digest();
+  if(!timingSafeEqual(actual,Buffer.from(part.sha256,'hex')))return null;
+  return bytes;
+}
+function optionsChecked(opts={}){
+  const {fetcher=fetch,accessToken,archiveFolderId}=opts;
+  if(typeof fetcher!=='function' || typeof accessToken!=='string' ||
+    accessToken.length<8 || !ID.test(String(archiveFolderId||'')))
+    throw Error('archive_unavailable');
+  return {fetcher,accessToken,archiveFolderId};
+}
+export async function verifyArchiveBundle(payload,opts={}){
   const parts=bundleShape(payload);
-  if(typeof accessToken!=='string' || accessToken.length<8 ||
-     !ID.test(String(archiveFolderId||'')))throw Error('archive_unavailable');
+  const options=optionsChecked(opts);
   for(const part of parts){
-    const path=DRIVE+encodeURIComponent(part.id);
-    const response=await withTimeout(fetcher,path+'?'+new URLSearchParams({fields:META_FIELDS}),accessToken);
-    const info=await response.json();
-    const length=Number(info.size);
-    const allowed=info.id===part.id &&
-      info.mimeType==='application/pdf' && info.trashed!==true &&
-      Array.isArray(info.parents) && info.parents.includes(archiveFolderId) &&
-      Array.isArray(info.contentRestrictions) &&
-      info.contentRestrictions.some(x=>x && x.readOnly===true) &&
-      Number.isSafeInteger(length) && length>=8 && length<=MAX_BYTES &&
-      info.sha256Checksum===part.sha256;
-    if(!allowed)return false;
-    const contents=await withTimeout(fetcher,path+'?alt=media',accessToken);
-    const bytes=await readCapped(contents);
-    if(bytes.length!==length || bytes.subarray(0,5).toString('ascii')!=='%PDF-')return false;
-    const actual=createHash('sha256').update(bytes).digest();
-    if(!timingSafeEqual(actual,Buffer.from(part.sha256,'hex')))return false;
+    if(!await verifiedBytes(part,options))return false;
   }
   return true;
+}
+// Never accept file IDs supplied by the browser. 'which' selects an archive
+// item already bound to the validated, token-authorised offer.
+export async function readVerifiedArchivePdf(payload,which,opts={}){
+  bundleShape(payload);
+  if(!['quote','terms','avv'].includes(which) ||
+      (which==='avv' && payload.avv_required!=='Ja'))
+    throw Error('invalid_document');
+  const bytes=await verifiedBytes(payload[which],optionsChecked(opts));
+  if(!bytes)throw Error('archive_changed');
+  return bytes;
 }

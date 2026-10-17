@@ -99,7 +99,7 @@ test('existing job, wrong user, dirty review tree or source pin all stop',()=>{
 test('rejects all positional arguments without a single Cloud command',()=>{
  const p=spawnSync('bash',[source,'--build-only'],{encoding:'utf8'});
  assert.notEqual(p.status,0);
- assert.match(p.stdout,/No arguments/);
+ assert.match(p.stdout,/takes no arguments/);
 });
 test('shell syntax and sole allowlisted read operations',()=>{
  const p=spawnSync('bash',['-n',source],{encoding:'utf8'});

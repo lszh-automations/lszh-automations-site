@@ -1,5 +1,5 @@
-// Static, nonbinding browser demo for the explicitly authorised TEMP Cloud Run
-// service only. No Firestore, Drive, offer tokens, forms or PDF endpoints.
+// Static, nonbinding browser demo for the explicitly authorised TEMP Cloud Run.
+// Optional IAM-only read-only Drive probe remains separate from offer APIs.
 const SERVICE='lszh-offer-browser-staging';
 const SA='lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com';
 const PROJECT='lszh-automations';
@@ -26,15 +26,30 @@ function locked(res){
    'Referrer-Policy':'no-referrer'});
  res.end('{"error":"not_available"}');
 }
-export function createTemporaryBrowserDemoHttp({pageHtml,enabled=false}={}){
+export function createTemporaryBrowserDemoHttp({pageHtml,enabled=false,driveProbe}={}){
  // Validate once at setup, not on every request. No template interpolation.
  if(enabled===true && (typeof pageHtml!=='string'||
      !pageHtml.startsWith('<!DOCTYPE html>') ||
      !pageHtml.includes("const demo=params.get('demo')==='1'") ||
      Buffer.byteLength(pageHtml)>200*1024))
    throw Error('temporary_demo_html_invalid');
- return function(req,res){
+ return async function(req,res){
    if(enabled!==true || req.method!=='GET')return locked(res);
+   // The ONE optional one-shot, read-only Google Drive metadata/bytes probe.
+   // It never serves PDF bytes, token hashes, IDs or private filenames.
+   if(req.url==='/_lszh/synthetic-drive-check' && typeof driveProbe==='function'){
+     try{
+       const checked=await driveProbe();
+       if(checked?.status!=='PASS_SYNTHETIC_ARCHIVE_READ_ONLY'||
+           checked.verifiedFiles!==4)return locked(res);
+       const payload='{"status":"PASS_SYNTHETIC_ARCHIVE_READ_ONLY","verifiedFiles":4}';
+       res.writeHead(200,{'Content-Type':'application/json; charset=utf-8',
+         'Cache-Control':'no-store','Pragma':'no-cache',
+         'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
+         'X-Robots-Tag':'noindex, nofollow, noarchive'});
+       return res.end(payload);
+     }catch{return locked(res);}
+   }
    let u;
    try{u=new URL(req.url,'https://local.invalid');}
    catch{return locked(res);}

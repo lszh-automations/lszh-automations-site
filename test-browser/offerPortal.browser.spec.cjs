@@ -14,10 +14,32 @@ const ORIGIN='https://portal-staging.lszh-automations.ch'; // adapter's syntheti
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 
 async function localFixture(mode){
- const [{createOfferPortal,offerFingerprint},{createOfferPortalHttp}]=await Promise.all([
+ const [{createOfferPortal,offerFingerprint},{createOfferPortalHttp},
+  {verifyArchiveBundle,readVerifiedArchivePdf}]=await Promise.all([
   import('../cloud-run/offer-portal-staging/portalCore.mjs'),
-  import('../cloud-run/offer-portal-staging/portalHttp.mjs')
+  import('../cloud-run/offer-portal-staging/portalHttp.mjs'),
+  import('../cloud-run/archive-reader-staging/archiveBundleVerifier.mjs')
  ]);
+ const folder='1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in';
+ const pdfs=Object.fromEntries(['quote','terms','avv'].map((kind,index)=>{
+  const bytes=Buffer.from('%PDF-1.4\n% SYNTHETIC ONLY NOT A CONTRACT '+kind+'\n%%EOF\n');
+  return [kind,{id:'1LSZHSyntheticOnlyFile00000000000000000'+(index+1),
+    sha256:sha(bytes),bytes}];
+ }));
+ const fetcher=async(raw)=>{
+  const u=new URL(raw);
+  if(u.origin!=='https://www.googleapis.com')throw Error('outbound_not_allowed');
+  const file=Object.values(pdfs).find(x=>x.id===u.pathname.split('/').at(-1));
+  if(!file)throw Error('unknown_fixture');
+  if(u.searchParams.get('alt')==='media')
+    return new Response(file.bytes,{status:200,
+      headers:{'content-length':String(file.bytes.length)}});
+  return Response.json({id:file.id,mimeType:'application/pdf',trashed:false,
+    size:file.bytes.length,sha256Checksum:file.sha256,
+    parents:[folder],contentRestrictions:[{readOnly:true}]});
+ };
+ const options={fetcher,accessToken:'SYNTHETIC_PDF_FIXTURE_NOT_A_SECRET',
+  archiveFolderId:folder};
  const offer={
   tokenHash:sha(TOKEN),status:'sent',approved:true,revision:1,
   termsVersion:'TEST_v1.0_RC1',expiresAt:'2099-12-31T23:59:59Z',
@@ -28,9 +50,9 @@ async function localFixture(mode){
    onceCHF:1490,monthlyCHF:149,
    ...(mode==='Ja'?{avvVersion:'TEST_ONLY_AVV_v1.0'}:{})},
   bundle:{avv_required:mode,
-   quote:{id:'1LSZHSyntheticQuoteFile000000000001',sha256:'a'.repeat(64)},
-   terms:{id:'1LSZHSyntheticTermsFile000000000001',sha256:'b'.repeat(64)},
-   ...(mode==='Ja'?{avv:{id:'1LSZHSyntheticAvvFile0000000000001',sha256:'c'.repeat(64)}}:{})}
+   quote:{id:pdfs.quote.id,sha256:pdfs.quote.sha256},
+   terms:{id:pdfs.terms.id,sha256:pdfs.terms.sha256},
+   ...(mode==='Ja'?{avv:{id:pdfs.avv.id,sha256:pdfs.avv.sha256}}:{})}
  };
  const stats={preview:0,accept:0,pdf:0};let evidence=null;
  const store={
@@ -43,7 +65,10 @@ async function localFixture(mode){
   }
  };
  const portal=createOfferPortal({
-  store,verifyBundle:async()=>true,approvedVersion:'TEST_v1.0_RC1',
+  store,
+  verifyBundle:bundle=>verifyArchiveBundle(bundle,options),
+  readPdf:(bundle,which)=>readVerifiedArchivePdf(bundle,which,options),
+  approvedVersion:'TEST_v1.0_RC1',
   proofSalt:'SYNTHETIC_BROWSER_ONLY_NOT_A_SECRET_12345',
   clock:()=>new Date('2026-10-17T12:00:00.000Z')
  });
@@ -56,18 +81,12 @@ async function localFixture(mode){
     'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});
    res.end(HTML);return;
   }
-  // Synthetic document bytes exercise the download interaction, NOT archive verification.
-  if(req.method==='POST'&&url.pathname==='/api/offer/document'){
-   stats.pdf++;
-   res.writeHead(200,{'Content-Type':'application/pdf',
-    'Content-Disposition':'attachment; filename="SYNTHETIC_ONLY_NO_CONTRACT.pdf"',
-    'Cache-Control':'no-store'});
-   res.end('%PDF-1.4\n% SYNTHETIC ONLY - NOT A CONTRACT\n%%EOF\n');return;
-  }
-  if(req.method==='POST'&&['/api/offer/preview','/api/offer/accept'].includes(url.pathname)){
+  if(req.method==='POST'&&
+     ['/api/offer/preview','/api/offer/accept','/api/offer/document'].includes(url.pathname)){
    // Do not allow cross-origin browser requests even in this loopback fixture.
    if(req.headers.origin!==base){res.writeHead(403);res.end();return;}
    if(url.pathname.endsWith('preview'))stats.preview++;
+   else if(url.pathname.endsWith('document'))stats.pdf++;
    else stats.accept++;
    // The production adapter allows HTTPS origins; the local browser fixture
    // uses HTTP loopback. Rewrite Origin here only, never in shipped portal code.
@@ -123,10 +142,15 @@ for(const mode of ['Ja','Nein']){
    expect(fixture.stats.preview).toBe(1);
    expect(new URL(page.url()).searchParams.has('code')).toBe(false,
     'browser history must redact private offer token');
-   const downloading=page.waitForEvent('download');
-   await page.locator('#quotePdf').click();
-   const download=await downloading;
-   expect(download.suggestedFilename()).toContain('LSZH_Offerte_');
+   for(const [button,type] of [
+    ['quotePdf','Offerte'],['termsPdf','Projektbedingungen'],
+    ...(mode==='Ja'?[['avvPdf','AVV']]:[])
+   ]){
+    const downloading=page.waitForEvent('download');
+    await page.locator('#'+button).click();
+    const download=await downloading;
+    expect(download.suggestedFilename()).toContain('LSZH_'+type+'_');
+   }
    await page.locator('#person').fill('Synthetische Testperson');
    await page.locator('#email').fill('synthetic@example.invalid');
    await page.locator('#authorized').check();
@@ -138,7 +162,7 @@ for(const mode of ['Ja','Nein']){
    await expect(page.locator('#emailFollowup')).toBeHidden();
    await expect(page.locator('#review')).toBeHidden();
    expect(fixture.stats.accept).toBe(1);
-   expect(fixture.stats.pdf).toBe(1);
+   expect(fixture.stats.pdf).toBe(mode==='Ja'?3:2);
    expect(fixture.offer.status).toBe('accepted');
    expect(fixture.offer.revision).toBe(2);
    expect(fixture.getEvidence().avv_required).toBe(mode==='Ja');

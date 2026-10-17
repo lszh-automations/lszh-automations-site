@@ -1,5 +1,5 @@
 // Explicitly isolated HTTP adapter; NOT deployed. Same-origin token-bound POSTs
-// only. No public PDF endpoints, no unauthenticated document enumeration.
+// only. No unauthenticated document enumeration or public archive paths.
 const LIMIT=12*1024;
 function send(res,status,obj){
   res.writeHead(status,{
@@ -53,13 +53,36 @@ export function createOfferPortalHttp({portal,enabled=false,allowedOrigin}={}){
     let path;
     try{path=new URL(req.url,'https://local.invalid').pathname;}
     catch{return send(res,404,{error:'not_found'});}
-    if(req.method!=='POST' || !['/api/offer/preview','/api/offer/accept'].includes(path))
+    if(req.method!=='POST' ||
+       !['/api/offer/preview','/api/offer/accept','/api/offer/document'].includes(path))
       return send(res,404,{error:'not_found'});
     // Origin is a CSRF barrier, not proof of identity. Token is still required.
     if(req.headers.origin!==allowedOrigin)
       return send(res,403,{error:'forbidden'});
     try{
       const b=await json(req);
+      if(path==='/api/offer/document'){
+        if(typeof portal.document!=='function')return send(res,503,{error:'temporarily_unavailable'});
+        const doc=await portal.document(b.code,b.which);
+        // Do not stream partially verified content. The portal guarantees
+        // exact bounded bytes and independently verifies SHA-256 before return.
+        if(!doc||!Buffer.isBuffer(doc.bytes)||doc.bytes.length<8||
+           doc.bytes.length>12*1024*1024)throw Error('archive_unavailable');
+        const label=doc.which==='quote'?'Offerte':doc.which==='terms'?'Projektbedingungen':'AVV';
+        const filename=('LSZH_'+label+'_'+doc.number+'_'+doc.version)
+          .replace(/[^A-Za-z0-9_.-]/g,'_').slice(0,140)+'.pdf';
+        res.writeHead(200,{
+          'Content-Type':'application/pdf',
+          'Content-Length':String(doc.bytes.length),
+          'Content-Disposition':'attachment; filename="'+filename+'"',
+          'Cache-Control':'no-store','Pragma':'no-cache',
+          'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
+          'X-Robots-Tag':'noindex, nofollow, noarchive',
+          'Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'",
+          'Cross-Origin-Resource-Policy':'same-origin'
+        });
+        return res.end(doc.bytes);
+      }
       const result=path.endsWith('/preview')?
         await portal.preview(b.code):
         await portal.accept(b.code,b);

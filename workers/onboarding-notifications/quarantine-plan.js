@@ -124,4 +124,5 @@ function planQuarantine({draftId,review,previous=null,expectedRevision=0,
   expectedRevision,record,deliveryAllowed:false,requiresManualApproval:true
  });
 }
-module.exports={planQuarantine,STATES};
+// Exposed solely for checking the exact stored CAS snapshot shape.
+module.exports={planQuarantine,STATES,validCase};

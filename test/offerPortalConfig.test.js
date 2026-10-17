@@ -17,6 +17,8 @@ test('portal is off by default, independent of runtime',async()=>{
 test('valid isolated portal staging runtime may be explicitly configured',async()=>{
  const {stagingConfig,STAGING}=await import('../cloud-run/offer-portal-staging/stagingConfig.mjs');
  assert.equal(stagingConfig(good).enabled,true);
+ const confirmedCloudOrigin='https://lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app';
+ assert.equal(stagingConfig({...good,LSZH_PORTAL_ORIGIN:confirmedCloudOrigin}).origin,confirmedCloudOrigin);
  assert.equal(STAGING.projectId,'lszh-automations');
  assert.equal(STAGING.databaseId,'lszh-offers-staging');
  assert.equal(STAGING.region,'europe-west6');

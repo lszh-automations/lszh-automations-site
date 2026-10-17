@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Google-Cloud-Status vom Betreiber verifiziert (read-only)
+
+**Nachweis:** `gcloud run services describe lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(status.url,status.traffic,spec.template.spec.serviceAccountName)"`
+
+- Laufzeit-Dienstkonto: `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` (entspricht erwarteter Identität).
+- `status.traffic`: **100 % auf `lszh-offer-portal-staging-00004-qt7`**. Neuer Portalcode wurde **nicht** in den Live-Traffic geschaltet.
+- Tatsächliche Dienst-URL: `https://lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app`.
+- **Offene Konfigurationsabweichung:** `cloud-run/offer-portal-staging/stagingConfig.mjs` erlaubt aktuell `lszh-offer-portal-staging-470613067122.europe-west6.run.app` oder `portal-staging.lszh-automations.ch`, aber **nicht** die vom Cloud-Dienst gemeldete URL. Vor Cloud-Test klären, ob die Custom-Domain verwendet wird, oder die feste Allowlist kontrolliert an die tatsächliche HTTPS-Origin anpassen und Test ergänzen.
+- Die vorgelegte Ausgabe belegt **nicht** Ingress- oder IAM-Invoker-Berechtigungen; diese bleiben separat per lesendem `gcloud run services describe` und `gcloud run services get-iam-policy` zu prüfen. Keine Ausgabe mit Credentials, Tokens oder vollständigen Umgebungsvariablen teilen.
+- Unverändert: keine Go-Live-Freigabe, kein Revisionsdeploy, kein Annahme-POST, keine E-Mail, keine Airtable-/Make-Änderung.
+
+---
+
+
 ## 17.10.2026 – Cloud-Run-Stagingvorbereitung: synthetischer Datengate + Annahmesperre PASS
 
 **Entwicklungsgrundsatz:** Bestehende Cloud-Run-, HTML-, Firestore- und Archivmodule weiterverwenden; keinen zweiten Proxy, Dienst oder neuen Datenbestand bauen. Nutzerauftrag `Vamos` mit **ausschliesslich lokalen, synthetischen Tests**; keine operative Cloud-Freigabe oder Aktivierung.

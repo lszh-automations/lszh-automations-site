@@ -1,0 +1,16 @@
+# Build only: isolated quarantine receiver, no deploy, no secrets.
+# The invoking shell script creates an allowlisted temporary build context.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.quarantine-handoff
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

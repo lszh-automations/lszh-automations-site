@@ -1,5 +1,22 @@
 # LSZH – Kunden-Vertragsportal, isolierter Entwicklungsprototyp
 
+## Aktuelle Integrationsstufe: gemeinsamer Portal-Ursprung, noch nicht deployt (17.10.2026)
+
+Die bereits vorhandene Offerten-Weboberfläche und der isolierte Cloud-Run-Portalcode wurden im GitHub-Featurebranch zusammengeführt. **Es ist weiterhin kein produktiver Vertragsabschluss möglich; dieses Paket wurde nicht auf den laufenden Cloud-Run-Dienst bereitgestellt.**
+
+**Neu:** `portalHttp.mjs` liefert bei ausdrücklich aktivierter Staging-Konfiguration `GET /offerte-annehmen/` als statische, gebündelte Kopie der *bestehenden* Datei `offerte-annehmen/index.html` (keine eigene neue Gestaltung). Auf derselben HTTPS-Origin laufen `POST /api/offer/preview`, `POST /api/offer/document` und `POST /api/offer/accept`. Dadurch sind keine CORS-Ausnahmen und kein Render-zu-Google-Cloud-Proxy für den späteren Kundenbrowser nötig. Die PDF-Route validiert den Einladungscode, Angebotsstatus und Ablauf und liest nur Dokumente aus der gebundenen privaten Angebotsakte. Sie nutzt `readVerifiedArchivePdf` zur Parent-/MIME-/Grössen-/SHA-256-Byteprüfung, keine fremde Drive-Datei-ID. `LSZH_PORTAL_STAGING_ENABLED` bleibt per Default **false**. HTML und APIs antworten im deaktivierten Zustand mit 503.
+
+**Docker-Paket:** Kontext ist nun das **Repository-Hauptverzeichnis** (nicht `cloud-run/`):
+```bash
+docker build -f cloud-run/Dockerfile.offer-portal-staging -t lszh-offer-portal:local-check .
+```
+Das Dockerfile kopiert nur Portalcode, internen Verifier und `offerte-annehmen/index.html` in das Image. Keine Mail-, Airtable-, Make- oder archivschreibende Dienstkomponente; keine Zugangsschlüssel im Image. Das vollständige Image wurde in GitHub Actions ausschliesslich gebaut und deaktiviert auf localhost getestet; **kein Google-Cloud-Deploy**.
+
+**Sicherheitsgrenze:** Der tatsächlich eingesetzte Cloud-Run-Dienst `lszh-offer-portal-staging` behält sein internes, IAM-geschütztes, rein lesendes Preflight (letzte vom Kontoinhaber bestätigte Traffic-Zuteilung: 100 % Revision `00004-qt7`). Der neue Docker-Entwurf darf diese Revision nicht stillschweigend ersetzen; Staging-Erreichbarkeit, öffentliche HTTPS-Invoker-/Origin-Strategie, Missbrauchsschutz, synthetische Seed-Daten und Freigabe müssen vor einem echten Browser→Cloud-Run-Test separat kontrolliert werden. Der Archiv-Reader bleibt durchgehend intern und schlüssellos. Keine juristische RC1/AVV-Freigabe und keine E-Mail-/Beleg-Outbox.
+
+---
+
+
 ## Aktueller Infrastruktur- und Teststand (15.10.2026, Nachtrag)
 
 Die folgenden historisch datierten Abschnitte beschreiben frühere Planungsstände. **Aktueller Stand:** Im Google-Cloud-Geschäftsprojekt `lszh-automations` sind die benannte Firestore-Datenbank `lszh-offers-staging` (`europe-west6`), das getrennte Dienstkonto `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` mit bedingter `roles/datastore.user`-IAM-Rolle und Geschäftsstaging-Drive-Lesefreigabe sowie der separate Cloud-Run-Dienst `lszh-offer-portal-staging` inzwischen vorhanden. Cloud Run verwendet die sichere **read-only** Revision `00004-qt7` (100 % Traffic laut Kontoinhaber), die `IDENTITY_PASS`, `DRIVE_PASS`, `FIRESTORE_READ_PASS` und `PASS` in echten Google-Cloud-Logs nachgewiesen hat. Die zeitweise bereitgestellte schreibende Testrevision `00003-778` ist bei 0 % Traffic geblieben. Diese README-Dateien enthalten **nicht** den aktuell bereitgestellten Leseprüfer: Der Code für den ist unter `cloud-run/offer-portal-preflight/` abgelegt. Dieser Ordner bleibt ein **nicht bereitgestellter Entwurf des vollständigen Portals**.

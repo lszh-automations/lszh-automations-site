@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Secret-Version PLAN ONLY live erfolgreich; PAT-Upload separat ausstehend
+
+Der Geschäftsführer hat `git pull --ff-only` ausgeführt und in Cloud Shell den neuen sicheren `staging-airtable-secret-version.sh` **ohne `--add-once`** geprüft. Die tatsächliche Ausgabe bestätigt nochmals das richtige Projekt und Secret, nur die user-managed Replik `europe-west6`, **genau 0 Versionen** und das zweite maschinenlesbare Versions-Gate:
+```text
+PASS: Exactly zero secret versions.
+PASS: Existing empty Zurich-only STAGING secret independently verified.
+PASS: Secret has zero versions immediately before requested operation.
+PASS: Verified unchanged business source, Zurich-only secret and zero versions.
+PLAN ONLY: No credential requested or stored, no secret version created.
+```
+**Keine Secret-Version wurde dabei erstellt oder PAT eingegeben.** Als nächster separater bewusst vom Geschäftsführer zu startender Schritt ist `bash workers/onboarding-notifications/staging-airtable-secret-version.sh --add-once` nach Git-Sync vorgesehen. Dort darf ausschliesslich der auf `data.records:read` für die eine Website-CRM-Basis begrenzte Airtable-PAT am **verdeckten interaktiven Prompt** eingegeben werden; niemals im Chat oder Kommando. Einmaliger Secret-Manager-Upload durch stdin, erwartete genau eine `ENABLED`-Version 1 und danach STOP. Bei unklarem Fehler **nicht wiederholen**, sondern ausschliesslich lesen und prüfen. **Noch nicht durchgeführt:** PAT-Version, secret-spezifische IAM-Zugriffsrolle, Cloud-Run-Job oder Jobausführung.
+
 ## 17.10.2026 – Einmalige sichere Staging-PAT-Version vorbereitet, noch NICHT übertragen
 
 **Live-STATUS:** Das Secret `lszh-airtable-readonly-staging` existiert; sein korrekter GCP-Projektbezug, `replication.userManaged` mit exakt einer Replikation `europe-west6` und **0 Secret-Versionen** wurden durch die vom Geschäftsführer ausgeführte korrigierte reine Lese-Diagnose vollständig bestätigt. Keine IAM-Rolle auf dem Secret, keine Airtable-PAT-Daten und kein Cloud-Run-Job eingerichtet. Das vorangegangene `staging-airtable-empty-secret.sh --create-empty` **nicht** wiederholen.

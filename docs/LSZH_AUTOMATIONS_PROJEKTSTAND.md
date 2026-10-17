@@ -1,5 +1,25 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Single-Origin-Offertenportal: ein vollständiges, deaktiviertes Docker-Paket PASS
+
+**Leitentscheid:** Das bestehende Kundenformular und alle zugehörigen API-/PDF-Routen künftig **unter genau einer dedizierten Portal-Origin** betreiben; keinen neuen Render-Proxy, keine direkte Browser-Verbindung auf intern gesperrte Google-Reader-Dienste. Dieselbe bestehende Datei `offerte-annehmen/index.html` bleibt die einzige Oberfläche.
+
+**Nur auf GitHub-Entwicklungsbranch (ohne Cloud-/Render-Deployment):**
+- `portalHttp.mjs` liefert nun auch `GET /offerte-annehmen/` als statische HTML-Seite, **nur** wenn `enabled=true` und eine gültige, lokal gebündelte HTML-Datei geladen wurde; ansonsten weiterhin fail-closed HTTP 503. Für API-/PDF-Aktionen gelten unverändert die privaten POST- und Origin-Sperren. HTML erhält `no-store`, `no-referrer`, `noindex`, `nosniff`, Frame-Sperre und restriktive CSP.
+- `index.mjs` liest `./offerte-annehmen.html` **erst bei aktivierter Staging-Konfiguration**, nicht während eines gesperrten Preflight-Starts.
+- `cloud-run/Dockerfile.offer-portal-staging` nutzt jetzt **Repository-Root** als Build-Kontext und kopiert gezielt die vorhandene `offerte-annehmen/index.html` zusammen mit den Cloud-Run-Portalmodulen und der PDF-Prüfung. Keine neue HTML-Kopie im Repository, keine zusätzlichen Services.
+- Der reale Chromium-Browser-Test ruft die HTML-Seite über den **tatsächlichen** neuen Portal-HTTP-Handler ab; Preview, 2/3 PDF-Downloads und fiktive Annahmen laufen über denselben lokalen Ursprung. Separater HTTP-Test belegt, dass die Seite bei deaktiviertem Portal HTTP 503 liefert.
+- Neuer Workflow-Job `portal-image-offline` baut das **exakte Docker-Image** in GitHub Actions, bestätigt das vorhandene HTML im Image und startet den Container **nur auf localhost, mit deaktivierter Staging-Konfiguration**. Es folgen HTTP 503 und `not_available`, ohne Google-Aufrufe oder Cloud-Deployment.
+
+**Vier CI-Jobs erfolgreich:** [GitHub Actions 39070538514](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39070538514) `SUCCESS`: regulär **89 total / 86 PASS / 3 SKIP / 0 FAIL**; Firestore-Emulator **12/12 PASS**; echter Chromium **3/3 PASS**; **Docker-Image Build + disabled HTTP 503 PASS**.
+
+**Unveränderte Sperren:** Aktives Cloud-Run-Staging-Portal verbleibt auf dem read-only Preflight (letzte Nutzerbestätigung: Revision `lszh-offer-portal-staging-00004-qt7`, 100 % Traffic); Render-STAGING-Demo unverändert, ebenso Website auf `main`, Firestore-Kundendaten, Airtable, Make und sämtliche E-Mail-Sperren. **Kein neuer Cloud-Run-Dienst, keine Revision und kein Kosten verursachender Cloud-Aufruf erstellt.**
+
+**Nächste Freigabeschwelle:** Vor einem tatsächlichen Browser-zu-Cloud-Run-HTTP-Aufruf müssen wir den sicheren Staging-Zugangsweg, IAM/Ingress und Testdaten-Zuordnung festlegen. Kein stilles Überschreiben der sicheren read-only Revision, kein öffentliches Archivdienstkonto, keine echte rechtsverbindliche Annahme. Danach ausschliesslich fiktive 2/3-PDF-Cloud-Tests; später separate, idempotente Beleg-/Airtable-/Bestätigungs-Outbox und juristische Freigabe.
+
+---
+
+
 ## 17.10.2026 – Offerten-Portal: private PDF-Downloads vollständig offline integriert und geprüft
 
 **Ausgangslage:** Die fiktive End-to-End-Airtable→Firestore→HTTP-Annahme und reale Chromium-Oberfläche waren lokal getestet, aber der neue Cloud-Run-Portalkern hatte noch keinen echten dokumentgebundenen PDF-Endpunkt. Der frühere Render-STAGING-Endpunkt `/api/offer/document` aus dem Airtable-Altweg durfte nicht einfach als produktiver Ersatz gelten.

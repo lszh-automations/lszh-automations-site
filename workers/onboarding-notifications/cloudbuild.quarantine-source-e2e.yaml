@@ -1,0 +1,16 @@
+# Isolated synthetic source E2E image BUILD ONLY, never deploy or execute.
+# No user fixtures, PAT, HMAC or secret payload enters build context.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.quarantine-source-e2e
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

@@ -67,6 +67,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh
           bash -n workers/onboarding-notifications/staging-quarantine-iam-preflight.sh
           bash -n workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-db-provision.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

@@ -5,9 +5,9 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --chown=node:node --chmod=0644 onboarding/confirmation.js /app/onboarding/confirmation.js
 COPY --chown=node:node --chmod=0644 workers/onboarding-notifications/staging-airtable-rest-read.js /app/workers/onboarding-notifications/staging-airtable-rest-read.js
-COPY --chown=node:node --chmod=0644 workers/onboarding-notifications/airtable-runtime-probe.js /app/workers/onboarding-notifications/airtable-runtime-probe.js
+COPY --chown=node:node --chmod=0644 workers/onboarding-notifications/airtable-runtime-probe-v2.js /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js
 # Build only: all ancestor directories must be traversable by USER node.
 # Runtime remains unprivileged. Secret volume is not part of this image.
 RUN chmod 0755 /app /app/onboarding /app/workers /app/workers/onboarding-notifications
 USER node
-CMD ["node","/app/workers/onboarding-notifications/airtable-runtime-probe.js"]
+CMD ["node","/app/workers/onboarding-notifications/airtable-runtime-probe-v2.js"]

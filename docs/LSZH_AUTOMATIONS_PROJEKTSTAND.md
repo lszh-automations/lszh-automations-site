@@ -1,5 +1,32 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## KRITISCH 17.10.2026 – Erster und einziger Cloud Run → Airtable-Lesejob gestartet, EXECUTION FAILED. NICHT wiederholen
+
+Der Geschäftsführer führte ausdrücklich nach `git pull --ff-only` den abgesicherten Befehl `bash workers/onboarding-notifications/staging-airtable-job-run.sh --execute-once` aus. **Echte Cloud Shell-Ausgabe:**
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Original successful Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PASS: Zero Cloud Run executions registered for this exact Job.
+EXECUTE ONCE: Starting the isolated read-only STAGING Cloud Run Job.
+X Creating execution... Task lszh-airtable-read-probe-staging-xglcz-task0 failed with exit code: 1 and message: The container exited with an error.
+OK Provisioning resources... Provisioned imported containers.
+OK Starting execution... Started deployed execution in 3.93s.
+X Running execution... 0 / 1 complete
+Executing job failed
+ERROR: (gcloud.run.jobs.execute) The execution failed.
+STOP: Execution failed or result ambiguous. DO NOT RERUN. Inspect execution metadata/logs read-only.
+```
+
+**Wesentlicher Statuswechsel:** Job `lszh-airtable-read-probe-staging` ist nicht länger unausgeführt: Die **einzige reale Execution** `lszh-airtable-read-probe-staging-xglcz` existiert und ist **fehlgeschlagen**, Task `task0` **exit code 1**. Grund noch **unbekannt**; aus dieser Meldung kann weder ein Airtable-Authentifizierungsfehler noch ein fehlerhafter Secret-Dateimount, Laufzeitfehler oder fehlender API-Zugriff sicher abgeleitet werden. Die User-Ausgabe enthält **keine** Fach-PASS-Logs der eigentlichen Airtable-GET-Probe. **Es ist KEIN erfolgreicher Cloud Run → Airtable-GET nachgewiesen.** Die Ausführungsfunktion verfügt über `maxRetries=0`; der konkrete Task wurde nicht als erfolgreich gemeldet. **Nicht nochmals `--execute-once` ausführen und keine neue Jobversion/Deployment erstellen**, bis der Fehler read-only diagnostiziert, behoben und ein separater bewusst freigegebener neuer Prüfweg dokumentiert ist. Keine neue Secret-Version, keine zusätzlichen IAM-Rechte oder produktiven Änderungen vorsehen.
+
+Nächste Diagnose ausschliesslich LESEND, eng an diese konkrete Ausführung in Region `europe-west6` und Projekt `lszh-automations` gebunden: `gcloud run jobs executions describe lszh-airtable-read-probe-staging-xglcz --project=lszh-automations --region=europe-west6 --format=json` und genau passende Cloud-Logging-Einträge für `resource.type=cloud_run_job`, `resource.labels.job_name=lszh-airtable-read-probe-staging`, `labels.execution_name=lszh-airtable-read-probe-staging-xglcz`. **Nicht unbesehen Log-Rohdaten veröffentlichen:** Text darf nach Möglichkeit nur sicher aggregierte bekannte STOP-Codes und nicht-sensitive Fehlertypen zeigen; Secret PAT niemals im Chat. Erst nach Diagnose fachlichen Status bewerten. Der bestehende produktive/private HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`; keine Kundenbenachrichtigungen.
+
+Offizielle Referenzen: https://docs.cloud.google.com/run/docs/managing/job-executions und https://docs.cloud.google.com/run/docs/logging .
+
 ## BESTÄTIGT 17.10.2026 – Airtable-Cloud-Run-EINMAL-Test-Preflight LIVE PASS; Ausführung noch ausstehend
 
 Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den rein lesenden `bash workers/onboarding-notifications/staging-airtable-job-run.sh` aus. Die tatsächlichen Live-Ergebnisse:

@@ -1,5 +1,9 @@
 # LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
+## 17.10.2026 – Replay-Plan-Manipulation blockiert (nicht deployt)
+
+`planReplayClaim` friert jetzt auch verschachtelte Firestore-Felder ein. `verifiedReplayClaim` rekonstruiert unabhängig einen kanonischen Schreibplan und verweigert bei jeder Plan-Abweichung schon **vor** der Ack-/Readback-Auswertung die Bestätigung. Zwei neue synthetische Regressionstests decken tiefe Mutationen und absichtlich gefälschte, dazu passende Readbacks ab. Keine Änderung an Cloud Run, IAM, Firestore, Secrets, HTTP-Server oder E-Mail-Versand. Die spätere echte Replay-Claim-Ausführung bleibt separat freigabepflichtig.
+
 ## 17.10.2026 – Replay-CAS und Empfangs-HTTP-Vertrag vorbereitet, nichts aktiviert
 
 Zusätzlich zu `quarantine-handoff-protocol.js` und `quarantine-handoff-offline-flow.js` sind nun `quarantine-handoff-replay-cas.js` (**nur einseitiger Firestore-Claim-Commit-Entwurf mit `exists:false`, keine Ausführung**) und `quarantine-handoff-http-contract.js` (**nur strikter JSON-Request-Parser für `POST /internal/quarantine/handoff`, kein HTTP-Server**) vorhanden. Der Replay-Key ist die bereits etablierte 64-stellige HMAC-Ausgabe aus `validateAndClaimOnce`. Der Claim ist nur nach einer unabhängigen, versionsgebundenen Firestore-Readback-Prüfung als erfolgreich zu bewerten. Kein Retry, TTL, automatisch gelöschte Nonces oder Versand; die künftige Replay-Collection existiert bislang nur als Source-Pfad.

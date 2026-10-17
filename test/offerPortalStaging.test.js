@@ -14,7 +14,9 @@ function record(mode='Ja'){
  return {tokenHash:digest(token),status:'sent',approved:true,revision:1,
   termsVersion:'TEST_v1.0_RC1',expiresAt:'2099-12-31T23:59:59.000Z',
   recipientEmail:'client@example.invalid',offerNumber:'TEST_ONLY_OFFER_001',
-  details:{company:'Synthetic GmbH',onceCHF:99,monthlyCHF:10},
+  details:{company:'Synthetic GmbH',service:'Automations-Test',
+    paymentModel:'Testzahlung',onceCHF:99,monthlyCHF:10,
+    ...(mode==='Ja'?{avvVersion:'TEST_ONLY_AVV_v1.0'}:{})},
   bundle:{avv_required:mode,quote:refs.quote,terms:refs.terms,
     ...(mode==='Ja'?{avv:refs.avv}:{})}
  };
@@ -22,7 +24,9 @@ function record(mode='Ja'){
 function accepted(mode='Ja'){
  return {name:'Synthetischer Kunde',email:'client@example.invalid',authorized:true,
   accept_terms:true,quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,
-  ...(mode==='Ja'?{accept_avv:true,avv_sha256:refs.avv.sha256}:{accept_avv:false})};
+  ...(mode==='Ja'?{accept_avv:true,avv_sha256:refs.avv.sha256,
+    avv_version:'TEST_ONLY_AVV_v1.0'}:
+    {accept_avv:false,avv_sha256:null,avv_version:null})};
 }
 function fakeDB(r){
  let doc=structuredClone(r),updates=0;
@@ -58,10 +62,22 @@ test('preview returns only offer information, never Drive IDs or stored recipien
  const {portal,data}=await make();
  const r=await portal.preview(token);
  equal(r.number,'TEST_ONLY_OFFER_001');
+ equal(r.company,'Synthetic GmbH');
+ equal(r.service,'Automations-Test');
+ equal(r.once,99);equal(r.monthly,10);
+ equal(r.payment_model,'Testzahlung');
+ equal(r.valid_until,'2099-12-31');
+ equal(r.avv_version,'TEST_ONLY_AVV_v1.0');
  equal(r.avv_required,true);
  equal(r.avv_sha256,refs.avv.sha256);
  ok(!JSON.stringify(r).includes('client@example.invalid'));
  ok(!JSON.stringify(r).includes(refs.quote.id));
+ equal(data.state().updates,0);
+});
+test('AVV Ja rejects version mismatch before writing',async()=>{
+ const {portal,data}=await make('Ja');
+ await rejects(()=>portal.accept(token,{...accepted('Ja'),avv_version:'wrong-version'}),
+   e=>e.code==='document_changed');
  equal(data.state().updates,0);
 });
 test('staging acceptance with AVV records complete consent once',async()=>{

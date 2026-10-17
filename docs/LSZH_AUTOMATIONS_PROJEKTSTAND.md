@@ -1,5 +1,34 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Airtable-READ-PAT STAGING Secret-Version 1 erfolgreich gespeichert
+
+Direkt aus **Google Cloud Shell** vom Geschäftsführer über `bash workers/onboarding-notifications/staging-airtable-secret-version.sh --add-once` ausgeführter, streng kontrollierter Upload. Die tatsächliche Ausgabe bestätigte erneut die unabhängige Projekt-/Secretnamensprüfung und **genau eine Zürcher user-managed Replikation**, `0` Versionen unmittelbar vor der Übertragung, danach:
+```text
+Created version [1] of the secret [lszh-airtable-readonly-staging].
+PASS: Exactly one ENABLED STAGING secret version (1) verified; payload not read.
+PASS: Airtable PAT was stored once in Secret Manager without plaintext logs or files.
+STOP HERE: Service-account SecretAccessor IAM and Cloud Run deployment are separate gates.
+```
+**Damit nachgewiesen:** Der Token-Wert wurde genau einmal über verdecktes interaktives TTY und ephemeren Standard-Input an die **Secret-Version 1 (ENABLED)** in Google Secret Manager gesendet. Das Skript hat weder PAT-Klartext im Chat/GitHub gespeichert noch eine Secret-Version wieder ausgelesen; es wurden keine neuen IAM-Rechte, Cloud-Run-Jobs, Deployments, Make-Szenarien oder Kundenoperationen ausgelöst. **`--add-once` niemals erneut ausführen.** Aus den PASS-Meldungen allein lässt sich die tatsächliche Airtable-PAT-Scope-Beschränkung nicht unabhängig ableiten: diese ist zuvor durch den Inhaber auf `data.records:read` und nur die Website-CRM-Basis festzulegen und bei Bedarf im Airtable-Token-Portal separat zu kontrollieren (ohne Tokenwert preiszugeben).
+
+**Nächster sicher getrennter Schritt – IAM nur auf diesem Secret:** Der in PR #8 angelegte `workers/onboarding-notifications/staging-airtable-secret-iam.sh` verwendet einen standardmässig rein lesenden `--plan`. Er prüft zunächst:
+- Geschäftskonto `lars@lszh-automations.ch`, Projekt `lszh-automations`, sauber synchronisierten Review-Branch;
+- vorhandenes aktives dediziertes SA `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret-Identität inkl. unabhängiger Projektnummer, **genau eine user-managed Replikation in `europe-west6`**;
+- **eine einzelne `ENABLED`-Version `1`** ausschliesslich über *Versionsmetadaten*, kein PAT-/Payload-Read;
+- per `gcloud secrets get-iam-policy` **fehlende bestehende Secret-spezifische IAM-Bindung** für das neue SA und keine öffentlichen Secret-Policy-Bindungen. Falls bereits Berechtigungen vorhanden sind: STOP zur manuellen Prüfung.
+
+**Nur mit späterem expliziten `--grant-secret-only`:** genau ein `gcloud secrets add-iam-policy-binding lszh-airtable-readonly-staging --member=serviceAccount:lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor --condition=None`, danach sekret-spezifische Rückleseprüfung; keine projektweiten IAM- oder Firestore-Bindings, keine Cloud Run- oder E-Mail-Aktivierung. Das ist **ein echter neuer IAM-Lesezugriff auf Secret-Versionen**, deshalb muss die eigentliche Aktion getrennt geprüft und bewusst gestartet werden. Es wird keine Service Account Impersonation vorgenommen und es wurden keine geerbten Rollen geprüft; dieser Plan kontrolliert nur die direkte Secret-IAM-Policy.
+
+**CI offline:** Die sechs neuen Mock-IAM-Tests bestehen; aktueller erfolgreicher Job `39013175244` meldete **138/138 JS-Tests plus 8/8 Python-IAM-Tests** (synthetisch, kein Cloud-IAM-Grant). Die Befehlssyntax entspricht Googles offizieller Doku https://docs.cloud.google.com/sdk/gcloud/reference/secrets/add-iam-policy-binding und https://docs.cloud.google.com/sdk/gcloud/reference/secrets/get-iam-policy .
+
+**Als nächstes in Cloud Shell ausschliesslich der Planlauf:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-iam.sh
+```
+Erwartet `PLAN ONLY: No IAM changes, no secret contents read and no Cloud Run deployment.`. Bei `STOP` nicht selbst Rollen vergeben. Die bisherige private HTTP-Outbox bleibt disabled; separater Cloud-Run-Job ist weiterhin nicht erstellt.
+
 ## 17.10.2026 – Secret-Version PLAN ONLY live erfolgreich; PAT-Upload separat ausstehend
 
 Der Geschäftsführer hat `git pull --ff-only` ausgeführt und in Cloud Shell den neuen sicheren `staging-airtable-secret-version.sh` **ohne `--add-once`** geprüft. Die tatsächliche Ausgabe bestätigt nochmals das richtige Projekt und Secret, nur die user-managed Replik `europe-west6`, **genau 0 Versionen** und das zweite maschinenlesbare Versions-Gate:

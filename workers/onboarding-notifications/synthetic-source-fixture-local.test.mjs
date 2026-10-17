@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const FILE=fileURLToPath(new URL('./synthetic-source-fixture-local.js',import.meta.url));
-const {generate,prepare}=require('./synthetic-source-fixture-local.js');
+const {generate,prepare,fingerprint}=require('./synthetic-source-fixture-local.js');
 const {eventId}=require('./outbox.js');
 const {decodeOutboxDraft}=require('./firestore-scoped-readers.js');
 const {verifyOnboardingState}=require('../../onboarding/confirmation.js');
@@ -78,4 +79,34 @@ test('default --plan uses no cloud tools and never discloses project code',()=>{
 test('unsafe/generated UUID is refused before private file creation',()=>{
  assert.throws(()=>generate({now:date,uuid:()=> '00000000-0000-0000-0000-000000000000'}),/synthetic_code_invalid/);
  assert.throws(()=>generate({now:date,uuid:()=>UUID,choice:()=>62}),/synthetic_record_invalid/);
+});
+
+
+test('secure read-only fingerprint matches random code SHA-256 and never prints code',()=>{
+ const home=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-fixture-fingerprint-'));
+ try{
+  const created=prepare({home,now:date,uuid:()=>UUID,choice:()=>1});
+  const digest=createHash('sha256').update('ob_'+UUID,'utf8').digest('hex');
+  assert.equal(fingerprint({home}),digest);
+  const result=spawnSync(process.execPath,[FILE,'--fingerprint'],{
+   encoding:'utf8',env:{...process.env,HOME:home}
+  });
+  assert.equal(result.status,0,result.stderr);
+  assert.match(result.stdout,new RegExp('FINGERPRINT_SHA256: '+digest));
+  assert.doesNotMatch(result.stdout,/ob_[a-f0-9]{8}/);
+  assert.doesNotMatch(result.stdout,/rec[A-Za-z0-9]{14}/);
+  const x=JSON.parse(fs.readFileSync(created.privateFile,'utf8'));
+  x.draft.deliveryEnabled=true;
+  fs.writeFileSync(created.privateFile,JSON.stringify(x),{mode:0o600});
+  assert.throws(()=>fingerprint({home}),/fixture_integrity_invalid/);
+ }finally{fs.rmSync(home,{recursive:true,force:true});}
+});
+test('fingerprint rejects world-readable private fixture and missing fixture',()=>{
+ const home=fs.mkdtempSync(path.join(os.tmpdir(),'lszh-fixture-mode-'));
+ try{
+  assert.throws(()=>fingerprint({home}),/ENOENT/);
+  const created=prepare({home,now:date,uuid:()=>UUID,choice:()=>1});
+  fs.chmodSync(created.privateFile,0o644);
+  assert.throws(()=>fingerprint({home}),/fixture_permissions_invalid/);
+ }finally{fs.rmSync(home,{recursive:true,force:true});}
 });

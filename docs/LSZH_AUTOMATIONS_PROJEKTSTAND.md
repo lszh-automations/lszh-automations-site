@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Quarantäne-Staging-Datenbank fehlt; CAS und IAM auf separates Ziel umgestellt (keine GCP-Mutation)
+
+**Reale read-only Cloud-Shell-Ausgabe vom Geschäftsführer:** `gcloud firestore databases describe --project=lszh-automations --database=lszh-quarantine-staging --format='value(name,locationId,type)'` meldete `NOT_FOUND: Project 'lszh-automations' or database 'lszh-quarantine-staging' does not exist` unter aktivem Konto `lars@lszh-automations.ch`. Weil das Projekt und die bestehende `lszh-offers-staging` aus früheren erfolgreichen Vorgängen bekannt sind, liegt das Fehlen der **zusätzlichen** Named Database nahe; aufgrund der allgemeinen Fehlermeldung sind dennoch insbesondere effektive Leseberechtigungen nicht unabhängig geprüft. Der Befehl hat **nichts erstellt oder geändert**.
+
+**Anschlussarbeit ausschliesslich in GitHub:** Die Quarantäne-spezifischen festen Zielbezeichnungen wurden **vor jeder Cloud-Provisionierung** konsistent von `lszh-offers-staging` auf `lszh-quarantine-staging` umgestellt: `firestore-quarantine-cas.js`/Test, `quarantine-iam-plan.js`/Test, `staging-quarantine-iam-preflight.sh`/Test sowie das separate `docs/LSZH_QUARANTAENE_STAGING_CAS_PLAN.md`. Die read-only Vorprüfung meldet beim Fehlen ihrer neuen Ziel-Datenbank jetzt ausdrücklich `BLOCKED: Dedicated quarantine STAGING database absent or inaccessible. No database created.` und stoppt, **bevor** IAM- und Rollenprüfungen erfolgen. Zusätzliche Offline-Regression `quarantine-database-isolation.test.mjs` sichert gegen Rückfall auf die bereits genutzte Offerten-Datenbank und gegen eine auf diese gerichtete IAM-Bindung; eine weitere Regression simuliert fehlende Datenbank vor IAM-Abfragen.
+
+**Absichtliche Nichtänderungen:** `workers/onboarding-notifications/firestore-store.js` sowie bestehende Staging-Dienste, historische Cloud-Run-Jobs, Outbox-Daten, Images und deren Quell-Pins bleiben auf der alten `lszh-offers-staging`, soweit sie dies zuvor waren. Es gab keinen Firestore-Live-GET/POST, keine Datenbankerstellung, keine Custom-Role- oder Service-Account-Anlage, keine IAM-Bindung, keine Build-/Deploy-Aktion und keine E-Mail. Kein früher erfolgreich ausgeführter Job wurde wiederholt.
+
+**Nächste Gate-Entscheidung:** Die neue Named Database `lszh-quarantine-staging` ist **nur technisches Ziel im Review-Branch**, noch nicht erstellt oder zur Bereitstellung genehmigt. Für reale Einrichtung und die getrennte Testidentität `lszh-quarantine-cas-stg` sowie Rolle `lszhQuarantineCasStaging` ist jeweils eine **ausdrückliche Ressourcen-/IAM-Freigabe** einzuholen; vorausgehend sind die GCP-Quotas/Region und die erlaubten Custom-Role-Permissions zu prüfen. Der anschliessende **einmalige** synthetische Firestore-CAS-Live-Schreibtest benötigt eine weitere gesonderte Freigabe. Keine produktiven Kundenaktionen und kein E-Mail-Versand.
+
 ## 17.10.2026 – Quarantäne-Staging: SA per Liste ohne Treffer, Custom Role sicher nicht vorhanden
 
 **Reale Cloud-Shell-Ausgabe des Geschäftsführers nach vorherigem BLOCKED:**

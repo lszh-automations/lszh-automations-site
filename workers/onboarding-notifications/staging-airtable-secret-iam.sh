@@ -60,7 +60,8 @@ try:
         parts[1] in (sys.argv[1],sys.argv[2]) and
         parts[2]=="secrets" and parts[3]==sys.argv[3] and
         isinstance(m,dict) and
-        m.get("replicas")==[{"location":sys.argv[4]}])
+        isinstance(m.get("replicas"),list) and
+        [x.get("location") for x in m["replicas"]]==[sys.argv[4]])
  if not valid: raise ValueError("wrong secret identity, project or Zurich-only replica")
 except (KeyError,ValueError,TypeError,AttributeError):
  print("STOP: Secret does not match independent company/Zürich checks.");sys.exit(2)

@@ -57,6 +57,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-airtable-job.sh
           bash -n workers/onboarding-notifications/staging-airtable-job-v2.sh
           bash -n workers/onboarding-notifications/staging-airtable-job-run.sh
+          bash -n workers/onboarding-notifications/staging-airtable-job-run-v2.sh
           bash -n workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py

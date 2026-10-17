@@ -65,8 +65,11 @@ function consent(offer,b){
      b.terms_sha256!==expected.terms.sha256)throw bad('document_changed');
   if(expected.avv_required==='Ja'){
     if(b.accept_avv!==true)throw bad('avv_consent_required');
-    if(b.avv_sha256!==expected.avv.sha256)throw bad('document_changed');
-  }else if(b.accept_avv===true||b.avv_sha256!==undefined)
+    if(b.avv_sha256!==expected.avv.sha256 ||
+       (b.avv_version!=null && b.avv_version!==offer.details.avvVersion))
+      throw bad('document_changed');
+  }else if(b.accept_avv===true || b.avv_sha256!=null || b.avv_version!=null)
+    // The browser explicitly sends null for unused AVV fields.
     throw bad('unexpected_avv_consent');
   return {name,email,avv:expected.avv_required==='Ja'};
 }
@@ -88,11 +91,19 @@ export function createOfferPortal({store,verifyBundle,clock=()=>new Date(),appro
     const {offer}=await offerFor(code);
     if(await verifyBundle(offer.bundle)!==true)throw bad('archive_changed');
     // Never expose email, archive file IDs, internal datastore IDs or token hash.
+    // Keep the established browser form contract: flat, display-only fields.
+    // Existing domain/API consumers may still use details and expires_at.
     return {number:offer.offerNumber,details:offer.details,
+      company:String(offer.details.company||''),
+      service:String(offer.details.service||''),
+      once:offer.details.onceCHF??0,monthly:offer.details.monthlyCHF??0,
+      payment_model:String(offer.details.paymentModel||''),
+      valid_until:offer.expiresAt.slice(0,10),
       terms_version:offer.termsVersion,expires_at:offer.expiresAt,
       quote_sha256:offer.bundle.quote.sha256,
       terms_sha256:offer.bundle.terms.sha256,
       avv_required:offer.bundle.avv_required==='Ja',
+      avv_version:offer.bundle.avv_required==='Ja'?(offer.details.avvVersion??null):null,
       avv_sha256:offer.bundle.avv_required==='Ja'?offer.bundle.avv.sha256:null};
   }
   async function accept(code,input,{ip=''}={}){

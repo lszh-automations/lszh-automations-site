@@ -36,6 +36,8 @@ if spec.get("serviceAccountName")!="lszh-offer-browser-tmp@lszh-automations.iam.
     raise SystemExit("NO-GO: service identity changed")
 if env.get("LSZH_PORTAL_STAGING_ENABLED")!="false":
     raise SystemExit("NO-GO: test was activated, manual review needed")
+if env.get("LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED")=="true":
+    raise SystemExit("NO-GO: demo still enabled; rollback to hard-off before cleanup")
 if len(images)!=1 or not images[0].startswith(prefix):
     raise SystemExit("NO-GO: unexpected image")
 print(images[0])

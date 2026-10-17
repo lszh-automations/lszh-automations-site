@@ -1,5 +1,29 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Cloud-Run-HTTP-Smoketest echt PASS; statische Browser-Demo als nächste Testrevision vorbereitet
+
+**Live-Ergebnis aus Cloud Shell (Betreiber, read-only):**
+- `PASS: preflight revision, ingress and service identity unchanged` vor/nach Test; keine direkten öffentlichen Invoker-Bindings auf altem Dienst.
+- `PASS: temporary Cloud Run service is labelled, disabled and IAM protected`.
+- `PASS: authenticated temporary Cloud Run GET returns HTTP 503 as designed`.
+- `PASS: acceptance POST is HTTP 503 (no legal acceptance possible)`.
+- `SUCCESS: real Cloud Run network smoke passed without any deployment or data writes`.
+- Temporäre Testressource bleibt bis zu einer **gesondert ausgeführten** Revision `lszh-offer-browser-staging-00001-7kx`, 100 % Traffic, `LSZH_PORTAL_STAGING_ENABLED=false`. Das Original `lszh-offer-portal-staging-00004-qt7` bleibt intern geschützt und unverändert.
+
+**Vorbereitung für die nächste, statische Browser-Demo (nur Entwicklungsbranch, bislang KEIN zweites Cloud-Deployment):**
+- Neues `temporaryBrowserDemo.mjs`: lässt im **eigenständigen** temporären Dienst ausschliesslich `GET /offerte-annehmen/?demo=1` zu (originales HTML, Beispielpreise, keine PDF-Dokumente). Alle anderen HTTP-Methoden und Pfade einschliesslich `/api/offer/preview`, `/api/offer/document` und `/api/offer/accept` geben **immer 503** zurück. Die Demo hat `Content-Security-Policy: connect-src 'none'; form-action 'none'`, kein ungeprüftes offenes Angebot.
+- Eigenständiges Flag `LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true` ist nur bei `LSZH_PORTAL_STAGING_ENABLED=false`, exaktem `K_SERVICE=lszh-offer-browser-staging`, erwarteter Revision, festem Google-Cloud-Projekt, ohne Emulator- oder Schlüsselvariablen möglich. `index.mjs` prüft vor HTML-Auslieferung zusätzlich das Google-Cloud-Metadata-Dienstkonto `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`. Die normale Firestore-/Drive-/Annahmekern-Initialisierung wird in diesem Modus vollständig umgangen.
+- `test/temporaryBrowserDemo.test.js`: strenge Unit-/HTTP-Negativtests für fremde Runtime-Identitäten, unerlaubte Zugriffswege, ungeprüfte Angebote und alle POST-APIs. Neuer echter Chromium-Test bestätigt: unveränderte Demo darstellbar, Downloadversprechen bleibt gesperrt, `submit` deaktiviert und Annahme-POST serverseitig HTTP 503. Die CSP blockiert sogar Browser-Fetch; dieser wird deshalb getrennt vom API-Test geprüft.
+- `scripts/offer-browser-static-demo-release.sh --check|--apply`: verifiziert vor etwaiger Cloud-Schreibaktion die ursprüngliche interne Baseline und **genau** die bestehende deaktivierte, label- und IAM-geschützte temporäre Revision `00001-7kx`. Erst `--apply` baut ein neues Container-Image aus einer engen Quellliste und aktualisiert **ausschliesslich** `lszh-offer-browser-staging` mit `LSZH_PORTAL_STAGING_ENABLED=false`, `LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true`, Google-Cloud-Projekt und unverändertem Servicekonto sowie strikt angemeldetem IAM-Invoker. Kein Firestore- oder Drive-Zugriff, keine zusätzlichen IAM-Rollen.
+- `scripts/offer-browser-cloud-cleanup.sh` stoppt zukünftig bei aktiver statischer Demo. Zuerst kontrolliert auf alte deaktivierte Revision zurückschalten. Bei einer Fehlfunktion ausschliesslich den temporären Traffic zu `lszh-offer-browser-staging-00001-7kx` zurücksetzen, nie Originaldienst oder dessen Traffic verändern.
+
+**Offline-Testabnahme:** GitHub Actions [39075936456](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39075936456) **SUCCESS**: normal 105 total / **102 PASS, 3 SKIP, 0 FAIL**; Chromium **6/6 PASS**, Firestore-Emulator **12/12 PASS**, Docker-Build/disabled HTTP PASS. Die Cloud wurde durch diese Codeänderungen nicht verändert.
+
+**Weiter offene Gate:** Betreiber muss das neue Demo-Release erst aus Cloud Shell ausführen. Danach authentifizierten Browserzugriff prüfen. Anschliessend, nicht jetzt: fiktive PDFs und Firestore-Seed vorbereiten und Minimalrechte dafür separat entscheiden. Echte Kundendaten, Vertragsannahme, Beleg, Statusänderungen, Make und Mails bleiben vollständig unangetastet.
+
+---
+
+
 ## 18.10.2026 – Temporärer Cloud-Run-Browserdienst erfolgreich deployt, weiterhin deaktiviert
 
 **Operatorbericht aus Google Cloud Shell (verifiziert durch gcloud-Ausgaben des Betreibers):**

@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Airtable-STAGING-Dienstkonto: reiner PLAN ONLY-Preflight bestanden
+
+Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den Planlauf `bash workers/onboarding-notifications/staging-airtable-identity.sh` auf Branch `feature/onboarding-notification-outbox-20261016` aus. **Nachgewiesene Originalausgabe:**
+
+```text
+PASS: LSZH company identity, clean pinned branch and read-only metadata enumeration.
+Proposed service account: lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+Proposed separate job: lszh-airtable-read-probe-staging
+No Firestore role, no emails, no production service changes and no customer records.
+Existing resources (identity/secret/job): false/false/false
+PLAN ONLY: no IAM grant, new service account, secret, image, job or execution.
+```
+
+**Interpretation:** Firmenkonto, ausgewähltes Projekt, synchroner sauberer Git-Branch und Leserechte auf das Ressourcen-Inventar sind bestätigt. Die drei exklusiv vorgesehenen neuen Ressourcennamen (Dienstkonto, Secret, Job) waren laut Live-Abfrage noch frei. **Es wurde bisher noch kein Google-Dienstkonto, Secret oder Cloud-Run-Job erstellt**, keine IAM-Rolle erteilt und keine Kunden- oder E-Mail-Operation ausgeführt.
+
+**Nächster eigenständiger, eng begrenzter Schritt:** `bash workers/onboarding-notifications/staging-airtable-identity.sh --create-identity`; erstellt nur `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, ohne zusätzliche IAM-Rolle, SA-Key, Secret, Cloud-Run-Deployment oder Ausführung; bricht bei zwischenzeitlich entstandenem Ressourcen-Namenskonflikt ab. Nach tatsächlicher Ausgabe den Erfolg prüfen und dokumentieren. Der zuvor erfolgreiche `--plan` ist **keine** Bestätigung der Erstellung.
+
 ## 17.10.2026 – Airtable→Cloud-Run-Staging-Identität vorbereitet, NOCH KEINE Ressourcen erstellt
 
 Der Geschäftsführer gab mit `vamos` den Auftrag, an der zuvor vorgeschlagenen Einrichtung von separatem Service Account, Secret und STAGING-Probejob weiterzuarbeiten. Die Sicherheitsarbeit wurde bewusst auf den ersten isolierten Schritt begrenzt: **eigenes Google-Dienstkonto ohne zusätzliche Rollen**. Datei `workers/onboarding-notifications/staging-airtable-identity.sh` hat Default `--plan` (GCP-Konto-/Projektcheck, reines Listen der bereits vorhandenen Service Accounts, Secrets und Cloud-Run-Jobs) und optional `--create-identity` für maximal **ein** Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` – nur wenn die drei geplanten Resource-Namen komplett frei sind. Kein Erzeugen von IAM-Keys, keine Projekt-/Firestore-Rollen, keine Secrets, keine Cloud-Run-Jobs, keine Änderungen bestehender Dienste, keine Kunden-/Make-/E-Mail-Operationen. Identitäts- und Kollisions-Fehler brechen vor Schreiboperationen ab.

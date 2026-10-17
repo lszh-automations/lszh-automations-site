@@ -2,6 +2,26 @@
 
 Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
 
+## Künftiger Lesetest V2 – Quellcode sicher vorbereitet, neue IAM-Freigabe ausstehend (17.10.2026)
+
+Auf das Fortsetzungssignal `Vamos` nach der **leeren `GenerateAccessToken`-Auditlogabfrage** und dem `null`-Ergebnis der projektseitigen `auditConfigs` wurden **nur Review-Branch-Code und Offline-Tests** erweitert. Eine erneute Berechtigungserteilung oder Live-Token-Erzeugung wurde **nicht** autorisiert. Vorheriger Einmal-Lauf (V1) bleibt abgeschlossen: kein Firestore GET, sofortige überprüfte Grant-Entfernung. **V1 niemals wiederholen.**
+
+Der getrennte Runner `workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh` übernimmt exakt die Quarantäne-/Firmenkonto-/IAM-Metadatenvorprüfungen und die auf `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` begrenzte bedingte Token-Creator-Rolle. Verbesserungen gegenüber V1:
+
+- **Eine feste 600-Sekunden-Wartephase nach der bestätigten zeitlich bedingten Berechtigung**, bevor einmalig `gcloud auth print-access-token --impersonate-service-account=...` aufgerufen wird. Google dokumentiert üblicherweise ca. 2 Minuten IAM-Propagation, in Einzelfällen 7 Minuten oder länger; 10 Minuten reduzieren, aber beseitigen diese Unsicherheit nicht.
+- Die Rolle würde weiterhin automatisch nach **30 Minuten** durch `request.time < timestamp(...)` unwirksam; unmittelbares, unabhängig nachkontrolliertes Entfernen im Cleanup nach Testende oder Fehler bleibt vorgeschrieben. Bereits vor Ablauf ausgestellte OAuth-Tokens können theoretisch länger gültig sein; das Skript verwendet sie nur im flüchtigen Prozessspeicher und gibt nichts davon aus.
+- Token-Ausgaben und rohe Fehlermeldungen bleiben geheim. Es werden ausschliesslich allowlistete Kategorien ausgegeben (z. B. `PERMISSION_DENIED`, `SERVICE_ACCOUNT_NOT_FOUND`, `CREDENTIALS_API_UNAVAILABLE`, `CLI_AUTHENTICATION_UNAVAILABLE`, `COMMAND_TIMEOUT`, `UNCLASSIFIED_FAILURE`). Bei keiner gültigen Token-Ausgabe: **null Firestore GETs**. Bei Erfolg maximal zwei reine Dokument-`GET` auf einen zufälligen, faktisch nicht existierenden Pfad (Quarantäne 404, Offerten 403); kein `LIST/POST/PATCH/DELETE`, kein Lesen des Response-Bodys.
+- Neuer, separater Freigabe-String `I_SEPARATELY_APPROVE_SECOND_TIMED_QUARANTINE_READ_TEST_V2` und eine eigene lokale `.once`-Sperre verhindern Wiederverwendung der **bereits aufgebrauchten Freigabe für V1**. **Diesen Approval-String nicht setzen, solange keine neue ausdrückliche Zustimmung des Geschäftsführers für eine zweite IAM-Zuweisung und diesen V2-Lesetest vorliegt.**
+- Version V1 und dessen Marker werden unverändert beibehalten; bei jeder Warnung oder Teiländerung bleibt ein weiterer Versuch blockiert. Die separate Quarantäne-Datenbank, drei CAS-Entity-Berechtigungen und bestehende Offerten-Datenbank bleiben unverändert.
+
+**Jetzt zulässig, ausschliesslich lesender Plan:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh --plan
+```
+Nicht `--run-approved-once` aufrufen; keine zusätzlichen IAM-Bindungen, API-/Audit-Aktivierung, Firestore-Dokumentzugriffe oder Deployments. **Die CI-Läufe simulieren alle IAM- und HTTP-Aktionen ohne Cloud-Zugriff; sie sind kein Nachweis eines echten Firestore-GET.**
+
 ## Live-Ausführung der einmaligen temporären Identitätsübernahme: fehlgeschlagen und sauber bereinigt
 
 Nach dem Update auf Commit `d2ca43b` hat der Geschäftsführer den exakt freigegebenen `staging-quarantine-timed-read-check.sh --run-approved-once` **einmalig** gestartet. Alle IAM-Vorprüfungen und die präzise, an den dedizierten Service-Account gebundene 30-Minuten-Condition bestanden. Die danach sofort versuchte Token-Generierung meldete `BLOCKED: IMPERSONATION_NOT_VERIFIED; no Firestore GET sent.` Der EXIT-Cleanup meldete **`PASS: Exact temporary Service Account Token Creator binding revoked.`** und **`PASS: Temporary IAM binding absent in fresh readback.`** Es ist deshalb **keine temporäre Berechtigung mehr aktiv oder in der SA-Policy vorhanden**. Keine Dokumentabfrage fand statt. **Den Einmal-Runner NICHT erneut ausführen.** Die erwarteten 404/403-Ausgangswerte wurden **nicht** beobachtet.

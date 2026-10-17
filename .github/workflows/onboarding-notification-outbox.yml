@@ -24,6 +24,7 @@ jobs:
           node --check workers/onboarding-notifications/server.js
           node --check workers/onboarding-notifications/paced-fetch.js
           node --check workers/onboarding-notifications/outbox.js
+          node --check workers/onboarding-notifications/draft-review-gate.js
           node --check workers/onboarding-notifications/airtable-candidates.js
           node --check workers/onboarding-notifications/firestore-store.js
           node --check workers/onboarding-notifications/firestore-runtime-probe.js

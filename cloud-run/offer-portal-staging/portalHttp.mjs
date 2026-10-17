@@ -39,7 +39,7 @@ const ERRORS={
   document_changed:409,archive_changed:409,offer_changed:409,
   already_accepted:409
 };
-export function createOfferPortalHttp({portal,enabled=false,allowedOrigin}={}){
+export function createOfferPortalHttp({portal,enabled=false,allowedOrigin,pageHtml}={}){
   if(!portal || typeof portal.preview!=='function' || typeof portal.accept!=='function')
     throw Error('portal_missing');
   if(enabled===true){
@@ -53,6 +53,24 @@ export function createOfferPortalHttp({portal,enabled=false,allowedOrigin}={}){
     let path;
     try{path=new URL(req.url,'https://local.invalid').pathname;}
     catch{return send(res,404,{error:'not_found'});}
+    // Same-origin customer page; no cross-site API proxy or new service.
+    // The HTML is a static bundled file, never dynamically personalised here.
+    if(req.method==='GET' && path==='/offerte-annehmen/'){
+      if(typeof pageHtml!=='string' || !pageHtml.startsWith('<!DOCTYPE html>') ||
+         Buffer.byteLength(pageHtml)>200*1024)
+        return send(res,503,{error:'temporarily_unavailable'});
+      res.writeHead(200,{
+        'Content-Type':'text/html; charset=utf-8',
+        'Content-Length':String(Buffer.byteLength(pageHtml)),
+        'Cache-Control':'no-store','Pragma':'no-cache',
+        'Referrer-Policy':'no-referrer',
+        'X-Robots-Tag':'noindex, nofollow, noarchive',
+        'X-Content-Type-Options':'nosniff',
+        'X-Frame-Options':'DENY',
+        'Content-Security-Policy':"default-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'self'"
+      });
+      return res.end(pageHtml);
+    }
     if(req.method!=='POST' ||
        !['/api/offer/preview','/api/offer/accept','/api/offer/document'].includes(path))
       return send(res,404,{error:'not_found'});

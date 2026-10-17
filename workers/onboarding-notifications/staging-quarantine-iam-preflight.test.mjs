@@ -17,7 +17,7 @@ function run(overrides={},args=['--plan']) {
  const bin=path.join(root,'bin');mkdirSync(bin);
  const audit=path.join(root,'audit');
  writeFileSync(path.join(bin,'git'),"#!/usr/bin/env bash\ncase \"$1:$2\" in\n rev-parse:--show-toplevel) echo \"$FAKE_ROOT\" ;;\n rev-parse:HEAD) echo same ;;\n rev-parse:refs/remotes/origin/feature/onboarding-notification-outbox-20261016) echo same ;;\n branch:--show-current) echo feature/onboarding-notification-outbox-20261016 ;;\n status:--porcelain) echo \"$FAKE_DIRTY\" ;;\n *) exit 80 ;;\nesac\n");
- writeFileSync(path.join(bin,'gcloud'),"#!/usr/bin/env bash\necho \"$*\" >> \"$FAKE_AUDIT\"\ncase \"$1:$2:$3\" in\n auth:list:*) echo \"$FAKE_ACCOUNT\" ;;\n config:get-value:project) echo \"lszh-automations\" ;;\n firestore:databases:describe) cat \"$FAKE_DB\" ;;\n iam:service-accounts:describe)\n   [[ \"$FAKE_MISSING_SA\" == 1 ]] && exit 3\n   cat \"$FAKE_SA\" ;;\n iam:roles:describe)\n   [[ \"$FAKE_MISSING_ROLE\" == 1 ]] && exit 3\n   cat \"$FAKE_ROLE\" ;;\n projects:get-iam-policy:*) cat \"$FAKE_POLICY\" ;;\n *) echo \"unexpected cloud command\" >&2;exit 90 ;;\nesac\n");
+ writeFileSync(path.join(bin,'gcloud'),"#!/usr/bin/env bash\necho \"$*\" >> \"$FAKE_AUDIT\"\ncase \"$1:$2:$3\" in\n auth:list:*) echo \"$FAKE_ACCOUNT\" ;;\n config:get-value:project) echo \"lszh-automations\" ;;\n firestore:databases:describe) [[ \"$FAKE_MISSING_DB\" == 1 ]] && exit 3; cat \"$FAKE_DB\" ;;\n iam:service-accounts:describe)\n   [[ \"$FAKE_MISSING_SA\" == 1 ]] && exit 3\n   cat \"$FAKE_SA\" ;;\n iam:roles:describe)\n   [[ \"$FAKE_MISSING_ROLE\" == 1 ]] && exit 3\n   cat \"$FAKE_ROLE\" ;;\n projects:get-iam-policy:*) cat \"$FAKE_POLICY\" ;;\n *) echo \"unexpected cloud command\" >&2;exit 90 ;;\nesac\n");
  for(const c of ['git','gcloud'])chmodSync(path.join(bin,c),0o755);
  const data={
   db:{name:'projects/lszh-automations/databases/lszh-quarantine-staging',locationId:'europe-west6',type:'FIRESTORE_NATIVE'},
@@ -33,7 +33,7 @@ function run(overrides={},args=['--plan']) {
     FAKE_ROOT:process.cwd(),FAKE_AUDIT:audit,FAKE_ACCOUNT:overrides.account??'lars@lszh-automations.ch',
     FAKE_DB:path.join(root,'db.json'),FAKE_SA:path.join(root,'sa.json'),
     FAKE_ROLE:path.join(root,'role.json'),FAKE_POLICY:path.join(root,'policy.json'),
-    FAKE_DIRTY:overrides.dirty??'',FAKE_MISSING_SA:overrides.missingSA?'1':'0',
+    FAKE_DIRTY:overrides.dirty??'',FAKE_MISSING_DB:overrides.missingDB?'1':'0',FAKE_MISSING_SA:overrides.missingSA?'1':'0',
     FAKE_MISSING_ROLE:overrides.missingRole?'1':'0'}});
   return {...p,audit:existsSync(audit)?readFileSync(audit,'utf8'):''};
  }finally{rmSync(root,{recursive:true,force:true});}
@@ -85,4 +85,12 @@ test('script source contains no mutation commands, shell syntax remains valid',(
  const syntax=spawnSync('bash',['-n',SCRIPT],{encoding:'utf8'});
  assert.equal(syntax.status,0,syntax.stderr);
  assert.doesNotMatch(source,/gcloud (?:projects add-iam|iam roles create|iam service-accounts create|run jobs execute|auth print-access-token|firestore documents)/);
+});
+
+test('nonexistent separate quarantine database blocks before service-account or IAM reads',()=>{
+ const r=run({missingDB:true});
+ assert.equal(r.status,2,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/BLOCKED: Dedicated quarantine STAGING database absent or inaccessible/);
+ assert.match(r.audit,/firestore databases describe .*--database=lszh-quarantine-staging/);
+ assert.doesNotMatch(r.audit,/iam service-accounts describe|iam roles describe|projects get-iam-policy|add-iam|create|execute|firestore documents/);
 });

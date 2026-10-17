@@ -1,5 +1,38 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Cloud Build Image-Digest LIVE verifiziert; separater Cloud-Run-Job nur geplant
+
+Der Geschäftsführer führte `staging-airtable-image-verify.sh` nach erfolgreichem `git pull --ff-only` tatsächlich in Google Cloud Shell aus:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Deployable read-only image reference: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Cloud Run job lszh-airtable-read-probe-staging not yet created.
+READ ONLY: No Cloud Build, image upload, Job deployment/execution, PAT read or IAM changes.
+```
+**Jetzt unabhängig erwiesen:** Erfolgreicher Cloud Build `1b909760-deb7-49a9-bfe8-b4e20af68133`, identische SHA-256-Build-/Artifact-Registry-Digests, unveränderte gepinnte fünf Source-Dateien. Das **vollständig unveränderliche** Container-Image ist der oben genannte `@sha256:ce88...`-Bezug; nicht den veränderbaren Tag verwenden.
+
+**Neu im Review-Branch PR #8, noch nicht live ausgeführt:** `workers/onboarding-notifications/staging-airtable-job.sh`. Modus `--plan` ist rein **lesend**, `--create-only` würde separat **genau einen neuen** Cloud-Run-Job `lszh-airtable-read-probe-staging` in `europe-west6` erstellen und **nicht ausführen** (kein `--execute-now`, kein `gcloud run jobs execute`). Vorher überprüft das Skript:
+- korrektes Google-Geschäftskonto/Projekt, sauber synchronisierten Git-Branch und den unabhängigen Original-Build-/Registry-Digest-Validator;
+- exakt das vorher live nachgewiesene Image mit dem SHA-256-Digest, ohne erneuten Build;
+- dediziertes aktives Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`;
+- einziges STAGING-Secret `lszh-airtable-readonly-staging` mit einer user-managed Replikation **nur in Zürich**, genau einer `ENABLED`-Version `1` und dem exakten sekret-spezifischen `roles/secretmanager.secretAccessor`-Grant für das Dienstkonto;
+- **Abwesenheit** des Cloud-Run-Jobs, um eine bestehende Ressource keinesfalls zu überschreiben.
+
+Die **erst nach erneuter expliziter Nutzeraktion** mögliche `--create-only`-Aktion verwendet `gcloud run jobs create` mit dem **unveränderlichen Image-Digest**, `--tasks=1 --parallelism=1 --max-retries=0 --task-timeout=90s`, nur den drei statischen Env-Flags `LSZH_AIRTABLE_RUNTIME_PROBE_ONLY=true`, `LSZH_OUTBOX_STAGE_ENABLED=false`, `GOOGLE_CLOUD_PROJECT=lszh-automations` und **geheimem DATEI-MOUNT** `--set-secrets=/var/secrets/lszh/airtable-read-pat=lszh-airtable-readonly-staging:1`. Keine Token-Umgebungsvariable, kein Payload-Read, keine sonstigen Secrets. Nach Erstellung werden Cloud-Run-Job-Metadaten zur Bestätigung der Aufgabenanzahl, Wiederholungen, Umgebung, Dienstkonto, SHA-256-Image und Secret-v1-Mount geprüft und **null Ausführungen** verlangt. Die v1- und v2-Metadatenformate werden unterstützt. **STOP** bei Abweichungen; keine erneute Job-Anlage ohne Überprüfung. Offizielle Quellen: https://docs.cloud.google.com/run/docs/configuring/jobs/secrets und https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/create . Selbst eine erfolgreich erstellte Job-Ressource prüft noch **keinen** Airtable-Zugriff.
+
+**Wichtig:** Bestehender `lszh-onboarding-outbox-staging`-HTTP-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, Make, Gmail, Firestore, Airtable-Kundendaten unverändert. Die Live-Erstellung des Jobs und der später ausdrücklich separate einmalige Testlauf sind **noch nicht** geschehen.
+
+**Nächster Schritt, nur lesen:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job.sh
+```
+Erwartet neben der unabhängigen verifizierten DIGEST-Prüfung `PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.`, `PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.`, `PLAN ONLY: No Cloud Run Job created/executed and no secret payload read.`. Bei einem STOP **nichts erstellen/ausführen**; Log prüfen. Erst nach dokumentiertem PASS die bewusste separate Genehmigung über `--create-only` erwägen.
+
 ## 17.10.2026 – Build-SUCCESS dokumentiert; sicherer SHA-256-Image-Digest-Preflight (READ ONLY) vorbereitet
 
 Nach dem vom Geschäftsführer tatsächlich nachgewiesenen erfolgreichen Cloud Build `1b909760-deb7-49a9-bfe8-b4e20af68133` in `europe-west6` und Image-Tag `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67` wurde **ausschliesslich in GitHub PR #8** der unveränderliche Image-Nachweis vorbereitet: `workers/onboarding-notifications/staging-airtable-image-verify.sh`.

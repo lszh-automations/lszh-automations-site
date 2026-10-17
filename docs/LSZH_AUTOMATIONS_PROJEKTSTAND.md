@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – V2-Airtable-Probe: BuildKit-Inkompatibilität im Legacy-Cloud-Build behoben (nur Review-Branch)
+
+**Tatsächlicher Befund nach dem freigegebenen isolierten `--build-only`:** Cloud Build-ID `b9e6c4f5-43db-4561-89be-2e7480da5cea` in `europe-west6` endete mit Status `FAILURE`, beim Schritt 4 `COPY --chown=node:node --chmod=0644 ...`: `the --chmod option requires BuildKit`. Damit ist **nur der Docker-Build fehlgeschlagen**; die Dateirechtekorrektur wurde in Cloud Run nicht getestet. Die Python-SyntaxWarnings in `gcloud` sind nicht die Ursache. **Kein Image-Erfolg, keine Job-Neuanlage oder Ausführung; keine Airtable-Anfrage.**
+
+**Minimaler Code-Fix auf bestehendem unmerged Review-Branch:** Die drei `COPY`-Direktiven im `Dockerfile.airtable-read-probe-v2` verwenden nur legacy-kompatibles `--chown=node:node`. Ein ausdrückliches `RUN chmod 0755` macht die vier Container-Verzeichnisse traversierbar, und `RUN chmod 0644` macht genau die drei kopierten JS-Quellen lesbar; `USER node` bleibt erhalten. Alle fünf temporären Build-Quelldateien werden bereits vor Upload auf 0644 und die Unterverzeichnisse auf 0755 gesetzt. Der fünf-Dateien-Sicherheits-Pin lautet nun `60a87929601496b4b6192ec7945d80d6dc352b3e`, und ein **neues** Image-Tag `stg-permfix-60a879296014` wird verwendet, damit das fehlgeschlagene Tag nicht wiederverwendet wird. Der synthetische Test prüft nun die Abwesenheit von `COPY --chmod`, explizite Mode-Normalisierung und weiter `USER node`. **Ein korrigierter echter Build ist noch nicht gelaufen.**
+
+**Nächster Schritt – NUR LESEN:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build-v2.sh --plan
+```
+Nur nach erfolgreichem PASS/CI getrennt einen erneuten **Build only** in Erwägung ziehen; bei Erfolg Image-Digest überprüfen, dann einen neuen Staging-Job separat planen. Kein Retrying der alten Execution, kein Job-Runtime-Aufruf, kein IAM-Edit, kein Secret-Wert-Lesen, keine Kunden-/Airtable-Mutation, keine Outbox-Mail.
+
 ## 17.10.2026 – Ursache des EACCES-Containerstarts identifiziert; isolierter nicht-Root-Fix V2 nur vorbereitet
 
 **Weitere tatsächliche Cloud-Run-Diagnose des Geschäftsführers:**

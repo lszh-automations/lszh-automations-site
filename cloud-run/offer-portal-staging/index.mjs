@@ -49,7 +49,8 @@ function activeHandler(){
           // Deployment must never process a real customer offer.
           syntheticOnly:true
         }),
-        enabled:true,allowedOrigin:config.origin,pageHtml
+        enabled:true,acceptEnabled:false,
+        allowedOrigin:config.origin,pageHtml
       });
     })();
   }

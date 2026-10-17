@@ -105,7 +105,8 @@ const button=document.getElementById('submit');
 const review=document.getElementById('review');
 const completed=document.getElementById('completed');
 let current=null;
-history.replaceState(null,'',location.pathname);
+// Keep the public synthetic demo URL bookmarkable; redact real offer links.
+if(!demo) history.replaceState(null,'',location.pathname);
 function setMessage(value,kind){message.textContent=value;message.className='banner'+(kind?' '+kind:'');message.classList.remove('hidden');}
 function money(value){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(Number(value)||0);}
 function txt(id,value){document.getElementById(id).textContent=String(value??'');}

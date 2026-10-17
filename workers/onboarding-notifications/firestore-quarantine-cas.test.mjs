@@ -138,6 +138,8 @@ test('strict document decoding rejects mismatches, injected data, broken schemas
   {...base,name:base.name.replace(ID,OTHER)},
   {...base,updateTime:'2026-10-17T12:00:01.123456789Z'},
   {...base,updateTime:'not-a-time'},
+  {...base,updateTime:'2026-02-30T12:00:01.123456Z'},
+  {...base,updateTime:'2026-10-17T25:00:01.123456Z'},
   {...base,fields:{...base.fields,recipient:{stringValue:'private@example.invalid'}}},
   {...base,fields:{...base.fields,deliveryAllowed:{booleanValue:true}}},
   {...base,fields:{...base.fields,revision:{integerValue:'abc'}}},

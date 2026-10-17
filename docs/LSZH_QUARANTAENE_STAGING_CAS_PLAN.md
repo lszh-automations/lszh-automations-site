@@ -1,5 +1,17 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
+## Offline-CAS-Einmaldurchlauf: Create und Update vorbereitbar, reale Schreibprobe weiterhin gesperrt
+
+Nach der erfolgreichen **echten** 404-/403-Leseisolation und unabhängig verifizierten Entfernung des V2-Token-Creator-Grants ist auf `Vamos` **ausschliesslich Offline-Code** entstanden:
+- `workers/onboarding-notifications/quarantine-cas-offline-cycle.js` bindet die vorhandene Quarantäne-Planungs- und Firestore-CAS-Bibliothek zu einem reinen, nebenwirkungsfreien **GET → Prüfung → ein Commit-Entwurf oder No-op → unabhängiges Readback-Assessment** zusammen. Der Code sendet selbst keinerlei Requests.
+- `buildQuarantineRead(draftId)` liefert nur einen fixen `GET` auf die dedizierte Quarantäne-Datenbank und ihre allowlistete Collection; 64-stellige Hex-IDs sind erforderlich.
+- `prepareQuarantineCAS` unterscheidet striktes `404` (Create nur mit `exists:false`), striktes `200` (Update nur mit exakt gelesenem `updateTime`) und `NO_CHANGE`. Alles andere wird `BLOCKED_NO_RETRY`; kein freier Dokumentpfad, kein Send-/Approval-Feld und kein blindes Überschreiben.
+- `assessQuarantineCommit` wertet nur einen einzelnen bereits extern eingetroffenen Commit-Status/Receipt mit einem separaten Dokument-Readback aus. `READBACK_VERIFIED` erfordert HTTP 200, gültige einzelne `writeResults`, exakt gleichen Datensatz und denselben bis Mikrosekunden normalisierten `updateTime`-Wert. Fehler, Timeout, 409/412, falsche Version oder mangelhafter Beleg enden in `BLOCKED_NO_RETRY`, **ohne** erneute Schreibabsicht.
+- `firestore-quarantine-cas.js` verwirft jetzt auch kalendarisch ungültige `updateTime`-Werte, die JavaScript `Date.parse` sonst durch Normalisierung hätte akzeptieren können.
+- `quarantine-cas-offline-cycle.test.mjs` simuliert parallel konkurrierende Erst-Anlagen und Updates, No-op, kritische Fehler, fehlende Commit-Receipts, Abweichungen nach Readback und verbotene Quell-Felder. Synthetische CI zuerst 324/324 PASS; endgültige Commit-CI separat geprüft.
+
+**Entscheidende Grenze für den späteren Echtgeld-/Cloud-Test:** Die echte IAM-Rolle `lszhQuarantineCasStaging` hat ausschliesslich `datastore.entities.create/get/update`, **keine Delete-Berechtigung**. Eine echte synthetische Probe in dieser isolierten Datenbank würde ein Testdokument hinterlassen; weder automatische Löschung noch Rollenerweiterung sind genehmigt. Vor dem ersten realen Write braucht es eine eigene eng definierte Freigabe für genau eine synthetische Create-/Update-Serie mit bekannten Folgeschritten (inkl. Verbleib/Entfernung des Fixtures), eigene Token-/Impersonation-Freigabe, und ein fail-closed Runbook mit höchstens zwei konditionierten Commits und unabhängiger Nachkontrolle. Die früheren Einmal-Skripte für Datenbank, IAM oder lesende Isolation **nicht wiederholen**. Weiterhin keine Cloud Run Builds/Deployments oder produktive E-Mails.
+
 ## V2-Livetest erfolgreich und temporärer Grant entfernt – 17.10.2026
 
 **Live-Nachweis anhand der vom Geschäftsführer gelieferten Cloud-Shell-Ausgabe** für `staging-quarantine-timed-read-check-v2.sh --run-approved-once` nach ausdrücklich begrenzter Freigabe:

@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Alle 4 Geschäfts-Drive-Test-PDFs vom Betreiber gesperrt; vollständige Bytes nachgeprüft
+
+**Betreiber-Rückmeldung:** «alle sind geperrt, vamos»; betrifft ausschliesslich die 4 synthetischen PDFs im geschäftlichen Testordner `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT`.
+
+**Erneute LIVE-Verifikation über die geschäftliche Drive-Verbindung (`lars@lszh-automations.ch`):**
+- Alle 4 bekannten, ausschliesslich synthetischen Dateien erneut per Drive `files.get`-Connector kontrolliert: exakte Datei-IDs, unveränderte Namen, `application/pdf`, Eigentümer `lars@lszh-automations.ch`, unmittelbarer Elternordner exakt der nur für Tests eingerichtete Geschäfts-Unterordner; keine direkten öffentlichen `anyone`- oder Domain-Freigaben.
+- Alle 4 Binärdateien erneut vollständig aus dem **geschäftlichen** Drive heruntergeladen, lokal mit SHA-256 überprüft und **gegen den vorigen privaten Auditbericht bestanden (4/4 PASS)**. Stored hashes sind stabil: AVV Ja: `2dd5c537...` (1'802 B), AVV Nein: `1c337295...` (26'676 B), Projektbedingungen: `baec0946...` (26'544 B), AVV: `53f9deda...` (26'555 B). Drei PDFs enthalten weiterhin den bekannten C2PA-Nachtrag. **Keine** Original-Fixture-Hashes als aktuelle Cloud-Hashes verwenden.
+- **Einzige noch offene Archiv-Abnahme:** Unser Google-Drive-Connector zeigt das `contentRestrictions.readOnly`-Feld auch bei gezielter Anfrage nicht an. Die **Nutzerbestätigung** der Sperren ist notiert, aber wir geben vor einer echten Cloud-Archiv-PASS-Aussage keinen erfundenen unabhängigen Nachweis vor.
+
+**Neu:** `scripts/offer-business-drive-readonly-verify.py` führt mit Google-Cloud-Shell-Benutzer-OAuth (nur beim Betreiber, ohne Token-Ausgabe) für **genau vier vom Betreiber übergebene Datei-IDs** die offizielle Google-Drive-API-`files.get`-Prüfung inklusive `contentRestrictions.readOnly=true`, exaktem Parent, Business-Owner, MIME, Grösse, keiner öffentlichen direkten Permission und echtem `alt=media`-Download mit SHA-256 durch. Fail-closed, **keine** Google-Drive-/IAM-/Cloud-Run-/Firestore-Schreibaktion. Eingabedatei-IDs/Hashes bleiben ausschliesslich im privaten Chat-Audit/Cloud-Shell-Aufruf, nicht im öffentlichen GitHub. Mit `--self-test` reproduzierbare Offline-Negativtests in bestehender GitHub-CI. Falls Cloud-Shell-`gcloud` nicht über Drive-OAuth verfügt, ist dafür eine **Benutzerzustimmung** mittels `gcloud auth login lars@lszh-automations.ch --enable-gdrive-access` erforderlich (offizielle Google-Dokumentation); keine Service-Account-Keys.
+
+**Privater Auditbericht v2:** `LSZH_Business_Drive_Testpdf_Audit_20261018_v2.json`, 4 erneut PASS, `contentLockReportedByOperator=true`, aber bis zum API-Nachweis `readOnlyContentRestrictionsVerified=false` und `archiveVerified=false`. Weiterhin **kein temporärer Cloud-Run-Drive-Zugriff, kein Firestore-Cloud-Seed, keine Annahme/Email, kein Deployment oder Produktionsänderung**.
+
+---
+
+
 ## 18.10.2026 – Vier synthetische PDFs in geschäftliches Google Drive geladen; Archivfreigabe NO-GO bis Schreibsperre
 
 **Ausgeführt und live verifiziert:** Vier lokal hash-geprüfte, ausschliesslich synthetische PDFs (Offerte AVV Ja, Offerte AVV Nein, fiktive Projektbedingungen, fiktive AVV) wurden in den zuvor **leer geprüften, separaten** Geschäfts-Unterordner `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT` innerhalb des Geschäftsstagingarchivs hochgeladen. Ausschliesslich die ausdrücklich ausgewählte **LSZHA-Geschäftsverbindung** wurde verwendet; keine privaten Ordner oder Dateien. Alle vier zurückgegebenen Google-Drive-Datei-IDs wurden einzeln über `get_file_metadata` kontrolliert: Eigentümer `lars@lszh-automations.ch`, MIME `application/pdf`, exakt derselbe unmittelbare Elternordner, keine `anyone`-/Domain-Freigabe. Abschliessende `list_folder`-Prüfung bestätigt **genau diese vier Dateien**. Kein Upload in einen produktiven Unterordner.

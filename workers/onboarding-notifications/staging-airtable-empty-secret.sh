@@ -92,7 +92,7 @@ print("PASS: Exact STAGING secret identity and Zurich-only user-managed replicat
 '
 
 # Explicitly verify that NO secret version exists. Never read secret payloads.
-versions="$(gcloud secrets versions list --secret="$SECRET" --project="$PROJECT" --format='value(name)')" ||
+versions="$(gcloud secrets versions list "$SECRET" --project="$PROJECT" --format='value(name)')" ||
  { echo 'STOP: Could not verify secret versions. Do not add any payload.';exit 2; }
 if [[ -n "$versions" ]]; then
  echo 'STOP: Unexpected secret version detected. Investigate; do not modify.'

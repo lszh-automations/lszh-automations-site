@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Quarantäne-Verwaltung: revisionsgebundener reiner Offline-Plan mit Audit
+
+**Auftrag «Vamos»:** Nach dem isolierten read-only Modul `draft-review-gate.js` die Quarantäne-Verwaltung nachvollziehbar und gegen doppelte/parallele Bearbeitung gehärtet vorbereiten. **Umgesetzt nur auf dem Review-Branch:** `workers/onboarding-notifications/quarantine-plan.js` und `quarantine-plan.test.mjs`. Keine Datenbankanbindung, kein Cloud Run Deployment/Job-Start, kein Airtable- oder Firestore-Schreibzugriff, keine Make-Aktion, keine E-Mail.
+
+**Technik:** Reine Funktion `planQuarantine({draftId,review,previous,expectedRevision,reviewedAt})` nimmt ausschliesslich die opake, SHA-256-abgeleitete Draft-ID und den streng allowlist-geprüften Resultatcode aus `reviewDraft`; keine Kundendaten, Tokens, Empfänger oder Fehlermeldungen in der Ausgabe. Sie erzeugt einen unveränderlichen Fallplan mit `schemaVersion=1`, monotoner `revision`, eingefrorenem revisionsgebundenem Auditverlauf (`seq`, erlaubter `status`/`reason`, `resultingState`, ISO-UTC `reviewedAt`) und permanent `deliveryAllowed=false` sowie `requiresManualApproval=true`. Bereits gleiche Prüfung erzeugt `unchanged` (keine erneute Revision). Falsche Identität, unzulässiges Schema/Manipulation, veraltete Revisionsangabe, rückwärts laufende Zeit oder mehr als 32 Audit-Ereignisse führen zu einem Fail-Closed-Fehler (manuelle Klärung nötig).
+
+**Zustandslogik (kein Sender):**
+- `MANUAL_REVIEW_ONLY`: aktuelle vollständige Prüfung, aber **keine Versandberechtigung**.
+- `HOLD_REVALIDATION_UNAVAILABLE`: Verbindungs-/Validierungsproblem, dauerhaft gesperrt, auch nach später wieder erfolgreicher Prüfung bis zur bewussten manuellen Entscheidung.
+- `QUARANTINED_REQUIRES_MANUAL_RESOLUTION`: inkompletter, widersprüchlicher oder ungültiger Entwurf; nachträgliche erfolgreiche Prüfungen lösen Quarantäne **niemals** automatisch auf.
+Die Sicherheitsstufen steigen nur, automatische Downgrades/Aufhebungen sind ausdrücklich ausgeschlossen. Es gibt absichtlich **keine Funktion zum Entquarantänisieren oder Senden**.
+
+**Nur synthetisch getestete Konkurrenz:** Zwei parallele Vorschläge für dieselbe Ausgangsrevision werden im Test gegen einen lokalen simulierten **Compare-and-Swap-Store** gehalten. Nur einer kann committet werden; der zweite benötigt einen neuen Prüfstand. Das beweist die Zustandsplanung, **nicht** eine aktive Firestore-Transaktion oder Live-Sperre. Für künftige persistierte Quarantäne-Entscheide ist ein gesonderter, auf `updateTime`/Transaktion beruhender, autorisierter Firestore-Adapter mit Audit-Protokollierung zu entwerfen und separat freizugeben. Die bestehende Outbox und `DRAFT_NOT_SENT`-Originaldokumente wurden **nicht** verändert.
+
+**Nächster sinnvoller Schritt:** Ergebnis der GitHub-CI prüfen, dann nur den CAS-basierten Firestore-Persistenzvertrag mitsamt Offline-Tests (keine produktive Ausführung) entwerfen; tatsächliche Speicherung/Deployment und spätere atomare Versandfreigabe weiterhin gesonderte Genehmigungspunkte. Bereits erfolgreicher historischer V2-Airtable-Lesejob darf nicht erneut ausgeführt werden.
+
 ## 17.10.2026 – Bestehende Outbox-Drafts gegen Statusrückfälle abgesichert (Review-only)
 
 **Auftrag «Vamos»:** Nach erfolgreichem Cloud Run → Airtable Read-only-Einmaltest und synthetischer Härtung der Onboarding-Statusprüfung die Gefahr absichern, dass ein zuvor korrekt angelegter Outbox-Entwurf nachträglich ungeprüft als Versandfreigabe interpretiert wird. **Kein produktiver Versand und keinerlei Google-Cloud-Mutation freigegeben.**

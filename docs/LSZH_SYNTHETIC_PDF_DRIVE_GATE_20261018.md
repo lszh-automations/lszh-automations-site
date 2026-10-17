@@ -29,11 +29,20 @@ Aktueller Google-Drive-Leseversuch mit der verbundenen Nutzeridentität:
 
 ## Verbindliche Kontoentscheidung: Nur Geschäftskonto (18.10.2026)
 
-Für sämtliche LSZH-Automations-Dateien ist nur `lars@lszh-automations.ch` und ein dort nachweislich geschäftlich verwalteter Drive-Ordner zugelassen. Die aktuell verbundene ChatGPT-Drive-Sitzung gehört zum privaten Google-Konto und darf **nicht** zum Hochladen, Kopieren, Verschieben, Teilen oder Löschen von LSZH-Dokumenten verwendet werden. Ein separater privater Testordner ist keine Übergangslösung mehr. Siehe `docs/LSZH_DRIVE_BUSINESS_ONLY_POLICY_20261018.md`.
+Für sämtliche LSZH-Automations-Dateien ist nur `lars@lszh-automations.ch` und ein dort nachweislich geschäftlich verwalteter Drive-Ordner zugelassen. Die ursprünglich verwendete ChatGPT-Drive-Sitzung gehört zum privaten Google-Konto und bleibt für LSZH tabu. **Die zusätzliche Geschäftsverbindung ist jetzt geprüft und für zukünftige LSZH-Aktionen ausschliesslich zu verwenden.** Ein separater privater Testordner ist keine Übergangslösung mehr. Siehe `docs/LSZH_DRIVE_BUSINESS_ONLY_POLICY_20261018.md`.
+
+## Geschäftlicher Drive-Zugang jetzt nachweislich bestätigt
+
+- Das vom Betreiber neu verbundene Konto wurde über `get_profile` verifiziert: **`lars@lszh-automations.ch`** (verbindlicher LSZH-Arbeitszugang).
+- Die bisher im Portal angegebene Staging-Archivordner-ID gehört **tatsächlich zu diesem bestehenden Geschäftskonto**. Die frühere 404-Rückmeldung über den privaten Google-Drive-Zugang war keine fehlende Geschäftskonfiguration.
+- Ein **eigener leerer** Test-Unterordner `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT` wurde im vorhandenen Geschäftsstagingarchiv erstellt. Sein `parent`, die Eigentümerschaft und die Leere wurden über die Geschäftsverbindung einzeln geprüft; **keine PDF-Dateien hochgeladen**.
+- Der Temp-Browser-Dienst hat weiterhin **keine separat freigegebene Drive-Reader-Berechtigung**. Der bisherige Archiv-Reader und interne Portal-Dienst sind am Stagingarchiv bereits Reader; bestehende Rechte **nicht** unnötig ausweiten.
+- Kritisch: `archiveBundleVerifier.mjs` verlangt `info.parents.includes(archiveFolderId)` für den **direkten Parent**. Deshalb darf beim späteren Test nicht einfach die ursprüngliche Root-ID mit im **Unterordner** gespeicherten PDFs verwendet werden. Die temporäre, streng geprüfte Unterordner-ID muss separat gepinnt werden; kein globales Update an der bestehenden Staging-Config.
+- Für **alle weiteren Drive-Aktionen** ist die explizite Geschäftsverbindung zu verwenden; die private Standardverbindung bleibt tabu.
 
 ## Vor realem Drive-/Firestore-E2E benötigt
 
-1. **Isolierten Testordner bestimmen:** Ein *eigener leerer*, nur für diese vier synthetischen PDF-Fixtures bestimmter Unterordner, zwingend in der geschäftlich verwalteten Drive-Umgebung unter der nachgewiesenen Geschäftsidentität. Keine normalen Kunden-, RC1-Original- oder Privatdokumente hineinlegen. Standort, Eigentümer, Aufbewahrungsfrist und spätere Entfernung dokumentieren.
+1. **Erledigt:** Eigener leerer, ausschliesslich geschäftlich verwalteter synthetischer Test-Unterordner vorhanden. Keine Kunden-, RC1-Original- oder Privatdokumente hineingelangen lassen. Spätere Bereinigung ist weiter Pflicht.
 2. **Zugriff minimal freigeben:** Dem **separaten** temporären Cloud-Run-Dienstkonto ausschliesslich `reader` auf diesem exakten Testordner geben (und keinesfalls das bisherige private Archiv oder den Original-Reader öffnen). Google-Drive-Zugriff über die Serviceidentität muss separat nachgewiesen werden. Nicht davon ausgehen, dass eine Drive-API-Tokenfreigabe allein die Ordnerberechtigung schafft.
 3. **Synthetische PDFs einzeln hochladen:** Vier deterministische Dateien; für jede Datei muss die tatsächlich von Google vergebene ID, `mimeType=application/pdf`, `size`, SHA-256, unveränderter unmittelbarer Parent und aktive `contentRestrictions.readOnly=true` geprüft werden. Das Manifest aus dem Generator enthält vor diesem Vorgang ausdrücklich **keine** gültigen Datei-IDs. Der Archivprüfer darf keine ungeprüfte Behauptung übernehmen.
 4. **Separate nur-lesende Cloud-DB-Identität:** Falls Datenzugriff in Firestore erforderlich wird, nur den benannten Staging-DB-Namensraum verwenden, keinen allgemeinen Produktions- oder Standard-Datenbankzugriff. Für das Live-Portal bleibt `syntheticOnly=true`, `acceptEnabled=false`, `downstream.*=disabled`. Der aktuelle Importer ist absichtlich **nur im lokalen Emulator schreibfähig**; nicht freischalten oder mit serviceweite Schreibrolle umgehen.

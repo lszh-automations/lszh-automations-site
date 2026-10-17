@@ -157,3 +157,28 @@ test('matching blank Make account/invitation statuses do not prove readiness',as
   assert.equal(x.f.posts,0);onlyGetAirtable(x.f);
  }
 });
+
+test('a completed draft remains disabled if onboarding later regresses or becomes ambiguous',async()=>{
+ const x=fixture();x.f.stage='completed';
+ const initial=await x.scan();
+ assert.equal(initial.created,1);
+ assert.equal(x.f.docs.size,1);
+ const beforePosts=x.f.posts;
+ x.f.stage='partial';
+ assert.equal((await x.scan()).processing,1);
+ assert.equal(x.f.posts,beforePosts);
+ x.f.stage='completed';x.f.duplicate=true;
+ assert.equal((await x.scan()).requiresReview,1);
+ assert.equal(x.f.posts,beforePosts);
+ const [saved]=x.f.docs.values();
+ assert.equal(saved.fields.state.stringValue,'DRAFT_NOT_SENT');
+ assert.equal(saved.fields.deliveryEnabled.booleanValue,false);
+ assert.equal(saved.fields.emailSent.booleanValue,false);
+ // The existing draft is an audit record, not proof that delivery is allowed.
+ x.f.duplicate=false;
+ const again=await x.scan();
+ assert.equal(again.alreadyExisting,1);
+ assert.equal(again.created,0);
+ assert.equal(x.f.docs.size,1);
+ onlyGetAirtable(x.f);
+});

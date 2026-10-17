@@ -33,6 +33,8 @@ on:
       - 'scripts/offer-browser-static-demo-release.sh'
       - 'scripts/offer-browser-static-demo-smoke.sh'
       - 'test/temporaryBrowserDemo.test.js'
+      - 'scripts/offerSyntheticPdfFixtures.mjs'
+      - 'test/offerSyntheticPdfFixtures.test.js'
       - 'test/offerBrowserCloudScript.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
@@ -77,6 +79,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/index.mjs
           node --check cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs
           node --check test/temporaryBrowserDemo.test.js
+          node --check scripts/offerSyntheticPdfFixtures.mjs
+          node --check test/offerSyntheticPdfFixtures.test.js
           node --check cloud-run/offer-portal-preflight/index.js
           node --check cloud-run/offer-portal-transaction-smoke/index.js
           node --check cloud-run/offer-portal-transaction-smoke/transactionTest.mjs

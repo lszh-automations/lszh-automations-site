@@ -1,5 +1,11 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – STAGING-HMAC-Secret und eng begrenzte Accessors tatsächlich erstellt
+
+Die Cloud Shell des Geschäftsführers bestätigte `--create-secret` als **PASS**: `lszh-stg-quarantine-handoff-hmac` neu in Secret Manager erstellt, Version **1** angelegt, Secret-IAM-Policy zweimal aktualisiert, genau die vorgesehenen Source- und Destination-Servicekonten erhielten Zugriff auf **dieses einzelne Secret**. Der CSPRNG-HMAC-Schlüssel liegt nicht in Chat, GitHub oder Logs. **Nicht** nochmals `--create-secret` ausführen (Skript lehnt bereits existierendes Secret ab).
+
+**Nächster getrennter Schritt:** Im Checkout nach `git pull --ff-only` `bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --enable-review-only`. Das Kommando überprüft erneut direkte private Invoker-IAM-Bindung und Secret-Version, setzt nur den neuen Receiver auf `REVIEW_ONLY` mit einer Secret-Env-Referenz. Dieser Schritt **erstellt eine neue Cloud-Run-Revision** und erlaubt dem Empfänger bei später eingehender HMAC-validierter, Cloud-IAM-authentifizierter synthetischer Anforderung einen atomaren Firestore-Replay-Claim; **der synthetische Source-Job wird damit nicht gestartet**. Nach dem Befehl Revision, Secret-Bindung und weiterhin private IAM-Prüfung separat bestätigen; bei Fehler keine pauschale Wiederholung. Kein Kundenmail- oder Vertragsabschluss-Transport vorhanden.
+
 ## 17.10.2026 – Read-only-Postflight und direkte Invoker-IAM-Bindung bestätigt
 
 **Vom Geschäftsführer tatsächlich ausgeführt:** `--verify-disabled` hat die reale Image-Version, alle deaktivierten Receiver-Gates, dediziertes Ziel-Dienstkonto und fehlende direkte öffentliche IAM-Invoker-Bindungen mit zwei PASS-Meldungen bestätigt. Anschliessend `--bind-invoker`: Google Cloud Run meldete `Updated IAM policy for service [lszh-quarantine-handoff-staging]`; der nachgelagerte Check meldete `PASS: Only source SA has direct service-level run.invoker grant.`. Das berechtigt ausschliesslich das separate Outbox-Staging-Servicekonto direkt am Receiver, **nicht** die Öffentlichkeit. Keine andere Service-IAM-Bindung wurde durch diesen Aufruf erzeugt. Geerbte/org-seitige Berechtigungen wurden nicht nachgewiesen.

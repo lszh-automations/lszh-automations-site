@@ -71,7 +71,7 @@ function send(res, code, body, type='application/json; charset=utf-8') {
   const headers={
     'Content-Type': type,
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': res.getHeader('Referrer-Policy') || 'strict-origin-when-cross-origin',
     'X-Frame-Options': 'DENY',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
   };

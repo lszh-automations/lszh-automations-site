@@ -9,16 +9,31 @@ import {createOfferPortalHttp} from './portalHttp.mjs';
 import {tempBrowserDemoConfig,createTemporaryBrowserDemoHttp,
   verifyTemporaryBrowserIdentity} from './temporaryBrowserDemo.mjs';
 import {verifyArchiveBundle,readVerifiedArchivePdf} from '../archive-reader-staging/archiveBundleVerifier.mjs';
+import {temporaryDriveProbeConfig,verifySyntheticDriveReadOnly} from './temporaryDriveProbe.mjs';
 
 // The full offer API remains NOT DEPLOYED. Only the separately authorized
-// temporary STATIC browser demonstration may be deployed; it must not access
-// Drive, Firestore, personal offer data, or any acceptance API.
+// temporary STATIC browser demonstration may be deployed; a separately gated
+// Drive probe may only READ four synthetic PDFs; no Firestore or offer APIs.
 // Service MUST have its own runtime identity. Never reuse archive-reader
 // (that principal has no Firestore write access). Never use JSON keys.
 const config=stagingConfig(process.env);
 const tempConfig=tempBrowserDemoConfig(process.env);
+const driveCheck=temporaryDriveProbeConfig(process.env,tempConfig);
+let driveCheckPromise;
+const readOnlyDriveCheck=driveCheck.enabled?()=>{
+  driveCheckPromise ??=(async()=>{
+    // Uses the Cloud Run runtime service identity only; NEVER a JSON key.
+    const auth=new GoogleAuth({scopes:['https://www.googleapis.com/auth/drive.readonly']});
+    const token=await auth.getAccessToken();
+    if(!token)throw Error('temp_drive_identity_unavailable');
+    return verifySyntheticDriveReadOnly({
+      folder:driveCheck.folder,hashes:driveCheck.hashes,accessToken:token
+    });
+  })();
+  return driveCheckPromise;
+}:undefined;
 const tempDemo=tempConfig.enabled?createTemporaryBrowserDemoHttp({
-  enabled:true,
+  enabled:true,driveProbe:readOnlyDriveCheck,
   pageHtml:readFileSync(new URL('./offerte-annehmen.html',import.meta.url),'utf8')
 }):null;
 let tempIdentityPromise;

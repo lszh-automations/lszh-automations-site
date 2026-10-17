@@ -53,7 +53,8 @@ async function assertDenied(origin,route,options={}) {
   redirect:'manual',signal:AbortSignal.timeout(4000),...options
  });
  assert.equal(response.status,503,(options.method||'GET')+' '+route);
- assert.equal(await response.text(),PRIVATE_BODY);
+ if(options.method==='HEAD') assert.equal(await response.text(),'');
+ else assert.equal(await response.text(),PRIVATE_BODY);
  assert.equal(response.headers.get('cache-control'),'no-store');
  assert.match(response.headers.get('x-robots-tag')||'',/noindex/);
  assert.equal(response.headers.get('set-cookie'),null);

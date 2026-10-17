@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Verifizierter V2-Image-Digest; getrennter Staging-Job vorbereitet, NICHT erstellt
+
+**Realer Cloud-Shell-Verifikationsbeleg:** Der Nutzer führte den read-only `staging-airtable-image-verify-v2.sh` nach Fast-Forward bis `be0d6da` aus. Alle PASS: Cloud Build `ebcde82f-f39b-42cf-a569-dd0c96180006` war erfolgreich und exakt erwartet; Artifact-Registry-Digest stimmt mit dem Buildresultat überein; reviewed V2 fünf Quellen unverändert; ursprünglicher fehlgeschlagener Job hat weiterhin genau eine historische Execution; neuer Staging-Fix-Job **existiert nicht**. **Immutes Image:** `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`.
+
+**Nur auf unmerged Review-Branch vorbereitet:** `workers/onboarding-notifications/staging-airtable-job-v2.sh` ist ein isolierter Plan/Create-only-Ableger der geprüften historischen Vorlage. Default `--plan` liest nur Metadaten (inklusive erneuter V2-Image-Digest-Verifikation, Firmenidentität, Service Account, genau einer Secret-Version 1, spezifischer IAM-Rechte und Job-Nichtexistenz). Ein bewusst getrennter Modus `--create-only` würde ausschliesslich den **neuen** `lszh-airtable-read-probe-fix-staging` mit gepinntem Image-Digest, nicht-root Runtime, einem Task, null Retries, Zurich Secret-v1-Dateimount und deaktivierter Outbox **anlegen, niemals ausführen**; anschliessend Job-Konfiguration und null Ausführungen lesen. Kein alter Job-Neustart, keine Make-/Airtable-/Firestore-Kundenmutation, keine Mails, keine IAM- oder Secret-Zugriffsänderung. Synthetische positive und Fail-Closed-Tests und Workflow-Syntaxkontrolle hinzugefügt. **Eine echte Neuanlage ist noch nicht freigegeben oder erfolgt.**
+
+**Nächster Schritt nur Plan, kein Deployment:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-v2.sh --plan
+```
+Nur wenn PASS und CI erfolgreich, vor `--create-only` gesonderte ausdrückliche Zustimmung einholen. Später auch vor echter `gcloud run jobs execute` getrennte Freigabe. Airtable-GET bleibt unbewiesen.
+
 ## 17.10.2026 – Korrigiertes V2-Airtable-Staging-Image erfolgreich gebaut; Digest-Verifikation vorbereitet
 
 **Reales Cloud-Shell-Ergebnis nach explizitem `--plan && --build-only`:** Plan PASS; exakt ein separater Build `ebcde82f-f39b-42cf-a569-dd0c96180006` in `europe-west6` mit `STATUS: SUCCESS` (Dauer 14 s). Image-Tag: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-permfix-60a879296014`. Ausgabe bestätigte: `PASS: Permission-fixed STAGING Airtable-read v2 image build returned successfully.` Originaljob weiterhin mit exakt einer historischen fehlgeschlagenen Execution, neuer V2-Job NICHT angelegt. **Airtable-Live-GET weiterhin nicht bewiesen.**

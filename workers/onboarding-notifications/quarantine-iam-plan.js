@@ -2,14 +2,14 @@
 // Strictly offline review of *proposed* IAM metadata for the separate quarantine
 // STAGING identity. Never grants IAM, obtains tokens, or executes Firestore.
 const PROJECT='lszh-automations';
-const DATABASE='lszh-offers-staging';
+const DATABASE='lszh-quarantine-staging';
 const REGION='europe-west6';
 const SA='lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com';
 const MEMBER='serviceAccount:'+SA;
 const ROLE='projects/lszh-automations/roles/lszhQuarantineCasStaging';
 const CONDITION=Object.freeze({
  title:'LSZHQuarantineCASStaging',
- expression:'resource.name=="projects/lszh-automations/databases/lszh-offers-staging"'
+ expression:'resource.name=="projects/lszh-automations/databases/lszh-quarantine-staging"'
 });
 // Firestore Native REST: single-document GET + commit(create/update).
 // No list/delete/exports, no database administration and no mail permissions.

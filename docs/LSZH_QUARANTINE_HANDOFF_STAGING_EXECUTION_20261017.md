@@ -1,5 +1,20 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Vier vorhandene Jobs unverändert; neue Source-SA-Secret-Probe im Review-Branch
+
+Die tatsächliche Cloud-Shell-Inventarliste enthält vier bestehende Jobs: `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging`, `lszh-firestore-write-probe-staging`. Ein Ausführen/Überschreiben wäre unnötig und könnte frühere Tests verändern.
+
+Der neue isolierte `staging-outbox-secret-access-job.sh` prüft default read-only die Firmenidentität, unveränderten Branch, SHA-256-gepinnten bestehenden geprüften Container, die neue Outbox-Staging-SA, vorhandenes Version-1-Airtable-Secret, exakt die zwei bekannten direkten Accessors und die Abwesenheit des neuen Jobnamens. `--create-only` erstellt bei ausdrücklichem gesonderten Cloud-Shell-Ausführungsentscheid den Job `lszh-outbox-secret-access-probe-stg` mit `/bin/sh`-Entrypoint-Override, Shell-Kommando **nur nichtleere Secret-Env-Präsenz**, 1 Task, null Retries, Secret-Version 1, keinen Mail-/Airtable-/Firestore-/Handoff-Aufruf und **führt ihn nicht aus**. Die Cloud-Run-Spezifikation wird nach Erstellung rückgelesen; ein unbekannter Zustand blockiert jede Ausführung. Auch nach Job-Anlage ist ein separat kontrollierter Einmallauf erforderlich. Bestehende Jobs und Empfänger bleiben unverändert.
+
+**Zuerst in Cloud Shell:**
+```bash
+cd "$HOME/lszh-handoff-staging"
+git pull --ff-only
+bash workers/onboarding-notifications/staging-outbox-secret-access-job.sh --plan
+```
+
+Erst wenn dessen PASS-Ausgabe vorliegt, `--create-only` separat erwägen. Der IAM Troubleshooter bleibt wegen fehlender Org-Deny-Leserechte auf `UNKNOWN_INFO`; kein zusätzlicher Grant oder Adminrollen erforderlich.
+
 ## 17.10.2026 – Direktes Airtable-Secret-IAM der Outbox-Quelle aktualisiert
 
 Vom Geschäftsführer in Cloud Shell bestätigter `roles/secretmanager.secretAccessor`-Grant am einzelnen Staging-Airtable-Secret: die Policy enthält nun den ursprünglichen Airtable-Testdienst und das Outbox-Staging-Dienstkonto. Der Secret-Wert wurde nicht gelesen, und es fand kein Source-Job-Lauf statt. Nächste rein lesende Kontrolle: IAM Policy Troubleshooter für das Quell-Dienstkonto, die konkrete Secret-Version 1 und `secretmanager.versions.access`. Bei anderem Ergebnis als `CAN_ACCESS` keine Testausführung.

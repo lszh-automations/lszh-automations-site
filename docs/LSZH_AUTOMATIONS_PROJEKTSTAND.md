@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Erster V2-Airtable-GET: einmalige Ausführung nur vorbereitet, noch NICHT autorisiert
+
+**Getrenntes Skript im nur unmerged Review-Branch:** `workers/onboarding-notifications/staging-airtable-job-run-v2.sh` (abgeleitet von altem One-Shot-Runner, dessen ursprüngliche gescheiterte Jobversion ausdrücklich unangetastet bleibt). Standardmodus `--plan` liest allein Build-/Image-Metadaten, gepinnte fünf Quell-Dateien, aktives Cloud-Konto, Service Account, Zürich-Secret-Version-1-IAM, die originale einzelne fehlgeschlagene Execution sowie **exakte V2-Job-Konfiguration und V2-Execution-Zahl 0**. Bei vorhandener Execution, falschem Digest/SA/Umgebungs-Flag, unerwarteter Job-Konfiguration oder geändertem Original wird **kein Lauf ausgelöst**. Nur der explizite Modus `--execute-once` würde nach doppelter Prüfung auf null V2-Executions den bestehenden `lszh-airtable-read-probe-fix-staging` genau einmal mit `--wait` starten, ohne Build/Update/Deploy, keine automatische oder blinde Wiederholung. Die Runtime ist auf **genau einen synthetischen Airtable-REST-GET** gegen abwesenden Projektcode begrenzt; Outbox bleibt deaktiviert. Mock-Tests für Plan, exakt einen Run, historischen Originalzustand, v1/v2-Cloud-Run-Metadaten, fehlerhafte Secret-/IAM-/Image-/Environment-Konfiguration und keine Wiederholung ergänzt; Workflow-Syntaxprüfung hinzugefügt. **Bisher kein V2-Job ausgeführt.**
+
+**Jetzt einziger zulässiger Cloud-Shell-Schritt ist READ ONLY:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --plan
+```
+**Nicht ohne gesonderte ausdrückliche Genehmigung starten:** `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once`. Die frühere Zustimmung galt nur der Job-Erstellung. Erst nach genehmigter einmaliger Ausführung und geprüften, datensparsam klassifizierten Logs lässt sich ein erfolgreicher Cloud Run → Airtable GET nachweisen.
+
 ## 17.10.2026 – V2 Cloud Run Airtable-Lesejob angelegt, null Ausführungen (real bestätigt)
 
 **Tatsächliche Google-Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` bis Commit `65e0809` bestanden sowohl `staging-airtable-job-v2.sh --plan` als auch dessen geschützte Prüfungen vor `--create-only`. `gcloud run jobs create` meldete `Job [lszh-airtable-read-probe-fix-staging] has successfully been created.` Anschliessend meldete das Skript:

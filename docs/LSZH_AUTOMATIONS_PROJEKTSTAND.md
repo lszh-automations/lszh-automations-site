@@ -1,5 +1,27 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – V2-Live-Lesetest erfolgreich: Quarantäne 404, Offerten 403, temporäres IAM vollständig entfernt
+
+**Tatsächlich vom Geschäftsführer in der LSZH-Google-Cloud-Shell ausgeführt:** Nach `git pull --ff-only` auf dem Review-Commit `0f1d1f5` startete er das zuvor **ausdrücklich separat genehmigte** `staging-quarantine-timed-read-check-v2.sh --run-approved-once`. Die wortwörtlich geteilten entscheidenden Kontrollmeldungen:
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; attempting one token request.
+PASS: Quarantine DB authenticated GET returned 404 for random missing document.
+PASS: Offers DB denied authenticated GET with HTTP 403.
+DONE: Two REST GET requests, no Firestore writes.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Nachgewiesene reale Wirkung:** Die kurzlebige Impersonierung gelang nach der 600-Sekunden-Wartezeit. Mit demselben Service-Account-Token wurde genau **ein GET** auf eine zufällige, nicht existente synthetische Dokument-ID in `lszh-quarantine-staging` mit **HTTP 404** beantwortet (Lesezugriff auf Quarantänepfad möglich) und genau **ein GET** auf denselben Pfad in `lszh-offers-staging` mit **HTTP 403** verweigert. Das ist ein konkreter positiver/negativer lesender Isolationstest der separaten Datenbank, **keine allgemeine beweiskräftige IAM-Vollprüfung**. Die vorher konfigurierte Custom Role und die Datenbankkondition blieben laut Preflight unverändert. Der temporäre `roles/iam.serviceAccountTokenCreator`-Grant war auf den dedizierten Service-Account und eine 30-Minuten-`request.time`-Condition beschränkt; er wurde **sofort nach den beiden GETs entfernt**. Ein **unabhängiger IAM-Policy-Readback bestätigte die vollständige Entfernung**. Kein GET-Antwortinhalt ausgegeben, keine produktiven Dokumente verwendet, keine Firestore-Dokumentmutation.
+
+**Verbindliche Betriebsgrenze:** Sowohl V1 als auch die jetzt erfolgreich verbrauchte V2 sind **Einmal-Läufe und dürfen NICHT erneut gestartet werden**. Die lokale `.once`-Markierung für V2 bleibt. Die früheren Datenbank-/SA-/Custom-Role-/IAM-Provisionierungsskripte ebenfalls nicht erneut ausführen. Es wurde **kein produktiver Dienst** aktiviert und **kein CAS-Write** an Firestore ausprobiert. Nächster sachlicher Schritt: den bestehenden Offline-CAS-Transaktionsentwurf gegen die funktionierende DB-Isolation überprüfen, insbesondere effektiven CREATE/UPDATE-Write und atomare Revision; erst danach eigenständige ausdrückliche Genehmigung für **einen** synthetischen Firestore-Schreibtest einholen. Keine Berechtigungs-/Token-Creator-Ausnahme für künftige Tests unbesehen wiederverwenden. Effektive vererbte IAM-Rollen und jede denkbare Authentifizierungsroute sind damit nicht umfassend ausgeschlossen.
+
 ## 17.10.2026 – Ausdrückliche zweite Freigabe für einmaligen V2-Impersonierungs-Lesetest
 
 **Freigabe des Geschäftsführers (nach erfolgreichem echtem V2-`--plan` in Cloud Shell):** Auf den konkreten, separat freigabepflichtigen Vorschlag für **genau einen weiteren** Token-Creator-Grant ausschliesslich auf dem existierenden Quarantäne-Service-Account, eine auf **30 Minuten** befristete IAM-Bedingung, anschliessend **600 Sekunden Wartezeit**, einen impersonierten kurzlebigen Token und **höchstens zwei HTTP-GETs** (Quarantäne-DB 404, bisherige Offerten-DB 403) mit unmittelbarer IAM-Entfernung und unabhängiger Nachkontrolle, antwortete er `du hast meine genehmigung`. Die Live-`--plan`-Ausgabe unmittelbar davor bestätigte die dedizierte Quarantäne-Identität, exakte dreirechtige CAS-Custom-Role und DB-konditionierte Bindung, Abwesenheit einer bestehenden direkten Token-Creator-Bindung für den Geschäftsnutzer und **null Mutation**.

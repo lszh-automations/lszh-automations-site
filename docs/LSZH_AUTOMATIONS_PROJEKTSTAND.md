@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Isolierter Cloud-Run-Airtable-Lese-Container: Build-Gate fertig, KEIN Build durchgeführt
+
+Voraussetzungen **durch echte Geschäftskonto-Cloud-Shell bestätigt**: dediziertes Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` angelegt, `lszh-airtable-readonly-staging` mit genau einer Zürcher User-managed Replik `europe-west6`, Secret-Version `1` `ENABLED` nach einmaligem verdeckten Token-Upload. Der einzelne IAM-Grant `roles/secretmanager.secretAccessor` wurde tatsächlich **nur auf diesem einen Secret** für dieses SA eingeräumt und per `get-iam-policy` bestätigt. **Nicht durchgeführt:** Secret-Payload-Read, Cloud Build, Cloud Run Job/Execute oder Make-/Firestore-/E-Mail-Aktion.
+
+**Neu im noch offenen GitHub PR #8:** `workers/onboarding-notifications/cloudbuild.airtable-read-probe.yaml` und `workers/onboarding-notifications/staging-airtable-image-build.sh` mit separaten Default `--plan` und explizitem `--build-only`. Es wird ausschliesslich ein privates, vom bestehenden Outbox-Service getrenntes Bild erstellt, **kein** Cloud-Run-Job bereitgestellt. Der Build-Kontext besteht aus exakt **5 allowgelisteten Source-Dateien**: `onboarding/confirmation.js`, `staging-airtable-rest-read.js`, `airtable-runtime-probe.js`, `Dockerfile.airtable-read-probe`, `cloudbuild.airtable-read-probe.yaml`; keine anderen Dateien, Zugangsdaten, Tests, Konfigurationsdateien, Website, CRM-Records oder .git-Ordner. Quelle auf unabhängig geprüften Commit `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnt. Bei geänderten Quellen oder unsynchronem/dirty Checkout STOP.
+
+Preflight **nur GCP-Metadaten lesen**: Business-Konto, LSZH-Projekt, dediziertes SA, Artifact Registry `cloud-run-source-deploy` in Zürich, korrektes Secret mit benannter/nummerischer Projektkennung und genau einer Zürcher Replik, genau eine `ENABLED`-Version 1, dedizierte und nicht öffentliche Secret-IAM-Bindung, **Abwesenheit des separaten Jobs** `lszh-airtable-read-probe-staging`. Der Payload des PAT wird dabei **nie** ausgelesen. Mit `--build-only` würde lediglich ein image unter `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67` mittels `gcloud builds submit` in Google Artifact Registry erzeugt, ohne Cloud-Run-Job-/Service-Änderung. Dieser Upload kann geringfügige Cloud-Build- und Registry-Kosten auslösen und braucht eine **separate ausdrückliche Nutzeraktion**.
+
+**Offline-CI:** `staging-airtable-image-build.test.mjs` mockt 7 Szenarien für Plan-only, isolierte Build-Ausführung ohne Deploy, falsche GCP-/Git-Identität, unveränderliche Build-Quellen, fehlende PAT-Version/Secret-Berechtigung, existierenden Job und unzulässige Befehle. Ein erfolgreicher Build ist kein echter Cloud-Run-Test. GitHub-Action-Job `39013691976` meldete **145/145 Node-Tests und 8/8 Python-IAM-Tests**, kein GCP-Build in CI.
+
+**Nächster risikofreier User-Befehl, nur Inventar/Preflight:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build.sh
+```
+Erwartetes Ende: `PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.`, `PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.`, `PLAN ONLY: no Cloud Build submission, image push, Job creation/execution or IAM changes.`. Bei STOP **keinen** Build/Deploy starten. Erst nach Ausgabe getrennt `--build-only` prüfen. Bestehender privater HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, E-Mails und Make-Szenarien weiterhin deaktiviert.
+
 ## BESTÄTIGT 17.10.2026 – Secret-spezifisches IAM-Lese-Recht tatsächlich vergeben
 
 Der Geschäftsführer führte in Cloud Shell nach einem `git pull --ff-only` das explizite `staging-airtable-secret-iam.sh --grant-secret-only` aus. **Echte Google-Cloud-Rückmeldung:**

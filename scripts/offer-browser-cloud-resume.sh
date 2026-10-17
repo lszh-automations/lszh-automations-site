@@ -105,7 +105,7 @@ policy=json.load(sys.stdin)
 bindings=policy.get("bindings",[])
 assert not any(x in ("allUsers","allAuthenticatedUsers") for b in bindings for x in b.get("members",[]))
 assert any(b.get("role")=="roles/run.invoker" and "user:lars@lszh-automations.ch" in b.get("members",[]) for b in bindings)
-print("PASS: only named test user explicitly authorised; no direct public Invoker.")
+print("PASS: named test user has direct Invoker role; no direct public Invoker binding.")
 ' || fatal "Direct Invoker policy unsafe, investigate."
 
 python3 "$ROOT/scripts/offer-cloud-readiness-readonly.py" ||

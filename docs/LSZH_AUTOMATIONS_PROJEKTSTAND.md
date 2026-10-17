@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+
+## 18.10.2026 – Synthetisches Geschäfts-Drive-Archiv: vier Sperr-/Hash-Prüfungen unabhängig PASS
+
+**Echter Cloud-Shell-Prüfbericht des Betreibers:** `scripts/offer-business-drive-readonly-verify.py` wurde unter der Geschäftsidentität `lars@lszh-automations.ch` ausgeführt und meldet **genau vier PASS** (AVV-Ja-Offerte, AVV-Nein-Offerte, Projektbedingungen, AVV) sowie abschliessend `SUCCESS: all four business-Drive PDFs locked and byte-verified.`
+
+**Jede Datei live über Google Drive v3 bestätigt:** `contentRestrictions.readOnly=true`, Eigentümer `lars@lszh-automations.ch`, unmittelbarer Parent = ausschliesslich geschäftlicher isolierter synthetischer PDF-Test-Unterordner, erwartete Grösse und bytegenauer SHA-256 der **vollständigen bei Drive liegenden PDF-Datei** (einschliesslich C2PA-Anhang bei drei Dateien); keine direkte öffentliche Dateiberechtigung im Prüfer. **Archiv-Sicherheitsprüfung der vier synthetischen PDFs PASS**. Die Drive-Inhaltssperre ist reversibel und kein dauerhaftes WORM.
+
+**Nächster Meilenstein:** Nur den separaten geschäftlichen Test-Unterordner (nicht den Root-Archivordner) dem *temporären* Cloud-Run-Dienstkonto `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com` mit Google-Drive-`reader` freigeben und die tatsächlich erhaltene Berechtigung nachprüfen. Dies gewährt **keine** Cloud-IAM-/Firestore-Rollen und schaltet **keine** API ein. Die statische Browser-Demo `lszh-offer-browser-staging-00002-fkq` bleibt in ihrem geschützten Demo-only-Modus, alle PDF-/Annahme-POSTs weiterhin HTTP 503. Der interne Originaldienst `lszh-offer-portal-staging`, dessen IAM/Ingress/Traffic, produktive Daten und E-Mail/Vertragsabläufe bleiben unverändert.
+
+**Abgrenzung:** Die vier Unterlagen sind archivseitig freigegeben, jedoch ist ein **Cloud-Run-Dienstkonto→Drive-End-to-End-Test noch nicht durchgeführt**. Vor diesem Test ist die Reader-Rolle und ein eigener isolierter Lesetest nachzuweisen, ohne die rechtliche Annahme oder produktive Datenverarbeitung zu öffnen. Detail-Gate: `docs/LSZH_SYNTHETIC_PDF_DRIVE_GATE_20261018.md`.
+
+---
+
+
 ## 18.10.2026 – Alle 4 Geschäfts-Drive-Test-PDFs vom Betreiber gesperrt; vollständige Bytes nachgeprüft
 
 **Betreiber-Rückmeldung:** «alle sind geperrt, vamos»; betrifft ausschliesslich die 4 synthetischen PDFs im geschäftlichen Testordner `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT`.

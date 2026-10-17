@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einmalige sichere Staging-PAT-Version vorbereitet, noch NICHT übertragen
+
+**Live-STATUS:** Das Secret `lszh-airtable-readonly-staging` existiert; sein korrekter GCP-Projektbezug, `replication.userManaged` mit exakt einer Replikation `europe-west6` und **0 Secret-Versionen** wurden durch die vom Geschäftsführer ausgeführte korrigierte reine Lese-Diagnose vollständig bestätigt. Keine IAM-Rolle auf dem Secret, keine Airtable-PAT-Daten und kein Cloud-Run-Job eingerichtet. Das vorangegangene `staging-airtable-empty-secret.sh --create-empty` **nicht** wiederholen.
+
+**In PR #8 erstellt:** `workers/onboarding-notifications/staging-airtable-secret-version.sh` mit Default `--plan` und getrenntem `--add-once`. Beide Modi prüfen ausschliesslich `lars@lszh-automations.ch` und GCP-Projekt `lszh-automations`, sauberen exakt synchronisierten Review-Branch, rufen die reale `staging-airtable-secret-diagnose.sh`-Prüfung auf (Projektnummer/Secretidentität/Zürich/0 Versionen) und bestätigen die Versionsliste zusätzlich unmittelbar maschinenlesbar als **leeres JSON-Array**. Bereits eine vorhandene Version sperrt die Ausführung. Der Standardmodus erfordert **kein** PAT und erstellt/ändert nichts.
+
+Erst mit explizitem `--add-once` auf interaktiver **Cloud Shell**: verdeckter lokaler TTY-Prompt für das **ausschliesslich `data.records:read` auf `LSZH Automations – Website CRM` beschränkte Airtable-PAT**. Das PAT darf nicht in Chat, Shell-History, GitHub oder Cloud-Run-Umgebungsvariablen gelangen. Bash liest es ohne Terminal-Echo in eine **nicht exportierte Variable**, übergibt es per ephemerer Standardeingabe `printf '%s' "$token" | gcloud secrets versions add "$SECRET" --data-file=-` unmittelbar an Google Secret Manager, ohne Klartextdatei oder Kommandozeilenargument. **Genau ein Schreibaufruf, kein automatisches Retry.** Nach erfolgreichem Write wird **ausschliesslich Metadaten** abgefragt: genau eine `ENABLED`-Version `1`, kein Payload-Read. Bei ambivalentem Fehler NICHT erneut ausführen, zuerst read-only diagnostizieren. Keine IAM-Rolle, kein Job, keine Make-/Kundendaten-/Versandoperation.
+
+Offizielle CLI-Syntax bestätigt: https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/add (Secret-Name positional, `--data-file=-` für stdin). CI: `staging-airtable-secret-version.test.mjs` mockt Plan/fehlende Version/fehlerhafte Identität/unberechtigte Flags und erzwungene TTY-Grenze. **132/132 JavaScript-Tests und 8/8 IAM-Tests** am Source-Commit `e39b9daf2477928a7421c5951968e968a55ee295` bestanden; kein tatsächliches Secret wurde von CI hochgeladen.
+
+**Nächster Schritt ohne Mutation:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-version.sh
+```
+Erwartet `PLAN ONLY` und 0 Versionen. Für die spätere Ausführung `--add-once` ausdrückliche lokale Benutzeraktion am verdeckten TTY; danach erst Secret-spezifische `roles/secretmanager.secretAccessor`-IAM-Bindung für das dedizierte Dienstkonto planen und isolierten Cloud-Run-Lesejob erstellen. **Der bestehende HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`.**
+
 ## BESTÄTIGT 17.10.2026 – Leeres Zürich-STAGING-Secret tatsächlich vollständig verifiziert
 
 Der Geschäftsführer führte `git pull --ff-only` und anschliessend das korrigierte rein lesende `staging-airtable-secret-diagnose.sh` im LSZH-Cloud-Shell-Projekt aus. Die Live-Ausgabe lautete:

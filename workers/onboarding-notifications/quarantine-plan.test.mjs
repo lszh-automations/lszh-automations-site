@@ -141,7 +141,7 @@ test('audit limit stops without truncating existing evidence or reducing quarant
  assert.equal(current.revision,32);
  assert.equal(current.state,STATES.QUARANTINED);
  assert.throws(()=>plan(ambiguous,current),/quarantine_audit_limit_requires_manual_review/);
- const unchanged=plan(pending,current);
+ const unchanged=plan(complete,current);
  assert.equal(unchanged.record.revision,32);
  assert.equal(unchanged.record.state,STATES.QUARANTINED);
 });

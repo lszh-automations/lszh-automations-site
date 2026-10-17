@@ -1,5 +1,27 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Reale Quarantäne-IAM-Bereitstellung erfolgreich, keine Firestore-Dokumentoperationen
+
+**Nachweis durch vom Geschäftsführer unter `lars@lszh-automations.ch` in Cloud Shell ausgeführten, ausdrücklich für diese drei Ressourcen genehmigten Einmal-Lauf** des auf Review-Commit `8d8a6ab` synchronisierten Skripts `staging-quarantine-iam-setup.sh --apply-once` mit exakter Genehmigungsvariable:
+```text
+PASS: Dedicated Zurich database with deletion protection; new SA/role/binding not present.
+APPROVED: Creating separate keyless quarantine service identity once.
+PASS: New quarantine service identity matches approved name.
+APPROVED: Creating exactly one minimal project custom role.
+PASS: Custom role exactly matches the 3 approved permissions.
+APPROVED: Applying one database-conditioned custom role binding.
+PASS: Exact quarantine SA, minimal custom role, single DB-scoped IAM condition.
+PASS: No user-managed service account keys detected.
+LIMIT: Inherited IAM and effective Firestore access are NOT verified.
+PASS: No runtime deployment or document write performed.
+DONE: One isolated quarantine IAM setup completed; DO NOT RERUN.
+```
+**Damit laut erfolgreicher Live-CLI-Prüfung erstellt:** Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` ohne benutzerverwaltete Schlüssel, eigene projektdefinierte Rolle `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit ausschliesslich `datastore.entities.create/get/update` sowie **genau eine** IAM-Condition mit Ausdruck `resource.name=="projects/lszh-automations/databases/lszh-quarantine-staging"`. Die Quarantäne-Datenbank `lszh-quarantine-staging` in Zürich ist vorhanden und hat aktivierten Löschschutz. **Nicht** die frühere Rollen-/SA-/Datenbank-Einmal-Create-/Apply-Befehle erneut ausführen.
+
+**Wichtige Grenzen:** IAM gilt datenbankweit, nicht nur auf die eine Quarantäne-Collection. Der erfolgreiche Metadatenabgleich ist **kein** effektiver REST-Berechtigungs-/Isolationstest unter der neuen Identität, keine Prüfung geerbter IAM-Rollen, keine Garantie zur gesamten Schlüssellage anderer Identitäten und keine Produktionsfreigabe. Ausserdem nicht durch ChatGPT direkt live abgefragt, sondern durch den vom Nutzer gelieferten vollständigen CLI-Nachweis belegt. Keine produktive E-Mail, Make-Verbindung, Kundenaktion, Cloud-Run-Job/Deployment, Datenzugriff oder Firestore-Dokument-Schreiboperation ausgelöst.
+
+**Jetzt zulässiger nächster Schritt ohne weitere Freigabe:** `git pull --ff-only`, dann `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` – strikt lesender, separater Bestandsvergleich von neuer DB, SA, Custom Role und exakter Projekt-IAM-Bindung. Bei Unstimmigkeit **STOP**, keine Änderung oder erneutes `--apply-once`. **Erster echter Firestore-GET mit impersonierter Identität, jede Schreibprobe sowie Cloud Run Build/Deploy** werden getrennt vorgeprüft/freigegeben; insbesondere jede Dokument-Schreiboperation bleibt explizit gesperrt.
+
 ## 17.10.2026 – Freigabe für separate Quarantäne-IAM-Identität und Minimalrolle: Runner geprüft, noch nicht in Cloud ausgeführt
 
 **Explizite Freigabe:** Der Geschäftsführer beantwortete den konkret genannten nächsten Schritt nach bereits erfolgreicher Erstellung von `lszh-quarantine-staging` («separater Service-Account `lszh-quarantine-cas-stg`, minimale Custom Role `lszhQuarantineCasStaging` und exakte IAM-Bindung») mit `du hast meine freigabe, vamos`. Das ist eine **auf diese drei getrennten IAM-Ressourcen begrenzte Autorisierung**, ausdrücklich **keine Freigabe** für Firestore-Datendokumente/Schreibprobe, Cloud Run, Build, Make, Kunden- oder E-Mail-Aktionen.

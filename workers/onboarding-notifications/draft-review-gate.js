@@ -29,7 +29,7 @@ function outcome(status, reason, quarantineRecommended) {
 }
 function validDraft(draft, documentId) {
   if(!draft || typeof draft!=='object' || Array.isArray(draft) ||
-      !VALID_RECORD.test(draft.recordId) ||
+      typeof draft.recordId!=='string' || !VALID_RECORD.test(draft.recordId) ||
       typeof documentId!=='string' || eventId(draft.recordId)!==documentId ||
       Object.keys(draft).length!==DRAFT_FIELDS.length ||
       !DRAFT_FIELDS.every(field=>Object.prototype.hasOwnProperty.call(draft,field)) ||

@@ -69,7 +69,7 @@ test('approved single grant 600-second pause one synthetic runner and exact revo
  assert.ok(grant>=0&&pause>grant&&run>pause&&revoke>run,r.audit);
  assert.equal((r.audit.match(/iam service-accounts add-iam-policy-binding/g)||[]).length,1);
  assert.equal((r.audit.match(/iam service-accounts remove-iam-policy-binding/g)||[]).length,1);
- assert.equal((r.audit.match(/node:workers\/onboarding-notifications\/staging-quarantine-cas-write-once.js/g)||[]).length,1);
+ assert.equal((r.audit.match(/node:workers\/onboarding-notifications\/staging-quarantine-cas-write-once.js/g)||[]).length,1,r.audit);
  assert.equal(r.leaseExists,false);
  assert.match(r.condition.expression,/^request.time < timestamp\("[0-9TZ:-]+"\)$/);
  assert.match(r.stdout,/Temporary IAM binding absent in fresh readback/);
@@ -96,7 +96,7 @@ test('failed synthetic Node probe revokes with no second attempt',()=>{
  assert.equal(r.status,2,r.stdout+'\n'+r.stderr);
  assert.match(r.stdout,/mocked_failure/);
  assert.equal(r.leaseExists,false);
- assert.equal((r.audit.match(/node:workers\/onboarding-notifications\/staging-quarantine-cas-write-once.js/g)||[]).length,1);
+ assert.equal((r.audit.match(/node:workers\/onboarding-notifications\/staging-quarantine-cas-write-once.js/g)||[]).length,1,r.audit);
  assert.match(r.stdout,/Temporary IAM binding absent in fresh readback/);
 });
 test('IAM grant failure cleans up and never runs a synthetic probe',()=>{

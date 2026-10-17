@@ -67,7 +67,7 @@ except (ValueError,TypeError,AttributeError,KeyError):
  exit 2
 fi
 # Lists version metadata only; never retrieves payload.
-versions="$(gcloud secrets versions list --secret="$SECRET" --project="$PROJECT" --format='value(name)')" ||
+versions="$(gcloud secrets versions list "$SECRET" --project="$PROJECT" --format='value(name)')" ||
  { echo 'STOP: Cannot enumerate version metadata.'; exit 2; }
 if [[ -n "$versions" ]]; then
  echo 'STOP: At least one secret version already exists. Do not modify.'

@@ -29,6 +29,7 @@ jobs:
           node --check workers/onboarding-notifications/firestore-runtime-probe.js
           node --check workers/onboarding-notifications/firestore-write-probe.js
           node --check workers/onboarding-notifications/staging-airtable-rest-read.js
+          node --check workers/onboarding-notifications/airtable-runtime-probe.js
       - name: Run synthetic offline tests
         run: node --test workers/onboarding-notifications/*.test.mjs
       - name: Verify read-only Cloud Shell preflight syntax
@@ -66,6 +67,18 @@ jobs:
           fi
           grep -q 'FAIL: synthetic_write_probe_disabled' /tmp/lszh-write-probe.log
           ! grep -E 'Bearer |access_token|@gmail.com' /tmp/lszh-write-probe.log
+      - name: Build isolated one-shot Airtable read probe (no push/deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.airtable-read-probe -t lszh-airtable-read-ci:synthetic .
+      - name: Verify Airtable job is disabled without cloud identity and contains no customer app or secrets
+        run: |
+          docker run --rm --network none lszh-airtable-read-ci:synthetic sh -c \
+            'test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/.env && test ! -e /app/docs && test ! -e /app/workers/onboarding-notifications/server.js && test ! -e /app/workers/onboarding-notifications/firestore-store.js && node --check /app/workers/onboarding-notifications/airtable-runtime-probe.js'
+          if docker run --rm --network none lszh-airtable-read-ci:synthetic > /tmp/lszh-airtable-read-probe.log 2>&1; then
+            echo "FAIL: Airtable read job unexpectedly ran without explicit STAGING gate"
+            exit 1
+          fi
+          grep -q 'STOP: airtable_runtime_probe_disabled' /tmp/lszh-airtable-read-probe.log
+          ! grep -E 'Bearer |access_token|pat_' /tmp/lszh-airtable-read-probe.log
       - name: Inspect packaged code without network or credentials
         run: |
           docker run --rm --network none lszh-outbox-ci:synthetic sh -c \

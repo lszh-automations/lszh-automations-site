@@ -5,7 +5,7 @@ import {stagingConfig,STAGING} from './stagingConfig.mjs';
 import {createFirestoreOfferStore} from './firestoreOfferStore.mjs';
 import {createOfferPortal} from './portalCore.mjs';
 import {createOfferPortalHttp} from './portalHttp.mjs';
-import {verifyArchiveBundle} from '../archive-reader-staging/archiveBundleVerifier.mjs';
+import {verifyArchiveBundle,readVerifiedArchivePdf} from '../archive-reader-staging/archiveBundleVerifier.mjs';
 
 // This file has NO real deployment as of 15.10.2026.
 // Service MUST have its own runtime identity. Never reuse archive-reader
@@ -33,16 +33,16 @@ function activeHandler(){
         host:STAGING.firestoreHost
       });
       const auth=new GoogleAuth({scopes:['https://www.googleapis.com/auth/drive.readonly']});
-      const verifyBundle=async bundle=>{
+      const archiveOptions=async()=>{
         const token=await auth.getAccessToken();
         if(!token)throw Error('staging_drive_auth_unavailable');
-        return verifyArchiveBundle(bundle,{
-          accessToken:token,archiveFolderId:STAGING.archiveFolderId
-        });
+        return {accessToken:token,archiveFolderId:STAGING.archiveFolderId};
       };
+      const verifyBundle=async bundle=>verifyArchiveBundle(bundle,await archiveOptions());
+      const readPdf=async(bundle,which)=>readVerifiedArchivePdf(bundle,which,await archiveOptions());
       return createOfferPortalHttp({
         portal:createOfferPortal({
-          store:createFirestoreOfferStore(db),verifyBundle,
+          store:createFirestoreOfferStore(db),verifyBundle,readPdf,
           approvedVersion:STAGING.termsVersion,proofSalt:config.proofSalt
         }),
         enabled:true,allowedOrigin:config.origin

@@ -31,7 +31,7 @@ function snapshotFromCommit(request,updateTime='2026-10-17T12:00:01.123456Z'){
 function assertPrivate(request){
  assert.equal(request.deliveryAllowed,false);
  assert.equal(request.method,'POST');
- assert.equal(request.url,'https://firestore.googleapis.com/v1/projects/lszh-automations/databases/lszh-offers-staging/documents:commit');
+ assert.equal(request.url,'https://firestore.googleapis.com/v1/projects/lszh-automations/databases/lszh-quarantine-staging/documents:commit');
  assert.equal(request.body.writes.length,1);
  const text=JSON.stringify(request);
  for(const secret of ['@example','Bearer ','ob_','recAAAAAAAAAAAAAA','pat_','recipient','email','sendMail']) {

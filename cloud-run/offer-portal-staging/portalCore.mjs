@@ -143,7 +143,16 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
        (which==='avv' && offer.bundle.avv_required!=='Ja'))
       throw bad('unavailable');
     if(typeof readPdf!=='function')throw bad('temporarily_unavailable');
-    const bytes=await readPdf(offer.bundle,which);
+    let bytes;
+    try{
+      bytes=await readPdf(offer.bundle,which);
+    }catch(err){
+      // The keyless archive reader uses ordinary Error(message). Convert only
+      // this known integrity failure into the public domain error. All other
+      // internals must remain a generic 503 without diagnostic disclosure.
+      if(err?.message==='archive_changed')throw bad('archive_changed');
+      throw err;
+    }
     if(!Buffer.isBuffer(bytes)||bytes.length<8||bytes.length>12*1024*1024 ||
        bytes.subarray(0,5).toString('ascii')!=='%PDF-')
       throw bad('archive_changed');

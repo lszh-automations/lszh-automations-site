@@ -1,5 +1,31 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Secret-Name, Google-Projekt und Zürcher Replikation LIVE bestätigt; Versionsprüfung noch offen
+
+Der Geschäftsführer führte `staging-airtable-secret-diagnose.sh` nach `git pull --ff-only` aus. **Nachgewiesene echte CLI-Antwort:**
+```text
+PASS: Company identity and independently verified project number.
+Secret identifier matches: PASS
+Secret project verified (ID or numeric): PASS
+Replication mode: user-managed
+Replica regions: europe-west6
+Zurich-only replica: PASS
+ERROR: (gcloud.secrets.versions.list) unrecognized arguments: --secret=lszh-airtable-readonly-staging
+STOP: Cannot enumerate version metadata.
+```
+
+**Fazit:** `lszh-airtable-readonly-staging` ist tatsächlich im richtigen Projekt angelegt, mit genau einer vom Nutzer verwalteten Replikation ausschliesslich in `europe-west6`. Der frühere Ressourcen-/Replikations-STOP war ein zu strikter/inkompatibler Vergleich; das ist jetzt durch die unabhängige Diagnoseroutine korrigiert und live bestätigt. **Noch NICHT nachgewiesen:** tatsächliche Zahl der Secret-Versionen, weil die Secret-Manager-CLI bei `gcloud secrets versions list` den Secret-Namen als **Positionsargument** erwartet; `--secret=` ist für `versions list` unzulässig. Referenz: https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/list .
+
+**Codefix in PR #8:** Beide Skripte `staging-airtable-secret-diagnose.sh` und `staging-airtable-empty-secret.sh` verwenden jetzt `gcloud secrets versions list "$SECRET" --project="$PROJECT" --format='value(name)'`; Mock-Tests fordern die korrekte Positionsargument-Syntax ausdrücklich. Das Skript für die Initialanlage **niemals erneut mit `--create-empty` ausführen**. Keine neue Secret-Version, kein PAT, keine IAM-Bindung, kein Cloud-Run-Job.
+
+**Einziger nächste Schritt (READ ONLY):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
+```
+Erwartetes Ende nur bei wirklich leerem Versionsinventar: `PASS: Exactly zero secret versions.` und `PASS: Existing empty Zurich-only STAGING secret independently verified.`. Bei STOP keinerlei weitere Änderungen; insbesondere keine PAT-Version hinterlegen oder IAM-Rechte vergeben.
+
 ## WICHTIG 17.10.2026 – Secret angelegt, strenge Replikations-/Namensprüfung zunächst fehlgeschlagen
 
 Der Geschäftsführer führte nach sauberem Cloud-Shell-`git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-empty-secret.sh --create-empty` aus. **Die Live-CLI hat bestätigt:** `Created secret [lszh-airtable-readonly-staging].` Unmittelbar darauf kam `STOP: Secret name or Zurich-only replication mismatch; inspect metadata, do not add PAT.`

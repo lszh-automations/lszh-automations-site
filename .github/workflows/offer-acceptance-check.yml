@@ -22,6 +22,7 @@ on:
       - 'test/offerPortalEndToEnd.emulator.test.js'
       - 'test/offerPortalImporter.test.js'
       - 'test/offerPortalAirtableE2E.emulator.test.js'
+      - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
@@ -63,6 +64,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/airtableSyntheticImport.mjs
           node --check test/offerPortalImporter.test.js
           node --check test/offerPortalAirtableE2E.emulator.test.js
+          node --check test/offerPortalDocuments.test.js
           node --check test/offerPortalHttp.test.js
           node --check test/offerPortalStaging.test.js
           node --check scripts/run-tests-safely.js

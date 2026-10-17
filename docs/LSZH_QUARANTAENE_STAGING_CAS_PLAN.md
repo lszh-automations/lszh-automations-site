@@ -2,6 +2,12 @@
 
 Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
 
+## Live-Ausführung der einmaligen temporären Identitätsübernahme: fehlgeschlagen und sauber bereinigt
+
+Nach dem Update auf Commit `d2ca43b` hat der Geschäftsführer den exakt freigegebenen `staging-quarantine-timed-read-check.sh --run-approved-once` **einmalig** gestartet. Alle IAM-Vorprüfungen und die präzise, an den dedizierten Service-Account gebundene 30-Minuten-Condition bestanden. Die danach sofort versuchte Token-Generierung meldete `BLOCKED: IMPERSONATION_NOT_VERIFIED; no Firestore GET sent.` Der EXIT-Cleanup meldete **`PASS: Exact temporary Service Account Token Creator binding revoked.`** und **`PASS: Temporary IAM binding absent in fresh readback.`** Es ist deshalb **keine temporäre Berechtigung mehr aktiv oder in der SA-Policy vorhanden**. Keine Dokumentabfrage fand statt. **Den Einmal-Runner NICHT erneut ausführen.** Die erwarteten 404/403-Ausgangswerte wurden **nicht** beobachtet.
+
+Die Ursache kann nicht aus der absichtlich bereinigten Fehlermeldung bestimmt werden. Googles dokumentierte IAM-Propagation nach neuen Policy-Bindungen dauert typisch rund 2 Minuten und kann 7 Minuten oder länger dauern; ein Token-Mint unmittelbar nach der Metadaten-Prüfung kann daher noch `PERMISSION_DENIED` liefern. Dies ist eine plausible Hypothese, kein Nachweis. Vor einer neuen Freigabe: nur lesende Kontrolle vorhandener IAMCredentials-`GenerateAccessToken`-Auditlogs; wenn keine Log-Daten erscheinen, kann das daran liegen, dass Data-Access-Auditlogs nicht aktiviert waren. **Keine Logging-/IAM-Änderungen und keine neue Grant-Ausführung durch blosses `Vamos`.**
+
 ## Genehmigter temporärer Lesetest mit selbstablaufender SA-IAM-Bindung (17.10.2026)
 
 Der Geschäftsführer genehmigte ausdrücklich eine **einmalige, höchstens einstündige Token-Creator-Berechtigung** auf dem dedizierten Quarantäne-Service-Account, mit anschliessender Entfernung. Vorherige Diagnose: `iamcredentials.googleapis.com` aktiv; Policy Troubleshooter `CANNOT_ACCESS` für den Benutzer und `iam.serviceAccounts.getAccessToken`. Die Policy-Troubleshooter-API wurde zuvor durch den Geschäftsführer interaktiv aktiviert.

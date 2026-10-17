@@ -73,10 +73,12 @@ function consent(offer,b){
     throw bad('unexpected_avv_consent');
   return {name,email,avv:expected.avv_required==='Ja'};
 }
-export function createOfferPortal({store,verifyBundle,clock=()=>new Date(),approvedVersion,
+export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
   proofSalt}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
-    typeof verifyBundle!=='function'||typeof approvedVersion!=='string'||
+    typeof verifyBundle!=='function'||
+    (readPdf!==undefined && typeof readPdf!=='function') ||
+    typeof approvedVersion!=='string'||
     !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16)
     throw Error('portal_not_configured');
   async function offerFor(code){
@@ -132,5 +134,26 @@ export function createOfferPortal({store,verifyBundle,clock=()=>new Date(),appro
     return {ok:true,accepted:true,test_only:true,offer_number:offer.offerNumber,
       confirmation_email_pending:false};
   }
-  return {preview,accept};
+  // Documents are never looked up from a caller-supplied Drive ID.
+  // Offer eligibility, expiry, approval and invitation token are checked again
+  // for every download; 'avv' is only offered when expressly required.
+  async function document(code,which){
+    const {offer}=await offerFor(code);
+    if(!['quote','terms','avv'].includes(which) ||
+       (which==='avv' && offer.bundle.avv_required!=='Ja'))
+      throw bad('unavailable');
+    if(typeof readPdf!=='function')throw bad('temporarily_unavailable');
+    const bytes=await readPdf(offer.bundle,which);
+    if(!Buffer.isBuffer(bytes)||bytes.length<8||bytes.length>12*1024*1024 ||
+       bytes.subarray(0,5).toString('ascii')!=='%PDF-')
+      throw bad('archive_changed');
+    const expected=offer.bundle[which].sha256;
+    if(sha(bytes)!==expected)throw bad('archive_changed');
+    // A bounded in-memory blob is returned only after bytes+SHA256 validation.
+    return {bytes,which,
+      number:offer.offerNumber,
+      version:which==='terms'?offer.termsVersion:
+        which==='avv'?String(offer.details.avvVersion||''):''};
+  }
+  return {preview,accept,document};
 }

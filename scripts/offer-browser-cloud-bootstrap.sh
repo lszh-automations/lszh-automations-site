@@ -103,6 +103,7 @@ gcloud run deploy "$TEMP" --project="$PROJECT" --region="$REGION" \
   --image="$IMAGE" --service-account="$SA_EMAIL" \
   --ingress=all --no-allow-unauthenticated --invoker-iam-check \
   --set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false" \
+  --labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true" \
   --min-instances=0 --max-instances=1 --concurrency=1 \
   --memory=512Mi --cpu=1 --timeout=30 --quiet ||
   fatal "Deployment failed. Account/image may exist; inspect before retrying."

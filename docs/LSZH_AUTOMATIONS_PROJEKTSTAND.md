@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Leeres Airtable-STAGING-Secret PLAN ONLY in Cloud Shell bestätigt
+
+Der Geschäftsführer führte nach `git pull --ff-only` das sichere `staging-airtable-empty-secret.sh` **ohne** schreibenden Modus aus. Tatsächlich von Google Cloud Shell bestätigte Ausgabe:
+
+```text
+PASS: Dedicated STAGING service identity exists and is enabled.
+PASS: Company identity, reviewed branch and separate service account verified.
+Expected empty Secret Manager resource: lszh-airtable-readonly-staging
+Replication: user-managed, exactly one replica in europe-west6 (Zurich).
+Existing secret/job: false/false
+No PAT, secret version, IAM grant, Cloud Run job/service or customer data operation.
+PLAN ONLY: no Secret Manager resources or versions created.
+```
+
+**Befund:** Das separate Dienstkonto ist aktiv, Secret und Testjob sind noch nicht vorhanden; der Planlauf hat keine neue Ressource und kein Secret-Payload angelegt. Nächster genau abgegrenzter Schritt ist `bash workers/onboarding-notifications/staging-airtable-empty-secret.sh --create-empty` nach `git pull --ff-only`: ausschliesslich leeres Secret `lszh-airtable-readonly-staging` mit einer Zürcher Replikation erstellen, anschliessend Resource-Name, Replikationsort und null Versionen bestätigen. Mögliche geringe Google-Cloud-Kosten. **Nach dem Anlegen stoppen**: Keine PAT-Version, SecretAccessor-Rolle, Cloud-Run-Job, E-Mail oder Kundenänderung durch diesen Schritt. Erst bei zurückgemeldetem Live-Output als erstellt dokumentieren.
+
 ## 17.10.2026 – Airtable-PAT-Secret sicher vorbereitet (nur leere Ressource; noch nicht angelegt)
 
 Nach der vom Geschäftsführer bestätigten Erstellung von `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` ist der **nächste isolierte Schritt** als plan-first Shell-Skript vorbereitet: `workers/onboarding-notifications/staging-airtable-empty-secret.sh`. Er basiert auf dem Google-Cloud-CLI-Feature `gcloud secrets create --replication-policy=user-managed --locations=europe-west6`; Secret Manager verwaltet die Ressource global, die einzige Nutzdaten-Replikation soll in Zürich liegen.

@@ -42,3 +42,12 @@ test('origin and proof-salt validation protects staging from accidental enabling
  for(const salt of ['','TEST_SALT_ABCDEF12345678901234567890','tiny'])
    assert.throws(()=>stagingConfig({...good,LSZH_PORTAL_PROOF_SALT:salt}),/salt_invalid/);
 });
+
+test('hard-pinned cloud release gates reject real contracts and all acceptance POSTs',()=>{
+ const fs=require('node:fs');
+ const source=fs.readFileSync('cloud-run/offer-portal-staging/index.mjs','utf8');
+ assert.match(source,/syntheticOnly:true/);
+ assert.match(source,/acceptEnabled:false/);
+ const adapter=fs.readFileSync('cloud-run/offer-portal-staging/portalHttp.mjs','utf8');
+ assert.match(adapter,/path==='\/api\/offer\/accept' && acceptEnabled!==true/);
+});

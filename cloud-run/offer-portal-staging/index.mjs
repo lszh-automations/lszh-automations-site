@@ -1,6 +1,7 @@
 import {http} from '@google-cloud/functions-framework';
 import {Firestore} from '@google-cloud/firestore';
 import {GoogleAuth} from 'google-auth-library';
+import {readFileSync} from 'node:fs';
 import {stagingConfig,STAGING} from './stagingConfig.mjs';
 import {createFirestoreOfferStore} from './firestoreOfferStore.mjs';
 import {createOfferPortal} from './portalCore.mjs';
@@ -40,12 +41,13 @@ function activeHandler(){
       };
       const verifyBundle=async bundle=>verifyArchiveBundle(bundle,await archiveOptions());
       const readPdf=async(bundle,which)=>readVerifiedArchivePdf(bundle,which,await archiveOptions());
+      const pageHtml=readFileSync(new URL('./offerte-annehmen.html',import.meta.url),'utf8');
       return createOfferPortalHttp({
         portal:createOfferPortal({
           store:createFirestoreOfferStore(db),verifyBundle,readPdf,
           approvedVersion:STAGING.termsVersion,proofSalt:config.proofSalt
         }),
-        enabled:true,allowedOrigin:config.origin
+        enabled:true,allowedOrigin:config.origin,pageHtml
       });
     })();
   }

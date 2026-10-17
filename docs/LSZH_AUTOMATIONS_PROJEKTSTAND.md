@@ -1,5 +1,24 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Genehmigter Cloud-Test: erster Build PASS, Deployment wegen `actAs` blockiert; sichere Wiederaufnahme
+
+**Ist-Ergebnis des vom Betreiber freigegebenen Cloud-Shell-Bootstraps:**
+- Read-only Baseline und IAM des bestehenden Dienstes `lszh-offer-portal-staging`: `PASS` (100 % auf der ursprünglichen internen Preflight-Revision, keine direkten öffentlichen Invoker-Bindings). Unverändert.
+- Google Cloud Build `a5c9bc7b-2043-43c5-a457-2d70639055b5`, Region `europe-west6`: **SUCCESS**. Bereits hochgeladenes, isoliertes Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:7f8602e762ce`, SHA256 `ba69188de7d71b9410ccc519b0249388d66401a01c20d09bb687932265f71678`. Kein Rebuild notwendig.
+- Dediziertes, bisher ohne DB/Drive-Rollen angelegtes Dienstkonto: `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`.
+- **Cloud-Run-Deployment fehlgeschlagen**, Google-Meldung: `Permission iam.serviceaccounts.actAs denied` für aktiven Benutzer `lars@lszh-automations.ch` auf dem separaten Dienstkonto. **Nicht** als erfolgreicher Browserdienst ausgeben. Ein möglicherweise teilweise erstellter Dienst muss vor neuem Versuch geprüft werden. Es wurden keine produktiven Kunden, Verträge oder Mails versendet.
+
+**Kleinste berechtigte Korrektur:** Google-Cloud-Dokumentation fordert für das Deployment `roles/iam.serviceAccountUser` auf dem **konkreten neuen temporären Dienstkonto** (nicht auf dem gesamten Projekt). Dafür `gcloud iam service-accounts add-iam-policy-binding` mit `--member=user:lars@lszh-automations.ch` und `--role=roles/iam.serviceAccountUser`; Google-Cloud-IAM-Benutzer muss diese Bindung selbst vergeben dürfen oder von zuständiger IAM-Administration erhalten. Keine breiteren Projektrollen vergeben.
+
+**Neu im Entwicklungsbranch:** `scripts/offer-browser-cloud-resume.sh --check|--apply` verwendet das **existierende Image-Tag nach exakter Digest-Prüfung**, kontrolliert unverändert den bisherigen internen Preflight, prüft das vorhandene Test-Dienstkonto und verlangt **keinen bereits vorhandenen temporären Cloud-Run-Dienst** (verhindert ungewolltes Überschreiben teilweise angelegter Ressourcen). `--apply` vergibt nur `roles/iam.serviceAccountUser` an genau den autorisierten Benutzer auf genau dem temporären Konto, deployed nur `lszh-offer-browser-staging` mit `LSZH_PORTAL_STAGING_ENABLED=false`, `--no-allow-unauthenticated` und IAM-Invoker-Sperre, anschliessend allein dem namentlichen Testbenutzer Invoker auf dieser temporären Ressource. Verifiziert die Ressource, nichtöffentliche Dienst-IAM-Policy und unveränderten Originaldienst. Keine neue Build-/SA-Erstellung, keine Firestore-/Drive-Berechtigungen, keine Annahme.
+
+**Tests:** `test/offerBrowserCloudScript.test.js` prüft CLI-Syntax, das exakt gepinnte Digest, engen SA-Bindungsumfang und unverändert gesperrte Einstellungen. GitHub Actions [39074674528](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39074674528) **SUCCESS** für den getesteten Wiederaufnahmecode und Workflow. **Cloud-Run-Deployment ist noch ausstehend.**
+
+**Nächste Aktion:** Betreiber holt neue Checkout-Version des Featurebranches in Cloud Shell und startet nur `bash scripts/offer-browser-cloud-resume.sh --apply`; bei IAM-Rollenfehler zunächst entsprechenden Accountberechtigungsfehler zurückmelden. `offer-browser-cloud-bootstrap.sh --apply` **nicht** erneut ausführen, da Image und Dienstkonto bereits angelegt sind. Kein Go-Live.
+
+---
+
+
 ## 17./18.10.2026 – Betreiberfreigabe für TEMPORÄREN Cloud-Browser-Stagingdienst, Bootstrap vorbereitet
 
 **Freigabe des Betreibers im Projektchat:** „du hast die freigabe“ als Zustimmung zur vorher vorgeschlagenen, separaten temporären Google-Cloud-Testressource. Diese Freigabe umfasst **nicht** das Öffnen/Überschreiben des bestehenden internen Diensts, produktive Vertragsannahmen oder reale Kundendaten.

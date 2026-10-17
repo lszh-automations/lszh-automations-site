@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einmalige V2-Airtable-Lesejob-Ausführung ausdrücklich freigegeben (Vollzug noch offen)
+
+Der Geschäftsführer hat nach erfolgreich durchgelaufenem echten `staging-airtable-job-run-v2.sh --plan` ausdrücklich die **einmalige Ausführung** des isolierten Cloud-Run-Jobs `lszh-airtable-read-probe-fix-staging` genehmigt. Freigegeben ist ausschliesslich der kontrollierte, auf null bisherigen Ausführungen geprüfte Modus `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once` nach synchronisiertem `git pull --ff-only`. Der Runner prüft den unveränderten Image-Digest `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`, die Identität, Service Account, Secret-spezifische Berechtigung, Secret-Version 1, ursprüngliche historische Fehl-Execution, Job-Konfiguration und **zweimal** null V2-Executions. Danach wird nur das einzelne Cloud Run Job `--wait` gestartet; eine synthetische, lesende Airtable-GET-Probe ist vorgesehen. **Keine Freigabe für Wiederholung**, selbst wenn der Lauf fehlschlägt oder die gcloud-Ausgabe unklar bleibt. Kein PAT im Chat, keine Mails, kein Make, keine CRM-/Firestore-Schreiboperation, keine Outbox-Aktivierung.
+
+**Wichtig: Freigabe dokumentiert, Ausführung hier NOCH NICHT veranlasst/nachgewiesen.** Der Chat hat keinen authentifizierten Zugriff auf die Google Cloud Shell; die genehmigte Ausführung muss in der Cloud Shell des Geschäftsführers erfolgen. Anschliessend echte Execution-ID/-Status und gefilterte Logs prüfen. Nicht ohne diese Belege eine erfolgreiche Airtable-Verbindung behaupten.
+
 ## 17.10.2026 – V2-Ausführungsplan real erfolgreich geprüft, noch null Runs
 
 Der Geschäftsführer hat nach Git-Fast-Forward bis `ed55cb2` den strikt lesenden Befehl `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --plan` erfolgreich in Google Cloud Shell ausgeführt. **Echte Ausgabe:**

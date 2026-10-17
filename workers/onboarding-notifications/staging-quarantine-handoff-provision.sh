@@ -44,14 +44,31 @@ IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPOSITORY/lszh-quarantine-handoff:stagi
 TMP="$(mktemp -d)"
 chmod 700 "$TMP"
 trap 'rm -rf "$TMP"' EXIT
-gcloud run services list --project="$PROJECT" --region="$REGION" --format='json(metadata.name)' > "$TMP/services.json"
-python3 - "$TMP/services.json" <<'PY'
+# Fresh service inventory for EVERY check, including post-deployment:
+# the old one-time snapshot misreported a successfully created receiver as absent.
+# Failure to LIST / malformed metadata is fatal, never treated as "not found".
+refresh_service_inventory(){
+ if ! gcloud run services list --project="$PROJECT" --region="$REGION" \
+   --format='json(metadata.name)' > "$TMP/services.json"; then
+  echo 'STOP: Could not refresh Cloud Run service inventory.'
+  exit 2
+ fi
+ if ! python3 - "$TMP/services.json" <<'PY'
 import json,sys
-obj=json.load(open(sys.argv[1]))
-assert isinstance(obj,list)
-assert all(isinstance(x,dict) and isinstance(x.get('metadata',{}).get('name'),str) for x in obj)
+try:
+ obj=json.load(open(sys.argv[1]))
+ assert isinstance(obj,list)
+ assert all(isinstance(x,dict) and isinstance(x.get('metadata',{}).get('name'),str) for x in obj)
+except (OSError,ValueError,TypeError,AssertionError):
+ sys.exit(1)
 PY
+ then
+  echo 'STOP: Cloud Run service inventory is malformed.'
+  exit 2
+ fi
+}
 service_exists(){
+ refresh_service_inventory
  python3 - "$TMP/services.json" "$SERVICE" <<'PY'
 import json,sys
 sys.exit(0 if any(x.get('metadata',{}).get('name')==sys.argv[2] for x in json.load(open(sys.argv[1]))) else 1)

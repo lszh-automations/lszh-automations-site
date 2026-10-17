@@ -1,5 +1,19 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Receiver wurde aktiviert; nur read-only Postflight als nächster Schritt
+
+Cloud-Run-Meldung nach freigegebenem `--enable-review-only`: Revision **`lszh-quarantine-handoff-staging-00002-ttf`** erstellt, **100 % Traffic**, URL unverändert. Das Script meldete `PASS: Private review-only receiver configured. No source dispatcher launched.`. Der HMAC-Schlüssel ist als Secret-Env-Referenz konfiguriert, die drei Staging-Review-Schalter wurden auf `true` aktualisiert. Dies ist noch **kein realer synthetischer End-to-End-Test**.
+
+Nächster Schritt prüft die tatsächliche Revision unabhängig **nur lesend**, ohne Secret-Inhalt oder Kundendaten:
+
+```bash
+cd "$HOME/lszh-handoff-staging"
+git pull --ff-only
+bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --verify-review-only
+```
+
+Erwartet wird ein PASS für die exakte live Revision, Image, acht operative Werte und den einzelnen HMAC-Secret-Referenzwert, sowie ein zweites PASS für privaten direkten Invoker und genau zwei Secret-Level-Accessor-Dienstkonten. `--enable-review-only` nicht wiederholen. Nach einem sauberen Postflight steht der **streng synthetische Quell-Job/E2E-Test** weiterhin aus; er benötigt zuvor enge Staging-Fixture- und Secret-Prüfungen, keine pauschale Runner-Wiederholung oder produktive Mails.
+
 ## 17.10.2026 – STAGING-HMAC-Secret und eng begrenzte Accessors tatsächlich erstellt
 
 Die Cloud Shell des Geschäftsführers bestätigte `--create-secret` als **PASS**: `lszh-stg-quarantine-handoff-hmac` neu in Secret Manager erstellt, Version **1** angelegt, Secret-IAM-Policy zweimal aktualisiert, genau die vorgesehenen Source- und Destination-Servicekonten erhielten Zugriff auf **dieses einzelne Secret**. Der CSPRNG-HMAC-Schlüssel liegt nicht in Chat, GitHub oder Logs. **Nicht** nochmals `--create-secret` ausführen (Skript lehnt bereits existierendes Secret ab).

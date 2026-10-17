@@ -7,7 +7,7 @@ const {SA,MEMBER,ROLE,CONDITION,PERMISSIONS,assessQuarantineIam}=
 function fixture() {
  return {
   serviceAccount:{email:SA,disabled:false},
-  database:{name:'projects/lszh-automations/databases/lszh-offers-staging',
+  database:{name:'projects/lszh-automations/databases/lszh-quarantine-staging',
             locationId:'europe-west6',type:'FIRESTORE_NATIVE'},
   customRole:{name:ROLE,stage:'GA',includedPermissions:[...PERMISSIONS]},
   projectPolicy:{bindings:[{
@@ -54,7 +54,7 @@ test('broad, missing and extra roles are explicitly blocked',()=>{
 test('incorrect or absent database IAM condition, broad project role and multiple grants block',()=>{
  const cases=[
   {role:'roles/datastore.user'},
-  {role:ROLE,condition:{title:CONDITION.title,expression:'resource.name!="projects/lszh-automations/databases/lszh-offers-staging"'}},
+  {role:ROLE,condition:{title:CONDITION.title,expression:'resource.name!="projects/lszh-automations/databases/lszh-quarantine-staging"'}},
   {role:ROLE,condition:{title:CONDITION.title,expression:'resource.name.startsWith("projects/lszh-automations")'}},
   {role:ROLE,condition:{...CONDITION},members:[MEMBER,'user:other@example.invalid']}
  ];

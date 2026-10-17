@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Vier bestehende Cloud-Run-Jobs bestätigt; eigene Outbox-Secret-Probe vorbereitet
+
+**Tatsächliche Cloud-Shell-Job-Inventarliste des Geschäftsführers:** `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging`, `lszh-firestore-write-probe-staging`. Keinen dieser Jobs wiederverwenden, verändern oder ausführen.
+
+**Neu nur im ungemergten GitHub-Review-Branch:** `workers/onboarding-notifications/staging-outbox-secret-access-job.sh` bietet einen **rein lesenden `--plan` (Default)** und separat `--create-only` für einen fünften, eindeutig benannten Job `lszh-outbox-secret-access-probe-stg`. Der Job würde mit der dedizierten Outbox-SA und Version 1 des bereits freigegebenen Airtable-Read-only-Secrets angelegt, **ohne ihn auszuführen**. Ein bereits geprüfter vorhandener Container ist auf SHA-256-Digest `c8e0b3de...` gepinnt; dessen normale Airtable-Anwendung wird durch ein `/bin/sh`-Kommando überschrieben, das später **nur die Existenz einer nichtleeren, bei Job-Start von Cloud Run injizierten Secret-Env-Variable** prüft, ohne Inhalt, Länge oder Hash zu loggen und ohne Netzwerk. Ein Job, ein Task, 0 Retries, keine Quell-Handoff-Aktivierung. Bei falschem Secret-IAM, geändertem Inventar oder bestehendem Zieljob FAIL CLOSED.
+
+**Aktueller nächster Schritt:** In Cloud Shell `cd "$HOME/lszh-handoff-staging" && git pull --ff-only`; danach `bash workers/onboarding-notifications/staging-outbox-secret-access-job.sh --plan`. Erst bei PASS das gesonderte `--create-only` prüfen. Es wurden durch diese GitHub-Änderungen **keine Cloud-Builds, Jobs, Secret-Abrufe oder E2E-Testausführungen** vorgenommen.
+
 ## 17.10.2026 – Organisationsweite IAM-Deny-Inspektion mangels Leserecht blockiert
 
 **Echte Cloud-Shell-Rückmeldung:** `gcloud iam policies list --attachment-point=cloudresourcemanager.googleapis.com/organizations/514084820568 --kind=denypolicies` scheiterte mit `IAM_PERMISSION_DENIED`: Konto `lars@lszh-automations.ch` hat auf der LSZH-Organisation nicht `iam.googleapis.com/denypolicies.list`. Das ist ein **Diagnose-Rechtemangel**, kein Beleg für eine Deny-Policy gegen das Outbox-Servicekonto. Der IAM Policy Troubleshooter meldet nach der Secret-spezifischen `roles/secretmanager.secretAccessor`-Freigabe auf Airtable Secret v1 `ALLOW_ACCESS_STATE_GRANTED`, `DENY_ACCESS_STATE_UNKNOWN_INFO`, `OVERALL_ACCESS_STATE_UNKNOWN_INFO`. Geerbte Deny-Richtlinien und effektives `secretmanager.versions.access` bleiben damit ungeklärt.

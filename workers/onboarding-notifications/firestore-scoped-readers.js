@@ -51,8 +51,7 @@ function auditDate(x) {
  return date.toISOString();
 }
 function decodeOutboxDraft(document,documentId) {
- const name=API.replace('https://firestore.googleapis.com/v1/','')+
-  'projects/'+PROJECT+'/databases/'+SCOPES.outbox.database+
+ const name='projects/'+PROJECT+'/databases/'+SCOPES.outbox.database+
   '/documents/'+SCOPES.outbox.collection+'/'+documentId;
  if(!ID.test(documentId) || document?.name!==name ||
   !exactly(document.fields,OUTBOX_KEYS))
@@ -79,6 +78,14 @@ function decodeOutboxDraft(document,documentId) {
   deliveryEnabled:false,emailSent:false,
   createdAt:auditDate(get('createdAt','timestampValue'))
  });
+}
+function freezeJson(value) {
+ // Data came from JSON.parse (acyclic, size bounded by 16 KiB).
+ if(value && typeof value==='object') {
+  for(const v of Object.values(value))freezeJson(v);
+  Object.freeze(value);
+ }
+ return value;
 }
 async function boundedText(response,max) {
  // In the *future* enabled runtime, accept only deliberately small responses.
@@ -140,7 +147,7 @@ function createScopedReader({scope,env=process.env,fetchImpl=globalThis.fetch}={
   });
   if(answer.status===404) {
    if(scope==='outbox')fail('outbox_draft_missing');
-   return Object.freeze({status:'MISSING',database:config.database,
+   return Object.freeze({status:'MISSING',readStatus:404,document:null,
     writesAllowed:false,deliveryAllowed:false});
   }
   if(answer.status!==200)fail('scoped_reader_document_unavailable');
@@ -156,7 +163,8 @@ function createScopedReader({scope,env=process.env,fetchImpl=globalThis.fetch}={
   // The parsed record/updateTime is only read evidence, NOT write authority.
   // No raw credential, request headers or executable CAS request are returned.
   return Object.freeze({status:'VERIFIED_QUARANTINE_SNAPSHOT',
-   snapshot:parsed,writesAllowed:false,deliveryAllowed:false});
+   snapshot:parsed,readStatus:200,document:freezeJson(raw),
+   writesAllowed:false,deliveryAllowed:false});
  }
  return Object.freeze({read});
 }

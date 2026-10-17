@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Onboarding-Linkintegrität & Statusrückfälle offline gehärtet
+
+**Nächste eigenständige Weiterarbeit nach dem erfolgreich verifizierten Cloud Run → Airtable Live-GET:** Bestehende `onboarding/confirmation.js`, `outbox.js` und Firestore-`createOnce`-Persistenz geprüft. Alle Änderungen sind **nur** auf `feature/onboarding-notification-outbox-20261016` erfolgt, ohne Cloud Run Build/Job-Ausführung, Airtable-/Firestore-/Make-Mutation, E-Mail oder Deployment.
+
+**Dritte tatsächliche Logiklücke mit gezieltem Regressionstest nachgewiesen und behoben:** Die vorige `allLinks(v,id)`-Funktion verwendete `v.includes(id)`. Ein Auftrag mit `Kunden-Onboarding = [korrekterDatensatz, fremderDatensatz]` oder eine Datenschutz-Aufgabe mit `Auftrag = [korrekterAuftrag, fremderAuftrag]` konnte damit trotz mehrdeutiger Zuordnung zu `completed` führen. Die Integrationstests auf `onboarding/confirmation.test.mjs` schlugen vor der Korrektur in der Onboarding-Completion-CI fehl. Jetzt wird für beide Rückverknüpfungen `exactlyOneLink(v,id) = oneLink(v) === id` verlangt, analog zu den bereits eindeutigen Hauptlinks. Beziehungsmehrdeutigkeit führt sicher zu `processing` und erzeugt keinen neuen Outbox-Entwurf; die Änderung bestand danach beide CI-Workflows am Commit `c15ab6ac`.
+
+**Zusätzlicher Statusübergangs-/Outbox-Test:** `onboarding-positive-transition.integration.test.mjs` simuliert `completed → partial → duplicate/requires_review → completed`, nachdem genau ein `DRAFT_NOT_SENT` in synthetischem Firestore erstellt wurde. Bei Rückfall und Duplikat wird **kein neuer** Draft/POST erzeugt; der vorhandene Audit-Draft bleibt `deliveryEnabled=false` und `emailSent=false`. Nach späterer Wiederherstellung des eindeutigen Abschlusses führt der Firestore-409/GET-Weg zum Ergebnis `alreadyExisting` statt zu einer Neuanlage. Die zuvor geprüften positiven/negativen Fälle und die drei behobenen Logiklücken bleiben abgedeckt. **Keine realen Kundendaten oder Benachrichtigungen.**
+
+**Wichtige Freigabegrenze für spätere Produktivarbeit:** Ein einmal erstellter unveränderlicher Outbox-Entwurf wird bei nachträglichem Datenrückfall **nicht automatisch zurückgezogen oder als Versandberechtigung bestätigt**. Vor einem späteren E-Mail-Transport ist zwingend eine erneute Live-Prüfung des aktuellen Abschlussstatus sowie eine explizite Storno-/Quarantäneentscheidung für nachträglich inkonsistente Datensätze erforderlich. Der Versand bleibt vollständig deaktiviert, bis diese zusätzliche Gate-Logik separat entwickelt und freigegeben ist. Der ältere V2-Image-/Build-Pin repräsentiert die historische Codeversion; die aktuelle Branch-Änderung darf nicht per altem Image-/Job-Skript ausgeführt werden.
+
+**Nächster sicherer Schritt:** GitHub-CI-Endstatus prüfen; restliche Randfälle (z. B. ungültige DSG-Aufgaben-ID oder inkonsistente Kundenverknüpfung) ausschliesslich offline prüfen. Noch kein Merge/Deployment und keine Freigabe für Live-Schreiboperationen.
+
 ## 17.10.2026 – Positive Onboarding-Übergänge, Duplikate und Pflichtfelder offline geprüft und gehärtet
 
 **Kontext:** Der echte Cloud Run → Airtable Lesezugriff für einen fehlenden synthetischen Projektcode ist bereits mit genau einem erfolgreichen Live-GET verifiziert (`lszh-airtable-read-probe-fix-staging-7ppq4`); dieser Job wurde **nicht** wiederholt. Nachfolgende Arbeit ist ausschliesslich synthetisch auf dem noch nicht gemergten GitHub-Review-Branch.

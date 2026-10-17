@@ -81,7 +81,7 @@ test('probe stays disabled unless synthetic-only temporary demo has explicit exa
   ['LSZH_PORTAL_STAGING_ENABLED','true'],
   ['LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED','false'],
   ['LSZH_OFFER_TEMP_DRIVE_PROBE_FOLDER',ROOT],
-  ['LSZH_OFFER_TEMP_DRIVE_PROBE_HASHES','0'.repeat(64)+','+hashes.slice(1).join(',')],
+  ['LSZH_OFFER_TEMP_DRIVE_PROBE_HASHES',hashes[1]+','+hashes.slice(1).join(',')],
   ['LSZH_OFFER_TEMP_DRIVE_PROBE_HASHES','INVALID'],
  ]){
   const env={...base,[change]:value};

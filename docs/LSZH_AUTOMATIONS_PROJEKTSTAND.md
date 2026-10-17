@@ -1,5 +1,33 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Failed Cloud Run Airtable-Job: erste Log-Abfrage ohne Treffer; Filter-Fehler behoben, sichere erneute Lesung offen
+
+Der Geschäftsführer führte in Cloud Shell die ausschliesslich lesende `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` nach `git pull --ff-only` aus. Die tatsächlich gelieferte Antwort:
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Cloud Logging query restricted to the one failed execution.
+Matching log entries: 0
+Safe application STOP code(s): none observed
+Recognized runtime error category: none identified
+Application PASS log count: 0
+STOP: No exact-execution logs found; check Cloud console filters. Never rerun.
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+**Sicher bestätigt:** Genau die eine Cloud-Run-Job-Ausführung `lszh-airtable-read-probe-staging-xglcz` wurde von der reinen Lese-Diagnose inventarisiert; nach ihrem vorherigen Start war sie mit Task-Exit 1 fehlgeschlagen. **Keine Fehlerursache ist aus dem 0-Logs-Ergebnis nachgewiesen; insbesondere weder Airtable-Token noch IAM oder Netzfehler als Ursache annehmen.** Die spezifische Logging-Abfrage war **zu streng bzw. mit falschem Labelnamen**: Für Cloud Run Job `stdout` und `stderr` dokumentiert Google die LogEntry-Label-Eigenschaft `run.googleapis.com/execution_name`; die vorherige Abfrage verlangte `labels.execution_name`. Referenz: https://docs.cloud.google.com/logging/docs/api/platform-logs .
+
+**Im GitHub Review-Branch korrigiert** wurde `staging-airtable-execution-diagnose.sh` auf einen Cloud-Logging-Filter nach exakt `resource.type=cloud_run_job`, `resource.labels.job_name=lszh-airtable-read-probe-staging` und `resource.labels.location=europe-west6`. Nach erfolgreichem Beleg, dass **genau eine Execution für diesen Job existiert**, verarbeitet das Skript alle Roh-Logs nur lokal und lässt Python eine konkrete Ausführungskennung mit `labels["run.googleapis.com/execution_name"]` (Fallback `labels.execution_name`) prüfen; abweichende Label-Werte werden ignoriert. Unlabelled Einträge werden separat gezählt, aber nur aufgrund des nachgewiesenen einzigen Job-Runs als möglicher Diagnosekontext verwendet. Ausgegeben werden **ausschliesslich erlaubte Fehlercodes, allgemeine Fehlerkategorien und Summenzahlen**, kein vollständiger Logtext, keine Dateipfade, kein Token. Zusätzlich wurde behoben, dass der alte Python-Metadatenpfad durch eine falsche `except`-Einrückung keine Count-Ausgabe erzeugt hatte; nun berichtet er tatsächlich (falls in der Google-Antwort vorhanden) `failedCount` und `succeededCount`.
+
+**Vorerst weiterhin offen:** neue reale Logabfrage mit korrigiertem Filter, konkrete Ursache des Container-Exit 1, tatsächlicher Cloud Run → Airtable-GET-Erfolg. **Nicht erneut ausführen**: `staging-airtable-job-run.sh --execute-once`, `gcloud run jobs execute`, `staging-airtable-job.sh --create-only`, jegliche neue PAT-Version oder IAM-Rolle ohne getrennte Analyse/Freigabe. Bestehender HTTP-Outbox-Dienst und alle produktiven Vorgänge unverändert/deaktiviert.
+
+**Einziger nächster Befehl, strikt read-only:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Bei erneut null Logs ist die Ausführungsansicht **Logs** in Google Cloud Console separat zu prüfen, ohne Rohlogs unbesehen zu veröffentlichen. Offline-CI deckt jetzt die offiziellen Labels und die Unterdrückung fremder Logeinträge und fingierter PAT-Zeichenketten ab. Noch keine echte Reparatur oder neue Probe-Execution ausgelöst.
+
 ## 17.10.2026 – Failed-Execution-Diagnose (STRICT READ ONLY) bereit, LIVE-Lesung ausstehend
 
 Nach dem gescheiterten ersten und einzigen `lszh-airtable-read-probe-staging-xglcz`-Test (Task 0 Exit 1) wurde im GitHub Review-Branch `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` hinzugefügt. Der Befehl **startet keine weitere Execution** und liest **keinen** Secret Manager Payload aus:

@@ -127,7 +127,10 @@ export function createOfferPortal({store,verifyBundle,clock=()=>new Date(),appro
     const result=await store.claim(tokenHash,fingerprint,evidence,now);
     if(result==='already_accepted')throw bad('already_accepted');
     if(result!=='accepted')throw bad('offer_changed');
-    return {ok:true,accepted:true,confirmation_pending:true};
+    // This prototype has NO live delivery or legal approval. Match the
+    // existing browser response contract without promising an email.
+    return {ok:true,accepted:true,test_only:true,offer_number:offer.offerNumber,
+      confirmation_email_pending:false};
   }
   return {preview,accept};
 }

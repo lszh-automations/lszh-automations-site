@@ -30,6 +30,8 @@ on:
       - 'scripts/offer-browser-cloud-cleanup.sh'
       - 'scripts/offer-browser-cloud-resume.sh'
       - 'scripts/offer-browser-cloud-smoke.sh'
+      - 'scripts/offer-browser-static-demo-release.sh'
+      - 'test/temporaryBrowserDemo.test.js'
       - 'test/offerBrowserCloudScript.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
@@ -52,6 +54,7 @@ jobs:
           bash -n scripts/offer-browser-cloud-cleanup.sh
           bash -n scripts/offer-browser-cloud-resume.sh
           bash -n scripts/offer-browser-cloud-smoke.sh
+          bash -n scripts/offer-browser-static-demo-release.sh
       - name: Syntax checks
         run: |
           node --check server.js
@@ -70,6 +73,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
+          node --check cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs
+          node --check test/temporaryBrowserDemo.test.js
           node --check cloud-run/offer-portal-preflight/index.js
           node --check cloud-run/offer-portal-transaction-smoke/index.js
           node --check cloud-run/offer-portal-transaction-smoke/transactionTest.mjs

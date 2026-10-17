@@ -45,7 +45,9 @@ function activeHandler(){
       return createOfferPortalHttp({
         portal:createOfferPortal({
           store:createFirestoreOfferStore(db),verifyBundle,readPdf,
-          approvedVersion:STAGING.termsVersion,proofSalt:config.proofSalt
+          approvedVersion:STAGING.termsVersion,proofSalt:config.proofSalt,
+          // Deployment must never process a real customer offer.
+          syntheticOnly:true
         }),
         enabled:true,allowedOrigin:config.origin,pageHtml
       });

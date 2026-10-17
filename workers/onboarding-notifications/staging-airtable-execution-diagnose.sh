@@ -55,15 +55,15 @@ try:
  assert isinstance(d,dict)
  name=d.get("name") or d.get("metadata",{}).get("name","")
  assert isinstance(name,str) and name.split("/")[-1]==sys.argv[1]
+ status=d.get("status",d)
+ if not isinstance(status,dict): status={}
+ failures=status.get("failedCount",status.get("failed_count"))
+ successes=status.get("succeededCount",status.get("succeeded_count"))
 except (ValueError,TypeError,AttributeError,AssertionError):
  print("STOP: Wrong execution metadata returned.");sys.exit(2)
- s=d.get("status",d)
- if not isinstance(s,dict): s={}
- failures=s.get("failedCount",s.get("failed_count"))
- successes=s.get("succeededCount",s.get("succeeded_count"))
- print("PASS: Exact execution metadata read; no new task started.")
- print("Execution reported failed tasks: "+(str(failures) if type(failures) is int else "not reported"))
- print("Execution reported successful tasks: "+(str(successes) if type(successes) is int else "not reported"))
+print("PASS: Exact execution metadata read; no new task started.")
+print("Execution reported failed tasks: "+(str(failures) if type(failures) is int else "not reported"))
+print("Execution reported successful tasks: "+(str(successes) if type(successes) is int else "not reported"))
 ' "$EXEC"; then exit 2; fi
 
 # Cloud Run job stdout/stderr use the documented label key

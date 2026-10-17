@@ -67,6 +67,9 @@ test('read-only report shows known stop code, not arbitrary raw logs or PAT',()=
  assert.equal(r.status,0,r.stdout+' '+r.stderr);
  assert.match(r.stdout,/airtable_runtime_probe_disabled/);
  assert.match(r.stdout,/Exactly one recorded Job execution/);
+ assert.match(r.stdout,/PASS: Exact execution metadata read/);
+ assert.match(r.stdout,/Execution reported failed tasks: 1/);
+ assert.match(r.stdout,/Execution reported successful tasks: 0/);
  assert.match(r.stdout,/READ ONLY:/);
  assert.doesNotMatch(r.stdout,/pat_SUPER_SECRET|Do not print/);
  assert.match(r.audit,/logging read .*resource.labels.job_name=/);

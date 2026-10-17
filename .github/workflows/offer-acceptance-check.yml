@@ -25,6 +25,7 @@ on:
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
       - 'cloud-run/Dockerfile.offer-portal-staging'
+      - 'scripts/offer-cloud-readiness-readonly.py'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -38,6 +39,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Read-only Cloud Run baseline offline negatives (no GCP account)
+        run: |
+          python3 -m py_compile scripts/offer-cloud-readiness-readonly.py
+          python3 scripts/offer-cloud-readiness-readonly.py --self-test
       - name: Syntax checks
         run: |
           node --check server.js

@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Korrigiertes V2-Airtable-Staging-Image erfolgreich gebaut; Digest-Verifikation vorbereitet
+
+**Reales Cloud-Shell-Ergebnis nach explizitem `--plan && --build-only`:** Plan PASS; exakt ein separater Build `ebcde82f-f39b-42cf-a569-dd0c96180006` in `europe-west6` mit `STATUS: SUCCESS` (Dauer 14 s). Image-Tag: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-permfix-60a879296014`. Ausgabe bestätigte: `PASS: Permission-fixed STAGING Airtable-read v2 image build returned successfully.` Originaljob weiterhin mit exakt einer historischen fehlgeschlagenen Execution, neuer V2-Job NICHT angelegt. **Airtable-Live-GET weiterhin nicht bewiesen.**
+
+**Folgeschritt nur vorbereitet, bisher nicht real ausgeführt:** Neues `workers/onboarding-notifications/staging-airtable-image-verify-v2.sh` auf dem isolierten GitHub-Review-Branch. Es liest ausschließlich Cloud-Build-Metadaten der **exakten** Build-ID, vergleicht die exakt erwartete Image-Tag-Adresse und SHA-256-Digests aus Buildresultat (falls vorhanden) und Artifact Registry, verifiziert fünf unveränderte Quellen an Commit `60a87929601496b4b6192ec7945d80d6dc352b3e`, historische Originaljob-Execution und Nichtexistenz des separaten Fix-Jobs. Nur PASS-/STOP-Kategorien und immutables Image-Ref ausgeben; kein Secretpayload, keine Build-/Run-/IAM-Mutation. Neue vollständig gemockte synthetische Negativtests, Workflow-Syntaxprüfung ergänzt; CI-Ergebnis separat prüfen.
+
+**Einziger nächster Cloud-Shell-Befehl, strikt READ ONLY:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-verify-v2.sh
+```
+Nur nach erfolgreicher Digest-Verifikation einen neuen separaten **Create-only** Job (noch nicht angelegt) mit diesem SHA-256-Image planen und gesondert autorisieren; nie den ursprünglichen Job wiederholen. Outbox und alle produktiven Aktionen bleiben deaktiviert.
+
 ## 17.10.2026 – V2-Airtable-Probe: BuildKit-Inkompatibilität im Legacy-Cloud-Build behoben (nur Review-Branch)
 
 **Tatsächlicher Befund nach dem freigegebenen isolierten `--build-only`:** Cloud Build-ID `b9e6c4f5-43db-4561-89be-2e7480da5cea` in `europe-west6` endete mit Status `FAILURE`, beim Schritt 4 `COPY --chown=node:node --chmod=0644 ...`: `the --chmod option requires BuildKit`. Damit ist **nur der Docker-Build fehlgeschlagen**; die Dateirechtekorrektur wurde in Cloud Run nicht getestet. Die Python-SyntaxWarnings in `gcloud` sind nicht die Ursache. **Kein Image-Erfolg, keine Job-Neuanlage oder Ausführung; keine Airtable-Anfrage.**

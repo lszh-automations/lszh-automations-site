@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Sichtprüfung im Cloud-Shell-Browser: statische Offertenvorschau PASS
+
+**Direkter Nachweis des Betreibers:** Screenshot aus Google Cloud Shell Web Preview auf dem IAM-authentifizierten lokalen Cloud-Run-Proxy. Aufgerufen wurde der Pfad `/offerte-annehmen/?demo=1`; im Browser wurde die vorhandene LSZH-HTML-Offertenoberfläche mit Logo, Test-Offerte `MUSTER-2026-001`, `Muster KMU AG`, Leistung `Automatisierter Anfrageprozess`, `CHF 1'490` Einmalumsetzung, `CHF 149 / Monat`, Zahlungsmodell, Gültigkeit `30.11.2026` und Abschnitt für die PDF-Dokumente sichtbar korrekt gerendert. Sichtbarer Banner: `Dies ist eine Designvorschau. Es gibt keine echten Vertragsdokumente.` Der Screenshot ist ein **visueller Browser-Render-Nachweis**, aber kein separater Beleg für echte PDF-Downloads oder Vertragsannahmen.
+
+**Zusammen mit dem davor bestätigten echten Live-Smoketest:** `GET /offerte-annehmen/?demo=1` -> HTTP 200; andere GET-/Token-Routen und sämtliche Offerten-/PDF-/Annahme-POSTs -> HTTP 503; bestehender interner Preflight und IAM-Zustand unverändert. Keine echten Angebots-PDFs, keine Firestore-/Drive-Berechtigungen, keine Vertragswirkung, keine Kundendaten, kein Mailversand.
+
+**Status:** Geschützte, *rein statische und unverbindliche* Cloud-Run-Designvorschau inklusive visueller Sichtprüfung **abgenommen**. Der nächste technische Meilenstein ist ein vollständig synthetischer Angebots-/PDF-End-to-End-Test mit **vorheriger Archiv-/SHA-256-Prüfung**, AVV Ja/Nein, separater eng begrenzter Staging-Identität und nachweislich fiktivem Testdatensatz. Bestehenden Emulator-only-Importer nicht für Cloud-Writes öffnen, den internen Dienst nicht deployen, `/api/offer/accept` weiterhin sperren.
+
+---
+
+
 ## 18.10.2026 – Echtes Cloud-Run-Static-Demo-Smoke BESTANDEN (IAM-geschützt, ohne Daten)
 
 **Betreiber-Rückmeldung aus Cloud Shell, vollständig SUCCESS:**

@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Zweite unabhängige IAM-Metadatenprüfung der Quarantäne-Staging-Konfiguration PASS
+
+**Tatsächlich vom Geschäftsführer ausgeführt:** `git pull --ff-only` auf `feature/onboarding-notification-outbox-20261016` bis `116cf02`, anschliessend `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` im geschäftlichen Google-Cloud-Kontext. Die von ihm bereitgestellte Terminalausgabe:
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+LIMIT: Database-level access, NOT collection-specific isolation.
+LIMIT: Inherited permissions, effective REST access and service-account keys not independently verified.
+PLAN ONLY: No IAM grants, token minting, Firestore requests or Job executions.
+```
+
+**Damit bestätigt:** Die bereits separat erstellte Named Database `lszh-quarantine-staging`, Service-Identität `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`, Custom Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit genau `datastore.entities.create/get/update` und genau eine auf die Quarantäne-Datenbank beschränkte Projekt-IAM-Condition stimmen aus frischem Metadatenbild überein. Die zuvor nach einmaliger IAM-Einrichtung bestätigte Abwesenheit benutzerverwalteter Service-Account-Schlüssel ist **nicht** Inhalt dieser zweiten unabhängigen Prüfung.
+
+**Restgrenzen:** Kein effektiver REST-Test mit der neuen Serviceidentität, kein unabhängiger Nachweis geerbter Berechtigungen oder wirksamer Isolation gegenüber `lszh-offers-staging`, keine Dokumentoperation und keine Live-Runtime. Diese rein lesende Prüfung hat keine Ressourcen mutiert. Frühere einmalige Datenbank- und IAM-Provisionierungsbefehle auf keinen Fall wiederholen. Bevor ein neuer realer, selbst nur lesender impersonierter Firestore-API-Aufruf oder ein Cloud-Run-Aufbau erfolgt, ist ein enger, eigenständig zu prüfender Plan samt expliziter Freigabe vorgesehen; eine echte Dokument-Schreibprobe bleibt separat freigabepflichtig.
+
 ## 17.10.2026 – Reale Quarantäne-IAM-Bereitstellung erfolgreich, keine Firestore-Dokumentoperationen
 
 **Nachweis durch vom Geschäftsführer unter `lars@lszh-automations.ch` in Cloud Shell ausgeführten, ausdrücklich für diese drei Ressourcen genehmigten Einmal-Lauf** des auf Review-Commit `8d8a6ab` synchronisierten Skripts `staging-quarantine-iam-setup.sh --apply-once` mit exakter Genehmigungsvariable:

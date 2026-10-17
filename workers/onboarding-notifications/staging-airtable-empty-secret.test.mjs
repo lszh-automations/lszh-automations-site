@@ -38,7 +38,7 @@ case "$1:$2:$3" in
   else
     echo '{"name":"projects/lszh-automations/secrets/lszh-airtable-readonly-staging","replication":{"userManaged":{"replicas":[{"location":"europe-west6"}]}}}'
   fi ;;
- secrets:versions:list)
+ secrets:versions:list) [[ "$4" == "lszh-airtable-readonly-staging" ]] || exit 64; [[ "$*" != *"--secret="* ]] || exit 64;
   [[ "\${FAKE_HAS_VERSION:-0}" == 0 ]] || echo projects/lszh-automations/secrets/lszh-airtable-readonly-staging/versions/1 ;;
  *) exit 88 ;;
 esac
@@ -63,6 +63,8 @@ test('explicit empty secret creates Zurich-only user-managed replica and no vers
  const r=simulate(['--create-empty']);
  assert.equal(r.status,0,r.stderr+' '+r.stdout);
  assert.match(r.stdout,/zero secret versions/);
+ assert.match(r.audit,/secrets versions list lszh-airtable-readonly-staging --project=lszh-automations/);
+ assert.doesNotMatch(r.audit,/secrets versions list --secret=/);
  assert.equal(r.audit.match(/secrets create/g)?.length,1);
  assert.match(r.audit,/--replication-policy=user-managed --locations=europe-west6/);
  assert.match(r.audit,/secrets describe/);

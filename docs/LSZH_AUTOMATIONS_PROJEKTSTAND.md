@@ -1,5 +1,41 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Live-CAS-Nachweis: synthetische Firestore-Revision 2 bestätigt, temporäre IAM-Rolle entfernt
+
+**Tatsächlich durch den Geschäftsführer am 17.10.2026 in Google Cloud Shell ausgeführter einmaliger, ausdrücklich freigegebener Test:** `staging-quarantine-cas-write-once.sh --run-approved-once` nach Git-Update auf Commit `e682f7d`. Das exakt auf den dedizierten Quarantäne-Service-Account beschränkte `roles/iam.serviceAccountTokenCreator`-Binding erhielt eine bestätigte **30-Minuten-Ablaufbedingung**; auf die erfolgreiche IAM-Metadatenprüfung folgten **600 Sekunden IAM-Propagation-Wartezeit**. Danach wurde die kurzlebige Impersonierung verwendet, um genau **ein** neues synthetisches Dokument in `lszh-quarantine-staging` zu erzeugen und anschliessend atomar zu aktualisieren. Die vom Geschäftsführer geteilte Terminalausgabe belegt:
+
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; starting one gated synthetic CAS run.
+FIXTURE_ID: 314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42
+FIXTURE_DB: lszh-quarantine-staging; FIXTURE_COLLECTION: lszh_onboarding_quarantine_cases_staging
+FIXTURE_POLICY: No automatic deletion; retain synthetic case for approved later cleanup.
+PASS: Random synthetic document verified absent (404).
+PASS: CREATE committed conditionally (exists:false); revision 1 read back and verified.
+PASS: UPDATE committed with exact old updateTime; revision 2 verified.
+DONE: One synthetic CREATE, one conditional UPDATE, three GETs, no deletes.
+DONE: Case stays quarantined, send-disabled and requires manual approval.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Ergebnis und genaue Reichweite:** 3 echte zielgeheftete Dokument-GETs und 2 echte atomare Firestore-`documents:commit`-POSTs im **einen synthetischen** Datensatz; anfänglich Abwesenheit mit 404, danach bestätigte Revision 1 nach `exists:false` und bestätigte Revision 2 nach `currentDocument.updateTime`. Endzustand gemäss verifiziertem Readback: `QUARANTINED_REQUIRES_MANUAL_RESOLUTION`, `deliveryAllowed=false`, `requiresManualApproval=true`. Keine E-Mail, keine Cloud-Run-Ausführung, kein Kunden-Datensatz und kein DELETE. Die temporäre Service-Account-Token-Creator-Rolle wurde **sofort anschliessend entfernt**, und ein unabhängiger SA-IAM-Policy-Readback meldete das Fehlen der Bindung. **Kein temporärer IAM-Zugriff mehr aus diesem Test aktiv.** Der Ablauf belegt reale Erstellung/Aktualisierung dieses Testfalls; gleichzeitige konkurrierende echte Writes, allgemeine IAM-Vererbung und produktiver Betrieb wurden nicht geprüft.
+
+**Verbliebener synthetischer Fixture – bewusst nicht gelöscht:**
+- Projekt: `lszh-automations`
+- Named Database: `lszh-quarantine-staging`
+- Collection: `lszh_onboarding_quarantine_cases_staging`
+- Document ID: `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42`
+- Erwartete letzte Revision: `2`; Sendung verboten, manuelle Freigabe erforderlich.
+- Die bestehende CAS-Identität hat genau `datastore.entities.create/get/update` und **kein** `datastore.entities.delete`. **Keine** neue Berechtigung vergeben, keine Löschung oder zusätzliche Schreibanfrage starten. Bei späterer expliziter Aufräumfreigabe muss sich das Verfahren auf genau diesen dokumentierten Testdatensatz beziehen und vor Löschen Identität/Revision/Version nachprüfen; ein eventueller Audit-Nachweis sollte vorher gesichert werden.
+
+**Einmal-Sperre:** `staging-quarantine-cas-write-once.sh --run-approved-once` wurde **erfolgreich konsumiert** und darf **nie erneut** laufen. Frühere V1/V2-Leserunner und Initial-Provisionierer ebenfalls nicht erneut ausführen. Nächster Entwicklungsabschnitt: aus den offline bewährten Bausteinen einen kontrollierten Quarantäne-Persistenzadapter/Integrationsweg mit geschlossenen Sendeschranken planen; **kein** produktiver Versand, keine weitere Staging-Mutation, kein IAM/Cloud-Run-Deployment ohne neue explizite Freigabe.
+
 ## 17.10.2026 – Synthetischer Quarantäne-CAS-Schreibtest ausdrücklich freigegeben; separater einmaliger Cloud-Shell-Ablauf vorbereitet
 
 **Neue, ausdrückliche Benutzerfreigabe:** Auf die unmittelbar zuvor angekündigte **erste echte synthetische Firestore-CAS-Schreibprobe** antwortete der Geschäftsführer `du hast die freigabe, vamos`. Zulässiger Umfang: **ausschliesslich** die schon bestehende separat isolierte `lszh-quarantine-staging`-Datenbank und Collection `lszh_onboarding_quarantine_cases_staging`; **ein zufällig erzeugtes nicht vorbestehendes synthetisches Dokument**, atomare **Erstellung** mit `currentDocument.exists=false`, genau eine **Aktualisierung** mit exakt gelesenem `currentDocument.updateTime`, unabhängiger Readback nach jeder Mutation, keinerlei Kundendaten oder produktive Aktionen. Zur Impersonierung ist **genau eine weitere**, auf den dedizierten Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` begrenzte **30-Minuten-`roles/iam.serviceAccountTokenCreator`-IAM-Bindung** mit verifiziertem Ablauf und unmittelbarer Entfernung im EXIT-Cleanup Bestandteil des freigegebenen Testwegs. Sie ist **keine dauerhafte IAM-Rolle**. Zuvor erfolgreiches reales Lese-Isolations-Testing 404/403 dient als Grundlage; die alten Einmal-Leserunner bleiben gesperrt.

@@ -1,5 +1,44 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Separater Airtable-STAGING-Cloud-Run-Job erstellt, null Ausführungen; Einmal-Test nur als Plan vorbereitet
+
+Der Geschäftsführer führte nach `git pull --ff-only` den bewusst freigegebenen `bash workers/onboarding-notifications/staging-airtable-job.sh --create-only` in Google Cloud Shell aus. Die tatsächlichen Live-Meldungen:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.
+PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.
+CREATE ONLY: Creating one new staging Cloud Run Job; NEVER executing.
+Creating Cloud Run job [lszh-airtable-read-probe-staging] in project [lszh-automations] region [europe-west6]
+Job [lszh-airtable-read-probe-staging] has successfully been created.
+PASS: Created Job spec pinned to exact digest, service identity, env gate and Secret v1 file.
+PASS: New STAGING Cloud Run Job created and verified, with ZERO executions.
+STOP HERE: Running job and live Airtable GET require a separate explicit step.
+```
+
+**Als LIVE verifiziert:** Ausschliesslich der vorher nicht existierende separate Cloud Run Job `lszh-airtable-read-probe-staging` in `europe-west6` ist nun **tatsächlich erstellt** und seine Metadaten nach der Anlage wurden rückgeprüft: exakter `@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab`-Container, dediziertes Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret `lszh-airtable-readonly-staging` Version `1` als Datei-Mount `/var/secrets/lszh/airtable-read-pat`, isolierte drei Staging-Env-Flags, genau **eine Aufgabe**, **maxRetries=0**, damals **0 Job-Executions**. **`staging-airtable-job.sh --create-only` niemals wiederholen.** Keine Airtable-GET-Anfrage bisher, kein PAT-Klartext ausgelesen, keine Firestore- oder Mailaktion. Bestehender `lszh-onboarding-outbox-staging`-HTTP-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, keine produktiven Änderungen.
+
+**Neu in GitHub Draft-PR #8 – streng getrennter EINMAL-Test vorbereitet:** `workers/onboarding-notifications/staging-airtable-job-run.sh` mit Default `--plan` (keine Cloud-Mutation) und separatem `--execute-once` (maximal ein `gcloud run jobs execute <NAME> --region=europe-west6 --wait`, ohne Overrides). Der Preflight fordert:
+- korrektes aktives LSZH-Geschäftskonto/Projekt, saubere synchronisierte Feature-Branch und unveränderte fünf am Original-Source-Commit gepinnte Container-Dateien;
+- Live-Cloud-Build-ID `1b909760-deb7-49a9-bfe8-b4e20af68133` `SUCCESS`, exakter ursprünglicher Image-Tag und mit Artifact Registry abgeglichener **unveränderlicher** SHA-256-Digest;
+- dediziertes aktives Dienstkonto, korrektes globales Secret mit exakt einer **user-managed Zurich-Replica**, genau eine `ENABLED`-Version `1` und genau passende eigene `roles/secretmanager.secretAccessor`-Binding auf diesem einen Secret;
+- exakte **bereits existierende** Cloud-Run-Job-Spezifikation (v1/v2), eine Aufgabe, `parallelism=1`, `maxRetries=0`, unveränderlicher Image-Digest, keinerlei `command`-/`args`-Overrides, exakt drei vorgegebene Env-Flags, genau einen Secret-v1-Datei-Mount;
+- via `gcloud run jobs executions list --job=... --format=json` **leere Ausführungsliste** `[]`, bei malformed/nonempty STOP. Der Einmal-Modus prüft die Liste **zweimal**, bevor er einen einzigen Jobstart auslöst; bei fehlgeschlagenem/unklarem Jobstart **nicht wiederholen**.
+
+Der geplante einmalige Cloud-Run-Job würde exakt **eine** HTTPS-GET-Anfrage an Airtable mit einem frisch randomisierten synthetischen, nicht vorhandenen Projektcode ausführen, `processing` erwarten, nur fest definierte PASS-/STOP-Zeilen loggen und **keine** Kundendaten mutieren, Firestore aufrufen, Make triggern, Vertrag annehmen oder E-Mail versenden. Der Token-Wert wird nur im Job über den Secret-Datei-Mount gelesen, **nicht** im Shell-/GitHub-/Chat-/Cloud-Run-Env-Text. Die Google-Cloud-CLI `jobs execute --wait` und `jobs executions list --job` entsprechen https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/execute und https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/executions/list .
+
+**Offline-CI**, kein Live-Jobstart: `staging-airtable-job-run.test.mjs` prüft Plan-only, einmalige Ausführung, v2-Metadaten, eine bestehende Execution, falsche Role/Secret/Quelle/Digest/Job-Spezifikation, fehlgeschlagene Ausführung ohne Retry und ungültige Flags. Erfolgreicher CI-Lauf `39021151705` mit **169/169 Node-Tests und 8/8 IAM-Tests**. GitHub-CI führt die eigentliche Execution niemals aus.
+
+**Nächster Schritt – ausschliesslich lesender Cloud-Shell-Plan:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run.sh
+```
+Erwartet `PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.`, `PASS: Zero Cloud Run executions registered for this exact Job.` und `PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.`. Bei STOP keine Ausführung oder Änderung, Log einordnen. Erst nach unabhängigem tatsächlichen Live-Plan-PASS darf der Geschäftsführer **separat** `--execute-once` starten; ein erfolgreicher `gcloud --wait`-Exit beweist allein noch nicht die drei erwarteten Probe-PASS-Logs, Logs sind danach separat schreibgeschützt zu kontrollieren.
+
 ## BESTÄTIGT 17.10.2026 – Isolierter Cloud-Run-Airtable-JOB-Preflight LIVE PASS; Job-Erstellung ausstehend
 
 Der Geschäftsführer hat den neuen `workers/onboarding-notifications/staging-airtable-job.sh` **ohne Argumente** nach einem sauberen `git pull --ff-only` in Cloud Shell ausgeführt; Live-Ausgabe:

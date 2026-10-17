@@ -1,5 +1,40 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Ursache des EACCES-Containerstarts identifiziert; isolierter nicht-Root-Fix V2 nur vorbereitet
+
+**Weitere tatsächliche Cloud-Run-Diagnose des Geschäftsführers:**
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+Execution reported failed tasks: 1
+Job log entries returned: 14
+Entries matching execution label: 12
+Log source types: CONTAINER_STDERR, PLATFORM_OR_SYSTEM
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Permission evidence classification: CONTAINER_FILESYSTEM_DENIED, GENERIC_PERMISSION_DENIED_ONLY
+Denied error source: CONTAINER_STDERR
+Denied error identifiers: EACCES
+Denied filesystem operation: OPEN, OPERATION_NOT_IDENTIFIED
+Denied path family (same log entry only): APP_FILESYSTEM, PATH_NOT_IDENTIFIED_IN_ERROR_ENTRY
+Application PASS log count: 0
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+**Root Cause nach Quellinspektion sehr hoch plausibel, noch kein reparierter Live-Test:** Das alte `workers/onboarding-notifications/staging-airtable-image-build.sh` verwendet `umask 077`, erstellt in `mktemp -d` einen Build-Kontext, `mkdir -p` und `cp` ohne nachträgliche Rechtekorrektur. Dadurch sind die drei kopierten JavaScript-Quellen lokal typischerweise **0600** und die übergeordneten Quellverzeichnisse **0700**. Die alte `Dockerfile.airtable-read-probe` übernimmt via unqualifizierten `COPY` die Datei-Rechte, startet aber via `USER node` als Nicht-Eigentümer. Ein `node`-Runtime-Prozess kann die so kopierten 0600-`/app`-Dateien nicht lesen: genau passend zum Live-Fehler **`EACCES` + `OPEN` + `APP_FILESYSTEM` auf Container-`stderr`**. Der Effekt wurde im lokalen Bash-Dateirechte-Simulationstest tatsächlich nachvollzogen: `umask 077; mkdir; cp` erzeugte `0700`-Directories und `0600`-Files; nach explizitem `chmod` **0755/0644**. Offizielle Docker-Dokumentation bestätigt, dass `COPY` Dateiberechtigungen übernimmt und `COPY --chmod` und `--chown` unterstützt: https://docs.docker.com/reference/dockerfile/ . **Ein echter korrigierter Build oder Cloud Run Test fand noch NICHT statt**, daher Root Cause noch als sehr gut begründete Diagnose, nicht als end-to-end behoben kennzeichnen.
+
+**Fix mit kleinstem Rechteumfang, bestehende Sicherheitsgrenzen unverändert:**
+- Die alte fehlgeschlagene Ressource `lszh-airtable-read-probe-staging`, ihre einzige Execution `lszh-airtable-read-probe-staging-xglcz`, das alte Image `@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab` und alle ursprünglichen gepinnten Quellen/Skripte **unverändert lassen**. Kein Retry des Originaljobs.
+- Neu im nur nicht-merged GitHub-Draft-PR #8: `workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2` mit explizitem `COPY --chown=node:node --chmod=0644` für die **drei** notwendigen JS-Quellen, `RUN chmod 0755` nur für die vier `/app`-Vorfahrenverzeichnisse und weiterhin **`USER node`**. Keine privilegierte Runtime, kein Token im Image.
+- Neuer JS-Wrapper `airtable-runtime-probe-v2.js`, identisch im Test-/Leseverhalten, aber fest auf den **neuen, separaten Jobnamen** `lszh-airtable-read-probe-fix-staging` begrenzt, um keinen neuen Job unter altem Namen oder alte Execution zu überschreiben.
+- Neue explizite Cloud-Build-YAML `cloudbuild.airtable-read-probe-v2.yaml` und gated `staging-airtable-image-build-v2.sh`. Das Skript pinnt den **genau geprüften 5-Dateien-V2-Quellzustand** an Commit `0f2f7890720f468e72b8b985abdf017270ce81d4`. Es prüft dasselbe LSZH-Geschäftskonto, Zürcher Artifact Registry, aktives dediziertes Service Account, exakt eine STAGING-Secret-Version 1, direkte secret-spezifische IAM-Berechtigung sowie die Existenz des alten Jobs mit **genau seiner einen gescheiterten Execution**, plus **Nichtexistenz** des neuen Jobs. Default ist **`--plan`** (nur Metadata GET), erst `--build-only` würde ein *neues*, separates Image mit Tag `stg-permfix-0f2f7890720f` bauen. Im temporären fünf-Dateien-Buildkontext prüft es explizit `0644` für Dateien und `0755` für Unterverzeichnisse. Nur fünf Quell-/Build-Dateien, **kein PAT, kein Kundenrecord, kein HTTP-Outbox**, keine Secret-Lesung, Job-Anlage oder Ausführung durch den Build.
+- Offline-GitHub-Actions-Lauf `39023607308`: **191/191 Node-Tests, 8/8 Python-IAM-Tests PASS**; enthält Mode-Assertions am Mock-Buildkontext, Nichtroot-Dockerfile, Unveränderlichkeit der ursprünglichen fehlgeschlagenen Ausführung, Verbot von mutierenden Job-/Secret-Calls.
+
+**Nächster einzig erlaubter Schritt, nur LESENDER V2-Build-PLAN:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build-v2.sh
+```
+Bei vollständigem PASS erst getrennt der neue **Build only** (`--build-only`) erwägen, danach Digest-Check und separat ein **neuer** Cloud Run Job. Keinerlei Deployment, Mailversand, Make-Aktivierung, Firestore-/Kundenänderung oder alte Jobausführung erlaubt. Dieser Fix vermeidet eine IAM-Rechteausweitung oder ein Ausführen als Root. Die Outbox bleibt deaktiviert.
+
 ## 17.10.2026 – Failed Airtable-Cloud-Run-Job: Permission verweigert, sichere Dateibereichsklassifizierung nachgerüstet
 
 Der Geschäftsführer hat nach synchronisiertem Git-Pull die read-only Diagnosis `staging-airtable-execution-diagnose.sh` erneut ausgeführt. **Reale, zuletzt bestätigte Befunde für die EXAKT EINE fehlgeschlagene Execution `lszh-airtable-read-probe-staging-xglcz`:**

@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Cloud Run Ingress (betreiberseitig read-only geprüft)
+
+**Neue Ist-Bestätigung** aus `gcloud run services describe lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(metadata.annotations)"`:
+
+- `run.googleapis.com/ingress: internal`, `run.googleapis.com/ingress-status: internal`: der bestehende Dienst ist für direkte externe Browseraufrufe **nicht** freigegeben. Dies ist unabhängig davon, ob die HTTPS-URL existiert und sagt noch nichts über die IAM-Invoker-Rollen aus.
+- `run.googleapis.com/build-function-target: lszhPortalPreflight`: bestehender ausgerollter Read-only-Preflight, nicht der neue vollständige Portal-HTTP-Code.
+- `run.googleapis.com/maxScale: '1'` und Google-22-/Node.js-22-Laufzeit.
+- Annotation `run.googleapis.com/urls` enthält die beiden Cloud-Run-Adressen `https://lszh-offer-portal-staging-470613067122.europe-west6.run.app` und `https://lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app`. Beide sind als Hostnames in der Staging-Config berücksichtigt; externe Erreichbarkeit folgt daraus **nicht**.
+- Bereits separat bestätigt: Revision `lszh-offer-portal-staging-00004-qt7` hat **100 % Traffic**, eigenes Dienstkonto `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com`.
+- **Noch offen:** zweite read-only Prüfung `gcloud run services get-iam-policy lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(bindings)"` zur Invoker-Policy; keine Änderung von Ingress oder IAM, kein Cloud-Deploy, keine echten Test-/Kundendaten. Für echten Browser-Stagingtest vorab sicheren, vom Betreiber genehmigten Zugangsweg wählen, ohne das interne Archiv zu öffnen.
+
+---
+
+
 ## 17.10.2026 – Google-Cloud-Status vom Betreiber verifiziert (read-only)
 
 **Nachweis:** `gcloud run services describe lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(status.url,status.traffic,spec.template.spec.serviceAccountName)"`

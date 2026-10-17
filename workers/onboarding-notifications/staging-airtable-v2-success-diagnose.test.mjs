@@ -22,7 +22,7 @@ test('exact V2 execution and 3 labelled stdout PASS prove read-only success with
  const r=simulate();
  assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
  assert.match(r.stdout,/Live STAGING Cloud Run -> Airtable GET succeeded exactly once/);
- assert.match(r.stdout,/Original failed job preserved/);
+ assert.match(r.stdout,/original historic failed job preserved/);
  assert.match(r.stdout,/READ ONLY:/);
  assert.doesNotMatch(r.stdout,/pat_MUST_NOT_LEAK|TOP_SECRET|airtable_token_not_authorized/);
  assert.doesNotMatch(r.audit,/jobs execute|jobs create|secrets versions access|run deploy|builds submit/);

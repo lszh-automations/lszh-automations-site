@@ -22,6 +22,8 @@ test('both Cloud Shell scripts parse safely and use exact isolated staging names
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else if(file===smoke || file===staticSmoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
+  else if(file===driveProbeRelease)
+   assert.match(s,/SA="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   assert.match(s,/offer-cloud-readiness-readonly\.py/);

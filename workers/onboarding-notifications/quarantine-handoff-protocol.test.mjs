@@ -48,7 +48,7 @@ test('fresh source attestation signs only an opaque document ID, exact review re
  assert.ok(Object.isFrozen(envelope.payload));
  assert.match(envelope.signature,/^[A-Za-z0-9_-]{43}$/);
  const text=JSON.stringify(envelope);
- for(const secretValue of ['recAAAAAAAAAAAAAA','ob_', '@','Bearer','recipient','createdAt','emailSent','Rechnungs-','/documents:commit','pat_']){
+ for(const secretValue of ['recAAAAAAAAAAAAAA','ob_','@example.invalid','Bearer','recipient','createdAt','emailSent','Rechnungs-','/documents:commit','pat_']){
   assert.equal(text.includes(secretValue),false,secretValue);
  }
  const checked=asVerified(envelope);

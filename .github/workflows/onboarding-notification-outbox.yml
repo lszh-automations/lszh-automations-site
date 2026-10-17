@@ -28,6 +28,7 @@ jobs:
           node --check workers/onboarding-notifications/firestore-store.js
           node --check workers/onboarding-notifications/firestore-runtime-probe.js
           node --check workers/onboarding-notifications/firestore-write-probe.js
+          node --check workers/onboarding-notifications/staging-airtable-rest-read.js
       - name: Run synthetic offline tests
         run: node --test workers/onboarding-notifications/*.test.mjs
       - name: Verify read-only Cloud Shell preflight syntax
@@ -42,6 +43,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-impersonation-diagnostics.sh
           bash -n workers/onboarding-notifications/staging-firestore-job.sh
           bash -n workers/onboarding-notifications/staging-firestore-write-job.sh
+          bash -n workers/onboarding-notifications/staging-airtable-rest-read.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

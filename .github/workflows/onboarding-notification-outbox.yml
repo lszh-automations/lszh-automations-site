@@ -36,6 +36,7 @@ jobs:
           node --check workers/onboarding-notifications/quarantine-handoff-http-contract.js
           node --check workers/onboarding-notifications/quarantine-handoff-replay-runtime.js
           node --check workers/onboarding-notifications/quarantine-handoff-receiver.js
+          node --check workers/onboarding-notifications/quarantine-handoff-source.js
           node --check workers/onboarding-notifications/staging-quarantine-cas-write-once.js
           node --check workers/onboarding-notifications/quarantine-iam-plan.js
           node --check workers/onboarding-notifications/quarantine-iam-provisioning.js
@@ -83,6 +84,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-quarantine-cas-write-once.sh
           bash -n workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh
           bash -n workers/onboarding-notifications/staging-quarantine-db-provision.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-handoff-provision.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

@@ -40,13 +40,35 @@ case "$1 $2 $3" in
    touch "$MOCK_ROOT/deployed"
    echo 'MOCK: New private service deployed';;
  "run services describe")
-   echo '{"metadata":{"name":"lszh-quarantine-handoff-staging","annotations":{"run.googleapis.com/ingress":"all"}},"spec":{"template":{"spec":{"serviceAccountName":"lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com"}}}}';;
+   printf '%s\n' "$MOCK_SERVICE_JSON";;
  "run services get-iam-policy")
    echo '{"bindings":[]}';;
  *) echo unexpected_gcloud_call >&2; exit 2;;
 esac
 `;
-function simulate(mode,{preexisting=false,listFailure=false}={}){
+function simulate(mode,{preexisting=false,listFailure=false,badGate=false,badImage=false}={}){
+ const flags={
+  LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED:badGate?'true':'false',
+  LSZH_QUARANTINE_REPLAY_WRITE_ENABLED:'false',
+  LSZH_SCOPED_STAGING_READER_ENABLED:'false',
+  LSZH_SCOPED_READER_SCOPE:'quarantine',
+  LSZH_OUTBOX_STAGE_ENABLED:'false',
+  LSZH_QUARANTINE_HANDOFF_MODE:'REVIEW_ONLY',
+  FIRESTORE_PROJECT_ID:'lszh-automations',
+  FIRESTORE_DATABASE_ID:'lszh-quarantine-staging'
+ };
+ const serviceDescription={
+  metadata:{name:'lszh-quarantine-handoff-staging',
+   annotations:{'run.googleapis.com/ingress':'all'}},
+  spec:{template:{spec:{
+   serviceAccountName:'lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com',
+   containers:[{
+    image:badImage?'fake.registry.example/untrusted:tag':
+     'europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-quarantine-handoff:staging-131d67982f83',
+    env:Object.entries(flags).map(([name,value])=>({name,value}))
+   }]
+  }}}
+ };
  const root=mkdtempSync(join(tmpdir(),'lszh-handoff-inventory-'));
  const bin=join(root,'bin');mkdirSync(bin);
  for(const [name,source] of [['git',git],['gcloud',gcloud]]){
@@ -57,7 +79,8 @@ function simulate(mode,{preexisting=false,listFailure=false}={}){
   const proc=spawnSync('bash',[SCRIPT,mode],{
    cwd:root,encoding:'utf8',timeout:15000,
    env:{...process.env,PATH:bin+':'+process.env.PATH,MOCK_ROOT:root,
-    MOCK_LIST_FAILURE:listFailure?'yes':'no'}
+    MOCK_LIST_FAILURE:listFailure?'yes':'no',
+    MOCK_SERVICE_JSON:JSON.stringify(serviceDescription)}
   });
   const actions=existsSync(join(root,'actions.log'))?
    readFileSync(join(root,'actions.log'),'utf8').split('\n'):[];
@@ -92,4 +115,23 @@ test('subsequent plan identifies the newly existing disabled receiver without mu
  assert.equal(proc.status,0,proc.stderr+'\n'+proc.stdout);
  assert.match(proc.stdout,/PLAN: Receiver exists/);
  assert.equal(actions.some(x=>x.startsWith('run deploy')),false);
+});
+
+test('read-only disabled verification confirms exact deployed image, gates and private IAM',()=>{
+ const {proc,actions}=simulate('--verify-disabled',{preexisting:true});
+ assert.equal(proc.status,0,proc.stderr+'\n'+proc.stdout);
+ assert.match(proc.stdout,/PASS: New receiver exists/);
+ assert.equal(actions.some(x=>x.startsWith('run deploy')||x.includes('add-iam-policy-binding')),false);
+ assert.equal(actions.some(x=>x.startsWith('run services get-iam-policy')),true);
+});
+test('disabled verification fails closed for enabled processing gate',()=>{
+ const {proc,actions}=simulate('--verify-disabled',{preexisting:true,badGate:true});
+ assert.equal(proc.status,2);
+ assert.match(proc.stdout,/STOP: Deployed receiver image\/disabled gates not verified/);
+ assert.equal(actions.some(x=>x.startsWith('run deploy')),false);
+});
+test('disabled verification rejects unexpected images even with correct disabled flags',()=>{
+ const {proc}=simulate('--verify-disabled',{preexisting:true,badImage:true});
+ assert.equal(proc.status,2);
+ assert.match(proc.stdout,/STOP: Deployed receiver image\/disabled gates not verified/);
 });

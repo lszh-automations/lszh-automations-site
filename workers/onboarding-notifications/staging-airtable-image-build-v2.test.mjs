@@ -67,7 +67,7 @@ case "$1:$2:$3" in
  builds:submit:*)
    test -d "$3" || exit 78
    [[ "$*" == *"--region=europe-west6"* ]] || exit 78
-   [[ "$*" == *"--substitutions=_IMAGE=europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-permfix-0f2f7890720f"* ]] || exit 78
+   [[ "$*" == *"--substitutions=_IMAGE=europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-permfix-60a879296014"* ]] || exit 78
    test "$(find "$3" -type f | wc -l | tr -d '[:space:]')" == 5 || exit 78
    for f in "$3/onboarding/confirmation.js" "$3/workers/onboarding-notifications/staging-airtable-rest-read.js" "$3/workers/onboarding-notifications/airtable-runtime-probe-v2.js" "$3/workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2" "$3/workers/onboarding-notifications/cloudbuild.airtable-read-probe-v2.yaml";do
     [[ "$(stat -c '%a' "$f")" == 644 ]] || exit 79
@@ -144,8 +144,12 @@ test('shell syntax valid, only build submission allowed',()=>{
 test('v2 Dockerfile grants readable files while retaining unprivileged runtime',()=>{
  const d=readFileSync(path.join(worker,'Dockerfile.airtable-read-probe-v2'),'utf8');
  const v=readFileSync(path.join(worker,'airtable-runtime-probe-v2.js'),'utf8');
- assert.equal((d.match(/COPY --chown=node:node --chmod=0644 /g)||[]).length,3);
+ assert.equal((d.match(/^COPY --chown=node:node /gm)||[]).length,3);
+ assert.doesNotMatch(d,/^COPY .*--chmod=/gm);
  assert.match(d,/RUN chmod 0755 \/app /);
+ assert.match(d,/&& chmod 0644 \/app\/onboarding\/confirmation\.js/);
+ assert.match(d,/\/app\/workers\/onboarding-notifications\/staging-airtable-rest-read\.js/);
+ assert.match(d,/\/app\/workers\/onboarding-notifications\/airtable-runtime-probe-v2\.js/);
  assert.match(d,/\nUSER node\n/);
  assert.match(v,/const JOB='lszh-airtable-read-probe-fix-staging';/);
 });

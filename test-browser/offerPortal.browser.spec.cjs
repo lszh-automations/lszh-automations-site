@@ -212,3 +212,32 @@ for(const mode of ['Ja','Nein']){
    }finally{await fixture.close();}
  });
 }
+
+test('TEMP CLOUD-ONLY STATIC DEMO: real Chromium displays existing demo and never sends an offer POST',async({page})=>{
+ const {createTemporaryBrowserDemoHttp}=await import('../cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs');
+ const server=http.createServer(createTemporaryBrowserDemoHttp({enabled:true,pageHtml:HTML}));
+ await new Promise((resolve,reject)=>{
+  server.once('error',reject);server.listen(0,'127.0.0.1',resolve);
+ });
+ try{
+  const base='http://127.0.0.1:'+server.address().port;
+  await page.goto(base+'/offerte-annehmen/?demo=1');
+  await expect(page.locator('#number')).toHaveText('MUSTER-2026-001');
+  await expect(page.locator('#message')).toContainText('unverbindliche Designvorschau');
+  await expect(page.locator('#submit')).toBeDisabled();
+  await page.locator('#quotePdf').click();
+  await expect(page.locator('#message')).toContainText('keine echten Vertragsdokumente');
+  const apiResult=await page.evaluate(async()=>{
+    const res=await fetch('/api/offer/accept',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({code:'NOT_REAL'})});
+    return {status:res.status,body:await res.json()};
+  });
+  expect(apiResult).toEqual({status:503,body:{error:'not_available'}});
+  const preview=await page.request.get(base+'/offerte-annehmen/?code=NOT_REAL');
+  expect(preview.status()).toBe(503);
+  await page.reload();
+  await expect(page.locator('#submit')).toBeDisabled();
+ }finally{
+  await new Promise(resolve=>server.close(resolve));
+ }
+});

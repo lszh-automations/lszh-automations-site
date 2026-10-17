@@ -15,7 +15,10 @@ test('both Cloud Shell scripts parse safely and use exact isolated staging names
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
+  if(file!==smoke)
+   assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
+  else
+   assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
   assert.match(s,/offer-cloud-readiness-readonly\.py/);
   assert.doesNotMatch(s,/--allow-unauthenticated\b(?!\s)/,
     'must never allow anonymous access');

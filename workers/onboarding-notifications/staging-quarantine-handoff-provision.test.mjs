@@ -48,7 +48,7 @@ case "$1 $2 $3" in
     echo '{"bindings":[]}'
    fi;;
  "secrets versions describe") echo '{"state":"ENABLED"}';;
- "secrets get-iam-policy") printf '%s\n' "$MOCK_SECRET_POLICY";;
+ "secrets get-iam-policy "*) printf '%s\n' "$MOCK_SECRET_POLICY";;
  *) echo unexpected_gcloud_call >&2; exit 2;;
 esac
 `;

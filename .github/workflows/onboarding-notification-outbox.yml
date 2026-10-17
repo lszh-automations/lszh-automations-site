@@ -53,6 +53,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-airtable-image-build.sh
           bash -n workers/onboarding-notifications/staging-airtable-image-build-v2.sh
           bash -n workers/onboarding-notifications/staging-airtable-image-verify.sh
+          bash -n workers/onboarding-notifications/staging-airtable-image-verify-v2.sh
           bash -n workers/onboarding-notifications/staging-airtable-job.sh
           bash -n workers/onboarding-notifications/staging-airtable-job-run.sh
           bash -n workers/onboarding-notifications/staging-airtable-execution-diagnose.sh

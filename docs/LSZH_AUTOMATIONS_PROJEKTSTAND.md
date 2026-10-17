@@ -1,5 +1,35 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Isolierter Cloud-Run-Airtable-JOB-Preflight LIVE PASS; Job-Erstellung ausstehend
+
+Der Geschäftsführer hat den neuen `workers/onboarding-notifications/staging-airtable-job.sh` **ohne Argumente** nach einem sauberen `git pull --ff-only` in Cloud Shell ausgeführt; Live-Ausgabe:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Cloud Run job lszh-airtable-read-probe-staging not yet created.
+PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.
+PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.
+New separate Cloud Run Job: lszh-airtable-read-probe-staging
+Immutable image: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+Secret version 1 mounted only as read-only file /var/secrets/lszh/airtable-read-pat.
+Exactly one task, max retries zero, default-disabled outbox.
+PLAN ONLY: No Cloud Run Job created/executed and no secret payload read.
+```
+
+**Stand:** Der Testjob `lszh-airtable-read-probe-staging` wurde nachweislich **noch nicht erstellt**, das Image ist eindeutig auf den geprüften Build-Digest gepinnt; die dedizierte SA und der genau auf `lszh-airtable-readonly-staging` beschränkte IAM-Grant sind bestätigt, Secret-Version 1 ist `ENABLED` und wird erst nach Job-Ausführung als Datei an den isolierten Worker gemountet. **Kein PAT-Payload-Read und keine tatsächliche Cloud-Run→Airtable-Verbindung.**
+
+**Nächster separater Nutzerbefehl:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job.sh --create-only
+```
+Dies ist eine **echte Cloud-Run-Job-Erstellung** (mögliche Kosten), führt aber **keinen** Job aus. Das streng begrenzte Skript fordert sauberen Quellbranch/GCP-Account, erfolgreichen Original-Build, passenden Digest, aktives Dienstkonto, secret-spezifischen IAM-Grant, Secret-v1-Verfügbarkeit und Nichtexistenz des Jobs; erstellt danach genau einen Job mit **`--tasks=1 --parallelism=1 --max-retries=0 --task-timeout=90s`**, exakt drei statischen Env-Flags und dem ausschliesslich dateibasierten Secret-v1-Mount. Unmittelbare Metadaten-Rückprüfung von Job-Konfiguration, Dienstkonto, Image, Secret-Mount und **null Ausführungen**. Wenn die Rückprüfung wegen Cloud-Run-API-Format oder sonstiger Abweichungen STOP meldet, **nicht erneut `--create-only` ausführen**: Job kann bereits existieren und muss erst read-only geprüft werden.
+
+**Nicht freigeschaltet:** `gcloud run jobs execute`, Cloud-Run-Ausführungslog-Review, Airtable-GET, Make, Gmail, Firestore, Verträge, produktiver Outbox-Service. Bestehender Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert; der Testjob ist vollständig separat.
+
 ## BESTÄTIGT 17.10.2026 – Cloud Build Image-Digest LIVE verifiziert; separater Cloud-Run-Job nur geplant
 
 Der Geschäftsführer führte `staging-airtable-image-verify.sh` nach erfolgreichem `git pull --ff-only` tatsächlich in Google Cloud Shell aus:

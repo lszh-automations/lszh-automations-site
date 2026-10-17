@@ -66,10 +66,12 @@ except (ValueError,TypeError,AttributeError,AssertionError):
  print("Execution reported successful tasks: "+(str(successes) if type(successes) is int else "not reported"))
 ' "$EXEC"; then exit 2; fi
 
-# Official Cloud Run Job log dimensions, scoped to the exact execution.
-# Redirect all raw payload JSON through the sanitizer: do not copy logs verbatim.
-FILTER='resource.type="cloud_run_job" AND resource.labels.job_name="lszh-airtable-read-probe-staging" AND labels.execution_name="lszh-airtable-read-probe-staging-xglcz"'
-logs="$(gcloud logging read "$FILTER" --project="$PROJECT" --limit=100 --format=json)" ||
+# Cloud Run job stdout/stderr use the documented label key
+# "run.googleapis.com/execution_name", not universally labels.execution_name.
+# Query only the exact job+region; enforce exact execution in Python after read.
+# One historical execution is independently verified above. Never print raw logs.
+FILTER='resource.type="cloud_run_job" AND resource.labels.job_name="lszh-airtable-read-probe-staging" AND resource.labels.location="europe-west6"'
+logs="$(gcloud logging read "$FILTER" --project="$PROJECT" --limit=500 --format=json)" ||
  { echo 'STOP: Could not access execution logs. No retry allowed.';exit 2; }
 if ! printf '%s\n' "$logs" | python3 -c '
 import json,re,sys
@@ -78,8 +80,44 @@ try:
  assert isinstance(rows,list)
 except (ValueError,TypeError,AssertionError):
  print("STOP: Execution log inventory invalid. Do not rerun.");sys.exit(2)
-print("PASS: Cloud Logging query restricted to the one failed execution.")
-print("Matching log entries: "+str(len(rows)))
+print("PASS: Cloud Logging query restricted to the exact STAGING job and Zurich region.")
+print("Job log entries returned: "+str(len(rows)))
+# Cloud Run stdout/stderr log entries can label the execution in two different
+# fields; the canonical label is run.googleapis.com/execution_name.
+# Because there is exactly ONE execution for this job, unlabelled job logs can
+# safely be classified as job-local evidence; never claim that their tag is proven.
+requested=sys.argv[1]
+selected=[]
+labelled=0
+unlabelled=0
+ignored=0
+for x in rows:
+ if not isinstance(x,dict):
+  ignored+=1;continue
+ resource=x.get("resource",{})
+ if resource:
+  if not isinstance(resource,dict) or resource.get("type") not in (None,"cloud_run_job"):
+   ignored+=1;continue
+  rl=resource.get("labels",{})
+  if isinstance(rl,dict) and (
+     rl.get("job_name",sys.argv[2])!=sys.argv[2] or
+     rl.get("location","europe-west6")!="europe-west6"):
+   ignored+=1;continue
+ labels=x.get("labels",{})
+ if not isinstance(labels,dict):labels={}
+ entry_name=labels.get("run.googleapis.com/execution_name",labels.get("execution_name"))
+ if entry_name is None:
+  unlabelled+=1
+  selected.append(x)
+ elif entry_name==requested:
+  labelled+=1
+  selected.append(x)
+ else:
+  ignored+=1
+print("Entries matching execution label: "+str(labelled))
+print("Job entries without execution label (only one execution exists): "+str(unlabelled))
+print("Other/unusable entries ignored: "+str(ignored))
+print("Matching or safely attributable entries: "+str(len(selected)))
 # Even if logs contain sensitive values, NEVER print textPayload/jsonPayload.
 known={
  "airtable_runtime_probe_disabled","airtable_secret_unavailable",
@@ -91,9 +129,7 @@ known={
 signals=set()
 categories=set()
 pass_count=0
-for x in rows:
- if not isinstance(x,dict):
-  continue
+for x in selected:
  text=x.get("textPayload","")
  payload=x.get("jsonPayload")
  if isinstance(payload,dict):
@@ -125,9 +161,9 @@ else:print("Safe application STOP code(s): none observed")
 if categories:print("Recognized runtime error category: "+", ".join(sorted(categories)))
 else:print("Recognized runtime error category: none identified")
 print("Application PASS log count: "+str(pass_count))
-if not rows:print("STOP: No exact-execution logs found; check Cloud console filters. Never rerun.")
+if not selected:print("STOP: No matching job/container logs found; open exact execution Logs tab privately. Never rerun.")
 elif not signals and not categories and pass_count==0:
  print("STOP: Cause not classifiable from sanitized logs; inspect Cloud console privately.")
 print("No raw log text or Secret Manager payload printed.")
-'; then exit 2; fi
+' "$EXEC" "$JOB"; then exit 2; fi
 echo 'READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.'

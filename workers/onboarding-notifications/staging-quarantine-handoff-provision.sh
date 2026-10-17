@@ -15,7 +15,7 @@ SECRET='lszh-stg-quarantine-handoff-hmac'
 REPOSITORY='cloud-run-source-deploy'
 MODE="${1:---plan}"
 case "$MODE" in
- --plan|--build-only|--deploy-private-disabled|--bind-invoker|--create-secret|--enable-review-only) ;;
+ --plan|--verify-disabled|--build-only|--deploy-private-disabled|--bind-invoker|--create-secret|--enable-review-only) ;;
  *) echo 'STOP: Unknown operation.';exit 2;;
 esac
 [[ $# -le 1 ]] || { echo 'STOP: One operation at a time.';exit 2; }
@@ -112,6 +112,49 @@ if [[ "$MODE" == '--plan' ]];then
  echo 'STOP: PLAN performs no mutation.'
  exit 0
 fi
+# Separate READ-ONLY verification after a successful disabled receiver deploy.
+# Never emits credential values or full runtime environment into logs.
+if [[ "$MODE" == '--verify-disabled' ]];then
+ verify_receiver
+ if ! python3 - "$TMP/service.json" <<'PY'
+import json,re,sys
+try:
+ data=json.load(open(sys.argv[1]))
+ spec=data['spec']['template']['spec']
+ containers=spec['containers']
+ assert isinstance(containers,list) and len(containers)==1
+ c=containers[0]
+ assert re.fullmatch(
+  r'europe-west6-docker\.pkg\.dev/lszh-automations/cloud-run-source-deploy/lszh-quarantine-handoff:staging-[a-f0-9]{12}',
+  c['image'])
+ items=c['env']
+ assert isinstance(items,list)
+ assert all(set(i)=={'name','value'} and isinstance(i['value'],str) for i in items)
+ env={i['name']:i['value'] for i in items}
+ expected={
+  'LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED':'false',
+  'LSZH_QUARANTINE_REPLAY_WRITE_ENABLED':'false',
+  'LSZH_SCOPED_STAGING_READER_ENABLED':'false',
+  'LSZH_SCOPED_READER_SCOPE':'quarantine',
+  'LSZH_OUTBOX_STAGE_ENABLED':'false',
+  'LSZH_QUARANTINE_HANDOFF_MODE':'REVIEW_ONLY',
+  'FIRESTORE_PROJECT_ID':'lszh-automations',
+  'FIRESTORE_DATABASE_ID':'lszh-quarantine-staging'
+ }
+ assert len(items)==len(expected) and env==expected
+except (KeyError,TypeError,ValueError,AssertionError,OSError):
+ sys.exit(1)
+PY
+ then
+  echo 'STOP: Deployed receiver image/disabled gates not verified.'
+  exit 2
+ fi
+ echo 'PASS: New receiver exists, expected reviewed image and all disabled gates verified.'
+ echo 'PASS: Dedicated destination identity and no direct public invoker IAM binding verified.'
+ echo 'READ ONLY: No IAM grants, secrets, Firestore writes, or customer processing.'
+ exit 0
+fi
+
 if [[ "$MODE" == '--build-only' ]];then
  mkdir -p "$TMP/context/onboarding" "$TMP/context/workers/onboarding-notifications"
  FILES=(

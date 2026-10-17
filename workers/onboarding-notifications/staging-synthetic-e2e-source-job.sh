@@ -14,7 +14,7 @@ AIRT=lszh-airtable-readonly-staging
 HMAC=lszh-stg-quarantine-handoff-hmac
 JOB=lszh-quarantine-source-e2e-staging
 EXPECTED_SHA=7e8e90c6bac9e76e11bbbd072f62098a12b6aa68bbdf8a697e9af96459dc9a91
-RECEIVER=https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app
+RECEIVER=https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app
 MODE=--plan
 if [[ $# -eq 1 ]];then MODE="$1";fi
 [[ $# -le 1 && ( "$MODE" == --plan || "$MODE" == --build-only ||

@@ -29,6 +29,7 @@ jobs:
           node --check workers/onboarding-notifications/firestore-quarantine-cas.js
           node --check workers/onboarding-notifications/quarantine-cas-offline-cycle.js
           node --check workers/onboarding-notifications/onboarding-quarantine-integration.js
+          node --check workers/onboarding-notifications/firestore-scoped-readers.js
           node --check workers/onboarding-notifications/staging-quarantine-cas-write-once.js
           node --check workers/onboarding-notifications/quarantine-iam-plan.js
           node --check workers/onboarding-notifications/quarantine-iam-provisioning.js

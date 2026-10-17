@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Leeres Zürich-STAGING-Secret tatsächlich vollständig verifiziert
+
+Der Geschäftsführer führte `git pull --ff-only` und anschliessend das korrigierte rein lesende `staging-airtable-secret-diagnose.sh` im LSZH-Cloud-Shell-Projekt aus. Die Live-Ausgabe lautete:
+```text
+PASS: Company identity and independently verified project number.
+Secret identifier matches: PASS
+Secret project verified (ID or numeric): PASS
+Replication mode: user-managed
+Replica regions: europe-west6
+Zurich-only replica: PASS
+PASS: Exactly zero secret versions.
+PASS: Existing empty Zurich-only STAGING secret independently verified.
+READ ONLY: No token, IAM grants, Cloud Run resources or customer data touched.
+```
+Damit sind **Name, richtiges GCP-Projekt (Projekt-ID oder unabhängig nachgeprüfte Projektnummer), exakt eine Zürcher Replikation und 0 Secret-Versionen tatsächlich unabhängig geprüft**. Der frühere Fehler mit der falschen `gcloud secrets versions list --secret=...`-Syntax ist durch die korrigierte Positionsargument-Syntax nachweislich behoben. Keine zweite Secret-Ressource erstellen; insbesondere `staging-airtable-empty-secret.sh --create-empty` **nicht wiederholen**. Der gesonderte Lesedienst `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` existiert, hat jedoch keine neue SecretAccessor-Berechtigung; das Cloud-Run-Job-Deployment und die später zu hinterlegende Token-Version bleiben separate Schritte.
+
 ## 17.10.2026 – Secret-Name, Google-Projekt und Zürcher Replikation LIVE bestätigt; Versionsprüfung noch offen
 
 Der Geschäftsführer führte `staging-airtable-secret-diagnose.sh` nach `git pull --ff-only` aus. **Nachgewiesene echte CLI-Antwort:**

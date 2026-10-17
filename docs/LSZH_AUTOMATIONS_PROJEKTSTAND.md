@@ -1,5 +1,14 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Erster echter synthetischer Source→Quarantäne-End-to-End-Test in Cloud Run SUCCESS
+
+**Vom Geschäftsführer aus Google Cloud Shell gelieferter Cloud-Run-Status der einzigen einmaligen Ausführung:** Job `lszh-quarantine-source-e2e-staging`, Execution `lszh-quarantine-source-e2e-staging-slhkc`, `completionTime: 2026-10-17T19:49:28.639416Z` (21:49:28 Schweizer Zeit), `type: Completed`, `status: True`, `message: Execution completed successfully in 10.45s.`, `succeededCount: 1`, kein angezeigter failedCount. `ContainerReady`, `ResourcesAvailable`, `Started` ebenfalls `True`. **Damit ist der Cloud-Run-Lauf nachweisbar erfolgreich beendet und NICHT nur gestartet.**
+
+**Quellcode-Gate erneut geprüft:** `staging-synthetic-source-e2e-once.js` terminiert mit Code 0 nur nach (1) validierter, privater Fixture und Outbox-SA, (2) frischem authentifiziertem Airtable-GET mit null passenden Codes, (3) neuem `createOnce`-Ergebnis `created` in Firestore Staging, (4) unabhängigem `VERIFIED_DRAFT`-Readback mit identischem `DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`, (5) `sourceDispatchOnce` mit bestätigtem `REVIEW_ONLY_HANDOFF_ACKNOWLEDGED`, `writeAllowed=false`, `retryAllowed=false`, `deliveryAllowed=false`. Der Quellcode sendet keine E-Mails und nimmt keine Verträge an. Somit ist der erfolgreiche Job-Abschluss ein starker E2E-Funktionsnachweis; **direkte Prüfung der Textlogs und unabhängige nachgelagerte Firestore-Artefakt-Abfrage sind noch separat offen**, keine falsche Behauptung über bereits unabhängiges Artefakt-Audit.
+
+**STRICT NO RETRY:** Diese Fixture und dieser Quelljob wurden bereits einmal ausgeführt. **Niemals dieselbe Execution oder denselben Job erneut starten**, auch bei Logs-/Auditproblemen nicht. Der synthetische Firestore-Draft ist als angelegt und aus dem Lauf zurückgelesen zu behandeln, und ein Replay-Claim kann dauerhaft existieren. **Nächster sicherer Schritt: rein lesende Cloud-Run-Logprüfung der Execution `lszh-quarantine-source-e2e-staging-slhkc`**, dann separate anonymisierte Verifikation des synthetischen Staging-Drafts / Receiver-Replay-Evidenz. Keine erneuten Build-, Deploy-, Secret-, Firestore-Schreib- oder IAM-Aktionen.
+
+
 ## 17.10.2026 – Einziger echter synthetischer Source→Quarantäne-E2E-Run gestartet (Status offen)
 
 **Geschäftsführer hat in Cloud Shell genau einmal manuell ausgeführt:** `gcloud run jobs execute lszh-quarantine-source-e2e-staging --project=lszh-automations --region=europe-west6 --async`. Google Cloud quittierte **`Execution [lszh-quarantine-source-e2e-staging-slhkc] is being started asynchronously.`** und lieferte den Link zur Ausführungsübersicht: `https://console.cloud.google.com/run/jobs/executions/details/europe-west6/lszh-quarantine-source-e2e-staging-slhkc?project=470613067122`.

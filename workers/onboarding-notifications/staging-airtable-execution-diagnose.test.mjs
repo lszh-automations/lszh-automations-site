@@ -92,6 +92,25 @@ test('local EACCES for Secret file is classified without revealing mounted path 
  assert.match(r.stdout,/Permission evidence classification: .*NODE_SECRET_MOUNT_FILE_DENIED/);
  assert.doesNotMatch(r.stdout,/\/var\/secrets\/lszh|airtable-read-pat|SUPER_SECRET_VALUE/);
 });
+test('sanitized denied-operation and target-path family identify application paths only',()=>{
+ const r=run({FAKE_LOG:"Error: EACCES: permission denied, open '/app/workers/onboarding-notifications/example-private.txt' token PAT-UNSAFE"});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Denied error identifiers: EACCES/);
+ assert.match(r.stdout,/Denied filesystem operation: OPEN/);
+ assert.match(r.stdout,/Denied path family \(same log entry only\): APP_FILESYSTEM/);
+ assert.doesNotMatch(r.stdout,/example-private|PAT-UNSAFE|\/app\/workers/);
+});
+test('sanitized filesystem-family classification distinguishes expected mounted secret without leaking path',()=>{
+ const r=run({FAKE_LOG:"Error: EACCES: permission denied, open '/var/secrets/lszh/airtable-read-pat' token PAT-UNSAFE"});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Denied path family \(same log entry only\): EXPECTED_SECRET_FILE/);
+ assert.doesNotMatch(r.stdout,/airtable-read-pat|\/var\/secrets|PAT-UNSAFE/);
+});
+test('generic denied path stays unknown when no safe path is in its own log entry',()=>{
+ const r=run({FAKE_LOG:"Error: permission denied while reading resource"});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Denied path family \(same log entry only\): PATH_NOT_IDENTIFIED_IN_ERROR_ENTRY/);
+});
 test('Google Secret Manager API denial is distinguished from local file ownership failure',()=>{
  const r=run({FAKE_LOG:"Permission 'secretmanager.versions.access' denied for resource, PERMISSION_DENIED 403. PAT=pat_SUPER_SECRET"});
  assert.equal(r.status,0,r.stdout+' '+r.stderr);

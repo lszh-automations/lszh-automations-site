@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Keine Treffer beim lesenden IAMCredentials-Auditlog-Filter
+
+**Live-Ausgabe des Geschäftsführers:** Bei der unmittelbar nach dem gescheiterten Einmal-Impersonierungsversuch ausgeführten `gcloud logging read`-Abfrage nach `protoPayload.serviceName="iamcredentials.googleapis.com"`, `protoPayload.methodName="GenerateAccessToken"`, aktivem Firmenkonto, `--freshness=1d` und `--limit=10` wurden **keine Zeilen** zurückgegeben. Das bestätigt **nicht**, dass der Aufruf unterblieb, und beweist auch nicht die Ursache der verweigerten Impersonierung.
+
+**Verifiziert mit offizieller Google-Cloud-Dokumentation:** `GenerateAccessToken` wird als **Data-Access-Auditlog** protokolliert, sofern die entsprechende Data-Access-Protokollierung aktiviert ist; sie ist standardmässig deaktiviert (ausser bestimmten Ausnahmen, etwa BigQuery). Der exakte Methodenfilter `protoPayload.methodName="GenerateAccessToken"` wird in der Google-Dokumentation ebenfalls verwendet. Darüber hinaus könnten fehlende Einsichtsrechte oder übergeordnete Richtlinien die Diagnose einschränken.
+
+**Nächster ausschliesslich lesender Diagnoseschritt:** `gcloud projects get-iam-policy lszh-automations --format="json(auditConfigs)"` prüfen. Der Befehl zeigt nur projektbezogene Audit-Konfiguration; ein leeres Ergebnis beweist keine fehlende geerbte Audit-Einstellung. **Keine zusätzliche Auditlog-Aktivierung**, kein neuer Token-Creator-Grant, keine Wiederholung des bereits ausgeführten Einmal-Tests, keine Firestore-REST-Anfrage und kein Schreibtest autorisiert. Die frühere temporäre IAM-Bindung war nachweislich vollständig entfernt worden.
+
 ## 17.10.2026 – Einmaliger 30-Minuten-SA-Token-Creator-Test: Impersonierung BLOCKED, IAM-Bindung sicher entfernt
 
 **Echter, vom Geschäftsführer autorisiert in Cloud Shell ausgeführter Einmal-Lauf:** `git pull --ff-only` bis Review-Commit `d2ca43b`, anschliessend `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --run-approved-once`. Die Ausgabe bestätigt die vorgelagerte PASS-IAM-Metadatenprüfung und:

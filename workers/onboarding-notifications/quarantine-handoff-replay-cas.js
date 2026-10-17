@@ -5,6 +5,7 @@
 // Firestore documents:commit with currentDocument.exists=false, independently
 // read back the exact claim, and ONLY THEN return claimOnce(key) === true.
 // No automatic retry, no deletion and no TTL that could reopen a replay.
+const {isDeepStrictEqual}=require('node:util');
 const {PROJECT,DATABASE}=require('./firestore-quarantine-cas');
 
 const COLLECTION='lszh_quarantine_handoff_replay_staging';
@@ -24,6 +25,15 @@ function timestamp(time) {
     new Date(Date.parse(time)).toISOString()!==time)
   throw Error('replay_claim_time_invalid');
  return time;
+}
+// Generated claims are immutable all the way down: mutable nested Firestore
+// fields could otherwise diverge from the independently audited write plan.
+function deepFreeze(value) {
+ if(value && typeof value==='object') {
+  for(const child of Object.values(value))deepFreeze(child);
+  Object.freeze(value);
+ }
+ return value;
 }
 function blocked(reason) {
  return Object.freeze({status:'BLOCKED_NO_REPLAY_CLAIM',reason,
@@ -47,7 +57,7 @@ function planReplayClaim({replayKey,claimedAt}={}) {
    Object.freeze({update:{name,fields},currentDocument:{exists:false}})
   ])})
  });
- return Object.freeze({
+ return deepFreeze({
   status:'OFFLINE_CLAIM_PLAN_ONLY',request,
   name,replayKey,claimedAt:at,
   retryAllowed:false,writeAllowed:false,deliveryAllowed:false
@@ -84,7 +94,17 @@ function exactClaimDocument(plan,document) {
 function verifiedReplayClaim({
  plan,commitStatus,commitResponse,readStatus,document
 }={}) {
- if(plan?.status!=='OFFLINE_CLAIM_PLAN_ONLY' ||
+ // Never trust a caller-supplied plan as proof of which document and fields
+ // were intended. Reconstruct the canonical plan independently and compare
+ // every field before assessing any Firestore acknowledgement or readback.
+ let canonicalPlan;
+ try {
+  canonicalPlan=planReplayClaim({
+   replayKey:plan?.replayKey,claimedAt:plan?.claimedAt
+  });
+ }catch{return blocked('UNREVIEWED_REPLAY_PLAN');}
+ if(!isDeepStrictEqual(plan,canonicalPlan) ||
+    plan?.status!=='OFFLINE_CLAIM_PLAN_ONLY' ||
     plan.request?.method!=='POST' ||
     plan.request.url!==COMMIT ||
     plan.request.body?.writes?.length!==1 ||

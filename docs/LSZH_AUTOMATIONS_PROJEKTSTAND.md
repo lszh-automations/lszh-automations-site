@@ -1,5 +1,26 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Kostensichere, read-only GCP-Voraussetzungen für isolierte Quarantäne-DB vorbereitet
+
+**Ziel:** Nach der echten `NOT_FOUND`-Rückmeldung für `lszh-quarantine-staging` die Einrichtung **noch nicht** vornehmen, sondern Billing, APIs, vorhandene Datenbanken, Limits und Custom-Role-Kompatibilität **vor einer kostenpflichtigen Bereitstellung** mit LSZH-Firmenkonto prüfen. Der bisher erfolgreiche einzelne Airtable-Cloud-Run-Job bleibt unangetastet.
+
+**Neue synthetisch geprüfte Komponenten im GitHub-Review-Branch:**
+- `workers/onboarding-notifications/quarantine-provisioning-readiness.js` + `.test.mjs`: reiner, fail-closed Metadatenklassifikator. Er verlangt aktives Billing, die aktivierte Firestore-API, vorhandenes `lszh-offers-staging` (Native/Zurich), nachweislich **noch fehlendes** `lszh-quarantine-staging`, unter 100 Firestore-DBs pro Projekt sowie GA-/Custom-Role-Unterstützung für genau `datastore.entities.get/create/update`. Ungültige/unlesbare Informationen -> BLOCKED. Ergebnis enthält ausdrücklich **keine** Bereitstellungs-/Kosten-/IAM-/Schreibfreigabe.
+- `workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh` + `.test.mjs`: ausschliesslich `--plan`, Git- und Geschäftsidentitätscheck, nur die vier lesenden GCP-Metadatenbefehle `gcloud billing projects describe`, `gcloud services list --enabled`, `gcloud firestore databases list`, `gcloud iam list-testable-permissions`. Kein Token-Mint, IAM-Grant, GCP-Build, Service-Account-Create, Datenbank-Create oder Firestore-REST-Aufruf. Temporäre JSON-Daten restriktiv gespeichert und sofort gelöscht, nie im Chat/Console ausgegeben. Offline-Mocks blockieren in Risiko-/Fehlerfällen.
+- `docs/LSZH_QUARANTAENE_STAGING_CAS_PLAN.md`: Vorbedingungen und die separate Genehmigung zur späteren Anlage ergänzt.
+
+**GitHub-CI (vor diesem Dokumentationscommit):** `Onboarding notification outbox (synthetic only)` mit **271/271 Tests bestanden** (0 Fehler); `Onboarding completion verification (synthetic only)` ebenfalls bestanden. Keine Cloud-Änderung, nur Feature-Branch.
+
+**Kostenhinweis aufgrund offizieller Google-Dokumentation:** Eine zusätzliche benannte Firestore-Datenbank erfordert aktives Billing; die reine Erstellung kostet nicht zusätzlich, aber sie hat **kein eigenes kostenloses Nutzungskontingent**. Nutzungsgebühren und ggf. Budgetalarm vor Provisionierung freigeben; `--plan` nimmt diese Freigabe nicht vor.
+
+**Nächster sicherer Schritt für Geschäftsführer in Cloud Shell (nur Metadatenlesung):**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh --plan
+```
+Resultat zur weiteren Bewertung teilen; bei `BLOCKED` erst Ursache klären, nicht reflexartig Berechtigungen vergeben. Separate ausdrückliche Freigabe für Datenbank, Service-Account, Custom Role/IAM-Bindung und spätere **einmalige** synthetische Firestore-Schreibprobe notwendig.
+
 ## 17.10.2026 – Quarantäne-Staging-Datenbank fehlt; CAS und IAM auf separates Ziel umgestellt (keine GCP-Mutation)
 
 **Reale read-only Cloud-Shell-Ausgabe vom Geschäftsführer:** `gcloud firestore databases describe --project=lszh-automations --database=lszh-quarantine-staging --format='value(name,locationId,type)'` meldete `NOT_FOUND: Project 'lszh-automations' or database 'lszh-quarantine-staging' does not exist` unter aktivem Konto `lars@lszh-automations.ch`. Weil das Projekt und die bestehende `lszh-offers-staging` aus früheren erfolgreichen Vorgängen bekannt sind, liegt das Fehlen der **zusätzlichen** Named Database nahe; aufgrund der allgemeinen Fehlermeldung sind dennoch insbesondere effektive Leseberechtigungen nicht unabhängig geprüft. Der Befehl hat **nichts erstellt oder geändert**.

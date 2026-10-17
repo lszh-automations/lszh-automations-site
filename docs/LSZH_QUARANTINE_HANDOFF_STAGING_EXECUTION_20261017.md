@@ -11,31 +11,27 @@ Freigabe des Geschäftsführers im Projektchat: private Cloud-Run-Verbindung, Id
 - Eigene Dockerfiles für Quell-Job und Ziel-Service, Quarantäne-Cloud-Build-Konfiguration und streng getrennter Cloud-Shell-Provisionierungsablauf.
 - Synthetische Tests benutzen Mocks für Firestore/Metadata/OIDC/Airtable/HTTPS. **Sie beweisen nicht die reale Cloud-Run-IAM-/Firestore-Verbindung.**
 
-## Google-Cloud-Deployment: noch NICHT ausgeführt
-In der aktuellen ChatGPT-Laufzeit ist weder `gcloud` mit der LSZH-Identität noch eine verbundene Google-Cloud-Run-/IAM-Verwaltungsschnittstelle verfügbar. Der Chat konnte daher nur Code/Tests/Runbook im GitHub-Review-Branch erstellen, **keinen** realen Service, Secret, Invoker, Job oder echten Replay-Claim. Das ist ein externer Ausführungsschritt in der bestehenden geschäftlichen Cloud Shell.
+## Google-Cloud-Deployment – Build und erster Receiver-Deploy real ausgeführt
 
-Schrittweise Cloud Shell, **jedes Kommando nach seinem Ausgang prüfen**:
+**Vom Geschäftsführer in der geschäftlichen Cloud Shell ausgeführt und durch Output belegt, 17.10.2026:**
+1. Eigener sauberer Checkout `$HOME/lszh-handoff-staging` auf `feature/onboarding-notification-outbox-20261016`; erster `--plan` prüfte Firmenkonto, Projekt, beide Service-Accounts, Datenbank und Registry erfolgreich und bestätigte **Receiver vor Deployment nicht vorhanden**.
+2. `--build-only`: Google Cloud Build `6ec75cce-2fe2-4e35-a729-f10f45e6273e`, **STATUS SUCCESS**; gepushtes Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-quarantine-handoff:staging-131d67982f83`.
+3. `--deploy-private-disabled`: Google Cloud Run meldete **Deploying new service Done**, Revision **`lszh-quarantine-handoff-staging-00001-qs8`**, **100 % Traffic** auf dieser Revision, URL `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app`. Das Skript hat die Parameter `--no-allow-unauthenticated`, dediziertes Ziel-SA und alle drei Verarbeitungsgates `false` übergeben; ein unabhängiger nachgelagerter Cloud-Readback ist **noch erforderlich**.
+4. **Bekannter False Negative:** Das alte Skript meldete **`STOP: Receiver not deployed.`**, obwohl Google Cloud Run die erfolgreiche neue Revision bestätigt hatte. Ursache: Die Service-Inventarliste wurde nur **vor** dem Deploy eingelesen und für den Post-Deploy-Check fälschlich erneut verwendet. Das war ein lokaler Verifikationsfehler, **kein Nachweis eines Rollbacks**. `staging-quarantine-handoff-provision.sh` wurde auf frisch gelesene Inventare je Check, strikten Abbruch bei Listenfehlern und vier synthetische Mock-Regressionstests korrigiert. **430/430 synthetische Tests PASS**, beide GitHub-CI-Workflows bestanden auf Test-Commit `4779e88fd167fbf7062f016f34fae9c297a39c1c`.
+
+**Unbedingt NICHT wiederholen:** `--build-only` und besonders `--deploy-private-disabled`. Der Dienst existiert bereits und darf nicht ohne gezielte Änderung überschrieben werden.
+
+**Nächster ausschliesslich lesender Schritt nach `git pull --ff-only` in der Cloud Shell:**
 
 ```bash
-cd ~/lszh-automations-work
-git switch feature/onboarding-notification-outbox-20261016
+cd "$HOME/lszh-handoff-staging"
 git pull --ff-only
 bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --plan
 ```
 
-Nach erfolgreichem Preflight (nur `lars@lszh-automations.ch`, Projekt `lszh-automations`, Branch clean, Region `europe-west6`, bestehende getrennte Dienstkonten und benannte DB):
+Erwartet wird nun `PLAN: Receiver exists`, ohne Mutation. Danach sind zunächst private Cloud-Run-Service-Metadaten, tatsächliche deaktivierte Flags und direkte Service-IAM-Policy zu prüfen. Erst dann folgt eine **separate** `--bind-invoker`-Ausführung für exakt das Source-SA, danach HMAC-Secret, eng begrenzte Secret-Reader-Rechte und `--enable-review-only`. **Kein** Quell-Job erstellt/ausgeführt, **kein** Firestore-Replay-Claim, **keine** E-Mails, keine Quarantäne-Fallmutation.
 
-```bash
-bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --build-only
-bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --deploy-private-disabled
-bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --bind-invoker
-bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --create-secret
-bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --enable-review-only
-```
-
-Das Skript besitzt pro Aufruf exakt einen Modus, überprüft die Geschäftsidentität und den unveränderten Remote-Branch, verwendet ein **gesondertes erlaubtes Build-Verzeichnis**, verweigert Überschreiben eines bestehenden Ziel-Service, richtet keine öffentliche IAM-Freigabe ein und beschränkt `run.invoker` auf das eine Quell-Servicekonto am Ziel-Service. Das HMAC-Secret wird **nur lokal zufällig generiert** und über stdin an Secret Manager übertragen; keine Schlüsseldatei, kein Secret-Payload in Repo, Chat oder Logs. Cloud Run bezieht Version 1 als Secret-Env-Binding. Falls ein Schritt stoppt, nicht blind wiederholen; Istzustand vor erneutem Handeln lesen.
-
-**Sicherheitsgrenze:** Der Code-Parser meldet immer `authenticated:false`. Die tatsächliche Identitätskontrolle muss vor dem Container-Aufruf von **Google Cloud Run IAM** erzwungen werden. Ein gültiges HMAC allein erlaubt nie einen Firestore-Case-Write oder eine E-Mail. Dienstgebundenes `roles/run.invoker` und die private Cloud-Run-Einstellung sind erforderlich, unabhängig von HTTP-Headers. Die Bereitstellung prüft die direkte Service-IAM-Policy; zusätzlich sollten geerbte IAM- und Organisationsfreigaben read-only inspiziert werden.
+**Sicherheitsgrenze:** Der Code-Parser meldet immer `authenticated:false`. Die tatsächliche Identitätskontrolle muss vor dem Container-Aufruf von **Google Cloud Run IAM** erzwungen werden. Ein gültiges HMAC allein erlaubt nie einen Firestore-Case-Write oder eine E-Mail. Dienstgebundenes `roles/run.invoker` und die private Cloud-Run-Einstellung sind erforderlich, unabhängig von HTTP-Headers. Auch geerbte IAM- und Organisationsfreigaben sind vor Inbetriebnahme gesondert lesend zu prüfen.
 
 ## Realer synthetischer End-to-End-Lauf – verbleibende Vorbedingungen
 Vor dem ersten einmaligen Quell-Job die tatsächlich vorhandenen *synthetischen* Outbox-Draft-ID, dazugehörigen Airtable-Projektcode, enge Fixture-Allowlist und Read-only-Secret `lszh-airtable-readonly-staging` **im Geschäftskonto** verifizieren. Der Projektcode ist ein Bearer-Wert: nie in GitHub, Shell-History, Chat, CLI-Argumente oder Logs schreiben. Auch die Quellidentität braucht gezielte `secretmanager.versions.access` nur für die bereits freigegebenen relevanten Staging-Secrets. Ein neuer Quell-Job muss mit `--max-retries=0`, exakt einer Task und ohne Scheduler eingerichtet werden. Für diese Schritte existiert noch **kein automatisch ausgeführter Deploy-/Job-Run**, und es darf kein beliebiger vorhandener Job oder früherer One-shot-Runner erneut gestartet werden.

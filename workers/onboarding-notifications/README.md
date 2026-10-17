@@ -2,7 +2,7 @@
 
 ## 17.10.2026 – Replay-Plan-Manipulation blockiert (nicht deployt)
 
-`planReplayClaim` friert jetzt auch verschachtelte Firestore-Felder ein. `verifiedReplayClaim` rekonstruiert unabhängig einen kanonischen Schreibplan und verweigert bei jeder Plan-Abweichung schon **vor** der Ack-/Readback-Auswertung die Bestätigung. Zwei neue synthetische Regressionstests decken tiefe Mutationen und absichtlich gefälschte, dazu passende Readbacks ab. Keine Änderung an Cloud Run, IAM, Firestore, Secrets, HTTP-Server oder E-Mail-Versand. Die spätere echte Replay-Claim-Ausführung bleibt separat freigabepflichtig.
+`planReplayClaim` friert jetzt auch verschachtelte Firestore-Felder ein. `verifiedReplayClaim` rekonstruiert unabhängig einen kanonischen Schreibplan und verweigert bei jeder Plan-Abweichung schon **vor** der Ack-/Readback-Auswertung die Bestätigung. Zwei neue synthetische Regressionstests decken tiefe Mutationen und absichtlich gefälschte, dazu passende Readbacks ab. **413/413 Offline-Tests bestanden**, beide GitHub-Workflows erfolgreich auf dem Code-/Test-Commit `25bda40b35789eb17618f7ad8dd2e3301fc23522`. Keine Änderung an Cloud Run, IAM, Firestore, Secrets, HTTP-Server oder E-Mail-Versand. Die spätere echte Replay-Claim-Ausführung bleibt separat freigabepflichtig.
 
 ## 17.10.2026 – Replay-CAS und Empfangs-HTTP-Vertrag vorbereitet, nichts aktiviert
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # LSZH: second independently versioned Airtable-read STAGING image build after
 # original failed job; fixes source file modes, never reruns original.
+# Reviewed legacy-builder-compatible Dockerfile is pinned to commit 60a87929601496b4b6192ec7945d80d6dc352b3e.
 # --build-only makes a registry image from exactly five reviewed source files.
 # NO secret value read, no Cloud Run Job, no execution, no IAM grants, no Airtable request.
 set -euo pipefail
@@ -18,7 +19,7 @@ ROLE='roles/secretmanager.secretAccessor'
 JOB='lszh-airtable-read-probe-staging'
 NEW_JOB='lszh-airtable-read-probe-fix-staging'
 EXEC='lszh-airtable-read-probe-staging-xglcz'
-SOURCE_COMMIT='0f2f7890720f468e72b8b985abdf017270ce81d4'
+SOURCE_COMMIT='60a87929601496b4b6192ec7945d80d6dc352b3e'
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REGISTRY}/lszh-airtable-read-probe:stg-permfix-${SOURCE_COMMIT:0:12}"
 MODE="${1:---plan}"
 if [[ "$#" -gt 1 || ( "$MODE" != '--plan' && "$MODE" != '--build-only' ) ]]; then

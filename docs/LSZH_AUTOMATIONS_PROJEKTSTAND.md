@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Freigegebener privater Outbox→Quarantäne-Handoff implementiert, Cloud-Ausführung offen (426 Tests PASS)
+
+**Geschäftsführer-Freigabe im Projektchat:** Entwicklung und Vorbereitung der sicheren privaten Cloud-Run-Verbindung, separate Dienstidentitäten, persistenter Firestore-Replay-Schutz und ein ausschliesslich synthetischer End-to-End-Test. Keine Kunden-/Live-Aktivierung, automatische Vertragsannahme, E-Mail, Löschung oder alte Einmalrunner.
+
+**Fertig im ungemergten Feature-Branch:** Ein eigenständiger Empfänger (`quarantine-handoff-receiver.js`) mit strengem POST-Pfad, 2048-Byte-Grenze, HMAC-Verifikation und deny-by-default-Gates; getrennte Replay-Claim-Runtime (`quarantine-handoff-replay-runtime.js`) mit Metadata-SA-Prüfung, **einem** atomaren Firestore-`exists:false`-Commit und **unabhängig verifiziertem GET-Readback**; eigenständiger Outbox-Quelle-Transport (`quarantine-handoff-source.js`) mit bestehendem read-only Outbox/Airtable-Recheck, kurzlebiger HMAC-Nachricht, von Google Metadata ausgestelltem **OIDC-ID-Token mit echter Ziel-URL-Audience** und genau einem HTTPS-POST; gesperrter einmaliger Quell-Job-Entrypoint, zwei isolierte Dockerfiles sowie Cloud-Build- und Cloud-Shell-Provisionierungsskripte. **Ein Replay-Dokument wird nur auf echten späteren Ausführungspfaden angelegt**, der Quarantäne-Fall selbst wird nie per neuem Empfänger geschrieben, es gibt keine automatische Zustellung.
+
+**Bestätigtes CI-Ergebnis:** Auf GitHub-Code-Commit `2508203bc3aede7bb9a34530a844b23271f43448` bestanden **426 von 426 synthetischen Node-Tests (0 Fehler)** sowie beide GitHub-Workflows; Build-Tests der isolierten Empfänger-/Quell-Container bestanden. Die Tests ersetzen keine echte Cloud-IAM- oder Firestore-End-to-End-Verifikation.
+
+**Noch nicht ausgeführt:** In dieser ChatGPT-Sitzung existiert kein authentifizierter `gcloud`-/Google-Cloud-Run-IAM-Zugriff. Der genehmigte Cloud-Schritt (Build+Push, separater privater Receiver-Deploy, exakt quellspezifisches `roles/run.invoker`, Secret-Manager-HMAC, freigeschaltete reine Review-Route, einmaliger synthetischer Quell-Job mit überprüften Fixture-/Airtable-Secrets und echtem Firestore-Readback) wurde **nicht** durchgeführt oder vorgetäuscht. Das vorbereitete `staging-quarantine-handoff-provision.sh` führt in der echten geschäftlichen Google Cloud Shell die Schritte getrennt und mit Guards aus; standardmässig nur `--plan`. Die Source-Job-Bereitstellung und -Ausführung benötigen zusätzlich die nachweislich richtigen synthetischen Fixture-Codes und die sichere Bindung des schon vorhandenen Read-only-Airtable-Secrets, keine Geheimnisse im Chat. Branch nicht gemergt, alle bestehenden produktiven Sperren unverändert.
+
+**Ausführliche Schrittfolge und Risiken:** [LSZH_QUARANTINE_HANDOFF_STAGING_EXECUTION_20261017.md](./LSZH_QUARANTINE_HANDOFF_STAGING_EXECUTION_20261017.md).
+
 ## 17.10.2026 – Replay-Claim-Plan gegen Manipulation gehärtet (Offline-Änderung)
 
 **Anlass:** Der bereits vorhandene Claim-Plan mit atomarem Firestore-`exists:false` schützte den eigentlichen Write, aber `verifiedReplayClaim` rekonstruierte bislang den vom Aufrufer übergebenen Plan nicht unabhängig. Tiefe Felder (`update.fields.state`, `purpose`, `claimedAt` etc.) waren trotz äusserem `Object.freeze` veränderbar. Eine künstlich dazu passende Readback-/Ack-Kombination hätte so einen gefälschten Plan als verifiziert erscheinen lassen können.

@@ -130,6 +130,12 @@ signals=set()
 categories=set()
 permission_evidence=set()
 log_classes=set()
+# Classify denied filesystem TARGET only using an enumerated family. The
+# original path is never returned, even if it contains a token or customer name.
+denied_paths=set()
+denied_operations=set()
+denied_errno=set()
+denied_source=set()
 pass_count=0
 for x in selected:
  text=x.get("textPayload","")
@@ -142,6 +148,33 @@ for x in selected:
  # enum names; never print a full message, file path, URI or credential.
  text_lower=text.lower()
  log_name=x.get("logName","")
+ if "permission denied" in text_lower or "eacces" in text_lower or "eperm" in text_lower:
+  if "eacces" in text_lower:denied_errno.add("EACCES")
+  if "eperm" in text_lower:denied_errno.add("EPERM")
+  if not ("eacces" in text_lower or "eperm" in text_lower):
+   denied_errno.add("PERMISSION_DENIED_NO_ERRNO")
+  source=("CONTAINER_STDERR" if isinstance(log_name,str) and
+          ("stderr" in log_name.lower()) else "PLATFORM_OR_OTHER")
+  denied_source.add(source)
+  op=re.search(r"(?<![a-z])(?:open|stat|scandir|access|readlink|mkdir|chdir|exec)(?![a-z])",text_lower)
+  denied_operations.add(op.group(0).upper() if op else "OPERATION_NOT_IDENTIFIED")
+  # Only the text of this one denied entry counts as direct path evidence.
+  if "/var/secrets/lszh/airtable-read-pat" in text:
+   denied_paths.add("EXPECTED_SECRET_FILE")
+  elif "/var/secrets/lszh" in text:
+   denied_paths.add("EXPECTED_SECRET_MOUNT_DIR")
+  elif "/app/" in text or "/app'" in text or "/app\"" in text:
+   denied_paths.add("APP_FILESYSTEM")
+  elif "/home/node" in text:
+   denied_paths.add("NODE_USER_HOME")
+  elif "/tmp/" in text or "/tmp'" in text:
+   denied_paths.add("TEMP_FILESYSTEM")
+  elif "/dev/" in text or "/proc/" in text or "/sys/" in text:
+   denied_paths.add("SYSTEM_PSEUDOFILESYSTEM")
+  elif re.search(r"(?:^|[\\s\\\"\\\x27])/(?:[^\\s\\\"\\\x27]+)",text):
+   denied_paths.add("OTHER_PATH_PRESENT_REDACTED")
+  else:
+   denied_paths.add("PATH_NOT_IDENTIFIED_IN_ERROR_ENTRY")
  if isinstance(log_name,str):
   if log_name.endswith("/logs/run.googleapis.com%2Fstderr") or log_name.endswith("/logs/run.googleapis.com/stderr"):
    log_classes.add("CONTAINER_STDERR")
@@ -194,6 +227,10 @@ if categories:print("Recognized runtime error category: "+", ".join(sorted(categ
 else:print("Recognized runtime error category: none identified")
 print("Log source types: "+(", ".join(sorted(log_classes)) if log_classes else "not identified"))
 print("Permission evidence classification: "+(", ".join(sorted(permission_evidence)) if permission_evidence else "none identified"))
+print("Denied error source: "+(", ".join(sorted(denied_source)) if denied_source else "none identified"))
+print("Denied error identifiers: "+(", ".join(sorted(denied_errno)) if denied_errno else "none identified"))
+print("Denied filesystem operation: "+(", ".join(sorted(denied_operations)) if denied_operations else "none identified"))
+print("Denied path family (same log entry only): "+(", ".join(sorted(denied_paths)) if denied_paths else "none identified"))
 print("Application PASS log count: "+str(pass_count))
 if not selected:print("STOP: No matching job/container logs found; open exact execution Logs tab privately. Never rerun.")
 elif not signals and not categories and pass_count==0:

@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Live-Empfänger-URL-Korrektur: 468/468 Tests erfolgreich
+
+GitHub-Actions-Readback für Quellcode-/Test-Commit `8cb93d79edb937195610b91ecc6b4df1715db19e` meldet **beide** synthetischen Workflows `success`. Das tatsächliche Outbox-CI-Testlog bestätigt **468 Tests, 468 PASS, 0 FAIL**, einschliesslich exakter Cloud-Run-Canonical-URL `lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app` und Angreiferhost-/Pfad-/Query-Blockierung. Dokumentationsänderungen danach betreffen keine Image-/Source-Quelldateien. Keine erneuten Cloud-Ressourcen-Änderungen durchgeführt; nächster Schritt bleibt kontrolliertes `--plan` in Cloud Shell.
+
+
 ## 17.10.2026 – Tatsächliche private Cloud-Run-Zieladresse geklärt; E2E-URL-Gate gezielt korrigiert
 
 **Vom Geschäftsführer ausdrücklich read-only aus Google Cloud Shell abgefragt:** `gcloud run services describe lszh-quarantine-handoff-staging --project=lszh-automations --region=europe-west6 --format='json(status.url,status.address.url)'` ergibt für **beide** URL-Felder `https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app`. **Ursache des Sicherheits-STOP:** Der zuvor im Source-Skript fest eingetragene Projekt-Nummer-Alias `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app` weicht von der aktuell von Cloud Run tatsächlich gemeldeten URL ab. Diese Differenz darf nicht durch Abschalten des Gates kaschiert werden.

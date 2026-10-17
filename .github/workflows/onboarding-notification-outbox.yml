@@ -47,6 +47,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-airtable-rest-read.sh
           bash -n workers/onboarding-notifications/staging-airtable-identity.sh
           bash -n workers/onboarding-notifications/staging-airtable-empty-secret.sh
+          bash -n workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

@@ -1,5 +1,6 @@
 'use strict';
 const crypto = require('crypto');
+const fs = require('fs');
 
 // Google Drive archives are private: only the configured service account may
 // read the designated PDFs. Drive's content restriction is reversible by an
@@ -14,9 +15,24 @@ function safeEqualHash(a,b){
   if(!HASH_RE.test(String(a||''))||!HASH_RE.test(String(b||'')))return false;
   return crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 }
-function decodeCredentials(encoded){
-  if(!encoded || encoded.length>16*1024)throw Error('archive_credentials_missing');
-  const obj=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+// Render native runtimes can also expose secret-file names under the app root.
+// The HTTP server must therefore use an explicit public-file allowlist.
+const RENDER_SECRET_FILE='/etc/secrets/lszh-archive-reader.json';
+const EXPECTED_READER='lszh-archive-reader@lszh-automations.iam.gserviceaccount.com';
+function decodeCredentials(encoded,readFile=fs.readFileSync){
+  const filePath=String(process.env.OFFER_DRIVE_SA_FILE||'');
+  let obj;
+  if(filePath){
+    if(filePath!==RENDER_SECRET_FILE)throw Error('archive_credentials_path_invalid');
+    if(encoded)throw Error('archive_credentials_ambiguous');
+    const secret=readFile(filePath);
+    if(!secret || Buffer.byteLength(secret)>16*1024)throw Error('archive_credentials_invalid');
+    obj=JSON.parse(Buffer.isBuffer(secret)?secret.toString('utf8'):String(secret));
+    if(obj?.client_email!==EXPECTED_READER)throw Error('archive_credentials_wrong_account');
+  }else{
+    if(!encoded || encoded.length>16*1024)throw Error('archive_credentials_missing');
+    obj=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+  }
   if(!obj || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(obj.client_email||'') ||
       !String(obj.private_key||'').startsWith('-----BEGIN PRIVATE KEY-----'))
     throw Error('archive_credentials_invalid');
@@ -30,7 +46,7 @@ module.exports=function createOfferArchiveVerifier(options={}){
     if(cached && cached.expires>Date.now()+60000)return cached.token;
     if(pending)return pending;
     pending=(async()=>{
-    const creds=decodeCredentials(process.env.OFFER_DRIVE_SA_B64||'');
+    const creds=decodeCredentials(process.env.OFFER_DRIVE_SA_B64||'',options.readSecretFile);
     const now=Math.floor(Date.now()/1000);
     const header=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT'})).toString('base64url');
     const payload=Buffer.from(JSON.stringify({
@@ -66,7 +82,8 @@ module.exports=function createOfferArchiveVerifier(options={}){
     return response;
   }
   function details(fields,which){
-    const prefix=which==='quote'?'Offerten':'Bedingungen';
+    if(!['quote','terms','avv'].includes(which))throw Error('invalid_document');
+    const prefix=which==='quote'?'Offerten':which==='terms'?'Bedingungen':'AVV';
     const id=fields['Online-Annahme '+prefix+' Drive ID'];
     const digest=fields['Online-Annahme '+prefix+'-SHA256'];
     if(!ID_RE.test(String(id||''))||!HASH_RE.test(String(digest||'')))throw Error('archive_fields_missing');
@@ -75,13 +92,16 @@ module.exports=function createOfferArchiveVerifier(options={}){
   async function inspectOne(fields,which){
     const expected=details(fields,which);
     const response=await driveGet(expected.id,{
-      fields:'id,name,mimeType,size,sha256Checksum,contentRestrictions,trashed'
+      fields:'id,name,mimeType,size,sha256Checksum,contentRestrictions,parents,trashed'
     });
     const data=await response.json();
     const locked=Array.isArray(data.contentRestrictions)
       && data.contentRestrictions.some(x=>x.readOnly===true);
+    const archiveFolder=String(process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID||'');
+    const inBusinessArchive=ID_RE.test(archiveFolder) &&
+      Array.isArray(data.parents) && data.parents.includes(archiveFolder);
     const valid=data.id===expected.id && data.mimeType==='application/pdf'
-      && data.trashed!==true && locked
+      && data.trashed!==true && locked && inBusinessArchive
       && Number(data.size)>0 && Number(data.size)<=MAX_PDF_BYTES
       && safeEqualHash(data.sha256Checksum,expected.digest);
     return {valid,id:expected.id,hash:expected.digest,size:Number(data.size)};
@@ -90,11 +110,21 @@ module.exports=function createOfferArchiveVerifier(options={}){
     if(fields['Online-Annahme Offerten-Archivstatus']!=='VERIFIZIERT' ||
        !fields['Online-Annahme Offerten-Archivprüfung am'])
       return false;
-    const [q,t]=await Promise.all([inspectOne(fields,'quote'),inspectOne(fields,'terms')]);
-    return q.valid && t.valid;
+    const mode=fields['AVV erforderlich'];
+    if(mode!=='Ja' && mode!=='Nein')return false;
+    if(mode==='Ja' && (!String(fields['Online-Annahme AVV-Version']||'').trim() ||
+        !ID_RE.test(String(fields['Online-Annahme AVV Drive ID']||'')) ||
+        !HASH_RE.test(String(fields['Online-Annahme AVV-SHA256']||''))))return false;
+    if(mode==='Nein' && (fields['Online-Annahme AVV Drive ID'] ||
+       fields['Online-Annahme AVV-SHA256'] || fields['Online-Annahme AVV-Version'] ||
+       fields['Online-Annahme AVV ausdrücklich akzeptiert']===true))return false;
+    const kinds=mode==='Ja'?['quote','terms','avv']:['quote','terms'];
+    const checks=await Promise.all(kinds.map(which=>inspectOne(fields,which)));
+    return checks.every(check=>check.valid);
   }
   async function pdf(fields,which){
-    if(!['quote','terms'].includes(which))throw Error('invalid_document');
+    if(!['quote','terms','avv'].includes(which))throw Error('invalid_document');
+    if(which==='avv' && fields['AVV erforderlich']!=='Ja')throw Error('invalid_document');
     const check=await inspectOne(fields,which);
     if(!check.valid)throw Error('archive_changed');
     const response=await driveGet(check.id,{alt:'media'});

@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Echtes Cloud-Run-Static-Demo-Smoke BESTANDEN (IAM-geschützt, ohne Daten)
+
+**Betreiber-Rückmeldung aus Cloud Shell, vollständig SUCCESS:**
+- `PASS: preflight revision, ingress and service identity unchanged` zu Beginn und Ende. Original `lszh-offer-portal-staging` mit interner Read-only-Revision `00004-qt7` und ohne direkte öffentliche Invoker-Bindings bleibt unverändert.
+- `PASS: correct temporary static-demo revision, IAM and hard-disabled full portal`. Eigener temporärer Dienst `lszh-offer-browser-staging`, Revision **`00002-fkq`**, eigenes Dienstkonto, IAM-Invoker nur für benannten Testnutzer.
+- `PASS: real authenticated Cloud Run design demo serves synthetic HTML with strict CSP`. Tatsächlicher Netzwerktest über `gcloud run services proxy`: **HTTP 200** für `GET /offerte-annehmen/?demo=1`, unverändertes Test-HTML, keine Backend-Verbindungen oder Formularaktionen aus der Demo, Cache- und Referrer-Sperre.
+- `PASS: personal links and every API/PDF/contract route return HTTP 503`. Sowohl GET-Nebenrouten als auch POST auf `/api/offer/preview`, `/api/offer/document`, `/api/offer/accept` bleiben gesperrt.
+- `SUCCESS: deployed temporary static-demo live smoke passed; no cloud mutation.` Der Netzwerktest selbst änderte keine Cloud-Ressource und keine Daten.
+
+**Bedeutung:** Der vollständige Meilenstein **«Authentifizierte Google-Cloud-Designvorschau, ausschliesslich synthetisch und ohne Vertragswirkung»** ist bewiesen. Dies ist ausdrücklich **noch kein** erfolgreicher realer Firestore-/Google-Drive-PDF-End-to-End-Test. Es wurden keine Firestore-/Drive-Rollen erteilt und keine echten Dokumente übertragen. Direkte Service-IAM-Bindings wurden kontrolliert; projekt-/organisationsweit geerbte Rollen sind dadurch nicht abschliessend ausgeschlossen.
+
+**Nächste Entwicklungsetappe (vor Cloud-Schreibzugriff):** Eine separate, nachweislich fiktive PDF-Fixture für AVV Ja/Nein vorbereiten (PDF-Bytes und SHA-256, keine RC1-Originalverträge und keine Kundendaten), Herkunft/Datenschutz/Löschung klar festlegen, existierenden Emulator-only-Importer nicht umgehen. Erst danach über einen minimalen, betrieblich genehmigten und exakt begrenzten Firestore-Testdatensatz und privaten Test-Drive-Ordner entscheiden. `syntheticOnly:true`, `acceptEnabled:false` und `downstream.*=disabled` bleiben harte Grenzen. Temporären Dienst nach abgeschlossenen Tests kontrolliert auf deaktiviert zurückrollen und mit `scripts/offer-browser-cloud-cleanup.sh` bereinigen.
+
+---
+
+
 ## 18.10.2026 – Temporäre Cloud-Run-Design-Demo wirklich deployt; Live-Browser-Smoke steht an
 
 **Vom Betreiber bestätigtes Google-Cloud-Deployment:** `gcloud builds submit` **SUCCESS** (Build-ID `6f02af2c-9465-4657-9d35-d4c317276253`); neues isoliertes Container-Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:d69d76a2f3c4`, Digest `sha256:d49ccc6c9fc8b5ca781e4893f3fbacb6e24f1c8e561639261bf07fea5f439a32`. Ausschliesslich der temporäre Dienst `lszh-offer-browser-staging` wurde auf **Revision `lszh-offer-browser-staging-00002-fkq`** aktualisiert und erhielt **100 % seines eigenen Traffic**. URL `https://lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app`. IAM-Invoker bleibt authentifizierungspflichtig. Die originale Revision `lszh-offer-portal-staging-00004-qt7` auf dem internen Dienst wurde vor und nach diesem Deploy durch das read-only-Skript als unverändert bestätigt.

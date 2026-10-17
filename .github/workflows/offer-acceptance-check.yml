@@ -22,6 +22,7 @@ on:
       - 'test/offerPortalEndToEnd.emulator.test.js'
       - 'test/offerPortalImporter.test.js'
       - 'test/offerPortalAirtableE2E.emulator.test.js'
+      - 'test-browser/**'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -130,3 +131,23 @@ jobs:
             --project demo-lszh-automations \
             --config cloud-run/offer-portal-staging/firebase.emulator.json \
             "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js"
+
+  browser-synthetic:
+    name: Synthetic customer journey in real Chromium (offline only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Playwright test dependency (not production)
+        run: npm install --no-save --no-audit --no-fund --ignore-scripts @playwright/test@1.56.1
+      - name: Install headless Chromium on CI runner
+        run: npx playwright install --with-deps chromium
+      - name: Verify synthetic design and both AVV journeys
+        env:
+          CI: 'true'
+          SITE_PRIVATE: 'true'
+          OFFER_ACCEPTANCE_ENABLED: 'false'
+        run: npx playwright test test-browser/offerPortal.browser.spec.cjs --workers=1 --reporter=line

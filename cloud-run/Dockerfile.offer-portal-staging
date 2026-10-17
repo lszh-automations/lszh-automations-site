@@ -1,13 +1,14 @@
-# Build context must be the sibling cloud-run/ directory.
-# Only the isolated Cloud Run offer-portal can use this image.
-# DO NOT deploy or expose the service without staging safety review.
+# Build context is the REPOSITORY ROOT: docker build -f cloud-run/Dockerfile.offer-portal-staging .
+# Copy only the isolated portal sources and the EXISTING client HTML. No extra service.
+# NEVER deploy this image to current read-only Cloud Run service without separate staging review.
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production
 WORKDIR /app/offer-portal-staging
-COPY offer-portal-staging/package.json ./package.json
+COPY cloud-run/offer-portal-staging/package.json ./package.json
 RUN npm install --omit=dev --no-audit --no-fund
-COPY offer-portal-staging/*.mjs ./
-COPY archive-reader-staging/archiveBundleVerifier.mjs ../archive-reader-staging/archiveBundleVerifier.mjs
+COPY cloud-run/offer-portal-staging/*.mjs ./
+COPY cloud-run/archive-reader-staging/archiveBundleVerifier.mjs ../archive-reader-staging/archiveBundleVerifier.mjs
+COPY offerte-annehmen/index.html ./offerte-annehmen.html
 USER node
 EXPOSE 8080
 CMD ["npm", "start"]

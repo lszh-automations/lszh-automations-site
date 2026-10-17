@@ -1,5 +1,25 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Secret-spezifischer IAM-Preflight LIVE bestanden; Grant noch NICHT vergeben
+
+Der Geschäftsführer hat in Google Cloud Shell nach einem sauberen `git pull --ff-only` den rein lesenden `staging-airtable-secret-iam.sh` ausgeführt. Die Live-Ausgabe bestätigte:
+```text
+PASS: Company identity, clean review branch and dedicated service account.
+PASS: Correct global STAGING secret, Zurich-only replica, exactly one ENABLED version (1).
+PASS: Existing secret-specific IAM policy inspected; no binding for the dedicated identity.
+Proposed new member: serviceAccount:lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+Proposed role: roles/secretmanager.secretAccessor
+Scope: EXACTLY the one Secret Manager secret lszh-airtable-readonly-staging (not project-wide).
+No PAT access, email, Firestore, Make, Cloud Run job or customer data operations.
+PLAN ONLY: No IAM changes, no secret contents read and no Cloud Run deployment.
+```
+
+Das STAGING-Airtable-PAT liegt bereits in Secret-Manager-Version `1` (`ENABLED`) im globalen Secret mit exakt einer User-managed-Zürich-Replik `europe-west6`. Das dedizierte SA existiert und ist aktiv. Vor diesem Schritt existierte noch **keine direkte secret-spezifische IAM-Bindung** für das SA. **Wichtig: `PLAN ONLY` ist KEIN Nachweis, dass die Rolle bereits vergeben wurde.**
+
+Nächster separater Cloud-Shell-Schritt: `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-airtable-secret-iam.sh --grant-secret-only`. Das vorab offline getestete Skript führt maximal **eine** `gcloud secrets add-iam-policy-binding`-Aktion für **dieses eine Secret** (`roles/secretmanager.secretAccessor` zugunsten `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`) aus und prüft anschliessend die IAM-Richtlinie auf genau eine passende Bindung. Keine Projekt-IAM-Aktion. Es ist eine **echte Gewährung von Token-Lesezugriff**: nur mit bewusster Nutzeraktion ausführen. Falls der Befehl mit STOP abbricht, keine zweite Grant-Ausführung starten, bevor die IAM-Metadaten geprüft wurden.
+
+Noch NICHT vorhanden/ausgeführt: Cloud-Run-Airtable-Lesejob, Build/Push/Deployment des separaten Images, Secret-Mount, realer Cloud-Run→Airtable-GET, E-Mail-/Make-/Firestore- oder produktiver Prozess. Bestehender HTTP-Outbox-Dienst bleibt deaktiviert und unverändert.
+
 ## BESTÄTIGT 17.10.2026 – Airtable-READ-PAT STAGING Secret-Version 1 erfolgreich gespeichert
 
 Direkt aus **Google Cloud Shell** vom Geschäftsführer über `bash workers/onboarding-notifications/staging-airtable-secret-version.sh --add-once` ausgeführter, streng kontrollierter Upload. Die tatsächliche Ausgabe bestätigte erneut die unabhängige Projekt-/Secretnamensprüfung und **genau eine Zürcher user-managed Replikation**, `0` Versionen unmittelbar vor der Übertragung, danach:

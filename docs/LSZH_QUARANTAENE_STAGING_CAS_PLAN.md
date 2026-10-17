@@ -1,6 +1,25 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
-Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
+## V2-Livetest erfolgreich und temporärer Grant entfernt – 17.10.2026
+
+**Live-Nachweis anhand der vom Geschäftsführer gelieferten Cloud-Shell-Ausgabe** für `staging-quarantine-timed-read-check-v2.sh --run-approved-once` nach ausdrücklich begrenzter Freigabe:
+
+```text
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; attempting one token request.
+PASS: Quarantine DB authenticated GET returned 404 for random missing document.
+PASS: Offers DB denied authenticated GET with HTTP 403.
+DONE: Two REST GET requests, no Firestore writes.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Bewertung:** Die neue Quarantäne-Serviceidentität konnte eine zufällige, nicht vorhandene Dokument-ID in der zugehörigen Named Database lesen/abfragen (404); mit derselben Identität wurde derselbe GET auf die bestehende `lszh-offers-staging` mit 403 verweigert. Damit ist die **beobachtete Datenbank-Isolation für diese beiden Firestore-Dokument-GETs** nachgewiesen. Die vorübergehende Berechtigung `roles/iam.serviceAccountTokenCreator` auf dieser dedizierten Service-Account-Ressource wurde nach dem Test **sofort widerrufen**; ein neuer IAM-Policy-Readback bestätigte das Fehlen dieser exakten Berechtigung. Die 30-Minuten-Befristung war zusätzlich aktiv. Kein Datensatz geändert, erstellt oder gelöscht und kein Cloud Run gestartet.
+
+**STOP – beide Einmal-Runner sind verbraucht:** `staging-quarantine-timed-read-check.sh --run-approved-once` (V1) und `staging-quarantine-timed-read-check-v2.sh --run-approved-once` (V2) **niemals erneut ausführen**. Kein neues Token-Creator-Recht ohne eigenständige Genehmigung. Die älteren, darunter stehenden Pläne mit noch bevorstehendem Live-Test sind **historisch**, nicht erneut auszuführende Anweisungen. Keine Behauptung, dass damit geerbte IAM-Rechte oder effektive Schreib-/CAS-Berechtigungen umfassend geprüft wären. **Nächster Freigabepunkt:** synthetische Firestore-CAS-Schreibprobe erst nach gesonderter technischer Vorbereitung und ausdrücklicher Freigabe; keine produktiven Dokumente, keine Mail, keine Cloud Run-Aktivierung.
+
+Status am 17.10.2026: **Separat isolierte Quarantäne-Named-Database, aktiver Löschschutz, dedizierter Service-Account und exakt 3-rechtige, DB-konditionierte Custom Role sind erstellt und metadatengeprüft. Der reale impersonierte Read-Isolationstest V2 ist erfolgreich: Quarantäne-DB HTTP 404, Offerten-DB HTTP 403. Der kurzzeitige Token-Creator-Grant wurde entfernt und die Abwesenheit im IAM-Readback bestätigt.** Firestore-CAS-Schreibtest, Cloud-Run-Runtime, Deployment und Versand bleiben NICHT ausgeführt bzw. nicht freigegeben. Ältere Abschnitte dokumentieren historische Planstände.
 
 ## Einmaliger V2-Lesetest: zweite eng begrenzte IAM-Freigabe liegt vor (17.10.2026)
 

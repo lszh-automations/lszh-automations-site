@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einmaliger 30-Minuten-SA-Token-Creator-Test: Impersonierung BLOCKED, IAM-Bindung sicher entfernt
+
+**Echter, vom Geschäftsführer autorisiert in Cloud Shell ausgeführter Einmal-Lauf:** `git pull --ff-only` bis Review-Commit `d2ca43b`, anschliessend `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --run-approved-once`. Die Ausgabe bestätigt die vorgelagerte PASS-IAM-Metadatenprüfung und:
+```text
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+BLOCKED: IMPERSONATION_NOT_VERIFIED; no Firestore GET sent.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Nachweisstand:** Der einzelne bedingte Token-Creator-Grant wurde auf der separaten Quarantäne-Service-Account-Ressource gesetzt und in der Service-Account-IAM-Policy bestätigt, dann nach gescheiterter kurzlebiger Token-Erzeugung vom EXIT-Cleanup exakt entfernt; ein neuer Policy-Readback bestätigt das vollständige Fehlen dieser temporären Bindung. **Kein Firestore-REST-GET, kein Firestore-Schreibzugriff, kein Deployment, keine weitere GCP-Mutation.** Das Einmal-Skript (lokaler Marker) **NICHT erneut ausführen**, insbesondere **keinen** zweiten zeitlich begrenzten Grant ohne gesonderte Ursachenanalyse und ausdrückliche neue Freigabe.
+
+**Ursache noch nicht bewiesen:** Das absichtlich geheimnisschonende Skript unterdrückte `gcloud`-Token-Fehlertexte; daraus ist die genaue Fehlerklasse nicht ableitbar. Googles IAM-Dokumentation erklärt `eventual consistency` nach IAM-Policy-Änderungen (typisch ca. 2 Minuten, in manchen Fällen mindestens 7 Minuten). Der bisherige Runner versuchte die Token-Erzeugung unmittelbar nach erfolgreichem Metadata-Readback; die noch nicht propagierte Berechtigung ist daher eine **plausible, aber nicht bestätigte** Erklärung. Weitere Möglichkeiten: Session-/Authentifizierungsproblem, Organisationseinschränkung, IAMCredentials-Berechtigungsmangel o.Ä. Keine zusätzlichen Rechte oder API-Aktivierungen aufgrund dieser Hypothese.
+
+**Sicherer Folgeweg:** Erst Ursachenanalyse ohne neue Privilegien, z.B. IAMCredentials-Data-Access-Auditlogs für `GenerateAccessToken` lesen, falls der Logtyp bereits aktiviert ist. Keine Tokens ausgeben, keine Auditlogging-Aktivierung ohne neue Freigabe. Eine eventuelle spätere Neuplanung muss den IAM-Propagation-Delay und sofortige, unabhängig verifizierte Bindungsentfernung berücksichtigen und benötigt eine eigene präzise IAM-Freigabe. Firestore-Write-Test bleibt gesperrt.
+
 ## 17.10.2026 – Genehmigte 30-Minuten-Token-Creator-Lease und effektiver Lesetest sicher vorbereitet
 
 **Freigabe:** Auf eine konkret vorgeschlagene zusätzliche IAM-Berechtigung `roles/iam.serviceAccountTokenCreator` **ausschliesslich auf dem Quarantäne-Service-Account**, höchstens eine Stunde gültig und nach dem Lesetest zu entfernen, antwortete der Geschäftsführer `ich genehmige`. Keine Freigabe für Firestore-Write-Probe, Cloud Run oder weitere Cloud-Ressourcen.

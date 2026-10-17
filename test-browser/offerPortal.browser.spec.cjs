@@ -112,8 +112,13 @@ for(const mode of ['Ja','Nein']){
    await expect(page.locator('#payment')).toContainText('50 % bei Auftrag');
    await expect(page.locator('#once')).toContainText('1');
    await expect(page.locator('#monthly')).toContainText('149');
-   await expect(page.locator('#avvSection')).toBeVisible({visible:mode==='Ja'});
-   await expect(page.locator('#avvConsentSection')).toBeVisible({visible:mode==='Ja'});
+   if(mode==='Ja'){
+    await expect(page.locator('#avvSection')).toBeVisible();
+    await expect(page.locator('#avvConsentSection')).toBeVisible();
+   }else{
+    await expect(page.locator('#avvSection')).toBeHidden();
+    await expect(page.locator('#avvConsentSection')).toBeHidden();
+   }
    await expect(page.locator('#avvConsent')).not.toBeChecked();
    expect(fixture.stats.preview).toBe(1);
    expect(new URL(page.url()).searchParams.has('code')).toBe(false,

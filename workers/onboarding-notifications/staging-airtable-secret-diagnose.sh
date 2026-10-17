@@ -47,8 +47,8 @@ try:
  same_secret=len(parts)==4 and parts[0]=="projects" and parts[2]=="secrets" and parts[3]==expected_secret
  same_project=same_secret and parts[1] in (project_id,project_number)
  rep=d.get("replication",{})
- managed=rep.get("userManaged",rep.get("user_managed"))
- if isinstance(rep,dict) else None
+ managed=(rep.get("userManaged",rep.get("user_managed"))
+          if isinstance(rep,dict) else None)
  replicas=managed.get("replicas") if isinstance(managed,dict) else None
  regions=[r.get("location") for r in replicas] if isinstance(replicas,list) else []
  region_ok=regions==[location]

@@ -14,7 +14,7 @@ Der Geschäftsführer genehmigte ausdrücklich eine **einmalige, höchstens eins
 - `EXIT`-/Signal-Cleanup versucht **unmittelbar nach Erfolg und Fehler** die **exakte zeitlich bedingte IAM-Bindung** wieder zu löschen und liest die SA-IAM-Policy unabhängig zurück. Bei unsicherem Ergebnis Warnung und **kein Retry**; die bedingte Rolle verliert nach 30 Minuten auch ohne erfolgreichen Cleanup ihre Wirksamkeit. Ein lokaler Einmal-Marker verhindert normale Wiederholungen.
 - kein Firestore-POST/PATCH/DELETE/LIST, keine Cloud-Run-Aktivierung, keine Kundenaktion, keine permanenten Rollen, kein zusätzliches IAM auf `lszh-offers-staging`.
 
-**Synthetisch lokal in GitHub-CI geprüft:** `staging-quarantine-timed-read-check.test.mjs` testet Plan, Freigabesperre, genau einen Grant mit Cleanup, 2-GEP-Probe, existierende SA-Rolle, Token-Verweigerung, negative 404, Grant-/Remove-Fehler, falsche Identität und Syntax. Nach Korrektur des Condition-JSON-Encodings bestanden **300/300** Offline-Tests; keine echte Token-Minting-/Firestore-REST-Ausführung erfolgt durch CI.
+**Synthetisch lokal in GitHub-CI geprüft:** `staging-quarantine-timed-read-check.test.mjs` testet Plan, Freigabesperre, genau einen Grant mit Cleanup, 2-GET-Probe, existierende SA-Rolle, Token-Verweigerung, negative 404, Grant-/Remove-Fehler, falsche Identität und Syntax. Nach Korrektur des Condition-JSON-Encodings bestanden **300/300** Offline-Tests; keine echte Token-Minting-/Firestore-REST-Ausführung erfolgt durch CI.
 
 **Cloud-Shell-Planmodus:**
 ```bash

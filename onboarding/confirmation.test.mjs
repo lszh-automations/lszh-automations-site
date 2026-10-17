@@ -103,3 +103,25 @@ test('reject invalid codes and missing token before network',async()=>{
  await assert.rejects(verifyOnboardingState(projectCode, '',t.fetchImpl),/status_not_configured/);
  assert.equal(t.calls(),0);
 });
+
+test('order may link exactly one onboarding; extra backlink requires processing',async()=>{
+ const o=clone(order);o.fields['Kunden-Onboarding']=[onbId,taskId];
+ const api=transport({order:o});
+ assert.deepEqual(await check(null,api),{state:'processing'});
+ assert.equal(api.calls(),2);
+});
+test('sensitive-data task may link exactly one order; extra linkage is not complete',async()=>{
+ const x=clone(onboarding);x.fields['Sensible Daten']='Ja';
+ const t=clone(task);t.fields['Auftrag']=[orderId,customerId];
+ const api=transport({onboarding:[x],tasks:[t]});
+ assert.deepEqual(await check(null,api),{state:'processing'});
+ assert.equal(api.calls(),4);
+});
+
+test('DSG task without a valid Airtable record ID is not a completed evidence',async()=>{
+ const x=clone(onboarding);x.fields['Sensible Daten']='Ja';
+ const t=clone(task);t.id='malformed_synthetic_id';
+ const api=transport({onboarding:[x],tasks:[t]});
+ assert.deepEqual(await check(null,api),{state:'processing'});
+ assert.equal(api.calls(),4);
+});

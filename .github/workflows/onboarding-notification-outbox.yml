@@ -1,0 +1,151 @@
+name: Onboarding notification outbox (synthetic only)
+on:
+  push:
+    branches:
+      - feature/onboarding-notification-outbox-20261016
+  pull_request:
+    paths:
+      - 'workers/onboarding-notifications/**'
+      - '.github/workflows/onboarding-notification-outbox.yml'
+jobs:
+  offline-tests:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check worker syntax
+        run: |
+          node --check server.js
+          node --check workers/onboarding-notifications/server.js
+          node --check workers/onboarding-notifications/paced-fetch.js
+          node --check workers/onboarding-notifications/outbox.js
+          node --check workers/onboarding-notifications/draft-review-gate.js
+          node --check workers/onboarding-notifications/quarantine-plan.js
+          node --check workers/onboarding-notifications/firestore-quarantine-cas.js
+          node --check workers/onboarding-notifications/quarantine-cas-offline-cycle.js
+          node --check workers/onboarding-notifications/onboarding-quarantine-integration.js
+          node --check workers/onboarding-notifications/firestore-scoped-readers.js
+          node --check workers/onboarding-notifications/quarantine-handoff-protocol.js
+          node --check workers/onboarding-notifications/quarantine-handoff-offline-flow.js
+          node --check workers/onboarding-notifications/quarantine-handoff-replay-cas.js
+          node --check workers/onboarding-notifications/quarantine-handoff-http-contract.js
+          node --check workers/onboarding-notifications/quarantine-handoff-replay-runtime.js
+          node --check workers/onboarding-notifications/quarantine-handoff-receiver.js
+          node --check workers/onboarding-notifications/quarantine-handoff-source.js
+          node --check workers/onboarding-notifications/quarantine-handoff-source-once.js
+          node --check workers/onboarding-notifications/staging-quarantine-cas-write-once.js
+          node --check workers/onboarding-notifications/quarantine-iam-plan.js
+          node --check workers/onboarding-notifications/quarantine-iam-provisioning.js
+          node --check workers/onboarding-notifications/quarantine-provisioning-readiness.js
+          node --check workers/onboarding-notifications/airtable-candidates.js
+          node --check workers/onboarding-notifications/firestore-store.js
+          node --check workers/onboarding-notifications/firestore-runtime-probe.js
+          node --check workers/onboarding-notifications/firestore-write-probe.js
+          node --check workers/onboarding-notifications/staging-airtable-rest-read.js
+          node --check workers/onboarding-notifications/airtable-runtime-probe.js
+      - name: Run synthetic offline tests
+        run: node --test workers/onboarding-notifications/*.test.mjs
+      - name: Verify read-only Cloud Shell preflight syntax
+        run: |
+          bash -n workers/onboarding-notifications/staging-preflight.sh
+          bash -n workers/onboarding-notifications/staging-diagnostics.sh
+          bash -n workers/onboarding-notifications/staging-identity-setup.sh
+          bash -n workers/onboarding-notifications/staging-identity-verify.sh
+          bash -n workers/onboarding-notifications/staging-service.sh
+          bash -n workers/onboarding-notifications/staging-health-check.sh
+          bash -n workers/onboarding-notifications/staging-firestore-read-probe.sh
+          bash -n workers/onboarding-notifications/staging-impersonation-diagnostics.sh
+          bash -n workers/onboarding-notifications/staging-firestore-job.sh
+          bash -n workers/onboarding-notifications/staging-firestore-write-job.sh
+          bash -n workers/onboarding-notifications/staging-airtable-rest-read.sh
+          bash -n workers/onboarding-notifications/staging-airtable-identity.sh
+          bash -n workers/onboarding-notifications/staging-airtable-empty-secret.sh
+          bash -n workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
+          bash -n workers/onboarding-notifications/staging-airtable-secret-version.sh
+          bash -n workers/onboarding-notifications/staging-airtable-secret-iam.sh
+          bash -n workers/onboarding-notifications/staging-airtable-image-build.sh
+          bash -n workers/onboarding-notifications/staging-airtable-image-build-v2.sh
+          bash -n workers/onboarding-notifications/staging-airtable-image-verify.sh
+          bash -n workers/onboarding-notifications/staging-airtable-image-verify-v2.sh
+          bash -n workers/onboarding-notifications/staging-airtable-job.sh
+          bash -n workers/onboarding-notifications/staging-airtable-job-v2.sh
+          bash -n workers/onboarding-notifications/staging-airtable-job-run.sh
+          bash -n workers/onboarding-notifications/staging-airtable-job-run-v2.sh
+          bash -n workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+          bash -n workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-iam-preflight.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-iam-setup.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-timed-read-check.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-cas-write-once.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-db-provision.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-handoff-provision.sh
+      - name: Check synthetically restricted IAM policy
+        run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
+      - name: Build isolated STAGING container (no push, no deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile -t lszh-outbox-ci:synthetic .
+      - name: Build isolated private quarantine receiver (no push, deploy or secrets)
+        run: |
+          docker build -f workers/onboarding-notifications/Dockerfile.quarantine-handoff -t lszh-quarantine-handoff-ci:synthetic .
+          docker run --rm --network none lszh-quarantine-handoff-ci:synthetic sh -c \
+            'test ! -e /app/.env && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/server.js && test ! -e /app/workers/onboarding-notifications/server.js && node --check /app/workers/onboarding-notifications/quarantine-handoff-receiver.js'
+          ! docker run --rm --network none lszh-quarantine-handoff-ci:synthetic sh -c 'test -e /app/workers/onboarding-notifications/gmail.js'
+      - name: Build disabled synthetic OIDC source job (no push, deploy or secrets)
+        run: |
+          docker build -f workers/onboarding-notifications/Dockerfile.quarantine-source -t lszh-handoff-source-ci:synthetic .
+          docker run --rm --network none lszh-handoff-source-ci:synthetic sh -c \
+            'test ! -e /app/.env && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/server.js && node --check /app/workers/onboarding-notifications/quarantine-handoff-source-once.js'
+          if docker run --rm --network none lszh-handoff-source-ci:synthetic > /tmp/lszh-handoff-source-ci.log 2>&1; then
+            echo 'FAIL: source job was enabled without explicit gate'
+            exit 1
+          fi
+          grep -q 'BLOCKED: Synthetic source handoff' /tmp/lszh-handoff-source-ci.log
+          ! grep -E 'Bearer |access_token|pat_|@gmail.com' /tmp/lszh-handoff-source-ci.log
+      - name: Build isolated Firestore runtime probe image (no push or deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.firestore-probe -t lszh-firestore-probe-ci:synthetic .
+      - name: Verify runtime probe disabled by default and contains no website or secrets
+        run: |
+          docker run --rm --network none lszh-firestore-probe-ci:synthetic sh -c \
+            'test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/.env && node --check /app/probe.js'
+      - name: Build isolated synthetic STAGING write-probe (no push/deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.firestore-write-probe -t lszh-firestore-write-ci:synthetic .
+      - name: Confirm write probe cannot run unless explicitly enabled
+        run: |
+          docker run --rm --network none lszh-firestore-write-ci:synthetic sh -c \
+            'test ! -e /app/.env && test ! -e /app/.git && test ! -e /app/docs && test ! -e /app/workers/onboarding-notifications/server.js && node --check /app/workers/onboarding-notifications/firestore-write-probe.js'
+          if docker run --rm --network none lszh-firestore-write-ci:synthetic > /tmp/lszh-write-probe.log 2>&1; then
+            echo "FAIL: probe unexpectedly ran without its explicit approval flag"
+            exit 1
+          fi
+          grep -q 'FAIL: synthetic_write_probe_disabled' /tmp/lszh-write-probe.log
+          ! grep -E 'Bearer |access_token|@gmail.com' /tmp/lszh-write-probe.log
+      - name: Build isolated one-shot Airtable read probe (no push/deploy)
+        run: docker build -f workers/onboarding-notifications/Dockerfile.airtable-read-probe -t lszh-airtable-read-ci:synthetic .
+      - name: Build V2 Airtable read probe and verify node file access (no push or deploy)
+        run: |
+          docker build -f workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2 -t lszh-airtable-read-v2-ci:synthetic .
+          docker run --rm --network none --user node lszh-airtable-read-v2-ci:synthetic sh -c \
+            'test -r /app/onboarding/confirmation.js && test -r /app/workers/onboarding-notifications/staging-airtable-rest-read.js && test -r /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js && node --check /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js && test ! -e /app/.env && test ! -e /app/docs && test ! -e /app/server.js'
+      - name: Verify Airtable job is disabled without cloud identity and contains no customer app or secrets
+        run: |
+          docker run --rm --network none lszh-airtable-read-ci:synthetic sh -c \
+            'test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/.env && test ! -e /app/docs && test ! -e /app/workers/onboarding-notifications/server.js && test ! -e /app/workers/onboarding-notifications/firestore-store.js && node --check /app/workers/onboarding-notifications/airtable-runtime-probe.js'
+          if docker run --rm --network none lszh-airtable-read-ci:synthetic > /tmp/lszh-airtable-read-probe.log 2>&1; then
+            echo "FAIL: Airtable read job unexpectedly ran without explicit STAGING gate"
+            exit 1
+          fi
+          grep -q 'STOP: airtable_runtime_probe_disabled' /tmp/lszh-airtable-read-probe.log
+          ! grep -E 'Bearer |access_token|pat_' /tmp/lszh-airtable-read-probe.log
+      - name: Inspect packaged code without network or credentials
+        run: |
+          docker run --rm --network none lszh-outbox-ci:synthetic sh -c \
+            'node --check /app/workers/onboarding-notifications/server.js && test ! -e /app/.env && test ! -e /app/server.js && test ! -e /app/.git && test ! -e /app/docs'
+      - name: Assert no mail transport in worker
+        run: |
+          ! grep -RE 'gmail\.com|sendMail\(|sendAnEmail|nodemailer|smtp://' workers/onboarding-notifications/*.js

@@ -1,0 +1,15 @@
+# Separate permission-fixed image BUILD ONLY. Never changes an existing Job.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

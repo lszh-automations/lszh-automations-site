@@ -1,0 +1,11 @@
+{
+  "name": "lszh-onboarding-notification-drafts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private, fail-closed staging reconciliation. No email transport.",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test *.test.mjs"
+  }
+}

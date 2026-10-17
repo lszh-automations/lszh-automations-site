@@ -1,0 +1,19 @@
+# Only build/push; NEVER deploy, enable scheduling, or send notifications.
+# Invoke from repository root with:
+# gcloud builds submit . --project=lszh-automations \
+#   --config=workers/onboarding-notifications/cloudbuild.staging.yaml \
+#   --substitutions=_IMAGE=europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-onboarding-outbox:staging-<git-sha>
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

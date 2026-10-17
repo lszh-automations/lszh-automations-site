@@ -1,5 +1,1823 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Offerten-STAGING HTTP 503: vorgesehene Zugriffssperre, kein erkennbarer Render-Ausfall
+
+**Vom Geschäftsführer ausgeführtes reines GET:** `https://lszh-offer-acceptance-staging.onrender.com/offerte-annehmen/?demo=1` ⇒ **HTTP 503**. Direkt anschliessend verbundenen Render-Geschäftsworkspace, echten Service `lszh-offer-acceptance-staging` (`srv-db88q5jncjis73f2g93g`), letzte Deploy-Events und aktuelle App-Logs geprüft: `autoDeploy=no`, letzter Deploy `dep-db8912navr4c73als4h0` erfolgreich, Service nicht suspendiert; aktuelle Logs zeigen am 17.10. um 20:14 UTC tatsächlich `Running 'node server.js'` und `LSZH Automations listening on 10000`. Der eingespielte Branch `feature/optional-avv-acceptance-staging-20261014` enthält in `server.js` direkt zu Beginn der HTTP-Route den erzwungenen privaten Access-Guard: **`SITE_PRIVATE=true` + fehlender gültiger `PREVIEW_TOKEN`/Cookie ⇒ HTTP 503** mit dem genauen, fest codierten Text `LSZH Automations ist vorübergehend nicht öffentlich verfügbar.`; der Guard greift ausdrücklich vor allen GET-Seiten und POST-APIs. Vorangegangene dokumentierte Render-Konfiguration bestätigt `SITE_PRIVATE=true`, `OFFER_ACCEPTANCE_ENABLED=false`, **kein `PREVIEW_TOKEN` gesetzt**. Daher ist der beobachtete 503 **konsistent mit dem absichtlich privaten Staging**, kein Anlass für Neustart/Deaktivierung der Sperre. Vollständig ausgeschlossen werden können andere 503-Ursachen ohne inhaltlichen Vergleich der Response noch nicht. Sicherer optionaler GET-Nachweis: `curl -fsS ...` NICHT verwenden (503 ist erwartet), sondern normalen curl-Body mit festem Erwartungstext vergleichen, ohne Geheimnisse zu drucken.
+
+**Sicherheitsvorgehen:** `SITE_PRIVATE` und `OFFER_ACCEPTANCE_ENABLED=false` bleiben unverändert; keine öffentlichen Preview-Zugänge, kein echter Offerten-/Kunden-POST, keine Gmail-/Make-Aktivierung oder Echtvertragsannahme. Im **ungemergten** und **nicht auto-deployenden** Angebots-Draft wurde als reine Offline-HTTP-Sicherheitsregression `test/offerStaging.private.test.js` auf Branch `feature/optional-avv-acceptance-staging-20261014` ergänzt (Commit `01d8a3da992451a6a0f2c1603fb2a25c37b08c8a`): testet auf lokalem Loopback-Server `SITE_PRIVATE=true`, `PREVIEW_TOKEN=''`, `OFFER_ACCEPTANCE_ENABLED=false`; alle Demo-/Onboarding-GETs und Angebots-/Onboarding-POSTs müssen **503 ohne fachliche Verarbeitung** liefern. **GitHub Actions Run 39066077802 `Offer acceptance checks` abgeschlossen: SUCCESS**; `validate` **78 Tests, 76 PASS, 2 SKIP, 0 FAIL**, darunter die neue private 503-GET/POST-Laufzeitprüfung; separate Firestore-Emulator-Strecke **10/10 PASS**. Staging/Produktion unverändert. Keine Änderung an Render oder Live-Website. Ein späterer, vom Geschäftsführer explizit eingerichteter kryptografisch zufälliger, geschützter Preview-Token könnte Demo-GET zulassen, ohne die Annahme zu aktivieren; dabei Token nie in Chat/GitHub/logs veröffentlichen und Session-Revokation planen.
+
+
+## 17.10.2026 – Live öffentliche Website-Erreichbarkeit bestätigt (drei unabhängige GETs)
+
+**Ausgabe aus der vom Geschäftsführer ausgeführten Cloud-Shell-HTTP-GET-Schleife**, die je URL `curl -L -sS --max-time 20 --max-redirs 3 -o /dev/null -w 'HTTP %{http_code} | %{url_effective}'` ausführt: `HTTP 200 | https://www.lszh-automations.ch/onboarding/`, `HTTP 200 | https://www.lszh-automations.ch/make-start/` und `HTTP 200 | https://lszh-automations-site.onrender.com/onboarding/`. Nachweis: Alle drei Ziele öffentlich erreichbar und erfolgreiche GET-Statusantwort, keine Redirects auf andere finale URLs. **Dieser Nachweis ist kein tatsächlicher HTML-Inhalts-/Browser-Rendering-Test, kein HTTP-POST, keine Airtable-/Make-Speicherung und kein 200/202/409-Proxy-Semantiktest**. Keine produktive Aktivierung, Kundenaktion, E-Mail oder Einladung. Bereits erfolgter synthetischer Airtable→Outbox→Quarantäne-E2E-Test bleibt separat abgeschlossen und wird **nicht wiederholt**. Nächster gezielter Ansatz: read-only Public-HTML-Form-Feld-/Asset-Abgleich und risikofreie isolierte Prüfung der Website-Proxystatuslogik, anschliessend abgesicherte elektronische Offertenannahme und geschäftlicher Drive-Archiv-Lesezugriff. Keine öffentliche Formulareinsendung ohne explizite gesonderte Freigabe.
+
+
+## 17.10.2026 – Nächster Produktionsreife-Abschnitt: Angebots-/Onboarding-Vorstufe geprüft, ausstehender öffentlicher HTTP-Nachweis
+
+**Letzter synthetischer Airtable→Firestore→Quarantäne-Handoff:** zuvor real SUCCESS (einmalig `lszh-quarantine-source-e2e-staging-slhkc`), weiterhin strikt **nicht wiederholen**. Neue Arbeit gilt ausdrücklich **anderen** Produktionsreife-Gates.
+
+**Render verbundener Geschäftskontext, read-only geprüft:** Ein einziger Team-Workspace für `lars@lszh-automations.ch` liefert drei vorhandene Web Services. (1) `lszh-automations-site` (`srv-db1r13ad0e5s7390tcr0`) ist auf `main`, `autoDeploy=yes`, letzter Deploy `dep-db892imk1f9s73e9aus0` auf Commit `20c9149...`, Status `live`. (2) `lszh-offer-acceptance-staging` (`srv-db88q5jncjis73f2g93g`) ist auf `feature/optional-avv-acceptance-staging-20261014`, `autoDeploy=no`, letzter Live-Deploy `dep-db8912navr4c73als4h0`, Commit `000c6089...`. (3) `lszh-swiss-qr-staging` (`srv-db7cn5q5b2lc73fecb1g`) ist auf `feature/swiss-qr-bill-staging-20261014`, `autoDeploy=no`, letzter Live-Deploy `dep-db7m2o2j9qps73cuhj30`, Commit `18d3ef1...`. Read-only Render-Eventinventur bestätigt erfolgreiche Deployments, jedoch **keinen direkten öffentlichen Browser-HTTP-Erfolg**. Dieser Chat-Lauf konnte `www.lszh-automations.ch/onboarding/`, `/make-start/` und die Render-Domain nicht aus dem externen Prüf-/Container-Netz abrufen; **nicht** mit realem Website-Ausfall verwechseln. Render-HTTP-Metrik-/Requestlogs für 16.–17.10. enthielten in der Verbindung keine relevanten Einträge.
+
+**Tatsächliche Make-Statusprüfung über verbundenen Make-Geschäftsaccount:** `LSZH Kunden-Onboarding – Eingang` (7777695), zwei AVV-Nein-Angebotsszenarien (7940261, 7940220), zwei AVV-Ja-Angebotsszenarien (7965215, 7965223) sowie drei isolierte synthetische Webhook/Recovery-Teststrecken (7963329, 7963343, 7963454) stehen **alle `inactive`**, **keine gemeldeten Modul-Probleme**, erforderliche Konnektoren im Status `ok`. Die real ausgelesenen **fünf Gmail-Modul-Filter** (9/5/8/5/8) enthalten ausnahmslos die harte, immer falsche Bedingung `0 = 1`. **Keine Szenarien aktiviert, keine Mails, keine CRM-Mutation, keine Freigabe.**
+
+**Realer Codefehler in separater Offer-Acceptance-Draft behoben:** Die Feature-Branch-Datei `onboarding/index.html` enthielt für HTTP 202 (pending, nicht final gespeichert) noch das Versprechen einer späteren E-Mail, obwohl jeder E-Mail-Pfad gesperrt ist. Nun exakt mit bereits korrigierter `main`-Version vereinheitlicht: `Die abschliessende Speicherung ist noch nicht bestätigt.` + `Bitte senden Sie das Formular nicht erneut ab.` Keine E-Mail-Zusage. Änderung **ausschliesslich** in `feature/optional-avv-acceptance-staging-20261014`, Commit `877aaf75534ff1dc519f4ab48f22da3ef519f3e9`; eigene ausführbare synthetische UI-Regression `test/onboarding.pending.test.js` (zusätzliche Fälle HTTP 202/200/409), Fix-Commit `27e4e0e36ca31a4e45a5334e83e3d25e62210f6c`. **GitHub Actions `Offer acceptance checks`, Run 39065037660: success**, Validate **77 Tests, 75 PASS, 2 SKIP, 0 FAIL**, inkl. der drei neuen UI-Tests, separate Firestore-Emulator-Suite **10/10 PASS**. Der betroffene Render-STAGING-Dienst hat `autoDeploy=no`, daher **keine neue Staging-Revision deployed**; produktive `main`-Website blieb ohnehin unverändert.
+
+**Unmittelbarer nächster, nicht-schreibender Geschäftsnachweis:** Nur öffentliches **GET** von `https://www.lszh-automations.ch/onboarding/`, `https://www.lszh-automations.ch/make-start/` und `https://lszh-automations-site.onrender.com/onboarding/` aus Cloud Shell abrufen und lediglich HTTP-Status/effektive URL berichten. **Kein POST**, keine Testofferte, kein echter Kunde, keine Make-Aktivierung. Danach ggf. HTTP-409/202-Semantik über isolierte synthetische Mock-/Webhook-Strecke prüfen, ohne bestehende 0=1-Mail-Sperren zu berühren. Getrennte Gates: geschäftlich restriktives Drive-Servicekonto/Archiv, sichere Annahme/Idempotenz, juristische RC1-/AVV-Endfreigaben und Swiss-QR-Abnahme; synthetischer Source-Quarantäne-Test ist bereits abgeschlossen.
+
+
+## 17.10.2026 – Finaler synthetischer End-to-End-Lauf: SUCCESS + Anwendungserfolg bestätigt
+
+**Echte Cloud-Shell-Anwendungslogs der einzigen Ausführung `lszh-quarantine-source-e2e-staging-slhkc`:**
+
+```text
+2026-10-17 19:49:25 PASS_SYNTHETIC_SOURCE_E2E_REVIEW_ONLY
+2026-10-17 19:49:25 PASS: One new staged draft was verified and private review-only receiver acknowledged.
+2026-10-17 19:49:25 PASS: No customer, mail or contract delivery. Never rerun the job.
+```
+
+Zuvor durch Google Cloud Run separat bestätigt: **`Completed=True`**, `succeededCount=1`, **10,45 Sekunden**, Ende `2026-10-17T19:49:28.639416Z`. Der Erfolgscode des unveränderten synthetischen Source-Workers wird **nur** nach frischer Airtable-Abwesenheitskontrolle, **neuem** `DRAFT_NOT_SENT`-Firestore-Create, exaktem unabhängigem Outbox-Readback und akzeptiertem signiertem HMAC/OIDC-POST beim privaten Quarantäne-Empfänger mit `REVIEW_ONLY_HANDOFF_ACKNOWLEDGED` ausgegeben. Kein Kunden-Mail, kein Vertragsabschluss, keine Quarantäne-Case-Freigabe; Empfänger bleibt `MANUAL_REVIEW_REQUIRED`.
+
+**Bewertung: Technischer synthetischer Source→Firestore-Outbox→Quarantäne-Receiver-End-to-End-Test BESTANDEN.** Nicht gleichzusetzen mit vollständiger LSZH-Automations-Produktionsreife oder einem produktiven Kunden-Onboarding/Offerten-/Rechnungsprozess. Die Ausführung hat reale Staging-Dienste und Firestore, aber ausschliesslich synthetische Testdaten benutzt. Als optionaler letzter Nachweis für den Auditbericht können bestehende Staging-Firestore-Dokumente/Replay-Claims **nur lesend**, ohne Token oder Projektcode in Chat/Logs, nachträglich verifiziert werden; dies ist **keine Voraussetzung, um die vorhandenen Erfolgslogs anzuerkennen**, aber unterscheidet Laufzeit-Readback von späterer unabhängiger Persistenzprüfung.
+
+**STRIKT NICHT WIEDERHOLEN:** Nie erneut `gcloud run jobs execute lszh-quarantine-source-e2e-staging`, `--create-only`, `--build-only` oder Secret-`--stage-once` ausführen. Der einmalige E2E-Lauf hat ggf. einen persistenten synthetischen Outbox-Entwurf und einen Replay-Claim angelegt. Keine automatische Bereinigung, Mutation oder Löschung ohne gesonderten Review. Danach Fokus zurück auf restliche sichere Produktionsreife-Gates (Kunden-Onboarding, Offerten-/Rechnungsprozesse, Recht/Freigaben), ohne diesen E2E-Strang neu aufzubauen.
+
+
+## 17.10.2026 – Erster echter synthetischer Source→Quarantäne-End-to-End-Test in Cloud Run SUCCESS
+
+**Vom Geschäftsführer aus Google Cloud Shell gelieferter Cloud-Run-Status der einzigen einmaligen Ausführung:** Job `lszh-quarantine-source-e2e-staging`, Execution `lszh-quarantine-source-e2e-staging-slhkc`, `completionTime: 2026-10-17T19:49:28.639416Z` (21:49:28 Schweizer Zeit), `type: Completed`, `status: True`, `message: Execution completed successfully in 10.45s.`, `succeededCount: 1`, kein angezeigter failedCount. `ContainerReady`, `ResourcesAvailable`, `Started` ebenfalls `True`. **Damit ist der Cloud-Run-Lauf nachweisbar erfolgreich beendet und NICHT nur gestartet.**
+
+**Quellcode-Gate erneut geprüft:** `staging-synthetic-source-e2e-once.js` terminiert mit Code 0 nur nach (1) validierter, privater Fixture und Outbox-SA, (2) frischem authentifiziertem Airtable-GET mit null passenden Codes, (3) neuem `createOnce`-Ergebnis `created` in Firestore Staging, (4) unabhängigem `VERIFIED_DRAFT`-Readback mit identischem `DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`, (5) `sourceDispatchOnce` mit bestätigtem `REVIEW_ONLY_HANDOFF_ACKNOWLEDGED`, `writeAllowed=false`, `retryAllowed=false`, `deliveryAllowed=false`. Der Quellcode sendet keine E-Mails und nimmt keine Verträge an. Somit ist der erfolgreiche Job-Abschluss ein starker E2E-Funktionsnachweis; **direkte Prüfung der Textlogs und unabhängige nachgelagerte Firestore-Artefakt-Abfrage sind noch separat offen**, keine falsche Behauptung über bereits unabhängiges Artefakt-Audit.
+
+**STRICT NO RETRY:** Diese Fixture und dieser Quelljob wurden bereits einmal ausgeführt. **Niemals dieselbe Execution oder denselben Job erneut starten**, auch bei Logs-/Auditproblemen nicht. Der synthetische Firestore-Draft ist als angelegt und aus dem Lauf zurückgelesen zu behandeln, und ein Replay-Claim kann dauerhaft existieren. **Nächster sicherer Schritt: rein lesende Cloud-Run-Logprüfung der Execution `lszh-quarantine-source-e2e-staging-slhkc`**, dann separate anonymisierte Verifikation des synthetischen Staging-Drafts / Receiver-Replay-Evidenz. Keine erneuten Build-, Deploy-, Secret-, Firestore-Schreib- oder IAM-Aktionen.
+
+
+## 17.10.2026 – Einziger echter synthetischer Source→Quarantäne-E2E-Run gestartet (Status offen)
+
+**Geschäftsführer hat in Cloud Shell genau einmal manuell ausgeführt:** `gcloud run jobs execute lszh-quarantine-source-e2e-staging --project=lszh-automations --region=europe-west6 --async`. Google Cloud quittierte **`Execution [lszh-quarantine-source-e2e-staging-slhkc] is being started asynchronously.`** und lieferte den Link zur Ausführungsübersicht: `https://console.cloud.google.com/run/jobs/executions/details/europe-west6/lszh-quarantine-source-e2e-staging-slhkc?project=470613067122`.
+
+**Ab jetzt STRICT NO RETRY:** Die Ausführung `lszh-quarantine-source-e2e-staging-slhkc` ist definitiv registriert. Nicht noch einmal `jobs execute` aufrufen, weder manuell noch automatisch, unabhängig von Erfolg/Fehler der laufenden Execution. Das reine Start-Acknowledgment ist **noch kein E2E-Erfolg**. Staging-Draft könnte bereits im Firestore gespeichert sein; Replay-Claim könnte bereits geschrieben sein; jeden partiellen Erfolg als potenziell committed behandeln. Zu prüfen sind 1) Cloud Run Execution-Endstatus, 2) gefiltertes Quelljob-Log ohne Secret/Fixture-Exposition, 3) read-only Firestore-Draft-Readback und ggf. private Receiver-Quarantäne-Replay-Claim-Nachweis. Keine produktiven Kunden, keine E-Mails, keine Annahmen.
+
+**Nächste ausschliesslich lesende Cloud-Shell-Prüfung:** `gcloud run jobs executions describe lszh-quarantine-source-e2e-staging-slhkc --project=lszh-automations --region=europe-west6 --format='yaml(status.conditions,status.startTime,status.completionTime,status.succeededCount,status.failedCount)'`. Bei STATUS/PASS oder Fehlstatus gezielt Logs auslesen; niemals denselben Job erneut starten. Keine weitere Bereitstellung/Secrets/Build nötig, solange keine neue Diagnose dies begründet.
+
+
+## 17.10.2026 – Unabhängige Live-E2E-Job-Verifikation vollständig PASS (keine Ausführungen)
+
+**Echte Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` auf Commit `2206c30` wurde `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --verify-only` rein lesend erfolgreich ausgeführt. PASS für Geschäftsidentität, korrekt privaten Quarantäne-Receiver, drei auf Version 1 festgelegte Secret-Zugriffe, unveränderte fünf Altjobs und lokale Fixture. `SOURCE CONTENT FINGERPRINT: 0aa2e20a65e2`; `NEW SOURCE JOB STATUS: EXISTS`; `PASS: New synthetic source E2E Job pinned to built SHA256, exact outbox SA, 3 secret version 1 references, 512Mi, one task, no retries`; `PASS: ZERO executions`. **Damit ist die technische Ausführungsvorbereitung real bestätigt und abgeschlossen.**
+
+**Unabhängiger Source-Code-Abgleich:** `staging-synthetic-source-e2e-once.js` ruft `createFirestoreStore().createOnce` mit der exakt synthetischen Draft-ID auf, liest über `createScopedReader({scope:'outbox'}).read` unabhängig zurück, verlangt `VERIFIED_DRAFT`, und übergibt erst danach an die vorhandene `sourceDispatchOnce`-Implementierung. Ziel bestätigt nur `REVIEW_ONLY` und `MANUAL_REVIEW_REQUIRED`, niemals Versand-/Vertragsfreigabe. Quelljob hat nachgewiesen 0 vorherige Ausführungen, keine automatische Wiederholung; das tatsächliche End-to-End-Ergebnis ist weiter **noch NICHT** belegt.
+
+**Nächste echte Aktion:** Einmalige manuell ausgelöste Staging-Ausführung `gcloud run jobs execute lszh-quarantine-source-e2e-staging --project=lszh-automations --region=europe-west6 --wait` NUR mit vorherigem read-only Null-Execution-Gate, niemals nach einem Fehler oder unklarem Ausgang wiederholen. Diese **erste** Ausführung wird voraussichtlich genau einen synthetischen `DRAFT_NOT_SENT`-Firestore-Datensatz im Outbox-Staging speichern und bei erfolgreichem HMAC/OIDC Review-only-Handoff einen atomaren Replay-Claim in separater Quarantäne-Staging-DB. Vorher keine weiteren Builds/Secrets/Deployments; anschliessend eindeutige Job-Execution/Logs und ggf. synthetische Readback-Artefakte read-only prüfen. Keine produktiven E-Mails, realen Kunden-Records oder Verträge.
+
+
+## 17.10.2026 – Synthetic Source-E2E Cloud Run Job tatsächlich erstellt, null Executions
+
+**Echte Google-Cloud-Shell-Ausgabe:** Nach Pull auf Feature-Branch `3e76df5` wurde `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --create-only` erfolgreich und einmalig ausgeführt. Vorprüfung **PASS** für Geschäftskonto, nur privaten Review-Only-Receiver, drei Secret-Manager-Version-1-Bindungen sowie exakte lokale Fixture; bestehende fünf Staging-Jobs unverändert. Image-Quellfingerprint weiterhin `0aa2e20a65e2`, bereits erfolgreich gebautes Source-Image verwendet. Google Cloud meldete `Job [lszh-quarantine-source-e2e-staging] has successfully been created.`; eigener nachfolgender Script-Readback meldet **PASS** für auf tatsächlichen Image-SHA256-Digest gepinntes neues Job-Image, Outbox-Sonderdienstkonto, genau drei Staging-Secret-Version-1-Referenzen, 512 MiB, genau einen Task, **maxRetries=0**. `gcloud run jobs executions list` für den neuen Job zeigte **ZERO executions**; **keine** Firestore-/Airtable-Schreibvorgänge, kein Handoff, keine Mail. Cloud-Run-Ausgabetext `To execute this job ...` ist rein generischer Hinweis, **keine Freigabe oder Ausführung**.
+
+**Nachgelagerte Quellcode-Kontrolle:** Bestehender Source-Worker `staging-synthetic-source-e2e-once.js` nutzt das originale `createFirestoreStore(fetchImpl).createOnce()` und `createScopedReader({scope:'outbox',env,fetchImpl}).read()`-Interface, deren exports und die erwartete `VERIFIED_DRAFT`-Rückgabe wurden gegen den Feature-Branch nochmals read-only geprüft. Bestehender `quarantine-handoff-source.js` erwartet exakt den signed review-only Ack `REVIEW_ONLY_HANDOFF_ACKNOWLEDGED` und setzt `writeAllowed=false`, `retryAllowed=false`, `deliveryAllowed=false`; diese werden vom E2E-Worker geprüft. Keinerlei Code-/Cloud-Änderung nötig für diese Schnittstellen.
+
+**Nächster sinnvoller Cloud-Shell-Schritt:** Nur `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --verify-only` (vorgängig `git pull --ff-only` falls Branch inzwischen dokumentiert wurde). Dieser Modus prüft alle Vorbedingungen und den tatsächlichen vorhandenen Cloud-Run-Job samt Secret-Versionen, Container-Image-Digest, Identität und **weiterhin null Ausführungen**, ohne den Job auszuführen. **Nicht** `--create-only`, `--build-only` oder Fixture-`--stage-once` erneut versuchen. Erst nach dieser unabhängigen Verifikation Vorbereitung einer ausdrücklich einmaligen Ausführung und nachfolgender read-only Log-/Artefaktprüfung. Weiterhin keine echten Kunden-/E-Mail-/Vertragsaktionen.
+
+
+## 17.10.2026 – Reale Read-only-Source-E2E-Vorprüfung nach URL-Fix erfolgreich
+
+**Geschäftsführer-Cloud-Shell-Ausgabe:** Nach Pull auf `2607e34` bestätigte `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --plan` den **PASS** der exakten Geschäftsidentität, des tatsächlich privaten Review-Only-Receivers mit seiner Live-URL, sämtlicher drei Secret-Manager-Version-1-Zugriffsbindungen sowie der unveränderten fünf vorbestehenden Jobs. Quellcode-Fingerprint erneut **`0aa2e20a65e2`**, d.h. das bereits zuvor erfolgreich gebaute Image kann wiederverwendet werden; Status des neuen Source-Jobs: **ABSENT**. `PLAN ONLY` bestätigt: keinerlei neue Ressourcen, Testschreibvorgänge oder E-Mails. Die pauschale Skript-Anzeige `NEXT: --build-only, then --create-only` ist nur Reihenfolgenhilfe; **Build ist bereits SUCCESS, --build-only nicht wiederholen**. Nächster einzelner kontrollierter Cloud-Shell-Befehl: `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --create-only`, erzeugt den EINEN dedizierten Job ohne Ausführung und versucht danach Konfigurations-Readback. Bei einem STOP kein Wiederholen, erst Bestandsaufnahme. Anschliessend `--verify-only` und danach separat die einzige echte synthetische E2E-Ausführung.
+
+
+## 17.10.2026 – Live-Empfänger-URL-Korrektur: 468/468 Tests erfolgreich
+
+GitHub-Actions-Readback für Quellcode-/Test-Commit `8cb93d79edb937195610b91ecc6b4df1715db19e` meldet **beide** synthetischen Workflows `success`. Das tatsächliche Outbox-CI-Testlog bestätigt **468 Tests, 468 PASS, 0 FAIL**, einschliesslich exakter Cloud-Run-Canonical-URL `lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app` und Angreiferhost-/Pfad-/Query-Blockierung. Dokumentationsänderungen danach betreffen keine Image-/Source-Quelldateien. Keine erneuten Cloud-Ressourcen-Änderungen durchgeführt; nächster Schritt bleibt kontrolliertes `--plan` in Cloud Shell.
+
+
+## 17.10.2026 – Tatsächliche private Cloud-Run-Zieladresse geklärt; E2E-URL-Gate gezielt korrigiert
+
+**Vom Geschäftsführer ausdrücklich read-only aus Google Cloud Shell abgefragt:** `gcloud run services describe lszh-quarantine-handoff-staging --project=lszh-automations --region=europe-west6 --format='json(status.url,status.address.url)'` ergibt für **beide** URL-Felder `https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app`. **Ursache des Sicherheits-STOP:** Der zuvor im Source-Skript fest eingetragene Projekt-Nummer-Alias `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app` weicht von der aktuell von Cloud Run tatsächlich gemeldeten URL ab. Diese Differenz darf nicht durch Abschalten des Gates kaschiert werden.
+
+**Behebung nur im bestehenden ungemergten Review-Branch:** Die fest eingetragene `RECEIVER`-URL in `workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh` wurde auf **genau** den gemeldeten `...-ozx7mp2bka-oa.a.run.app`-Wert gestellt; der notwendige Gleichheitscheck gegen *frisch aus Cloud Run gelesenes* `status.url` bleibt unverändert aktiv. In `staging-synthetic-source-e2e-once.test.mjs` wurde die Testumgebung auf den gemeldeten Zielwert synchronisiert. Zusätzliche Regressionstests validieren genau diesen neuen URL-Wert, verbieten den veralteten Alias und belegen, dass `quarantine-handoff-source.js` den legitimen `a.run.app`-Host akzeptiert, aber Pfad-, Query- und Angreiferhost-Anhängsel weiterhin blockiert. **Keine Image-Quelldatei verändert:** Das bereits erfolgreich gebaute Source-E2E-Image `staging-0aa2e20a65e2` bleibt gültig, kein neuer Build notwendig, keine Service-Revision oder IAM-Rolle verändert.
+
+**Nächster Schritt:** Nach Bestätigung der synthetischen GitHub-Actions-Tests `git pull --ff-only` und dann `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --plan` in der Geschäft-Cloud-Shell erneut **nur lesend** ausführen. Wird der neue Wert von `status.url` live bestätigt und alle weiteren Gates PASS, darf in einem **separaten** weiteren Schritt `--create-only` für den einen bislang fehlenden Quelljob erwogen werden. **Nicht** Secret `--stage-once`, Image `--build-only`, Receiver-Deploy oder fertige IAM-Bindungen wiederholen. Cloud-E2E-Lauf weiterhin ausstehend.
+
+
+## 17.10.2026 – E2E-Quelljob-Vorprüfung STOP wegen Live-Empfänger-URL-Abweichung (keine Mutation)
+
+**Echte Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` und `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --plan` wurden Geschäftsprojekt, nur privater Review-Only-Receiver, drei Secret-Level-Accessor-Gates, fünf unveränderte Staging-Jobs und lokale Fixture geprüft. Die neue URL-Sicherheitsprüfung stoppte explizit mit **`STOP: Live receiver URL differs from pinned OIDC audience; do not create Job.`** Bereits erfolgreich gebautes Source E2E Image bleibt `staging-0aa2e20a65e2`; kein neuer Quelljob, keine Ausführung, kein Firestore/Airtable-Schreibvorgang. Dokumentierte/pinned URL lautet `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app`, aber die *tatsächlich zurückgegebene* URL wurde noch nicht ausgelesen und darf nicht geraten werden. **Keine URL-Schranke lockern, keine erneuten Build-/Secret-/Job-Kommandos.** Nächster gezielter READ-ONLY-Befehl: `gcloud run services describe lszh-quarantine-handoff-staging --project=lszh-automations --region=europe-west6 --format='json(status.url,status.address.url)'`. Ausgabe prüfen und unterscheiden: (a) tatsächliche URL ist anderes gültiges Cloud-Run-Domainformat; (b) Feld leer/anders strukturiert; (c) tatsächliche unerwartete Änderung. Danach Ziel-Audience im Script/Tests exakt und sicher synchronisieren und zuerst erneut `--plan` ausführen, bevor überhaupt `--create-only` möglich ist.
+
+
+## 17.10.2026 – Echtes, einzelnes Cloud Build des synthetischen Source-E2E-Images: SUCCESS
+
+**Geschäftsführer-Cloud-Shell-Ausgabe:** Nach `git pull --ff-only` auf dokumentierten Branch `1ea6691..77f7b43` durchlief `staging-synthetic-e2e-source-job.sh --build-only` die Vorprüfungen vollständig. PASS: Unternehmen/Identität, bereits privater Review-Only-Receiver, alle drei Secret-Manager-Version-1-Berechtigungen, lokale synthetische Fixture, unveränderte fünf Bestandsjobs. Neuer Job `lszh-quarantine-source-e2e-staging` war noch **ABSENT**. Exakt **19 erlaubte Quellcode-Dateien** (84,4 KiB) wurden ohne privates Fixture, Testprojektcode oder Credentials in Cloud Build übergeben. Google Cloud Build `76a3e32a-0c04-41c7-8425-bcb9e89005a0`, Region `europe-west6`, meldet **STATUS SUCCESS**, Dauer 13 Sekunden. Image in Artifact Registry: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-quarantine-source-e2e:staging-0aa2e20a65e2`. Das Script meldete `PASS: Synthetic-only source image built. NO Job created or executed.`. Weder ein Test-Quelljob noch ein Firestore-Write noch eine E-Mail wurde dadurch ausgelöst. Das fertige Image ist bereits gebaut; **nicht nochmals --build-only** ausführen.
+
+**Sicherheitsprüfung vor der nächsten Job-Bereitstellung ergänzt:** Der bereits vorhandene `staging-synthetic-e2e-source-job.sh` verifiziert nun vor jeder geplanten Job-Anlage zusätzlich den tatsächlich von Google Cloud Run gelieferten `status.url` des existierenden privaten Quarantäne-Empfängers und verlangt exakt `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app` als späteren OIDC-Audience-/POST-Zielwert. Bei abweichender Live-URL stoppt das Script **vor** jeder neuen Ressourcenänderung. Dadurch wird verhindert, dass ein falscher Receiver-Zielwert erst nach dem Firestore-Draft-CREATE auffällt; die Image-Dateien sind unverändert (nur Shell-Provisioner/Tests). Separater Regressionstest ergänzt.
+
+**Nächster kontrollierter Cloud-Shell-Schritt: ausschliesslich `--plan`**, nach `git pull --ff-only`, um bestehenden Image-/Secret-/Receiver-/Jobzustand einschliesslich der exakten OIDC-Ziel-URL zu verifizieren. Erst nach PASS als eigener Schritt `--create-only`: ein dedizierter Cloud Run Job mit Immutable Image SHA, 1 Task, 0 Retries, 512 MiB, drei Staging-Secret-Referenzen; **keine Ausführung**. `--verify-only` danach lesend. Ein tatsächlicher Source→Quarantäne-REST-Handoff wurde noch nicht ausgeführt; keinesfalls schon als erfolgreich markieren.
+
+
+## 17.10.2026 – Private synthetische End-to-End-Fixture in Google Secret Manager real erstellt
+
+**Echte Cloud-Shell-Erfolgsmeldung:** Nach Fast-Forward-Pull auf `1ea6691` führte der Geschäftsführer `staging-synthetic-e2e-fixture-secret.sh --stage-once` genau einmal aus. Ergebnis: PASS für Geschäftsprojekt, dedizierte Outbox-SA, geprüfte private lokale Fixture und vorab fehlendes Secret; `Created version [1] of the secret [lszh-stg-onboarding-e2e-fixture-20261017]`, `Updated IAM policy for secret [...]`. Der nachträgliche Metadaten- und IAM-Readback bestätigte **genau ein Secret Manager Secret in `europe-west6`**, genau **Version 1 ENABLED**, und **als einzigen direkten Secret-Level-Accessor** die Outbox-Staging-SA `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`. Privater Airtable-Projektcode/Fixture-Inhalt nicht in Chat/CLI/Repository/Logs ausgegeben. Keine Airtable-/Firestore-Schreiboperation oder Cloud-Run-Ausführung. **Secret darf nicht erneut erstellt oder rotiert werden.**
+
+**Nächster isolierter Schritt:** `cd "$HOME/lszh-handoff-staging" && git pull --ff-only && bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --build-only`. Darin wird nach erneuter Sicherheitsprüfung ausschliesslich ein Cloud-Build aus 19 expliziten erlaubten Quelldateien erzeugt, niemals aus dem privaten Fixture-Verzeichnis. Keine Cloud-Run-Job-Erstellung oder -Ausführung; bei Build-Fehler/Ambiguität kein blindes Wiederholen. Danach `--create-only` und `--verify-only` ausdrücklich getrennt, tatsächlicher E2E-Job-Lauf erst bei überprüfter Konfiguration. Nutzerfreigabe für produktiven Betrieb weiterhin nicht erteilt.
+
+
+## 17.10.2026 – Gezielt auf EINEN synthetischen Source→Receiver-End-to-End-Lauf vorbereitet (465/465 CI PASS)
+
+**Ziel präzisiert:** Keine weiteren voneinander losgelösten Testjobs auf Verdacht. Ein einziger dedizierter Staging-Quelljob `lszh-quarantine-source-e2e-staging` wird später in dieser Reihenfolge die vollständig künstliche Fixture prüfen und einen echten, privaten `REVIEW_ONLY`-Handoff auslösen: (1) Quelle muss exakt Outbox-SA/Job First-Task/First-Attempt sein, (2) private Version-1-Fixture aus Secret Manager mit festem SHA-256-Fingerprint und deaktivierten Versand-Flags validieren, (3) read-only frischer Airtable-REST-GET erfordert **genau null** Onboarding-Datensätze zu diesem Testcode, (4) genau einmal `DRAFT_NOT_SENT` in bestehender Staging-Outbox-Collection erzeugen; Firestore-Bereits-vorhanden/Unsicherheit blockiert, (5) über nachgewiesene dedizierte Outbox-SA unabhängig Firestore GET + exakten Draft-Readback prüfen, (6) vorhandene `sourceDispatchOnce` revalidiert erneut Airtable und sendet einen zeitlich begrenzten, HMAC-signierten, über Google-Metadata-OIDC autorisierten POST an den bereits bestehenden privaten Cloud-Run-Receiver, (7) Ziel ack `STAGING_REVIEW_ONLY` und `MANUAL_REVIEW_REQUIRED`, **kein Kundenmail, keine Vertragsannahme oder Quarantäne-Case-Änderung**. Empfänger könnte höchstens einen atomaren Replay-Claim im eigenen Staging-DB-Pfad anlegen. Ein Abbruch nach Draft-CREATE kann einen erhaltenen synthetischen Draft/Replay-Key hinterlassen; **niemals automatisch erneut ausführen oder löschen**.
+
+**Nur neue Review-Branch-Dateien, noch keine echten Cloud-Änderungen durch diesen Schritt:**
+- `workers/onboarding-notifications/staging-synthetic-source-e2e-once.js` + Tests: strikte Laufzeit-Fail-closed-Sicherungen, genau zwei schrittweise Airtable-GETs (vorher 0-Record, danach aktuelle Quellenprüfung), ein Firestore-CREATE/Readback und ein privater Handoff über vorhandene Quellbibliotheken.
+- `Dockerfile.quarantine-source-e2e` + `cloudbuild.quarantine-source-e2e.yaml`: isolierte kleine Containerquelle, **kein Secret, Airtable-Bearer, Fixture oder Testcode im Image**.
+- `staging-synthetic-e2e-fixture-secret.sh` + Tests: `--plan` lesend; `--stage-once` erzeugt **ein einziges** Secret Manager Secret `lszh-stg-onboarding-e2e-fixture-20261017`, *nur Region europe-west6*, Version 1 direkt aus der bereits bestehenden `0600`-Cloud-Shell-Fixture-Datei per `--data-file`, nachfolgend nur `roles/secretmanager.secretAccessor` für das dedizierte Outbox-Staging-Konto **an diesem Secret**. Keine Credential-Werte in CLI-Argumenten, Build, GitHub, Chat oder Log. Bei Ambiguität strikt nicht erneut versuchen.
+- `staging-synthetic-e2e-source-job.sh` + Tests: getrennter `--plan`, `--build-only` (19 exakt allowlistete quellcode-Dateien; Bildtag auf Dateiinhalte statt Docs-Commit), `--create-only` (ein Task, null Retries, 512 MiB, drei referenzierte Version-1-Secrets, alle Staging-Gates, SHA-256-gepinntes Image) und `--verify-only`. **Kein** Scriptmodus führt einen Job aus; CLI-Execution kommt erst nach bestandenem Readback und separater Prüfung.
+
+**Github-Actions-Nachweis:** Auf Quellcode-/Test-Commit `9837694466c2c47b0dc3552b386d36ffff2c4769` sind beide synthetischen CI-Workflows PASS; **465 Tests, 465 PASS, 0 FAIL**, inkl. Source-Safety- und Cloud-Shell-Guardtests. Neue Dateien nach Commit bleiben ausschliesslich im ungemergten Review-Branch, bestehende Jobs und privater Receiver unverändert. Nächste bewusst ausgeführte Cloud-Shell-Aktion: `cd "$HOME/lszh-handoff-staging" && git pull --ff-only && bash workers/onboarding-notifications/staging-synthetic-e2e-fixture-secret.sh --stage-once`. Der Modus erzwingt vollständige Vorprüfung, erstellt nur diese eine staging-eigene Secret-Manager-Resource und **noch kein Source-Image/Job und kein Firestore-Write**. Bei Fehlermeldung nicht erneut starten. Danach `--build-only`/Job-Create getrennt und read-only verifizieren, anschliessend eine einzige kontrollierte Ausführung.
+
+
+## 17.10.2026 – Privater Fixture-Hash gegen alle Airtable-Onboardings geprüft: keine Übereinstimmung
+
+**Geschäftsführer-Cloud-Shell:** Private Fixture-Fingerprint-Funktion meldete `PASS: Fingerprint from validated private synthetic fixture; project code not disclosed` sowie einen 64-stelligen SHA-256-Fingerprint (aus Sicherheitsgründen nicht erneut im Dokument notiert). **Live Airtable über angeschlossenen Account, ausschliesslich gelesen:** Base `LSZH Automations – Website CRM`, Tabelle `Kunden-Onboarding` (`tblWIY4l4VASz8Vse`), projektcodegenaue Bestandsaufnahme mit nur dem Feld `Projektcode`. Ergebnis: `totalRecordCount=6`, 6/6 Projektcodes vorhanden, kein nächster Cursor. Nach bestandenem SHA-256-Known-Answer-Test (`SHA256('abc')`) wurden die sechs Projektcodes ausschliesslich innerhalb des Tool-Aufrufs lokal gehasht und auf Gleichheit mit dem privat erzeugten Fixture-Fingerprint geprüft: **0 von 6 Übereinstimmungen**, 0 Records verändert. Die Projektcode-Klartexte und Airtable-Zeileninhalte wurden **nicht** in GitHub oder Chat veröffentlicht. Der neue rein synthetische Code kollidiert derzeit nicht mit einem bestehenden Onboarding-Projektcode.
+
+**Wichtige Abgrenzung:** Dies ist ein read-only Airtable-Bestandsschnappschuss mit dem verbundenen Account. Ein echter Cloud-Run-Source-Service-Account-Airtable-REST-Test für denselben Fixture-Code, persistierter `DRAFT_NOT_SENT`-Firestore-Entwurf und privater Outbox→Quarantäne-Handoff wurden noch **nicht** durchgeführt. Kein angeblicher End-to-End-Erfolg. **Nächste sinnvolle Arbeit:** Vor einem Firestore-Write eine sichere Transportmethode für die privat gespeicherte Fixture festlegen, die `ob_...` nicht in CLI-Argumenten, Job-Env-Klartext, Logs oder Repo offenlegt, dabei eine unveränderliche Quell-Fixture-/Event-ID und strikt scoped SA-Identität prüft. Kein Credential-Grant auf Verdacht, keine produktiven Emails oder Verträge.
+
+
+## 17.10.2026 – Privater Fixture-Fingerprint-Check CI-verifiziert (449/449)
+
+GitHub-Actions-Readback für Code-/Test-Commit `0bec6e32f7ac1fc1e31d51969dc0743696484f3b`: **beide** synthetischen Workflows erfolgreich, **449 Tests, 449 PASS, 0 FAIL**, einschliesslich zusätzlicher Manipulations-, Berechtigungs- und Fingerprint-Tests. Die lokal erzeugte UUID-Fixture bleibt ausschliesslich in der Cloud Shell; selbst das Fingerprint-Kommando gibt nur SHA-256 aus. Kein echter Airtable-Matchcheck gegen die neuen sechs existierenden Codes erfolgt, weil der lokale Hash noch nicht geteilt wurde. Keine Cloud-Änderung oder weitere GCP-Jobs.
+
+
+## 17.10.2026 – Einmalige private synthetische Fixture real erstellt; lesender Airtable-Code-Abgleich vorbereitet
+
+**Bestätigte Cloud-Shell-Ausgabe:** Nach Fast-Forward-Pull führte der Geschäftsführer `node workers/onboarding-notifications/synthetic-source-fixture-local.js --prepare-local` erfolgreich aus: `PASS: One private synthetic fixture created outside the Git checkout (directory 0700, file 0600)` und `PASS: Staging-only draft is DRAFT_NOT_SENT and send/approval disabled`. Das File `~/.local/state/lszh-automations/handoff-source-fixture-20261017/fixture.json` enthält einen einmalig zufälligen UUID-v4-ähnlichen `ob_...`-Code und eine fiktive `rec...`-Record-ID, ist **privat** und wurde weder nach GitHub noch in Chat transportiert. Ein Airtable-GET oder Firestore-Write ist dadurch **nicht** geschehen; der Inhalt darf nicht ausgegeben werden.
+
+**Unabhängige verbundene Airtable-Inventur, nur lesend:** In der tatsächlichen CRM-Base `appzJiskpAdaR1HEv`, Onboarding-Tabelle `tblWIY4l4VASz8Vse`, existieren derzeit **6 Einträge mit 6 ausgefüllten Projektcodes**, davon **5 UUID-artige**. Ausschliesslich das einzelne Feld `Projektcode` wurde über Airtable abgefragt; **keine Projektcode-Werte, Kundenidentitäten oder individuellen Datensätze** wurden ausgegeben oder ins Repository gespeichert. Es wurde keine Änderung vorgenommen. Ein durchgängiger Vollständigkeitsindikator der verbundenen API zeigt `totalRecordCount=6` und keinen weiteren Cursor.
+
+**Neue sichere Abgleichfunktion auf Feature-Branch:** `synthetic-source-fixture-local.js --fingerprint` öffnet ausschliesslich die private Fixture mit geprüften 0700/0600-Rechten, überprüft deren synthetische Eigenschaften, Event-ID, Firestore-Draft-/Env-Sperrflags und gibt nur den `SHA-256`-Fingerprint des 122-Bit-randomisierten UUID-v4-Projektcodes aus, **nicht den Projektcode selbst**. Dieser einseitige Digest kann im Chat mit gehashten aktuellen Airtable-Statuscodes aus dem verbundenen Account verglichen werden, ohne die eigentlichen Bearer-Projektcodes offenzulegen. Ein künftiger Matchblocker darf keinen Firestore-Write zulassen. Die Prüfung ist nur ein aktueller Schnappschuss und ersetzt nicht den frischen, nachgelagerten Airtable-GET des echten Source-Staging-Jobs.
+
+**Nächster Schritt in Cloud Shell:** `cd "$HOME/lszh-handoff-staging" && git pull --ff-only && node workers/onboarding-notifications/synthetic-source-fixture-local.js --fingerprint`. Nur die Zeile `FINGERPRINT_SHA256: <64 Hex-Zeichen>` im Chat teilen, **keinen** `ob_...`-Code oder JSON-Inhalt. Keine neue IAM-Rolle, keine zusätzliche Cloud-Run-Ressource, keine Testdatensatz-Erstellung in Airtable und keine externen Nachrichten.
+
+
+## 17.10.2026 – Offline-Fixture-Tests bestätigt: 447/447 PASS
+
+**Echte GitHub-Actions-Verifikation:** Für Code/Test-Commit `a362e69052a58e234e0b74da8990a00b750e0d31` sind die Workflows `Onboarding notification outbox (synthetic only)` und `Onboarding completion verification (synthetic only)` erfolgreich abgeschlossen. Der Workflow-Protokoll-Readback meldet **447 Tests, 447 PASS, 0 FAIL**. Dies enthält fünf neue Tests zur lokalen einmalkonfigurierten, privaten und send-gesperrten synthetischen Fixture. Noch kein echtes neues Fixture-File im Cloud-Shell-Konto angelegt, kein echter Airtable-GET, Firestore-Write, Quell-Job oder Handoff gestartet. Für den nächsten Schritt nach `git pull --ff-only` ist `node workers/onboarding-notifications/synthetic-source-fixture-local.js --prepare-local` vorgesehen; es schreibt einmalig ausschliesslich eine lokale private Manifest-Datei (0700/0600), niemals GitHub oder Cloud. Nicht manuell Geheimwerte ins Chatprotokoll kopieren.
+
+
+## 17.10.2026 – Synthetische Handoff-Fixture ohne Airtable-Schreibzugriff vorbereitet
+
+**Echte Airtable-Bestandsaufnahme über verbundenen Account, nur lesend:** Die bestehende Website-CRM-Base `appzJiskpAdaR1HEv` und Onboarding-Tabelle `tblWIY4l4VASz8Vse` wurden anhand echter Base- und Table-Metadaten bestätigt. Namensfilter ergaben **4** Onboarding-Zeilen mit `TEST` sowie **1** mit `SYNTH` in der Onboarding-Bezeichnung. Deren synthetische Herkunft und sichere E2E-Tauglichkeit wurden **nicht** bestätigt; keine Kundennamen, Tokens oder Projektcodes in den Chat oder GitHub übernommen und **keine** Airtable-Records verändert.
+
+**Neuer Code nur auf Feature-Branch:** `workers/onboarding-notifications/synthetic-source-fixture-local.js` mit Default `--plan` (absolut keine Files/Netzwerkzugriffe) und separat `--prepare-local` (einmalige `fixture.json` mit nur synthetischen Zufallswerten unter `~/.local/state/lszh-automations/handoff-source-fixture-20261017/`, Verzeichnis 0700, Datei 0600, nie überschreiben). Inhalt: zufälliger UUID-artiger `ob_...`-Code, 14-stellige rein synthetische `rec...`-ID, daraus deterministisch `eventId`, exakt das vorhandene `makeDraft()`-Schema `testOnly=true`, `DRAFT_NOT_SENT`, `deliveryEnabled=false`, `emailSent=false`, Firestore-Staging-REST-Felder gemäss `toFirestore`. Das ist **absichtlich eine noch nie bestätigte Airtable-Onboarding-ID**, um später ausschliesslich einen *negativen* Zustand `processing`→`QUARANTINE_RECOMMENDED` sicher zu testen. Ein echter Airtable-Read-Only-GET mit dem neuen Code ist *zwingend vor jedem Staging-Firestore-Write* zur Verifikation seiner Abwesenheit erforderlich; `airtableAbsenceVerified=false` und `firestorePersisted=false` werden explizit im privaten Fixture-Manifest gesetzt. Kein künstlicher Eintrag in Airtable erforderlich; bestehende Real- und Testkunden bleiben unangetastet.
+
+Begleitende Offline-Tests decken Firestore-Entwurfsschema, deterministische ID, einmaligen gemockten Airtable-GET bei nicht vorhandenem Code, 0700/0600-Privatspeicherung, one-shot-Dateischutz und rein lesenden Default ab. **Nichts in Google Cloud erstellt, deployed, gestartet oder in Airtable geändert.** Der nächste Cloud-Shell-Schritt sollte zuerst `git pull --ff-only` und `node workers/onboarding-notifications/synthetic-source-fixture-local.js --plan` bleiben. Ein reales End-to-End ist nicht bewiesen.
+
+
+## 17.10.2026 – Outbox-Servicekonto: echter Secret-Manager-Lesezugriff endgültig nachgewiesen
+
+**Echte Cloud-Shell-Logs des Geschäftsführers für den bereits einmal ausgeführten Job** `lszh-outbox-secret-access-probe-stg-4kxqb`: `2026-10-17 17:59:03 PASS_SOURCE_SECRET_ACCESS`. Damit ist ergänzend zum erfolgreichen Cloud-Run-Ausführungsstatus (`1/1 complete`) nachgewiesen, dass das dedizierte Outbox-Staging-Dienstkonto `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` bei einem isolierten Cloud-Run-Gen2-Task die konkrete Secret-Manager-Version `lszh-airtable-readonly-staging:1` als **nichtleeren Secret-Wert** beziehen konnte. Der Secret-Inhalt, dessen Länge und Hash wurden weder protokolliert noch offengelegt. Die geprüfte Test-Entrypoint ist ausschliesslich `/bin/sh` mit festem Erfolgsmarker, ohne Airtable-REST, Firestore oder Handoff-Aufruf. **Der Secret-Zugriffsblocker ist praktisch gelöst; IAM-Troubleshooter-`UNKNOWN_INFO` erfordert keine zusätzliche IAM-Rolle. Diesen Job NICHT erneut ausführen.**
+
+**Jetzt offen für den eigentlichen E2E:** Für `quarantine-handoff-source-once.js` existiert noch kein neuer Quell-Cloud-Run-Job; dessen reale synthetische Outbox-Draft-ID (stabiler SHA-256-ID-Nachweis), zugehöriger synthetischer Airtable-Projektcode und enge Allowlist müssen zunächst sicher zusammengeführt/verifiziert werden. Laut früherer dokumentierter Testbereinigung wurden historische synthetische Airtable-Records entfernt; ihre Wiederverwendung darf nicht vorausgesetzt werden. Der Projektcode ist ein sensibles Bearer-Merkmal und darf nicht in Shell-History, Kommandoargumente, Repo, Logs oder Chat gelangen. Erst danach separat Source-Image bauen, genauen Staging-Job mit 1 Task/0 Retries ohne Scheduler erstellen, Konfiguration prüfen und einmalig sendefreies REVIEW_ONLY-Handoff ausführen. Keine produktiven E-Mails, Angebote oder Kundenaktionen.
+
+
+## 17.10.2026 – Echte isolierte Secret Manager Outbox-SA-Probe erfolgreich ausgeführt
+
+**Echte Cloud-Shell-Bestätigung des Geschäftsführers:** Ein einziger bewusst ausgeführter `gcloud run jobs execute lszh-outbox-secret-access-probe-stg --project=lszh-automations --region=europe-west6 --wait` ergab `Execution [lszh-outbox-secret-access-probe-stg-4kxqb] has successfully completed`; Cloud Run meldete `1 / 1 complete`. Job wurde vorher unter direkter Outbox-Staging-SA und mit vorhandener `lszh-airtable-readonly-staging:1`-Secret-Env-Referenz geprüft, angeheftetes SHA-256-Container-Image, `/bin/sh`-Entrypoint (kein Airtable-/Firestore-Netzwerkaufruf), 0 Retries. Shell-Skript beendet nur erfolgreich, wenn das injizierte Secret nicht leer ist und beide Sicherheits-Gates gesetzt sind. Damit besteht ein **praktischer, isolierter Laufzeitnachweis des Secret-Zugriffs für das Quell-Dienstkonto** trotz IAM-Troubleshooter `DENY_ACCESS_STATE_UNKNOWN_INFO` durch fehlende Org-Deny-Leserechte. **Separater Log-Readback des konstanten Erfolgsmarkers `PASS_SOURCE_SECRET_ACCESS` noch offen.** Keinerlei Tokenwert im Chat/GitHub/Logs ausgewiesen, keine Kunden- oder E-Mail-Verarbeitung, kein Airtable-REST, kein Firestore-Write, kein Outbox→Quarantäne-E2E. **Nicht erneut ausführen.** Nächster Schritt: die **bereits existierende einzelne** Execution `lszh-outbox-secret-access-probe-stg-4kxqb` mittels Cloud Run Execution Logs rein lesend prüfen; anschliessend Quell-REST und synthetische Fixture für sendefreien Handoff vorbereiten.
+
+
+## 17.10.2026 – Separater Outbox-Secret-Zugriffsprüfjob erfolgreich erstellt, noch nie ausgeführt
+
+**Echte Cloud-Shell-Ausgabe** des Geschäftsführers: `staging-outbox-secret-access-job.sh --create-only` nach erfolgreichem Preflight und 512Mi-Korrektur meldet `Job [lszh-outbox-secret-access-probe-stg] has successfully been created.` Nachfolgender Skript-Readback **PASS**: genau das SHA-256-gepinnte vorgeprüfte Probe-Image, `/bin/sh`-Entrypoint statt Airtable-/Firestore-Programm, dediziertes Outbox-Servicekonto, Secret-Version 1, ein Task, null Retry; **`New Job exists with ZERO executions`**. Vier historische Jobs und privater Receiver unangetastet; keine PAT-Werte ausgegeben und keine Kunden-/Mail-/Datenbankaktionen. **Nächste getrennte Aktion:** Genau einen isolierten Lauf mit `gcloud run jobs execute lszh-outbox-secret-access-probe-stg --project=lszh-automations --region=europe-west6 --wait` starten. Das prüft lediglich, ob der von Cloud Run injizierte Secret-Wert nicht leer ist und protokolliert nur konstantes `PASS_SOURCE_SECRET_ACCESS` oder `BLOCKED_SOURCE_SECRET_ACCESS`, kein Token oder Netzwerkcall. Danach die genaue eine Execution/Logs lesen; bei Fehler oder Cloud-Shell-Abbruch den Execute-Befehl **nicht** wiederholen, sondern Executions-Inventar zuerst inspizieren. Dies ist noch **kein** Airtable-REST/Firestore/Handoff-E2E-Test und darf auch nicht so berichtet werden.
+
+
+## 17.10.2026 – Korrigierte 512-MiB-Quellprobe: Cloud-Shell-Preflight PASS
+
+Nach `git pull --ff-only` auf Feature-Branch `feature/onboarding-notification-outbox-20261016` lieferte der Geschäftsführer erneut `staging-outbox-secret-access-job.sh --plan` mit **PASS** für exakte Geschäftsidentität, unveränderliches Container-Image und Outbox-SA; Secret `lszh-airtable-readonly-staging` Version 1 `ENABLED` und exakt zwei direkte Secret-Level-Accessors; alle vier bestehenden Staging-Jobs unverändert und `lszh-outbox-secret-access-probe-stg` weiterhin abwesend. `ENTRYPOINT: /bin/sh only` und `PLAN ONLY: No cloud mutation, no Secret payload access, no Job creation/execution`. Das Skript enthält bereits die auf 512 MiB korrigierte Gen2-Speicherkonfiguration; 442/442 synthetische Tests bestanden. **Als Nächstes** nur nach bewusstem Cloud-Shell-Aufruf `--create-only`: separaten Probe-Job anlegen, 1 Task/0 Retry, keine Ausführung; bei CLI-Fehler keinesfalls wiederholen, sondern Job-Inventar prüfen. Keine Kunden- oder Mailaktivität.
+
+
+## 17.10.2026 – Cloud-Run-Job-Inventar nach fehlgeschlagenem Gen2-Deploy erneut bestätigt
+
+**Geschäftsführer-Cloud-Shell-Readback:** Nach der 256-MiB-Abweisung listet `gcloud run jobs list` weiterhin ausschliesslich `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging` und `lszh-firestore-write-probe-staging`. Der geplante fünfte Job `lszh-outbox-secret-access-probe-stg` ist **nicht vorhanden**. Die Quell-Probe ist im GitHub-Review-Branch auf 512 MiB korrigiert; 442/442 synthetische Tests und beide GitHub-Workflows waren erfolgreich. Nächster Schritt ausschliesslich `git pull --ff-only` und `staging-outbox-secret-access-job.sh --plan` in Cloud Shell; erst nach erfolgreichem neuen Preflight den separaten `--create-only`-Schritt erwägen. Keine Secrets ausgelesen, kein Job erstellt/gestartet, keine Kundenverarbeitung.
+
+
+## 17.10.2026 – Outbox-Secret-Probe-Erstellung von Cloud Run Gen2 abgewiesen (Speichergrenze)
+
+**Echte Geschäfts-Cloud-Shell-Ausgabe:** `staging-outbox-secret-access-job.sh --create-only` bestand erneut alle Identitäts-, Image-, Secret-IAM- und Job-Inventarprüfungen und versuchte den neuen, vom Bestandsbetrieb unabhängigen Job `lszh-outbox-secret-access-probe-stg` anzulegen. Google Cloud Run meldete jedoch **`Job failed to deploy`** und konkret `spec.template.spec.task_spec.containers[0].limits.memory: Invalid value ... Total memory < 512 Mi is not supported with gen2 execution environment with cpu always allocated (unthrottled)`. Das Skript brach fail-closed ab: `STOP: Cloud Run create failure or ambiguity. DO NOT retry; inspect Job metadata.`. **Kein erfolgreicher Job-Deploy nachgewiesen und keine Job-Ausführung erfolgt.** Ein zurückgebliebenes Job-Objekt kann nicht ohne erneuten Live-Readback ausgeschlossen werden.
+
+**Korrektur nur im GitHub-Feature-Branch:** Job-Spezifikation von `--memory=256Mi` auf **`--memory=512Mi`** geändert; zusätzliche Regressionstest-Assertion verhindert die erneute 256Mi-Konfiguration. **Nächster Schritt: NUR lesen!** Cloud Shell `gcloud run jobs list --project=lszh-automations --region=europe-west6 --format="table(metadata.name)"` erneut ausführen und kontrollieren, ob `lszh-outbox-secret-access-probe-stg` trotz Fehler existiert. Bei Existenz keine Wiederholung von `--create-only` und separate Metadatenprüfung. Bei bestätigter Abwesenheit danach `git pull --ff-only` und neuer `--plan`-Durchlauf; erst bei PASS eine gesonderte Entscheidung über `--create-only`. **Keine weiteren IAM-Berechtigungen, keine Secret-Daten, keine Firestore-Operation oder produktive E-Mail.**
+
+## 17.10.2026 – Quellen-Secret-Probe: realer Cloud-Shell-Plan erfolgreich
+
+**Geschäftsführer-Cloud-Shell-Ausgabe** nach `git pull --ff-only` auf Feature-Branch: `staging-outbox-secret-access-job.sh --plan` meldete vier PASS-/Plan-Punkte: richtige LSZH-Geschäftsidentität, das gepinnte und bereits geprüfte Container-Image sowie korrektes Outbox-Quell-SA; Airtable-Secret Version 1 `ENABLED` und genau zwei direkte Secret-Level-Accessors; alle vier bestehenden Staging-Jobs unverändert und neuer Job `lszh-outbox-secret-access-probe-stg` **noch nicht vorhanden**. Für den geplanten Job wird ausschliesslich `/bin/sh` als Entrypoint verwendet, wodurch die Airtable-/Firestore-Anwendung nicht gestartet wird. `PLAN ONLY`: **keine Cloud-Veränderung, kein Secret-Payload-Abruf und keine Job-Ausführung**. Nächster einzeln zu prüfender Schritt ist `--create-only` zur Erstellung genau dieses neuen separaten Jobs mit 1 Task und 0 Retries, **ohne ihn zu starten**. Danach Job-Spezifikation und fehlende Execution separat auswerten; bei unklarer Erstellung den Create-Befehl keinesfalls wiederholen.
+
+
+## 17.10.2026 – Vier bestehende Cloud-Run-Jobs bestätigt; eigene Outbox-Secret-Probe vorbereitet
+
+**Tatsächliche Cloud-Shell-Job-Inventarliste des Geschäftsführers:** `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging`, `lszh-firestore-write-probe-staging`. Keinen dieser Jobs wiederverwenden, verändern oder ausführen.
+
+**Neu nur im ungemergten GitHub-Review-Branch:** `workers/onboarding-notifications/staging-outbox-secret-access-job.sh` bietet einen **rein lesenden `--plan` (Default)** und separat `--create-only` für einen fünften, eindeutig benannten Job `lszh-outbox-secret-access-probe-stg`. Der Job würde mit der dedizierten Outbox-SA und Version 1 des bereits freigegebenen Airtable-Read-only-Secrets angelegt, **ohne ihn auszuführen**. Ein bereits geprüfter vorhandener Container ist auf SHA-256-Digest `c8e0b3de...` gepinnt; dessen normale Airtable-Anwendung wird durch ein `/bin/sh`-Kommando überschrieben, das später **nur die Existenz einer nichtleeren, bei Job-Start von Cloud Run injizierten Secret-Env-Variable** prüft, ohne Inhalt, Länge oder Hash zu loggen und ohne Netzwerk. Ein Job, ein Task, 0 Retries, keine Quell-Handoff-Aktivierung. Bei falschem Secret-IAM, geändertem Inventar oder bestehendem Zieljob FAIL CLOSED.
+
+**Aktueller nächster Schritt:** In Cloud Shell `cd "$HOME/lszh-handoff-staging" && git pull --ff-only`; danach `bash workers/onboarding-notifications/staging-outbox-secret-access-job.sh --plan`. Erst bei PASS das gesonderte `--create-only` prüfen. Es wurden durch diese GitHub-Änderungen **keine Cloud-Builds, Jobs, Secret-Abrufe oder E2E-Testausführungen** vorgenommen.
+
+## 17.10.2026 – Organisationsweite IAM-Deny-Inspektion mangels Leserecht blockiert
+
+**Echte Cloud-Shell-Rückmeldung:** `gcloud iam policies list --attachment-point=cloudresourcemanager.googleapis.com/organizations/514084820568 --kind=denypolicies` scheiterte mit `IAM_PERMISSION_DENIED`: Konto `lars@lszh-automations.ch` hat auf der LSZH-Organisation nicht `iam.googleapis.com/denypolicies.list`. Das ist ein **Diagnose-Rechtemangel**, kein Beleg für eine Deny-Policy gegen das Outbox-Servicekonto. Der IAM Policy Troubleshooter meldet nach der Secret-spezifischen `roles/secretmanager.secretAccessor`-Freigabe auf Airtable Secret v1 `ALLOW_ACCESS_STATE_GRANTED`, `DENY_ACCESS_STATE_UNKNOWN_INFO`, `OVERALL_ACCESS_STATE_UNKNOWN_INFO`. Geerbte Deny-Richtlinien und effektives `secretmanager.versions.access` bleiben damit ungeklärt.
+
+**Nächste Maßnahme:** Keine zusätzliche projektweite IAM-Rolle oder organisationsweite Administratorberechtigung vergeben. Für den vorgesehenen synthetischen Einmaltest einen **getrennten, auf Outbox-Servicekonto laufenden Cloud-Run-Testjob** mit exakt angehefteter `lszh-airtable-readonly-staging:1`-Secret-ENV-Referenz zuerst risikolos nur *anlegen und verifizieren*, nicht ohne eigene Kontrolle ausführen. Secret-Payload niemals in Shell, Logs, GitHub oder Chat ausgeben. Cloud Run prüft bei Job-Erstellung Secret-Zugriff des Laufzeitkontos und zieht Secret-ENV-Werte beim Instanzstart; beides ist noch kein vollständiger effektiver Datennachweis. Bei unerwartetem Fehler stoppen, niemals zusätzliche Rechte auf Verdacht vergeben. Wenn die vollständige Organisation-Deny-Prüfung gewünscht ist, muss ein entsprechend berechtigter Org-Sicherheitsadministrator sie unabhängig lesen. Kein produktiver Betrieb oder Quell-Handoff aktiviert.
+
+
+## 17.10.2026 – Projekt gehört direkt zur Organisation, Deny-Vererbung noch zu prüfen
+
+Cloud-Shell-Ausgabe der bisherigen reinen IAM-Bestandsaufnahme: `gcloud projects describe lszh-automations --format=json(parent)` meldete eine direkte `organization`-Parent-Ressource `514084820568`. Der vorangehende projektbezogene Deny-Policy-List-Aufruf zeigte im übermittelten Output **keine Richtlinien**, die erfolgreiche und vollständige Auflistung ist dadurch jedoch nicht separat belegt. Effektiver IAM Policy Troubleshooter für die Airtable-Secret-Version 1: `ALLOW_ACCESS_STATE_GRANTED`, `DENY_ACCESS_STATE_UNKNOWN_INFO`, `OVERALL_ACCESS_STATE_UNKNOWN_INFO`. Daher keine Behauptung, dass keine organisationsweite Deny-Policy wirksam sein kann. Als nächstes ausschliesslich lesender `gcloud iam policies list --attachment-point=cloudresourcemanager.googleapis.com/organizations/514084820568 --kind=denypolicies --format=json(name)`; `[]` bei fehlerfreiem CLI-Ergebnis bedeutet keine dort gelistete direkte Org-Deny-Policy, `PERMISSION_DENIED` ist **kein** Negativnachweis. Keine neue IAM-Rolle vergeben, kein Secret-Payload abgerufen und keine Testausführung gestartet.
+
+
+## 17.10.2026 – IAM Troubleshooter: Zulassung GRANTED, Deny UNKNOWN_INFO
+
+**Konkreter echter Troubleshooter-Befund nach gezieltem Secret-Level-Grant:** `ALLOW_ACCESS_STATE_GRANTED`, `DENY_ACCESS_STATE_UNKNOWN_INFO`, `OVERALL_ACCESS_STATE=UNKNOWN_INFO` für Outbox-Servicekonto / `lszh-airtable-readonly-staging` Version 1 / `secretmanager.versions.access`. Damit ist das **Allow-Binding wirksam erkannt**, aber der Prüfende hat laut Google Cloud nicht alle Deny-Policies einsehen können. `UNKNOWN_INFO` ist weder bestätigter Deny noch Nachweis uneingeschränkter Effektivberechtigung. **Keine weiteren IAM-Rechte hinzufügen, kein Job ausführen.** Nächster Schritt: rein lesend project-level IAM-Deny-Policies listen und Projekt-Parent ermitteln; fehlende Visibility von vererbten Deny-Policies ausdrücklich als offen dokumentieren. Ein abschliessender effektiver Lesezugriff wird erst durch einen sicher isolierten authentifizierten Staging-Job ohne Secret-Ausgabe belegt.
+
+
+## 17.10.2026 – IAM Troubleshooter nach engem Airtable-Secret-Grant: UNKNOWN_INFO
+
+**Echte Cloud-Shell-Ausgabe:** Nach erfolgreichem direkten `roles/secretmanager.secretAccessor`-Grant am einzelnen bestehenden Airtable-Read-only-Secret für das Outbox-Dienstkonto liefert die Abfrage von `secretmanager.versions.access` auf Version 1 jetzt `UNKNOWN_INFO` (vor Grant: `CANNOT_ACCESS`). Gemäss Google IAM Policy Troubleshooter bedeutet `UNKNOWN_INFO`, dass der aufrufende Principal **nicht alle Richtlinieninformationen** zum eindeutigen Beurteilen sehen kann, **nicht** dass der Secret-Zugriff verweigert wird. Der direkte IAM-Binding-Readback bleibt nachgewiesen. **Keine weiteren Berechtigungen vergeben.** Als nächster read-only Diagnosepunkt gezielt `allowPolicyExplanation.allowAccessState` und `denyPolicyExplanation.denyAccessState` abfragen, ohne Secret-Payload oder vollständige Policies auszugeben. Den effektiven Zugriff bei späterem kontrollierten One-Shot-Source-Job gesondert bestätigen; kein Job und keine Kundenaktion bisher gestartet.
+
+
+## 17.10.2026 – Airtable-Staging: gezielte Secret-IAM-Freigabe umgesetzt
+
+Google Cloud Shell meldete nach der genehmigten Secret-Level-Berechtigungsänderung `Updated IAM policy for secret [lszh-airtable-readonly-staging]`. Die Bindung `roles/secretmanager.secretAccessor` enthält zwei Dienstkonten: den bisherigen Airtable-Lesetestdienst und die neue Outbox-Staging-Identität. Es gab keine projektweite neue IAM-Rolle, keinen Secret-Payload-Abruf und keinen Testauftrag. Als nächstes effektiven Zugriff für `secretmanager.versions.access` auf Secret-Version 1 erneut mit dem IAM Troubleshooter rein lesend prüfen; erwartet `CAN_ACCESS`. Der synthetische End-to-End-Lauf ist weiter offen.
+
+
+## 17.10.2026 – Effektives Outbox→Airtable-Secret-Recht fehlt: IAM Troubleshooter CANNOT_ACCESS
+
+**Echte Cloud-Shell-Rückmeldung:** Der IAM Policy Troubleshooter gegen die **konkrete Version 1** von `lszh-airtable-readonly-staging` und den Principal `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` für die Permission `secretmanager.versions.access` lieferte `CANNOT_ACCESS`. Gemäss Google bedeutet dieser Zustand **Berechtigung nicht vorhanden** (nicht `UNKNOWN_INFO` oder `UNKNOWN_CONDITIONAL`). Zudem `secret: no direct binding` und `project: roles/datastore.user (conditional)`, letztere Rolle umfasst keinen Secret-Zugriff. Die geprüfte Secret-Version ist `ENABLED`.
+
+**Abhilfe vorbereitet, noch nicht ausgeführt:** Genau ein IAM-Binding `roles/secretmanager.secretAccessor` direkt am vorhandenen Secret `lszh-airtable-readonly-staging` für **nur** das separate Outbox-Servicekonto; keine projektweite Rolle, keine Rotation/Offenlegung des PAT, kein Quell-Job, kein Vertrags-/Mailbetrieb. Nach Änderungsbefehl Secret-IAM direkt rücklesen und Troubleshooter auf `CAN_ACCESS` überprüfen; bei unklarem Resultat nicht fortfahren. Der private Empfänger selbst wurde bereits mit `--verify-review-only` real bestätigt.
+
+## 17.10.2026 – IAM Troubleshooter gegen Airtable-Secret verweigert die Anfrage (INVALID_ARGUMENT)
+
+**Cloud-Shell-Rückmeldung:** Der lesende Aufruf `gcloud policy-intelligence troubleshoot-policy iam` für `secretmanager.versions.access` gegen **nur die Secret-Ressource** `//secretmanager.googleapis.com/projects/lszh-automations/secrets/lszh-airtable-readonly-staging` gab `INVALID_ARGUMENT` zurück. **Kein Beweis für DENIED und keine IAM-Änderung.** Laut Google Secret Manager AccessSecretVersion API ist `secretmanager.versions.access` auf der konkreten **Secret-Version** `projects/*/secrets/*/versions/*` erforderlich. Nächste erlaubte diagnostische Prüfung: mit `gcloud secrets versions describe 1 --format='value(name)'` den kanonischen Ressourcennamen auslesen und genau `//secretmanager.googleapis.com/<name>` für IAM Troubleshooter verwenden; lediglich IAM-Metadaten abfragen, nie `secrets versions access` verwenden oder Secret-Inhalte in den Chat schreiben. Bei erneutem Troubleshooter-Fehler keine Spekulation über Zugriff; kontrollierten nur-secret-level Accessor-Grant separat bewerten.
+
+## 17.10.2026 – Airtable-Secret: Kein direkter Outbox-Accessor, projektweit nur bedingtes Datastore-Recht
+
+**Gesicherter Cloud-Shell-IAM-Befund:** Für `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` ergibt eine gefilterte JSON-Prüfung `secret: no direct binding` beim bestehenden und `ENABLED`-Secret `lszh-airtable-readonly-staging`. Auf Projektebene lautet die einzige direkt zu diesem Dienstkonto gefundene Rolle `project: roles/datastore.user (conditional)`. Diese Firestore/Datastore-Rolle enthält **nicht** `secretmanager.versions.access`. Vererbte Ordner-/Organisationsrechte, Gruppen, IAM-Deny/PAB wurden noch nicht geprüft. Deshalb **noch keine Secret-IAM-Änderung vorgenommen und kein synthetischer Quell-Job erstellt/ausgeführt**. Empfohlen: zuerst einen *read-only* IAM Policy Troubleshooter auf `secretmanager.versions.access` für genau die Outbox-Identität und das einzelne Airtable-Secret durchführen; bei verlässlich bestätigtem fehlendem Zugriff nur dort `roles/secretmanager.secretAccessor` grant, niemals projektweit.
+
+## 17.10.2026 – Airtable-Read-only-Secret aktiv, Outbox-Secret-IAM noch ungeklärt
+
+**Geschäftsführer-Cloud-Shell-Rückmeldung:** `gcloud secrets versions describe 1 --secret=lszh-airtable-readonly-staging` ergab `ENABLED`. Die gefilterte direkte Secret-IAM-Abfrage nach `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` gab **keine Ausgabe** zurück. Dies beweist **nicht**, dass effektiv keine Berechtigung besteht; die vorliegende CLI-Filterausgabe kann auch unvollständig sein, und Projekt-/Ordner-/Organisations-IAM oder Gruppenzugehörigkeiten sind dadurch nicht ausgeschlossen. **Keine IAM-Änderung und kein Quell-Job gestartet.** Nächster Schritt ist eine rein lesende, gezielt auf das Outbox-Servicekonto begrenzte JSON/IAM-Auswertung; keine Secret-Payload ausgeben. Nur bei bestätigtem Bedarf später eine enge Secret-Level-`roles/secretmanager.secretAccessor`-Berechtigung einrichten.
+
+## 17.10.2026 – Live Review-only-Postflight in Google Cloud bestätigt
+
+**Geschäftsführer-Cloud-Shell-Output:** Nach `git pull --ff-only` bis `596868d26afd` wurde `bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --verify-review-only` **erfolgreich rein lesend** ausgeführt. Bestätigt wurden: Die **tatsächlich aktive Cloud-Run-Revision** `lszh-quarantine-handoff-staging-00002-ttf`, das **ursprüngliche geprüfte Image** `staging-131d67982f83`, alle **neun Runtime-Einstellungen** inklusive HMAC-Secret-Referenz, genau die vorgesehene direkte Source-`roles/run.invoker`-Bindung, HMAC-Version 1 `ENABLED` und genau die zwei vorgegebenen Secret-Level-`roles/secretmanager.secretAccessor`-Berechtigten. Weder Secret-Payload noch Firestore-/Kundendaten wurden gelesen oder verändert.
+
+**Ist-Zustand:** Private **Empfängerseite für STAGING REVIEW_ONLY** installiert und verifiziert. **Nicht** nachgewiesen: geerbte IAM-Berechtigungen, Quell-Job/Quell-Service-Scope, Read-only-Airtable-PAT für das Outbox-Quellkonto, synthetische Fixture, effektiv funktionierende Firestore-Replay-Claim-Transaktion und End-to-End-HTTPS-Handoff. Es wurde kein Job gestartet; bisher kein Replay-Claim, keine Mail oder Vertragsannahme. **Nächste Prüfung:** vor jeder neuen IAM-Bindung oder Job-Anlage ausschliesslich lesende Bestandsaufnahme der Quellkonto-Zugriffsrechte auf das bestehende Airtable-Read-only-Secret. Empfänger-`--enable-review-only`, `--create-secret`, `--bind-invoker`, `--deploy-private-disabled` keinesfalls erneut ausführen.
+
+## 17.10.2026 – Receiver-Revision 00002-ttf aktiviert, echter Handoff-Test noch offen
+
+**Tatsächliche Google-Cloud-Shell-Rückmeldung:** Freigegebener Aufruf `staging-quarantine-handoff-provision.sh --enable-review-only` nach HMAC-Secret-Anlage und direktem Source-`run.invoker` erfolgreich. Google Cloud Run erstellte **Revision `lszh-quarantine-handoff-staging-00002-ttf`**, routet **100 % Traffic** auf diese Revision unter der bestehenden privaten URL `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app`. Installer meldete `PASS: Private review-only receiver configured. No source dispatcher launched.` Ohne eingehende gültige signierte Anfrage gibt es keinen Replay-Claim. **Kein Quell-Job gestartet, kein echter Handoff, keine Quarantäne-Case-Schreibung, kein E-Mail- oder Vertragsvorgang.**
+
+**Offline-Nachweis zum neuen `--verify-review-only`: 437/437 synthetische Node-Tests PASS, 0 Fehler; beide GitHub-Workflows erfolgreich auf Code-/Test-Commit `4b3a6fe0673b9d61c46ef5954037e71d7935f0d7`. Der echte Cloud-Postflight benötigt weiter den oben beschriebenen lesenden Cloud-Shell-Aufruf.
+
+**Zusätzlicher unabhängiger Postflight im GitHub-Review-Branch:** `--verify-review-only` liest ausschliesslich Cloud Run Service- und IAM-Metadaten, Secret Manager **Version-/IAM-Metadaten** (keinen Secret-Payload), verifiziert aktive Revision `00002-ttf` mit 100%-Routing, das **ursprüngliche tatsächlich deployte Image** `staging-131d67982f83`, acht exakte operative Schalter, die neunte Secret-Env-Referenz auf HMAC Version 1, den einzigen direkten Source-Invoker und genau zwei Accessors auf diesem Secret. Keine Mutationen oder Payload-Ausgabe; vererbte IAM-Berechtigungen bleiben separat zu prüfen. Vor einem synthetischen realen E2E-Test aus Cloud Shell **nach `git pull --ff-only` diesen Check ausführen**. Bei STOP keine Aktivierung oder Ausführung. `--enable-review-only` nicht blind wiederholen.
+
+## 17.10.2026 – STAGING-HMAC real in Secret Manager angelegt (Version 1)
+
+**Geschäftsführer-Cloud-Shell-Nachweis:** Nach erfolgreichem privaten Receiver-Deploy, deaktiviertem Postflight-Check und direkter `roles/run.invoker`-Bindung der Outbox-Identität wurde `staging-quarantine-handoff-provision.sh --create-secret` mit der Firmenidentität im Projekt `lszh-automations` erfolgreich ausgeführt: `Created secret [lszh-stg-quarantine-handoff-hmac]`, `Created version [1]`, zwei `Updated IAM policy for secret`-Bestätigungen. Abschluss `PASS: New 32-byte staging HMAC in Secret Manager, version 1; accessor grants scoped to this one secret.` Der 32-Byte-Schlüssel wurde in der Cloud Shell zufällig erzeugt und als kanonisches Base64 direkt an Secret Manager übertragen; kein Schlüsselwert in Repository, Chat oder angezeigter Ausgabe. Das bereits bestehende `--create-secret` **nicht erneut ausführen**.
+
+**Aktueller Status:** Privater, abgeschalteter Cloud-Run-Receiver vorhanden; servicegebundene Source-Invoker-Berechtigung gesetzt; gemeinsames HMAC-Secret mit Zugriffen für die zwei vorgesehenen Dienstkonten vorhanden. **Noch offen:** Receiver-Revision mit Secret-Env-Bindung konfigurieren und ausschliesslich `REVIEW_ONLY` aktivieren (`--enable-review-only`), Secret-Lesezugriff/Revision real rückprüfen, getrennte synthetische Source-Job-Voraussetzungen und Live-E2E-Test. Keine E-Mails, Kundenaktivierung, Vertragsannahme, Firestore-Replay-Claims oder automatisch gestarteten Quell-Jobs durch bisherige Schritte. Vererbte IAM-Privilegien bleiben separate Sicherheitsprüfung.
+
+## 17.10.2026 – Private Cloud-Run-Aufrufberechtigung real eingerichtet (Secret nächster Schritt)
+
+**Geschäftsführer-Cloud-Shell belegt:** Nach einem erfolgreichen `--verify-disabled` mit getrenntem Quarantäne-Dienstkonto, korrekt gepinntem Image, **allen Verarbeitungs-Gates false** und keiner direkten öffentlichen Invoker-Berechtigung wurde `bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --bind-invoker` ausgeführt. Google bestätigte `Updated IAM policy for service [lszh-quarantine-handoff-staging]` und das Skript bestätigte `PASS: Only source SA has direct service-level run.invoker grant.`. Damit ist der **direkte** Service-IAM-Aufrufzugriff für `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` eingerichtet. Vererbte/org-übergreifende IAM-Zugriffe bleiben separat zu prüfen. Keine Secret-Erstellung/Geheimnisfreigabe, Verarbeitung, E-Mails, Firestore-Claims oder Quell-Job-Start. **Nächste Aufgabe:** gesondertes `--create-secret` mit streng auf das Secret begrenzten Zugriffsrechten; Code/Branch unverändert und keine Wiederholung des Deployments oder IAM-Bindings.
+
+## 17.10.2026 – Privater Quarantäne-Empfänger tatsächlich erstellt; nachträglichen Check korrigiert (433 Tests PASS)
+
+**Cloud Shell des Geschäftsführers, tatsächlicher Nachweis:** Erfolgreicher reiner Build `6ec75cce-2fe2-4e35-a729-f10f45e6273e` (**SUCCESS**, Image `lszh-quarantine-handoff:staging-131d67982f83`); danach echtes Google-Cloud-Run-Deployment des **neuen** `lszh-quarantine-handoff-staging` in `europe-west6`, Revision `lszh-quarantine-handoff-staging-00001-qs8` mit URL `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app`. Das Deploy-Kommando übergab `--no-allow-unauthenticated`, das separate Quarantäne-Dienstkonto und `LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED=false`, `LSZH_QUARANTINE_REPLAY_WRITE_ENABLED=false`, `LSZH_SCOPED_STAGING_READER_ENABLED=false`. Nachträgliche unabhängige Prüfung der tatsächlichen Service-Metadaten noch ausstehend.
+
+**Fehler nach erfolgreichem Deploy:** Das Shell-Skript zeigte `STOP: Receiver not deployed`, obwohl Cloud Run die erfolgreiche Bereitstellung samt Revision/URL bestätigt hatte. **Root Cause:** Der Installer verglich nach dem Deploy mit dem **vor** dem Deploy gespeicherten Cloud-Run-Inventar. Der bestehende Dienst darf **nicht** nochmals deployt werden. Fix: `staging-quarantine-handoff-provision.sh` liest Service-Inventare jetzt **bei jeder Prüfung frisch**, behandelt Cloud-API-Fehler niemals als Nichtexistenz und besitzt zusätzlich den reinen Lese-Modus `--verify-disabled` zum Nachweis der korrekten Container-Image-ID, aller drei ausgeschalteten Staging-Verarbeitungsflags, Zielidentität und fehlender direkter öffentlicher Service-Invoker-IAM-Bindings. Sieben zusätzliche Mock-Regressionstests; **GitHub CI 433/433 synthetische Node-Tests PASS, 0 Fehler**, beide Workflows PASS auf Commit `642b6092af8a1aad731d021cb30e19055f551b27`. Keine IAM-/Secret-Änderung, keine Quell-Jobausführung, keine Firestore-Claim-Schreiboperation.
+
+**Nächster sicherer Cloud-Shell-Schritt:** Im verifizierten Checkout `$HOME/lszh-handoff-staging` `git pull --ff-only` und dann `bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --verify-disabled`. Nur nach bestätigtem PASS separat `--bind-invoker` erwägen. `--build-only` und `--deploy-private-disabled` **nicht wiederholen**. Weitere Einzelheiten: `docs/LSZH_QUARANTINE_HANDOFF_STAGING_EXECUTION_20261017.md`.
+
+## 17.10.2026 – Freigegebener privater Outbox→Quarantäne-Handoff implementiert, Cloud-Ausführung offen (426 Tests PASS)
+
+**Geschäftsführer-Freigabe im Projektchat:** Entwicklung und Vorbereitung der sicheren privaten Cloud-Run-Verbindung, separate Dienstidentitäten, persistenter Firestore-Replay-Schutz und ein ausschliesslich synthetischer End-to-End-Test. Keine Kunden-/Live-Aktivierung, automatische Vertragsannahme, E-Mail, Löschung oder alte Einmalrunner.
+
+**Fertig im ungemergten Feature-Branch:** Ein eigenständiger Empfänger (`quarantine-handoff-receiver.js`) mit strengem POST-Pfad, 2048-Byte-Grenze, HMAC-Verifikation und deny-by-default-Gates; getrennte Replay-Claim-Runtime (`quarantine-handoff-replay-runtime.js`) mit Metadata-SA-Prüfung, **einem** atomaren Firestore-`exists:false`-Commit und **unabhängig verifiziertem GET-Readback**; eigenständiger Outbox-Quelle-Transport (`quarantine-handoff-source.js`) mit bestehendem read-only Outbox/Airtable-Recheck, kurzlebiger HMAC-Nachricht, von Google Metadata ausgestelltem **OIDC-ID-Token mit echter Ziel-URL-Audience** und genau einem HTTPS-POST; gesperrter einmaliger Quell-Job-Entrypoint, zwei isolierte Dockerfiles sowie Cloud-Build- und Cloud-Shell-Provisionierungsskripte. **Ein Replay-Dokument wird nur auf echten späteren Ausführungspfaden angelegt**, der Quarantäne-Fall selbst wird nie per neuem Empfänger geschrieben, es gibt keine automatische Zustellung.
+
+**Bestätigtes CI-Ergebnis:** Auf GitHub-Code-Commit `2508203bc3aede7bb9a34530a844b23271f43448` bestanden **426 von 426 synthetischen Node-Tests (0 Fehler)** sowie beide GitHub-Workflows; Build-Tests der isolierten Empfänger-/Quell-Container bestanden. Die Tests ersetzen keine echte Cloud-IAM- oder Firestore-End-to-End-Verifikation.
+
+**Noch nicht ausgeführt:** In dieser ChatGPT-Sitzung existiert kein authentifizierter `gcloud`-/Google-Cloud-Run-IAM-Zugriff. Der genehmigte Cloud-Schritt (Build+Push, separater privater Receiver-Deploy, exakt quellspezifisches `roles/run.invoker`, Secret-Manager-HMAC, freigeschaltete reine Review-Route, einmaliger synthetischer Quell-Job mit überprüften Fixture-/Airtable-Secrets und echtem Firestore-Readback) wurde **nicht** durchgeführt oder vorgetäuscht. Das vorbereitete `staging-quarantine-handoff-provision.sh` führt in der echten geschäftlichen Google Cloud Shell die Schritte getrennt und mit Guards aus; standardmässig nur `--plan`. Die Source-Job-Bereitstellung und -Ausführung benötigen zusätzlich die nachweislich richtigen synthetischen Fixture-Codes und die sichere Bindung des schon vorhandenen Read-only-Airtable-Secrets, keine Geheimnisse im Chat. Branch nicht gemergt, alle bestehenden produktiven Sperren unverändert.
+
+**Ausführliche Schrittfolge und Risiken:** [LSZH_QUARANTINE_HANDOFF_STAGING_EXECUTION_20261017.md](./LSZH_QUARANTINE_HANDOFF_STAGING_EXECUTION_20261017.md).
+
+## 17.10.2026 – Replay-Claim-Plan gegen Manipulation gehärtet (Offline-Änderung)
+
+**Anlass:** Der bereits vorhandene Claim-Plan mit atomarem Firestore-`exists:false` schützte den eigentlichen Write, aber `verifiedReplayClaim` rekonstruierte bislang den vom Aufrufer übergebenen Plan nicht unabhängig. Tiefe Felder (`update.fields.state`, `purpose`, `claimedAt` etc.) waren trotz äusserem `Object.freeze` veränderbar. Eine künstlich dazu passende Readback-/Ack-Kombination hätte so einen gefälschten Plan als verifiziert erscheinen lassen können.
+
+**Behebung:** `quarantine-handoff-replay-cas.js` friert nun den **gesamten generierten Request-Baum rekursiv** ein. Der Verifier erstellt aus `replayKey` und `claimedAt` vor jeder Ack-/Readback-Auswertung einen **neuen kanonischen Plan** und verlangt exakte Struktur- und Wertgleichheit. Manipulierte Felder, fremde Dokumentnamen, zusätzliche Attribute oder geänderte Zeitstempel führen zu `BLOCKED_NO_REPLAY_CLAIM` / `UNREVIEWED_REPLAY_PLAN`, weiterhin ohne Retry, Schreibberechtigung oder Versand.
+
+**Nachweis:** Zwei neue Offline-Regressionstests testen die tiefe Unveränderbarkeit und gefälschte Pläne mit absichtlich übereinstimmenden synthetischen Ack-/Readback-Daten. **CI verifiziert:** Auf Code-/Test-Commit `25bda40b35789eb17618f7ad8dd2e3301fc23522` bestanden **413/413** synthetische Node-Tests (0 Fehler); beide GitHub-Actions-Workflows erfolgreich. Dies behauptet keinen echten Firestore-Write. **Keine** Deployment-, IAM-, Secret-, Firestore-, Airtable- oder E-Mail-Aktion; bestehender Entwurf weiterhin inaktiv, Branch ungemergt. Nächste reale OIDC-/Invoker-/Secret-/Replay-Persistenz-Integration benötigt die schon dokumentierte gesonderte Infrastrukturfreigabe.
+
+## 17.10.2026 – Firestore-Replay-CAS und privater HTTP-Vertrag offline vorbereitet (411 Tests PASS)
+
+**Auftrag:** Nach dem nur offline simulierten HMAC-signierten Outbox→Quarantäne-Handoff (`394/394` Tests) und `Vamos` wurde die nächste Stufe rein im GitHub-Review-Branch vorbereitet: der **exakte, dauerhaft atomare Replay-Claim-Vertrag** und der **streng begrenzte private HTTP-Empfangsvertrag**. **Keine echten IAM-Bindings, Firestore-Aufrufe, neue Cloud-Run-Services/Deployments, Secrets oder E-Mails.** Die vorherige separat genehmigte einmalige synthetische Quarantäne-CAS-Write-Probe wurde nicht wiederholt.
+
+**Neue `workers/onboarding-notifications/quarantine-handoff-replay-cas.js` (nur reiner Plan/Verifier):**
+- Fest verdrahtete bestehende Named DB `lszh-quarantine-staging` im Projekt `lszh-automations`, **dedizierte neue logische Replay-Collection** `lszh_quarantine_handoff_replay_staging` (Collection als Codepfad, **nicht** physisch erstellt). Der Replay-Key aus der bestehenden `validateAndClaimOnce`-HMAC-Berechnung ist eine 64-Zeichen-Hex-ID. `planReplayClaim` erstellt exakt **einen** Firestore-`documents:commit`-Anfrage**entwurf** mit **einem** `Write.update`, `currentDocument.exists=false` und ausschliesslich `schemaVersion`, `purpose`, `replayKey`, `state=CLAIMED_PENDING_MANUAL_REVIEW`, `claimedAt`. Keine Token, Airtable-Codes, E-Mail-Daten, Record-IDs, fremden DB-URLs oder Versandstatus im Dokument. Der Code **führt keinen Request aus** und implementiert `claimOnce` nicht.
+- `verifiedReplayClaim` ist eine **reine Auswertungsfunktion**, die ein extern übergebenes HTTP-200-Commit-Ack und **separate Readback-Evidenz** gegen genaue Dokumentidentität, exaktes Feldschema, kryptografischen Key, Claim-Status und mikrosekunden-normalisierte `updateTime` abgleicht. 409, 412, 5xx, verlorene Ack, ungültige Claims und abweichende Readbacks ergeben `BLOCKED_NO_REPLAY_CLAIM` ohne Retry. Die **wirklich dauerhafte** Replay-Garantie wird erst nach einem separat genehmigten Cloud-Writer/Reader mit Firestore-Commit und Readback erreicht; flüchtige `Set`/`Map`-Mockdaten bleiben nur Tests.
+- Bewusst **kein TTL- oder Auto-DELETE**, das alte Nonces wieder gültig machen könnte. Replay-Fixtures würden später dauerhaft in Quarantäne bleiben, bis für Retention/Löschkonzept und Kosten eine eigene Entscheidung und Freigabe vorliegt. Die dedizierte Service-Rolle verfügt weiterhin über **kein** `datastore.entities.delete` und wird nicht erweitert.
+
+**Neue `workers/onboarding-notifications/quarantine-handoff-http-contract.js` (nur rein parserbasierter Empfangsvertrag):**
+- Vorgesehener Pfad genau `POST /internal/quarantine/handoff`; nur `application/json`, maximal **2048 echte Byte**, strikte Inhaltslänge, keinerlei Query-/Alt-Route, Compression oder zusätzliche Felder. Die beiden signierten Envelope-Felder werden nur **geparst**, nicht als authentifiziert ausgegeben. Standard ist `BLOCKED_NO_HTTP_PROCESSING`; ein hypothetisch später aktivierender Prozess bräuchte u. a. `LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED=true`, `LSZH_OUTBOX_STAGE_ENABLED=false`, `LSZH_QUARANTINE_HANDOFF_MODE=REVIEW_ONLY`, festes Projekt und Quarantäne-DB. Solche Flags wurden **nirgends gesetzt**.
+- Unabhängig von Headern (auch gefälschte `Authorization`, `X-Serverless-Authorization`, `x-forwarded-user`) meldet der Parser selbst **immer** `authenticated:false` / `writeAllowed:false`. Er bindet **keinen** HTTP-Server und ist in keinem deployed Cloud-Run-Entrypoint importiert. Für echten privaten Empfang muss **Cloud Run selbst** Google-signiertes OIDC-JWT/Audience und `roles/run.invoker` ausschliesslich für das genaue Outbox-Servicekonto auf der einen Empfänger-Service-Ressource erzwingen; keine beliebig gegebene Header-Prüfung im Anwendungscode genügt.
+
+**Tests und Integration:** `quarantine-handoff-replay-cas.test.mjs` enthält 9 neue synthetische Tests (atomare `exists:false`-Einmalanlage mit zwei konkurrierenden Akteuren, Fehler/409/503, exaktes Readback, Replay-Key, Timestamp-Kanonisierung, keine Löschung/TTL, kein Fremd-DB-Zugriff). `quarantine-handoff-http-contract.test.mjs` enthält 8 Tests (Standard-STOP, erlaubte/gesperrte Methode/Route, MIME, Byte-Limits, falsche JWT-/Prinzipal-Header, Manipulation und kein ausführbarer Server). CI-Syntaxchecks ergänzt. **411/411 synthetische Node-Tests bestanden**, beide GitHub-Workflows auf Commit `f94aeecaad5cd1ec296279ea3395b21a23b3bd4f` erfolgreich.
+
+**Offener Freigabepunkt:** Realer Empfangs-Service, genaue Service-URL für OIDC-`aud`, servicegebundenes `roles/run.invoker`, Secret-Manager-Bereitstellung/Zugriffe für gemeinsames STAGING-HMAC, tatsächlich dauerhaft atomarer Replay-`claimOnce`-Executor mit Readback und Berechtigungen, anschliessend echter synthetischer End-to-End-Test. **Keine** dieser Cloud-Aktionen ist jetzt genehmigt oder ausgeführt. Die bekannte CAS-Fixture `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42` verbleibt unverändert in Revision 2. Alle zuvor einmal genutzten IAM-/Lesetest-/Schreibtest-Runner bleiben gesperrt.
+
+## 17.10.2026 – Offline signierter OIDC-Handoff-Vertrag zwischen Outbox und Quarantäne vorbereitet
+
+**Auftrag:** Auf `Vamos` nach den 372 erfolgreichen Offline-Tests der **zwei getrennten, nach Cloud-Run-Metadata-Serviceidentität gebundenen GET-only Firestore-Reader** wurde als nächste Etappe die sichere **Übergabe von einem echten Outbox-Laufzeitkontext zu einem getrennten Quarantäne-Laufzeitkontext** vorbereitet. Autorisiert sind **nur GitHub-Code, Offline-Tests und Dokumentation**. **Kein** neuer Cloud-Run-Service/Route, IAM-Invoker-Grant, Secret-Manager-Secret, Infrastruktur-Deployment, GCP- oder Airtable-Datenzugriff, keine E-Mail und keine neue Firestore-Mutation.
+
+**Google Cloud dokumentiert für künftige synchrone Cloud-Run-zu-Cloud-Run-Aufrufe:** Google-signiertes **OIDC-Identitätstoken** des **Quell-Service-Accounts**, mit Audience der tatsächlichen Empfangs-Service-URL (oder explizit konfigurierter Custom Audience), im `Authorization: Bearer`-Header; Empfangs-Service `--no-allow-unauthenticated`, `roles/run.invoker` **nur für das genaue Quell-SA direkt auf diesem Ziel-Service**, keine weitreichende projektweite Rolle. Die Cloud-Run-IAM-Überprüfung ist **separat** von der Prüfung der übertragenen Nachricht und darf durch ein blosses HTTP-Header-Feld nicht vorgetäuscht werden. Noch **kein** solcher Empfangs-Service eingerichtet/aktiviert.
+
+**Neu: signierter, standardmässig vollständig inaktiver Nachrichtenvertrag:** `workers/onboarding-notifications/quarantine-handoff-protocol.js`. Erstellt via `makeHandoffForVerifiedDraft` **nur** nach strikter 8-Feld-Verifikation des bisherigen `DRAFT_NOT_SENT`-Outbox-Dokuments und zugeordneter `eventId(recordId)`, sowie einer **zulässigen, eigens frisch geprüften** `reviewDraft`-Bewertung: `CURRENTLY_COMPLETE_MANUAL_REVIEW_ONLY/FRESH_COMPLETE_EVIDENCE` oder erlaubte `QUARANTINE_RECOMMENDED`-Begründungen. Keine Unavailable-/Invalid-Bewertungen als positive Anweisung; **nie** eine Versandberechtigung. Übertragen würden lediglich eine **opake 64-hex Event-/Dokument-ID**, typisierte Status-/Reason-Codes, genau definierte `issuer`-/`audience`-/Versionsfelder, Ausstellungs-/Ablaufzeit und ein kryptografisch zufälliger 128-bit-Nonce. **Keine** persönliche E-Mail, Airtable-Projektcode (Bearer-Secret), Record-ID, kompletter Entwurf, Firestore-Kundendatensatz, Google-Access-/ID-Token oder Link. Der Inhalt wird HMAC-SHA256 über den exakt definierten kanonischen Feldsatz mit einem **künftig separat zu verwaltenden STAGING-Secret** (mindestens 32 zufällige Byte) signiert. Gültigkeit **120 Sekunden**, Toleranz für Uhrversatz **10 Sekunden nur vor der Ausstellungszeit**, nicht über das Ablaufdatum hinaus. Eine Nachricht mit zusätzlichen Feldern, manipulierten Codes/Nonce, geänderter Audience, ungültiger Signatur oder alter/futurischer Zeit wird abgewiesen. Das HMAC ist **zusätzliche Integrität**, **kein Ersatz** für Cloud-Run-OIDC/IAM.
+
+**Wichtigste Replay-Grenze:** `validateAndClaimOnce` gibt ohne einen **vom künftigen Empfänger bereitgestellten dauerhaft atomaren** `claimOnce(replayKey)`-Adapter ausdrücklich `BLOCKED_NO_HANDOFF` zurück; ein `Map`/`Set` in einem flüchtigen Cloud-Run-Prozess ist **keine** freigegebene produktive Implementierung. Test-Stubs verhalten sich nur synthetisch atomar. Ein späterer Firestore-`exists:false`-Replay-Claim in der bereits separierten Quarantäne-Datenbank ist **eine offene Entwurfsoption**; er würde eine zusätzliche gezielte Mutation, Aufbewahrungs-/Aufräumregel und **separate ausdrückliche Freigabe** benötigen. Ungewisser Claim/Timeout => STOP, keine Wiederholung.
+
+**Neu: Offline-Quell-/Zielverdrahtung ohne Sendetransport:** `workers/onboarding-notifications/quarantine-handoff-offline-flow.js`. `prepareSourceHandoff` erzwingt bestehende synthetische `listCandidateCodes`-Allowlist, liest ein einzelnes gültiges Outbox-Draft über `createScopedReader(scope='outbox')` **mit dessen eigenem SA**, validiert aktuell über die schon bestehende Airtable-`reviewDraft`-GET-Funktion und signiert erst dann die kompakte Nachricht. `inspectDestinationHandoff` verifiziert die Nachricht mit HMAC/TTL/Audience, verlangt den **dauerhaft atomaren Replay-Claim** und liest **danach** nur via `createScopedReader(scope='quarantine')` mit dessen eigenem SA den getrennten Quarantäne-Snapshot. Die bestehende `prepareQuarantineCAS` berechnet lediglich `OFFLINE_CAS_REVIEW_REQUIRED` oder `NO_CHANGE`. **Keine** `POST`-Requests, Cloud-Run-Aufruf, Übergabe von Cloud-Zugangstokens, persistierende CAS-Aktionen oder Versandfunktionen.
+
+**Synthetische Tests:** `quarantine-handoff-protocol.test.mjs` prüft kurze Gültigkeit, Signatur, unveränderte Statuscodes, Manipulation, schwache Secrets, Fehl-/Mehrfacheinlieferungen und absturzsichere Replay-Claim-Sperrlogik (lediglich Mock). `quarantine-handoff-offline-flow.test.mjs` prüft gemeinsam Quelle: separat identifizierter Outbox-Firestore-GET + frischer Airtable-GET und Ziel: gesondert identifizierter Quarantäne-GET + CAS-Summary, komplette Replay-/401-/403-/unverfügbare Fälle und **keine Datenbank-/Mailmutation**. Der deaktivierte `server.js` und bestehende Cloud-Run-Services/Jobs bleiben unverändert. Der aktuelle Testlauf mit vollständiger CI wird separat verifiziert.
+
+**Explizite noch offene Arbeit vor echter Server-zu-Server-Probe:** Empfangs-URL/Audience, dedizierter nichtöffentlicher Quarantäne-Cloud-Run-Service, einziger source-SA-Invoker-Binding, Aufbewahrung und Zugriffsrechte eines separaten HMAC-STAGING-Secrets (ohne Keys/Logs), langlebige **atomare Replay-/Idempotenz-Sperre**, genaue Minimal-HTTPS-POST-Route und deny-by-default Konfiguration, verbindlicher Status der alten Outbox (weiter `LSZH_OUTBOX_STAGE_ENABLED=false`) und ein neuer synthetischer End-to-End-Testplan. **Kein** produktiver CAS-Write oder Versand auf Basis eines Handoff allein. Alte Firestore-/IAM-Einmalrunner verbraucht; im Quarantäne-DB verbleibt weiterhin die bewusste Test-Fixture `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42` mit Revision 2.
+
+## 17.10.2026 – Zwei voneinander getrennte Firestore-Laufzeitidentitäten: Offline-Leseadapter und Übergabetests
+
+**Auftrag:** Nach erfolgreicher synthetischer 357/357-Offline-Integration der bestehenden `DRAFT_NOT_SENT`-Outbox, lesenden Airtable-Review-Funktion und Quarantäne-CAS-Planung forderte der Geschäftsführer mit `Vamos` die **Vorbereitung einer abgesicherten Laufzeitverbindung** zwischen den zwei bereits bestehenden, strikt getrennten Firestore-Datenbanken. Die Freigabe bezieht sich auf Code, synthetische Tests und Dokumentation, **NICHT** auf Live-IAM, Cloud-Run-Deployment, Firestore-Reads/Writes, neue Infrastruktur oder Kundendaten.
+
+**Implementiert im GitHub-Feature-Branch, bisher nirgends aktiviert:**
+- Neues `workers/onboarding-notifications/firestore-scoped-readers.js` mit `createScopedReader({scope,env,fetchImpl})`. Der Code exportiert genau einen **GET-only**-Reader pro **separatem Laufzeitkontext**. `scope='outbox'` verlangt die tatsächliche Google-Compute-Metadata-Laufzeitidentität `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`, `scope='quarantine'` verlangt `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`. Vor jedem Firestore-GET überprüft die Factory den aktiven, ausdrücklich so konfigurierten Scope, `FIRESTORE_PROJECT_ID=lszh-automations`, die **richtige** `FIRESTORE_DATABASE_ID`, `LSZH_OUTBOX_STAGE_ENABLED=false` und das standardmässig **nicht gesetzte** `LSZH_SCOPED_STAGING_READER_ENABLED=true`; andernfalls STOP vor jedem Metadaten-/Firestore-Aufruf. Auch nach korrekter Konfiguration prüft sie **vor Tokenabruf** das Servicekonto über `metadata.google.internal/.../email`; bei abweichender Laufzeitidentität STOP.
+- Zugriffstoken werden **erst danach** ausschliesslich in der lokalen Funktion über das Metadata-Token-Endpoint gelesen; kein Schlüssel, keine globale Tokencache-Variable, keine Impersonierung oder Weitergabe eines Tokens an den anderen Leser. Der Firestore-Pfad bleibt hartkodiert, inkl. genau der für diesen Scope erlaubten benannten Datenbank und Collection. Erlaubt ist **nur `GET` eines exakt benannten 64-hex-Dokument-IDs**; kein `LIST`, `POST`, `PATCH`, `DELETE`, kein Follow-Redirect, maximal ein Firestore-Dokument-GET pro Aufruf, keine automatischen Retries. Metadata-GETs sind dabei separat zu zählen. Antwortgrössen sind begrenzt, Nicht-200/404-Ergebnisse stoppen fail-closed.
+- Outbox: `decodeOutboxDraft` verifiziert die genaue bestehende Firestore-Draft-Struktur und stabile `eventId(recordId)`, `DRAFT_NOT_SENT`, `testOnly=true`, `deliveryEnabled=false`, `emailSent=false`, strikten `createdAt`-Timestamp und genau die bekannte Collection `lszh_onboarding_notification_drafts_staging` unter `lszh-offers-staging`. Eine 404 auf dieser Quelle ist **kein gültiger Entwurf** und wird blockiert.
+- Quarantäne: `decodeSnapshot` aus der bestehenden geprüften CAS-Bibliothek verifiziert die exakte Quarantäne-Dokumentidentität/Feldstruktur/Version in `lszh_onboarding_quarantine_cases_staging` unter `lszh-quarantine-staging`. Antwort `404` bedeutet nur `MISSING` (keine Schreibberechtigung); `200` liefert einen eingefrorenen, streng validierten Dokument-Snapshot und `readStatus`, der sich offline in `reviewOnboardingForQuarantine` weiterverwenden lässt. Die Readbacks werden **nicht** als CAS-Commit-/Sendefreigabe behandelt.
+- **Keine** Änderungen an `server.js`, am bestehenden Cloud-Run-Outbox-Dienst, an den bestehenden CAS-Writer-Skripten, Make, Airtable, IAM oder Projektdaten. `createScopedReader` wird von keinem aktiven Server- oder Container-Einstiegspunkt importiert. Die beiden realen Servicekonten behalten ihre separaten auf jeweilige Datenbanken begrenzten GCP-IAM-Rechte. Dies ist eine **Laufzeitvorbereitung im Quellcode**, kein Beweis der künftigen Google-Cloud-Identität, und die Test-Stubs stellen selbst **keine echten IAM-Verbindungen** her.
+
+**Synthetischer Nachweis:** `firestore-scoped-readers.test.mjs` umfasst **13 neue Prüfungen** (gesperrter Standardzustand, echte lokale Identitätsauswahl, Querverwechslung der beiden Dienstidentitäten, strikte REST-Pfade, Test-/Delivery-Flags, Firestore-GET-only, falsch gesetzte Datenbank, unerwarteter HTTP 401/403/404, unsichere oder zu grosse Dokumente, ungültige Schema-/Zeitstempel-/Token-Antworten). Zwei neue Szenarien in `onboarding-quarantine-integration.test.mjs` beweisen offline die Zusammensetzung **von zwei unterschiedlichen simulierten Metadata-Identitäten** mit dem vorhandenen `reviewOnboardingForQuarantine`: synthetischer Outbox-Draft-GET, separat bestätigter Quarantäne-GET 404/200, vorhandener rein lesender Airtable-Statuscheck und nur die erwartete Quarantäne-Create-/Update-Zusammenfassung. Keine REST-Mutation, keine Mail und keine Tokenweitergabe. Ergebnis GitHub-Actions auf Commit `7b377924b3f597abdaaa2862339357b70aa3ae78`: **372/372 JavaScript-Offline-Tests bestanden; beide Workflows erfolgreich**.
+
+**Entscheidender nächster Architektur- und Freigabepunkt:** Zwischen tatsächlich **zwei separaten Laufzeiten** existiert bislang **kein authentifizierter Übergabetransport**. Keine blosse JSON-Statusmeldung, kein Airtable-Code und kein unbeglaubigter `VERIFIED_DRAFT`-Wert darf als Schreib- oder Versandfreigabe dienen. Für eine spätere echte Verbindung braucht es einen explizit überprüften internen Übergabekanal (z. B. private/autorisiert aufrufbare Cloud-Run-Schnittstelle, beidseitig überprüfte Dienstidentität, begrenzte Audience, Schutz gegen Replay/Dubletten und strikte Datenminimierung), **neue separate Deploy-/Invoker-IAM-Zustimmung** und weiterhin eine frische Airtable-Prüfung bzw. fachlich gültigen Nachweis. Erst dann darf eine quarantäneseitig rein serverseitig durchgeführte, separat autorisierte CAS-Commit-Ausführung in Betracht gezogen werden. Es wurden keine solchen neuen Ressourcen angelegt oder Berechtigungen erteilt. `lszh-outbox...` erhält keinen Quarantäne-Zugriff und `lszh-quarantine...` keinen Offerten-Zugriff.
+
+**Beibehaltener Status:** Die erfolgreich einmalig erzeugte synthetische Quarantäne-Fixture `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42` mit Revision 2 bleibt bewusst unangetastet; ihr späterer Löschweg erfordert eine eigene Freigabe. Die alten einmaligen Cloud-IAM-/Firestore-Testskripte werden nicht wiederholt. Produktiver Versand/Cloud-Run-Aktivierung, Vertragsfreigaben und echte Kundenintegrationen bleiben gesperrt.
+
+## 17.10.2026 – Onboarding-Airtable-Prüfung mit Quarantäne-CAS-Planung offline verbunden
+
+**Auftrag:** Nach dem vom Geschäftsführer bestätigten realen synthetischen CAS-Livetest in `lszh-quarantine-staging` (CREATE Revision 1 und UPDATE Revision 2; 3 GET/2 POST; kontrollierte sofortige Entfernung der temporären Token-Creator-Bindung; bleibende Fixture `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42`) folgte auf `Vamos` der Schritt, den **bestehenden** Onboarding- und Outbox-Workflow mit der Quarantäneplanung zu verbinden – **ohne produktive Aktivierung, IAM-Änderung, Firestore-Mutation, neue Dienstinstanz oder Mail**.
+
+**Neu im bestehenden GitHub-Branch:** `workers/onboarding-notifications/onboarding-quarantine-integration.js` und `.test.mjs`. Der Bridge-Baustein ruft keine konkurrierende eigene Airtable-State-Engine auf: Er verwendet unverändert `listCandidateCodes` (bestehende eng begrenzte synthetische Fixture-Allowlist), `eventId` (stabile SHA-256-Identität des bestehenden ungesendeten Outbox-Entwurfs), `reviewDraft` (echte bestehende, **rein lesende** Airtable-Onboarding-Zustandsprüfung) und `prepareQuarantineCAS` (bereits verifiziertes atomar bedingtes Firestore-CAS-Planungsmodell). Somit wird das existierende `DRAFT_NOT_SENT`-Modell **nur fachlich angeschlossen**, nicht ersetzt.
+
+**Sicherheitsvertrag der Bridge `reviewOnboardingForQuarantine`:**
+- Nur ein synthetischer, explizit allowlisteter `ob_<UUID>`-Projektcode und der **passende** 64-hex-`eventId(draft.recordId)` sind zulässig. Falsche Record-/Dokument-ID, fehlendes Read-only Airtable-Token, ungültige Fixture-Allowlist oder manipulierte gespeicherte Outbox-Drafts werden ohne CAS-Vorbereitung blockiert. Ein ungültiger Entwurf darf auch keinen weitergehenden Airtable-Aufruf auslösen.
+- Die aktuelle Airtable-Prüfung erfolgt **nur über `reviewDraft`**, mit existierenden dreistufigen lesenden Onboarding/Auftrag/Kunde-Checks und der vorhandenen DSG-Prüfroute. Ein frischer erfolgreicher Nachweis erlaubt nur `MANUAL_REVIEW_ONLY`, keine Lieferung; `processing`/Dubletten/Record-ID-Konflikte führen zu **Quarantäneplanung**. Airtable-Ausfall, ungültige Statusantwort und unbekanntes Ergebnis geben `HOLD_NO_PERSISTENCE` (keinen Write-Entwurf). Die Bridge nimmt niemals einen erfolgreichen bisherigen Status als Versandfreigabe.
+- Firestore-`readStatus` und `document` sind **nur vom Aufrufer zugelieferte Planungsdaten**; die Bridge holt selbst keinerlei Cloud-DB-Information. Nur `404` mit leerem Dokument oder `200` mit exakt geprüftem Snapshot können zu `OFFLINE_CAS_REVIEW_REQUIRED` führen. `NO_CHANGE` für unveränderten aktuellen Prüfbefund; sonst `BLOCKED_NO_PERSISTENCE`. Diese Fälle beweisen **keine** authentifizierte Firestore-Lesequelle – ein späterer Adapter muss diese getrennt nachweisen.
+- **Keine ausführbaren Firestore-`POST`-Payloads, Tokens, Personendaten, Projekteingabecodes, Original-Draft-IDs, externen URLs oder Zugangsdaten im Return-Wert.** Der Baustein liefert ausschliesslich einen eingefrorenen, nicht ausführbaren Status/Revision/Ziel-Quarantänestatus und `networkWriteAllowed:false`, `deliveryAllowed:false`, `requiresManualApproval:true`, `retryAllowed:false`.
+- **Keine Live-Integration des Servers:** `workers/onboarding-notifications/server.js`, bestehendes Cloud-Run-Staging, Make-Szenarien, Airtable-Bases, Firestore-Collections, die früher verbrauchten Einmal-Probes und Cloud IAM wurden **nicht verändert**; auch kein persistierender Quarantäne-Runtime-Adapter wurde eingeschleust.
+
+**Testnachweis:** `onboarding-quarantine-integration.test.mjs` umfasst **12 neue End-to-End-Simulationen** der unveränderten Airtable-Zustandsprüfung mit realer Outbox-Draft-Validierung sowie Quarantäne-Fallplanung. Darunter frische Onboarding-Vollständigkeit, Regression, dublettierte Eingaben, verschwundene/abweichende Records, Status-503/Fehler, manipulierte Entwürfe, nicht erlaubte Projektcodes, defekte Firestore-Snapshots, bereits vorhandene Revisionen, No-op und zwei parallel berechnete gleichartige Vorschläge ohne Schreibmöglichkeit. GitHub-Actions direkt nach dieser Codeänderung: **357/357 Offline-Tests PASS, 0 Fehler; beide CI-Workflows PASS** (Commit `ba6b9e90db8914aebb5df86b7147fe85cedd0952`).
+
+**Noch zu lösen, vor jeglicher Laufzeitaktivierung:** Wie werden die gültigen, vollständig send-gesperrten Outbox-Drafts über die vorhandene, auf `lszh-offers-staging` begrenzte Identität **authentifiziert gelesen**, mit einem expliziten synthetischen Airtable-Fixture-Code korreliert und über eine **separate, auf `lszh-quarantine-staging` begrenzte Laufzeitidentität** die `200`/ `404`-Snapshot-Daten und eine **einmalige** CAS-Commit-Ausführung durchgeführt? Insbesondere darf weder der bisherige Outbox-Cloud-Run-Service stillschweigend Zugriff auf die neue Quarantäne-Datenbank erhalten noch der dedizierte CAS-Service-Account Zugriff auf die Offerten-DB. Eine künftige zustandsbasierte Versandintegration benötigt eigene ausdrückliche Freigabe und rechtliche/RC1-/AVV-Entscheidungen. Bis dahin gelten beide Firestore-Tests als abgeschlossene Einmal-Nachweise; die genannte Test-Fixture bleibt erhalten und wird nicht ohne eigene Freigabe gelöscht.
+
+## 17.10.2026 – Live-CAS-Nachweis: synthetische Firestore-Revision 2 bestätigt, temporäre IAM-Rolle entfernt
+
+**Tatsächlich durch den Geschäftsführer am 17.10.2026 in Google Cloud Shell ausgeführter einmaliger, ausdrücklich freigegebener Test:** `staging-quarantine-cas-write-once.sh --run-approved-once` nach Git-Update auf Commit `e682f7d`. Das exakt auf den dedizierten Quarantäne-Service-Account beschränkte `roles/iam.serviceAccountTokenCreator`-Binding erhielt eine bestätigte **30-Minuten-Ablaufbedingung**; auf die erfolgreiche IAM-Metadatenprüfung folgten **600 Sekunden IAM-Propagation-Wartezeit**. Danach wurde die kurzlebige Impersonierung verwendet, um genau **ein** neues synthetisches Dokument in `lszh-quarantine-staging` zu erzeugen und anschliessend atomar zu aktualisieren. Die vom Geschäftsführer geteilte Terminalausgabe belegt:
+
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; starting one gated synthetic CAS run.
+FIXTURE_ID: 314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42
+FIXTURE_DB: lszh-quarantine-staging; FIXTURE_COLLECTION: lszh_onboarding_quarantine_cases_staging
+FIXTURE_POLICY: No automatic deletion; retain synthetic case for approved later cleanup.
+PASS: Random synthetic document verified absent (404).
+PASS: CREATE committed conditionally (exists:false); revision 1 read back and verified.
+PASS: UPDATE committed with exact old updateTime; revision 2 verified.
+DONE: One synthetic CREATE, one conditional UPDATE, three GETs, no deletes.
+DONE: Case stays quarantined, send-disabled and requires manual approval.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Ergebnis und genaue Reichweite:** 3 echte zielgeheftete Dokument-GETs und 2 echte atomare Firestore-`documents:commit`-POSTs im **einen synthetischen** Datensatz; anfänglich Abwesenheit mit 404, danach bestätigte Revision 1 nach `exists:false` und bestätigte Revision 2 nach `currentDocument.updateTime`. Endzustand gemäss verifiziertem Readback: `QUARANTINED_REQUIRES_MANUAL_RESOLUTION`, `deliveryAllowed=false`, `requiresManualApproval=true`. Keine E-Mail, keine Cloud-Run-Ausführung, kein Kunden-Datensatz und kein DELETE. Die temporäre Service-Account-Token-Creator-Rolle wurde **sofort anschliessend entfernt**, und ein unabhängiger SA-IAM-Policy-Readback meldete das Fehlen der Bindung. **Kein temporärer IAM-Zugriff mehr aus diesem Test aktiv.** Der Ablauf belegt reale Erstellung/Aktualisierung dieses Testfalls; gleichzeitige konkurrierende echte Writes, allgemeine IAM-Vererbung und produktiver Betrieb wurden nicht geprüft.
+
+**Verbliebener synthetischer Fixture – bewusst nicht gelöscht:**
+- Projekt: `lszh-automations`
+- Named Database: `lszh-quarantine-staging`
+- Collection: `lszh_onboarding_quarantine_cases_staging`
+- Document ID: `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42`
+- Erwartete letzte Revision: `2`; Sendung verboten, manuelle Freigabe erforderlich.
+- Die bestehende CAS-Identität hat genau `datastore.entities.create/get/update` und **kein** `datastore.entities.delete`. **Keine** neue Berechtigung vergeben, keine Löschung oder zusätzliche Schreibanfrage starten. Bei späterer expliziter Aufräumfreigabe muss sich das Verfahren auf genau diesen dokumentierten Testdatensatz beziehen und vor Löschen Identität/Revision/Version nachprüfen; ein eventueller Audit-Nachweis sollte vorher gesichert werden.
+
+**Einmal-Sperre:** `staging-quarantine-cas-write-once.sh --run-approved-once` wurde **erfolgreich konsumiert** und darf **nie erneut** laufen. Frühere V1/V2-Leserunner und Initial-Provisionierer ebenfalls nicht erneut ausführen. Nächster Entwicklungsabschnitt: aus den offline bewährten Bausteinen einen kontrollierten Quarantäne-Persistenzadapter/Integrationsweg mit geschlossenen Sendeschranken planen; **kein** produktiver Versand, keine weitere Staging-Mutation, kein IAM/Cloud-Run-Deployment ohne neue explizite Freigabe.
+
+## 17.10.2026 – Synthetischer Quarantäne-CAS-Schreibtest ausdrücklich freigegeben; separater einmaliger Cloud-Shell-Ablauf vorbereitet
+
+**Neue, ausdrückliche Benutzerfreigabe:** Auf die unmittelbar zuvor angekündigte **erste echte synthetische Firestore-CAS-Schreibprobe** antwortete der Geschäftsführer `du hast die freigabe, vamos`. Zulässiger Umfang: **ausschliesslich** die schon bestehende separat isolierte `lszh-quarantine-staging`-Datenbank und Collection `lszh_onboarding_quarantine_cases_staging`; **ein zufällig erzeugtes nicht vorbestehendes synthetisches Dokument**, atomare **Erstellung** mit `currentDocument.exists=false`, genau eine **Aktualisierung** mit exakt gelesenem `currentDocument.updateTime`, unabhängiger Readback nach jeder Mutation, keinerlei Kundendaten oder produktive Aktionen. Zur Impersonierung ist **genau eine weitere**, auf den dedizierten Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` begrenzte **30-Minuten-`roles/iam.serviceAccountTokenCreator`-IAM-Bindung** mit verifiziertem Ablauf und unmittelbarer Entfernung im EXIT-Cleanup Bestandteil des freigegebenen Testwegs. Sie ist **keine dauerhafte IAM-Rolle**. Zuvor erfolgreiches reales Lese-Isolations-Testing 404/403 dient als Grundlage; die alten Einmal-Leserunner bleiben gesperrt.
+
+**Offline implementiert und auf GitHub-Feature-Branch hinterlegt:**
+- `workers/onboarding-notifications/staging-quarantine-cas-write-once.js`: eigenständiger **nur explizit einschaltbarer** One-Shot-Executor. Er mintet ein kurzlebiges impersoniertes Token ausschliesslich in Prozessspeicher, erzeugt mit `crypto.randomBytes(32)` eine 64-stellige Hex-ID ohne Kundenbezug und druckt nur deren nicht geheimen `FIXTURE_ID`. Er prüft per GET `404`, erstellt ein Audit mit Status `MANUAL_REVIEW_ONLY` über **genau einen** Firestore-`documents:commit` mit `exists:false`, kontrolliert die gespeicherte Revision 1 nach einem weiteren GET und der Ack-Version; er erstellt danach eine streng monotone Quarantäne-Aktualisierung auf `QUARANTINED_REQUIRES_MANUAL_RESOLUTION`, mit zuvor verifizierter `updateTime`-Precondition, genau einem zweiten `documents:commit` und einem letzten GET zur Prüfung der Revision 2. Insgesamt **höchstens 3 Dokument-GETs und 2 POST/commit**. `deliveryAllowed=false`, `requiresManualApproval=true`; keine Antwortbodies/Tokens protokollieren, kein externes Mail-/Cloud-Run-/Make-/Airtable-System. Fehler stoppt ohne automatischen Retry oder Löschung.
+- `workers/onboarding-notifications/staging-quarantine-cas-write-once.sh`: Cloud-Shell-Runner mit `--plan` (Standard, nur read-only Checks) und `--run-approved-once` plus exaktem neuem Approval-Marker `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_SINGLE_SYNTHETIC_QUARANTINE_CAS_WRITE`. Er prüft Business-Account, GCP-Projekt, korrekt synchronisierten sauberen Review-Branch, bestehende Quarantäne-IAM-Rolle/Datenbank und ausschliesslich **direkte** SA-IAM-Rechte für den Testnutzer. Genau eine zusätzliche bedingte Token-Creator-Rolle **nur am dedizierten Service-Account**, Ablauf nach **30 Minuten**; nach Readback **600 Sekunden IAM-Propagation** abwarten, dann Node-Executor **einmalig** starten. EXIT- und Signal-Cleanup entfernen exakt diese Bindung und prüfen nachträglich unabhängig, ob sie fehlt; bei Fehlern STOP und keinerlei Neustart. Neue lokale `quarantine-cas-write-once-20261017.once` verhindert planmässige Wiederholung. Alte V1/V2-Read-Runner und Datenbank-/IAM-Provisionierer niemals neu starten.
+- `staging-quarantine-cas-write-once.test.mjs` enthält simulierte Firestore-Transport-Szenarien (Erstellung, 409/412-Konflikt, Timeout, 503, Readback, kanonische Timestamp-Formate, restriktive Umgebungsflags); `staging-quarantine-cas-write-shell.test.mjs` simuliert alle IAM- und Runner-Aktionen mit Git-/GCP-/Node-Stubs ohne Netzwerk. `firestore-quarantine-cas.js` wurde ergänzt, damit von Firestore in 0/3/6/9 Ziffern normalisierte `reviewedAt`-Zeitstempel nur bei exakter Millisekunden-Äquivalenz akzeptiert werden.
+
+**Wichtige offene Folgen:** Die minimale Quarantäne-CAS-Custom-Role enthält `datastore.entities.create/get/update`, **NICHT delete**. Nach einer tatsächlichen erfolgreichen Probe wird **ein einziges synthetisches Revision-2-Testdokument bewusst beibehalten** (auch bei einem Teilerfolg kann ein Testdokument existieren). Seine zufällige `FIXTURE_ID` und der Konsolenausgang müssen für eine spätere **gesondert freizugebende** Lösch-/Archiv-Entscheidung festgehalten werden; **keine Rollenerweiterung und kein automatischer DELETE**. Quarantäne ist der einzige Firestore-Ziel-DB; `lszh-offers-staging` wird vom Executor nicht aufgerufen. **Die Freigabe wurde erteilt, der echte Cloud-Shell-CAS-Write war zum Zeitpunkt dieser Dokumentation aber NOCH NICHT AUSGEFÜHRT.** Das Skript wird ausschliesslich durch den Geschäftsführer in dessen Cloud Shell ausgeführt. Vorher endgültige synthetische CI-Ergebnisse prüfen, dann nur einmal laufen lassen. Firestore-Produktivschreibzugriffe, Cloud Run, Mail, Versand und Kunden-Onboarding bleiben gesperrt.
+
+## 17.10.2026 – Quarantäne-Firestore-CAS: echter Lesezugriff bewiesen, Offline-Schreibprotokoll abgesichert
+
+**Anlass:** Nach dem **erfolgreichen echten V2-Isolations-Lesetest** (`lszh-quarantine-staging` GET 404 erlaubt, `lszh-offers-staging` GET 403 verweigert; temporärer IAM-Token-Creator-Grant unmittelbar entfernt und per IAM-Policy-Readback bestätigt) beauftragte der Geschäftsführer mit `Vamos` die **offline technische Vorbereitung** des späteren Firestore-CAS-Schreibtests. **Keine zusätzliche ausdrückliche Genehmigung für eine reale Schreiboperation, erneute Token-Creator-IAM-Zuweisung oder Deployment** wurde erteilt.
+
+**Neu implementiert im bestehenden Review-Branch:** `workers/onboarding-notifications/quarantine-cas-offline-cycle.js` als **reine synchronisierte Planungs-/Nachkontroll-Bibliothek ohne Netzwerkzugriff, Token, Firestore-Transport, Cloud Run oder automatisches Retry** sowie `quarantine-cas-offline-cycle.test.mjs` mit zehn synthetischen Tests. Die neue Datei **verwendet die bestehenden** `planQuarantine`, `buildQuarantineCommit`, `decodeSnapshot`, `verifyCommitAcknowledgement` und `verifyCommittedSnapshot`; es wird **kein konkurrierender Datenpfad** aufgebaut. Der bestehende `firestore-quarantine-cas.js`-Timestamp-Validator wurde zusätzlich gehärtet: Firestore-`updateTime` muss ausser korrekter 0/3/6/9-stelliger UTC-Mikrosekundenpräzision auch ein echtes gültiges Kalenderdatum besitzen (z. B. 30. Februar wird nicht akzeptiert).
+
+**Exakt definiertes zukünftiges CAS-Protokoll, bisher nur modelliert:**
+1. Genau ein zielgepinntes Firestore-`GET` des synthetischen Quarantäne-Dokuments in `projects/lszh-automations/databases/lszh-quarantine-staging/documents/lszh_onboarding_quarantine_cases_staging/<64-hex-ID>`. `404` erlaubt nur die Erstellung mit Firestore-`currentDocument.exists=false`; `200` erfordert vollständig validiertes Snapshot-Objekt samt `updateTime`; jeder andere HTTP-Code oder falsche Identität/Feldstruktur **BLOCKED_NO_RETRY**.
+2. `planQuarantine` validiert nur erlaubte Prüfstatus-/Reason-Codes, strikt monotone Event-Historie, gesperrte Zustandsübergänge und `deliveryAllowed=false`; ein identischer Fall führt zu `NO_CHANGE` und **null** Mutation. Sonst wird **genau ein** `POST .../documents:commit` mit exakt **einem** Write und serverseitiger existiert-nicht- bzw. `updateTime`-Precondition **nur vorbereitet**, nicht gesendet.
+3. Reale Konflikte oder mehrdeutige Ergebnisse (`409`/`412`/`503`, Timeout, fehlende oder defekte Commit-Acknowledgement) führen zu **BLOCKED_NO_RETRY**. **Keine** stillen Neustarts, keine Blind-Updates, keine Doppel-Erstellung. Ein gültiger Commit-Ack alleine beweist kein gespeichertes Dokument.
+4. Nur eine **separate exakt identitätsgeprüfte Dokument-GET-Nachkontrolle**, passender historiengetreuer Payload und derselbe in Mikrosekunden normalisierte `updateTime`-Wert aus Ack und Readback dürfen den Planungsprüfstatus `READBACK_VERIFIED` ergeben. Das geschieht bisher ausschliesslich mit synthetischen In-Memory-Fixtures; das Modul führt **keinen** Netzwerkaufruf durch und kann nicht behaupten, dass es selbst Cloud-Writes ausgeführt hat.
+
+**Prüfung:** Erstes GitHub-CI auf dem CAS-Neucode bestand **324/324 synthetische Tests mit 0 Fehlern**. Darin sind ein gleichzeitiges `exists=false`-Create-Rennen und ein gleichzeitiges `updateTime`-Update-Rennen enthalten, bei denen jeweils genau ein Akteur in einer simulierten atomaren Datenbank gewinnen darf. Zusätzliche ungültige Kalenderzeitstempel sind abgedeckt. Die letzte reine Begriffspräzisierung `networkCallsMade:false` wurde danach noch einmal gepusht; CI für den endgültigen Branchstand separat prüfen.
+
+**Offen vor jedem echten Firestore-Schreibtest:** Eigene, eng begrenzte ausdrückliche Freigabe für **ein einziges synthetisches Create-/Update-CAS-Szenario**, den Cloud-Ausführungsweg/Impersonation (die früheren Einmal-Genehmigungen **dürfen nicht wiederverwendet werden**), eine feste niemals produktiv verwendbare zufällige Test-ID, fail-closed Auth- und Readback-Kette, den erwarteten Verbleib eines Testdokuments und einen separaten Aufräumplan. **Die vorhandene minimale CAS-Identität besitzt bewusst kein `datastore.entities.delete`**; es darf deshalb weder ein automatischer DELETE-Versuch noch eine breite `roles/datastore.user`-Zuweisung erfunden werden. Kunden-E-Mails, produktive Annahme, Firestore-Cloud-Run-Dienste und neue IAM-Rechte bleiben gesperrt.
+
+## 17.10.2026 – V2-Live-Lesetest erfolgreich: Quarantäne 404, Offerten 403, temporäres IAM vollständig entfernt
+
+**Tatsächlich vom Geschäftsführer in der LSZH-Google-Cloud-Shell ausgeführt:** Nach `git pull --ff-only` auf dem Review-Commit `0f1d1f5` startete er das zuvor **ausdrücklich separat genehmigte** `staging-quarantine-timed-read-check-v2.sh --run-approved-once`. Die wortwörtlich geteilten entscheidenden Kontrollmeldungen:
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; attempting one token request.
+PASS: Quarantine DB authenticated GET returned 404 for random missing document.
+PASS: Offers DB denied authenticated GET with HTTP 403.
+DONE: Two REST GET requests, no Firestore writes.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Nachgewiesene reale Wirkung:** Die kurzlebige Impersonierung gelang nach der 600-Sekunden-Wartezeit. Mit demselben Service-Account-Token wurde genau **ein GET** auf eine zufällige, nicht existente synthetische Dokument-ID in `lszh-quarantine-staging` mit **HTTP 404** beantwortet (Lesezugriff auf Quarantänepfad möglich) und genau **ein GET** auf denselben Pfad in `lszh-offers-staging` mit **HTTP 403** verweigert. Das ist ein konkreter positiver/negativer lesender Isolationstest der separaten Datenbank, **keine allgemeine beweiskräftige IAM-Vollprüfung**. Die vorher konfigurierte Custom Role und die Datenbankkondition blieben laut Preflight unverändert. Der temporäre `roles/iam.serviceAccountTokenCreator`-Grant war auf den dedizierten Service-Account und eine 30-Minuten-`request.time`-Condition beschränkt; er wurde **sofort nach den beiden GETs entfernt**. Ein **unabhängiger IAM-Policy-Readback bestätigte die vollständige Entfernung**. Kein GET-Antwortinhalt ausgegeben, keine produktiven Dokumente verwendet, keine Firestore-Dokumentmutation.
+
+**Verbindliche Betriebsgrenze:** Sowohl V1 als auch die jetzt erfolgreich verbrauchte V2 sind **Einmal-Läufe und dürfen NICHT erneut gestartet werden**. Die lokale `.once`-Markierung für V2 bleibt. Die früheren Datenbank-/SA-/Custom-Role-/IAM-Provisionierungsskripte ebenfalls nicht erneut ausführen. Es wurde **kein produktiver Dienst** aktiviert und **kein CAS-Write** an Firestore ausprobiert. Nächster sachlicher Schritt: den bestehenden Offline-CAS-Transaktionsentwurf gegen die funktionierende DB-Isolation überprüfen, insbesondere effektiven CREATE/UPDATE-Write und atomare Revision; erst danach eigenständige ausdrückliche Genehmigung für **einen** synthetischen Firestore-Schreibtest einholen. Keine Berechtigungs-/Token-Creator-Ausnahme für künftige Tests unbesehen wiederverwenden. Effektive vererbte IAM-Rollen und jede denkbare Authentifizierungsroute sind damit nicht umfassend ausgeschlossen.
+
+## 17.10.2026 – Ausdrückliche zweite Freigabe für einmaligen V2-Impersonierungs-Lesetest
+
+**Freigabe des Geschäftsführers (nach erfolgreichem echtem V2-`--plan` in Cloud Shell):** Auf den konkreten, separat freigabepflichtigen Vorschlag für **genau einen weiteren** Token-Creator-Grant ausschliesslich auf dem existierenden Quarantäne-Service-Account, eine auf **30 Minuten** befristete IAM-Bedingung, anschliessend **600 Sekunden Wartezeit**, einen impersonierten kurzlebigen Token und **höchstens zwei HTTP-GETs** (Quarantäne-DB 404, bisherige Offerten-DB 403) mit unmittelbarer IAM-Entfernung und unabhängiger Nachkontrolle, antwortete er `du hast meine genehmigung`. Die Live-`--plan`-Ausgabe unmittelbar davor bestätigte die dedizierte Quarantäne-Identität, exakte dreirechtige CAS-Custom-Role und DB-konditionierte Bindung, Abwesenheit einer bestehenden direkten Token-Creator-Bindung für den Geschäftsnutzer und **null Mutation**.
+
+**Nur dieser zweite temporäre Test ist ausdrücklich autorisiert:** `workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh --run-approved-once` mit `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_SEPARATELY_APPROVE_SECOND_TIMED_QUARANTINE_READ_TEST_V2`. Das alte V1-Einmal-Skript wurde bereits erfolglos ausgeführt und vollständig zurückgebaut; V1 **niemals wiederholen**. V2 hat separaten lokalen Einmal-Marker und überprüft Firmenkonto, sauberen synchronisierten Review-Branch, vorhandenen Quarantäne-SA, Projekt-IAM, `iamcredentials.googleapis.com` sowie direkte SA-IAM-Bindungen **vor** der einzigen temporären Erteilung. Exakter Post-Grant-IAM-Metadaten-Readback, **600 Sekunden ohne Tokenabruf**, danach ein Token-Versuch mit ausschliesslich allowlisteter Diagnose (keine rohen Fehler/Tokens), GET 1 auf zufällig nicht existente synthetische Quarantäne-Dokument-ID; nur bei HTTP 404 GET 2 auf dieselbe ID in `lszh-offers-staging` (erwartet 403). `EXIT`-Cleanup entfernt die exakt konditionierte SA-IAM-Bindung unabhängig von Erfolg/Fehler und liest ihre Abwesenheit erneut. Die befristete Policy beendet die Berechtigung spätestens nach 30 Minuten, sofern IAM-Bedingungen wirksam sind; bereits gemintete Tokens unterliegen eigener Gültigkeitsdauer.
+
+**Grenze dieser Freigabe:** keine Firestore-Schreibprobe, keine neue Custom Role, keine neuen Ressourcen oder zusätzlichen IAM-Rechte ausser dem genannten *temporären* Token-Creator-Grant, keine Cloud-Run-Dienste/Jobs, E-Mails, Kunden oder produktive Aktivierung. **Genehmigung dokumentiert; Cloud-Shell-V2-Live-Ausführung bis zu einer weiteren vom Nutzer gelieferten tatsächlichen Ausgabe NICHT als ausgeführt/erfolgreich behaupten.** Bei `BLOCKED`/`WARNING` keine Wiederholung, sondern read-only Diagnose. Zuvor **314/314 synthetische Offline-Tests** nach der V2-Verbesserung erfolgreich (GitHub-CI auf vorherigem Commit `8d9c291`).
+
+## 17.10.2026 – V2-Quarantäne-Lesetest zur Verbesserung der IAM-Diagnose vorbereitet, KEINE neue Cloud-Freigabe
+
+Auf das `Vamos` nach dem durch `null` bestätigten Fehlen projektseitiger `auditConfigs` wurde die sicherere **separate V2** des bereits ausgeschöpften temporären Impersonierungs-Lesetests vorbereitet: `workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh` mit rein synthetischen Tests `.test.mjs`; Shell-Syntax in GitHub CI integriert. **Das generische Fortsetzungssignal gilt nicht als zweite Freigabe** für `roles/iam.serviceAccountTokenCreator` oder das erneute Minting eines Tokens. Der V1-Einmal-Lauf ist beendet, die damalige temporäre Bindung nachweislich entfernt und darf NICHT wiederholt werden.
+
+**Technische Verbesserung:** Nach hypothetisch neu gesondert genehmigter, exakt auf die bestehende Quarantäne-Serviceidentität begrenzter 30-Minuten-IAM-Condition würde V2 nach bestätigter Policy **10 Minuten (600 Sekunden)** auf die IAM-Propagation warten, bevor es **einmalig** ein kurzlebiges impersoniertes Token anfordert. Google dokumentiert gewöhnlich rund 2 Minuten, in Sonderfällen 7 Minuten oder mehr – die Wartezeit garantiert deshalb nicht den Erfolg. Statt den ursprünglichen Fehler auf `IMPERSONATION_NOT_VERIFIED` zu reduzieren, ordnet V2 den vom gcloud-Befehl zurückgegebenen Fehler im Prozessspeicher in feste Fehlerklassen ein, ohne Rohfehler, Tokens oder API-Antwortinhalte auszugeben. Bei gescheiterter Tokenanforderung **null Firestore-Anfragen**, sonst maximal zwei gezielte GETs auf denselben unvorhersehbaren synthetischen Dokumentpfad (Quarantäne-DB erwartet 404, Offerten-DB 403). Wie V1 versucht das Skript unabhängig vom Ergebnis die konditionierte SA-Bindung sofort zu entfernen und überprüft dies per frischem Policy-Readback; ein neuer eigener Einmal-Marker verhindert stilles Wiederholen. Die 30-minütige IAM-Condition begrenzt die Erzeugungsberechtigung auch bei abgebrochenem Cleanup, aber nicht die Lebensdauer eines bereits ausgestellten Tokens; das Skript verwahrt Tokens ausschliesslich flüchtig im Prozessspeicher.
+
+**Keine Cloud-Mutation dieses Schritts:** Weder IAM-Zuweisung noch Firestore-Zugriff, Token, Cloud Run, Kunde oder E-Mail. In Cloud Shell kann bis zu einer ausdrücklichen **zweiten, spezifischen IAM- und Lesetestfreigabe** nur `bash workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh --plan` ausgeführt werden. Die exakt neuen Berechtigungsmarker der V2 sind ausdrücklich **noch nicht genehmigt**. Alle historischen Einmal-Provisionierungs- und V1-Runner-Skripte bleiben gesperrt.
+
+## 17.10.2026 – Projektseitige IAM-Auditkonfiguration lautet null; keine neue Freigabe
+
+Der Geschäftsführer führte nach dem gescheiterten und vollständig bereinigten kurzzeitigen IAM-Impersonierungstest die ausschliesslich lesende Prüfung `gcloud projects get-iam-policy lszh-automations --format="json(auditConfigs)"` aus. **Ergebnis: `null`.** Das belegt, dass das Feld `auditConfigs` in der **abgefragten Projekt-IAM-Policy** nicht vorhanden ist. Es ist deshalb plausibel, dass die unmittelbar vorherige `GenerateAccessToken`-Data-Access-Log-Suche keine Treffer lieferte. Dies beweist weder den fehlenden Token-Aufruf noch das Fehlen **vererbter** Data-Access-Auditeinstellungen auf Ordner-/Organisationsebene; gemäss Google `projects.getIamPolicy` zeigt nur auf Projektebene gesetzte Audit-Konfigurationen.
+
+**Status und Entscheidung:** Vorheriges Einmal-Skript `staging-quarantine-timed-read-check.sh --run-approved-once` hatte den temporären `roles/iam.serviceAccountTokenCreator`-Grant nach fehlgeschlagener Impersonierung sofort entfernt und den Entzug unabhängig nachgeprüft. Keine Firestore-GET- oder WRITE-Anfrage wurde ausgeführt. **Ursache des Token-Fehlers weiterhin unbekannt; IAM-Propagation (Google typisch rund 2 Minuten, teils mindestens 7 Minuten) ist eine plausible Hypothese, keine Gewissheit.** Auditlogging nicht allein zur Fehlersuche aktivieren, keine zweite temporäre IAM-Bindung ohne **neue, ausdrücklich definierte separate Freigabe** und verbesserte Fehlerdiagnose/Wartephase. Firestore-Datenzugriffe, Cloud Run und produktive Aktionen bleiben gesperrt. Bestehende DB/SA/Role/IAM-Metadaten wurden zuvor separat positiv geprüft.
+
+## 17.10.2026 – Keine Treffer beim lesenden IAMCredentials-Auditlog-Filter
+
+**Live-Ausgabe des Geschäftsführers:** Bei der unmittelbar nach dem gescheiterten Einmal-Impersonierungsversuch ausgeführten `gcloud logging read`-Abfrage nach `protoPayload.serviceName="iamcredentials.googleapis.com"`, `protoPayload.methodName="GenerateAccessToken"`, aktivem Firmenkonto, `--freshness=1d` und `--limit=10` wurden **keine Zeilen** zurückgegeben. Das bestätigt **nicht**, dass der Aufruf unterblieb, und beweist auch nicht die Ursache der verweigerten Impersonierung.
+
+**Verifiziert mit offizieller Google-Cloud-Dokumentation:** `GenerateAccessToken` wird als **Data-Access-Auditlog** protokolliert, sofern die entsprechende Data-Access-Protokollierung aktiviert ist; sie ist standardmässig deaktiviert (ausser bestimmten Ausnahmen, etwa BigQuery). Der exakte Methodenfilter `protoPayload.methodName="GenerateAccessToken"` wird in der Google-Dokumentation ebenfalls verwendet. Darüber hinaus könnten fehlende Einsichtsrechte oder übergeordnete Richtlinien die Diagnose einschränken.
+
+**Nächster ausschliesslich lesender Diagnoseschritt:** `gcloud projects get-iam-policy lszh-automations --format="json(auditConfigs)"` prüfen. Der Befehl zeigt nur projektbezogene Audit-Konfiguration; ein leeres Ergebnis beweist keine fehlende geerbte Audit-Einstellung. **Keine zusätzliche Auditlog-Aktivierung**, kein neuer Token-Creator-Grant, keine Wiederholung des bereits ausgeführten Einmal-Tests, keine Firestore-REST-Anfrage und kein Schreibtest autorisiert. Die frühere temporäre IAM-Bindung war nachweislich vollständig entfernt worden.
+
+## 17.10.2026 – Einmaliger 30-Minuten-SA-Token-Creator-Test: Impersonierung BLOCKED, IAM-Bindung sicher entfernt
+
+**Echter, vom Geschäftsführer autorisiert in Cloud Shell ausgeführter Einmal-Lauf:** `git pull --ff-only` bis Review-Commit `d2ca43b`, anschliessend `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --run-approved-once`. Die Ausgabe bestätigt die vorgelagerte PASS-IAM-Metadatenprüfung und:
+```text
+PASS: No existing direct service-account IAM grant for business user.
+APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+BLOCKED: IMPERSONATION_NOT_VERIFIED; no Firestore GET sent.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Nachweisstand:** Der einzelne bedingte Token-Creator-Grant wurde auf der separaten Quarantäne-Service-Account-Ressource gesetzt und in der Service-Account-IAM-Policy bestätigt, dann nach gescheiterter kurzlebiger Token-Erzeugung vom EXIT-Cleanup exakt entfernt; ein neuer Policy-Readback bestätigt das vollständige Fehlen dieser temporären Bindung. **Kein Firestore-REST-GET, kein Firestore-Schreibzugriff, kein Deployment, keine weitere GCP-Mutation.** Das Einmal-Skript (lokaler Marker) **NICHT erneut ausführen**, insbesondere **keinen** zweiten zeitlich begrenzten Grant ohne gesonderte Ursachenanalyse und ausdrückliche neue Freigabe.
+
+**Ursache noch nicht bewiesen:** Das absichtlich geheimnisschonende Skript unterdrückte `gcloud`-Token-Fehlertexte; daraus ist die genaue Fehlerklasse nicht ableitbar. Googles IAM-Dokumentation erklärt `eventual consistency` nach IAM-Policy-Änderungen (typisch ca. 2 Minuten, in manchen Fällen mindestens 7 Minuten). Der bisherige Runner versuchte die Token-Erzeugung unmittelbar nach erfolgreichem Metadata-Readback; die noch nicht propagierte Berechtigung ist daher eine **plausible, aber nicht bestätigte** Erklärung. Weitere Möglichkeiten: Session-/Authentifizierungsproblem, Organisationseinschränkung, IAMCredentials-Berechtigungsmangel o.Ä. Keine zusätzlichen Rechte oder API-Aktivierungen aufgrund dieser Hypothese.
+
+**Sicherer Folgeweg:** Erst Ursachenanalyse ohne neue Privilegien, z.B. IAMCredentials-Data-Access-Auditlogs für `GenerateAccessToken` lesen, falls der Logtyp bereits aktiviert ist. Keine Tokens ausgeben, keine Auditlogging-Aktivierung ohne neue Freigabe. Eine eventuelle spätere Neuplanung muss den IAM-Propagation-Delay und sofortige, unabhängig verifizierte Bindungsentfernung berücksichtigen und benötigt eine eigene präzise IAM-Freigabe. Firestore-Write-Test bleibt gesperrt.
+
+## 17.10.2026 – Genehmigte 30-Minuten-Token-Creator-Lease und effektiver Lesetest sicher vorbereitet
+
+**Freigabe:** Auf eine konkret vorgeschlagene zusätzliche IAM-Berechtigung `roles/iam.serviceAccountTokenCreator` **ausschliesslich auf dem Quarantäne-Service-Account**, höchstens eine Stunde gültig und nach dem Lesetest zu entfernen, antwortete der Geschäftsführer `ich genehmige`. Keine Freigabe für Firestore-Write-Probe, Cloud Run oder weitere Cloud-Ressourcen.
+
+**Implementiert nur in GitHub-Review-Branch:** `workers/onboarding-notifications/staging-quarantine-timed-read-check.sh` und `.test.mjs`; GitHub-CI um Shell-Syntaxprüfung ergänzt. Der Runner überprüft als Erstes die bekannten IAM-Metadaten (unveränderte Quarantäne-CAS-Rolle, separate Datenbank), Firmenkonto/Feature-Branch und die aktivierte Credentials API. Er blockiert, falls der Geschäftsbenutzer bereits SA-direkte Rechte hat. Standard `--plan` ist rein lesend. Nur `--run-approved-once` mit einem exakten zusätzlichen Freigabe-Marker startet einen einmaligen Live-Lesetest. Vor der Token-Generierung wird `roles/iam.serviceAccountTokenCreator` nur **direkt am dedizierten** `lszh-quarantine-cas-stg`-Service-Account an `user:lars@lszh-automations.ch` mit von Google unterstützter zeitlicher `request.time < timestamp(...)`-Condition für **30 Minuten** erteilt und unmittelbar danach metadatengeprüft. Test: kurzlebiges impersoniertes Token ausschliesslich in Prozessspeicher; frische zufällige nicht existierende Dokument-ID; HTTP GET Quarantäne-DB (erwartet 404) und **nur bei positivem 404** HTTP GET alte Offerten-DB (erwartet 403). Keine Antwort-Bodies, Token-Ausgabe oder Keys. Danach wird die SA-Bindung über EXIT-/Signal-Cleanup exakt entfernt und ihr Fehlen durch neues SA-IAM-Policy-Readback bestätigt. Bei Abbruch/Bereinigungsfehler garantiert die 30-Minuten-Condition spätestens die *Unwirksamkeit* der IAM-Zuweisung; der Rollen-Eintrag kann dennoch bis zur expliziten Entfernung in der Policy verbleiben. Ein lokaler Einmal-Marker soll Wiederholungen verhindern; keine erneute Ausführung bei `BLOCKED`, `STOP` oder `WARNING`.
+
+**Teststatus:** Nach Korrektur der JSON-Escapierung der IAM-Condition meldete GitHub-Actions-`Onboarding notification outbox (synthetic only)` **300 von 300 synthetische Offline-Tests bestanden, 0 Fehler**, einschliesslich zehn neue Mock-Fälle für Freigabe, Zustands- und HTTP-Negativprüfungen, erfolgreiche sofortige Bereinigung und fehlgeschlagene Bereinigung. **Bisher KEIN Live-IAM-Grant, Token, Firestore-Dokument-GET oder Firestore-Dokument-Write in diesem Schritt ausgeführt**. Der bereits frühere Credentials-/Policy-Troubleshooter-Check blieb mit `CANNOT_ACCESS` unbestätigt.
+
+**Nächster Schritt in bereits freigegebener Cloud Shell, nur EINMAL:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST \
+bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --run-approved-once
+```
+Erwartet `PASS` für getrennte 404-/403-Ergebnisse, anschliessend `PASS` für Revocation plus separaten SA-IAM-Policy-Readback. Wenn Bereinigung nicht bestätigt: sofort STOP, keine Neuvergabe; mit read-only Statusprüfung kontrollieren und jedenfalls Ablauf nach 30 Minuten abwarten. Unbedingt Logs ohne Tokens/rohe Richtlinien übermitteln. Das ist **keine** Genehmigung für einen späteren Firestore-CAS-Schreibtest.
+
+## 17.10.2026 – Einmaliger zeitlich begrenzter Service-Account-Testzugang genehmigt
+
+Der Geschäftsführer genehmigt die zuvor ausdrücklich vorgeschlagene, **maximal eine Stunde gültige** Berechtigung `roles/iam.serviceAccountTokenCreator` für sein LSZH-Geschäftskonto, **nur direkt am separaten Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`**, ausschliesslich zur vorher autorisierten Lesetestsequenz. Die beabsichtigte IAM-Bindung soll eine `request.time`-Ablaufbedingung unter einer Stunde haben und nach der Probe unabhängig vom Ergebnis aktiv entfernt und überprüft werden; bei Unterbrechung beendet die Ablaufbedingung die Wirksamkeit. Erlaubt sind maximal zwei Firestore-Dokument-GETs mit zufälliger, nicht vorhandener ID, einmal Quarantäne-DB (erwartet 404), einmal bisherige Offerten-DB (erwartet 403). Keine Schreib- oder Deploy-Autorisierung, keine Änderung an der eigenen minimalen Quarantäne-CAS-Rolle. Vorherige Diagnose meldete `CANNOT_ACCESS`; die Credentials API ist aktiv, ebenso wurde die Policy-Troubleshooter API auf ausdrückliche interaktive Bestätigung durch den Geschäftsführer aktiviert. **Status bei Dokumentationszeitpunkt: Freigabe erteilt, zeitlich begrenzte Berechtigung noch nicht vergeben, Lesetest noch nicht ausgeführt.**
+
+## 17.10.2026 – Diagnose: Credentials API aktiv, Policy Troubleshooter meldet CANNOT_ACCESS
+
+Vom Geschäftsführer in Cloud Shell ausgeführte Prüfschritte ergaben: `iamcredentials.googleapis.com` ist aktiviert. Der Policy-Troubleshooter-Dienst `policytroubleshooter.googleapis.com` war zunächst deaktiviert und wurde vom Geschäftsführer nach einer interaktiven Rückfrage mit `y` eingeschaltet; die API-Aktivierung wurde erfolgreich bestätigt. Die anschliessende Zugriffsanalyse für `lars@lszh-automations.ch` und `iam.serviceAccounts.getAccessToken` auf der dedizierten Quarantäne-Dienstidentität ergab `CANNOT_ACCESS`.
+
+Google dokumentiert den Zustand `CANNOT_ACCESS` als fehlende Berechtigung in der betrachteten effektiven Richtlinienauswertung; `UNKNOWN_INFO` steht dagegen für unvollständig einsehbare Richtlinien. Der Zustand passt zum unmittelbar zuvor gestoppten lesenden Zugriffstest (`BLOCKED: IMPERSONATION_UNAVAILABLE`). **Es gab keinen Firestore-REST-GET und keinen Dokument-Schreibzugriff.**
+
+Die API-Aktivierung war eine tatsächliche Cloud-Konfigurationsänderung und darf nicht als rein lesende Prüfung beschrieben werden. Eine zusätzliche Berechtigungszuweisung zum Erzeugen kurzlebiger Identitätsnachweise wäre **ein neuer, gesondert genehmigungspflichtiger IAM-Schritt**. Empfohlen wird, zuerst dessen Umfang, zeitliche Befristung und sicheren Rückbau festzulegen; keine Projekt-weite oder unbefristete pauschale Vergabe. Die frühere Lesetestfreigabe erlaubt **keine** IAM-Änderung. Der Schreibtest bleibt gesperrt.
+
+## 17.10.2026 – Lesender Zugriffstest vor Datenbankabfrage gestoppt
+
+Der Geschäftsführer führte nach der erfolgreichen IAM-Nachkontrolle einen gesondert freigegebenen Zugriffstest aus. Die vorgelagerte IAM-Metadatenprüfung war erfolgreich. Die anschliessende Identitätsübernahme schlug mit `BLOCKED: IMPERSONATION_UNAVAILABLE` fehl. Somit wurden in diesem Lauf **keine Firestore-Dokumentanfragen** gestellt. Die Wirksamkeit der Datenbank-Isolation ist weiterhin nicht nachgewiesen. **Keine IAM-Anpassungen oder Wiederholungen vor Diagnose.** Nächste Aktion: rein lesende Kontrolle der IAM-Credentials-API und der zugewiesenen Rechte an der neuen Service-Identität. Der echte Firestore-Schreibtest und Deployments bleiben gesperrt.
+
+## 17.10.2026 – Zweite unabhängige IAM-Metadatenprüfung der Quarantäne-Staging-Konfiguration PASS
+
+**Tatsächlich vom Geschäftsführer ausgeführt:** `git pull --ff-only` auf `feature/onboarding-notification-outbox-20261016` bis `116cf02`, anschliessend `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` im geschäftlichen Google-Cloud-Kontext. Die von ihm bereitgestellte Terminalausgabe:
+```text
+PASS: Dedicated quarantine identity metadata verified.
+PASS: Exact 3-permission role and one database-conditioned IAM binding.
+LIMIT: Database-level access, NOT collection-specific isolation.
+LIMIT: Inherited permissions, effective REST access and service-account keys not independently verified.
+PLAN ONLY: No IAM grants, token minting, Firestore requests or Job executions.
+```
+
+**Damit bestätigt:** Die bereits separat erstellte Named Database `lszh-quarantine-staging`, Service-Identität `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`, Custom Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit genau `datastore.entities.create/get/update` und genau eine auf die Quarantäne-Datenbank beschränkte Projekt-IAM-Condition stimmen aus frischem Metadatenbild überein. Die zuvor nach einmaliger IAM-Einrichtung bestätigte Abwesenheit benutzerverwalteter Service-Account-Schlüssel ist **nicht** Inhalt dieser zweiten unabhängigen Prüfung.
+
+**Restgrenzen:** Kein effektiver REST-Test mit der neuen Serviceidentität, kein unabhängiger Nachweis geerbter Berechtigungen oder wirksamer Isolation gegenüber `lszh-offers-staging`, keine Dokumentoperation und keine Live-Runtime. Diese rein lesende Prüfung hat keine Ressourcen mutiert. Frühere einmalige Datenbank- und IAM-Provisionierungsbefehle auf keinen Fall wiederholen. Bevor ein neuer realer, selbst nur lesender impersonierter Firestore-API-Aufruf oder ein Cloud-Run-Aufbau erfolgt, ist ein enger, eigenständig zu prüfender Plan samt expliziter Freigabe vorgesehen; eine echte Dokument-Schreibprobe bleibt separat freigabepflichtig.
+
+## 17.10.2026 – Reale Quarantäne-IAM-Bereitstellung erfolgreich, keine Firestore-Dokumentoperationen
+
+**Nachweis durch vom Geschäftsführer unter `lars@lszh-automations.ch` in Cloud Shell ausgeführten, ausdrücklich für diese drei Ressourcen genehmigten Einmal-Lauf** des auf Review-Commit `8d8a6ab` synchronisierten Skripts `staging-quarantine-iam-setup.sh --apply-once` mit exakter Genehmigungsvariable:
+```text
+PASS: Dedicated Zurich database with deletion protection; new SA/role/binding not present.
+APPROVED: Creating separate keyless quarantine service identity once.
+PASS: New quarantine service identity matches approved name.
+APPROVED: Creating exactly one minimal project custom role.
+PASS: Custom role exactly matches the 3 approved permissions.
+APPROVED: Applying one database-conditioned custom role binding.
+PASS: Exact quarantine SA, minimal custom role, single DB-scoped IAM condition.
+PASS: No user-managed service account keys detected.
+LIMIT: Inherited IAM and effective Firestore access are NOT verified.
+PASS: No runtime deployment or document write performed.
+DONE: One isolated quarantine IAM setup completed; DO NOT RERUN.
+```
+**Damit laut erfolgreicher Live-CLI-Prüfung erstellt:** Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` ohne benutzerverwaltete Schlüssel, eigene projektdefinierte Rolle `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit ausschliesslich `datastore.entities.create/get/update` sowie **genau eine** IAM-Condition mit Ausdruck `resource.name=="projects/lszh-automations/databases/lszh-quarantine-staging"`. Die Quarantäne-Datenbank `lszh-quarantine-staging` in Zürich ist vorhanden und hat aktivierten Löschschutz. **Nicht** die frühere Rollen-/SA-/Datenbank-Einmal-Create-/Apply-Befehle erneut ausführen.
+
+**Wichtige Grenzen:** IAM gilt datenbankweit, nicht nur auf die eine Quarantäne-Collection. Der erfolgreiche Metadatenabgleich ist **kein** effektiver REST-Berechtigungs-/Isolationstest unter der neuen Identität, keine Prüfung geerbter IAM-Rollen, keine Garantie zur gesamten Schlüssellage anderer Identitäten und keine Produktionsfreigabe. Ausserdem nicht durch ChatGPT direkt live abgefragt, sondern durch den vom Nutzer gelieferten vollständigen CLI-Nachweis belegt. Keine produktive E-Mail, Make-Verbindung, Kundenaktion, Cloud-Run-Job/Deployment, Datenzugriff oder Firestore-Dokument-Schreiboperation ausgelöst.
+
+**Jetzt zulässiger nächster Schritt ohne weitere Freigabe:** `git pull --ff-only`, dann `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` – strikt lesender, separater Bestandsvergleich von neuer DB, SA, Custom Role und exakter Projekt-IAM-Bindung. Bei Unstimmigkeit **STOP**, keine Änderung oder erneutes `--apply-once`. **Erster echter Firestore-GET mit impersonierter Identität, jede Schreibprobe sowie Cloud Run Build/Deploy** werden getrennt vorgeprüft/freigegeben; insbesondere jede Dokument-Schreiboperation bleibt explizit gesperrt.
+
+## 17.10.2026 – Freigabe für separate Quarantäne-IAM-Identität und Minimalrolle: Runner geprüft, noch nicht in Cloud ausgeführt
+
+**Explizite Freigabe:** Der Geschäftsführer beantwortete den konkret genannten nächsten Schritt nach bereits erfolgreicher Erstellung von `lszh-quarantine-staging` («separater Service-Account `lszh-quarantine-cas-stg`, minimale Custom Role `lszhQuarantineCasStaging` und exakte IAM-Bindung») mit `du hast meine freigabe, vamos`. Das ist eine **auf diese drei getrennten IAM-Ressourcen begrenzte Autorisierung**, ausdrücklich **keine Freigabe** für Firestore-Datendokumente/Schreibprobe, Cloud Run, Build, Make, Kunden- oder E-Mail-Aktionen.
+
+**GitHub-Review-Code:** Neu `workers/onboarding-notifications/quarantine-iam-provisioning.js`, `workers/onboarding-notifications/staging-quarantine-iam-setup.sh`, `workers/onboarding-notifications/staging-quarantine-iam-setup.test.mjs`; CI kontrolliert die Syntax. Der bisherige `quarantine-iam-plan.js`-Checker wurde präzisiert: fehlendes optionales `disabled`-Feld gilt bei GCP-API-Metadaten als `false` (ausdrückliches `true` sperrt), Custom Role muss **exakt** `GA` sein. Das neue Setup akzeptiert standardmässig nur `--plan` und ist für `--apply-once` zusätzlich durch eine exakt benannte Freigabe-Umgebungsvariable gesperrt.
+
+**Sicherheitsgrenze vor möglicher Cloud-Mutation:** Firmen-GCP-Identität, unveränderter/synchronisierter Git-Branch, vorhandene separate Quarantäne-Datenbank mit `DELETE_PROTECTION_ENABLED`, IAM-Rollen- und SA-Bestand, Projekt-IAM-Policy, vollständige Abwesenheit der geplanten Identität/Rolle und jeglicher bereits bestehender IAM-Grant an die geplante neue Identität. Bei jedem Abweichungs-/Berechtigungsfehler **STOP ohne Create**. Nach explizitem `--apply-once`: einmaliges `gcloud iam service-accounts create` (keine Nutzer-Schlüssel), einmaliges `gcloud iam roles create` (nur `datastore.entities.get/create/update`) und genau ein `gcloud projects add-iam-policy-binding` für `resource.name=="projects/lszh-automations/databases/lszh-quarantine-staging"`, jeweils kontrolliert und anschliessend Metadaten-/Schlüssel-Readback. Bei Fehler oder teilweiser Einrichtung **nicht wiederholen**, sondern nur read-only analysieren; keine automatische Reparatur/Rollback.
+
+**Synthetische CI:** Der GitHub-Workflow `Onboarding notification outbox (synthetic only)` bestand **290/290 Tests, 0 Fehler** nach Code-/Workflow-Commit `c4b6a12`; der Onboarding-Verification-Workflow bestand ebenfalls. Tests prüfen 11 neue Fälle inklusive plan-only, fehlender Freigabe, ein-maligen IAM-Änderungen, falschem DB-Ziel, vorhandenen Ressourcen/Bindings, Zwischenfehlern und fremden Keys. **Nur synthetische Mock-GCP-Testläufe; keine echte Cloud-Mutation aus ChatGPT.**
+
+**Nächster tatsächlicher Schritt in autorisierter Cloud Shell:** `git pull --ff-only` auf Review-Branch, danach einmal `LSZH_QUARANTINE_IAM_PROVISIONING_APPROVAL=I_APPROVE_LSZH_QUARANTINE_SA_CUSTOM_ROLE_AND_CONDITIONAL_IAM bash workers/onboarding-notifications/staging-quarantine-iam-setup.sh --apply-once` ausführen, **nur nach grüner abschliessender CI**. Erfolgs-/Fehlermeldung teilen. `--plan` bleibt read-only; erfolgreiche Einrichtung ist keine Freigabe für einen realen Firestore-Write-Test.
+
+## 17.10.2026 – Separate Quarantäne-Firestore-Datenbank erfolgreich erstellt und verifiziert
+
+**Bestätigung durch echte vom Geschäftsführer ausgeführte Cloud-Shell-Ausgabe:** Nach `git pull --ff-only` (Review-Branch bis `138954d`) wurde der ausdrücklich freigegebene, zuvor offline geprüfte einmalige Befehl mit `LSZH_QUARANTINE_DB_CREATION_APPROVAL=I_APPROVE_LSZH_QUARANTINE_STAGING_BILLABLE_DATABASE_CREATION` und `staging-quarantine-db-provision.sh --create-once` ausgeführt. Der Runner meldete:
+```text
+PASS: Billing active, Firestore API enabled, existing Zurich staging recognized.
+PASS: Separate quarantine database not present and project DB count below 100.
+PASS: Three requested Firestore permissions are eligible for a GA custom role.
+PASS: Final database inventory allows isolated creation.
+APPROVED CREATION PATH: One Firestore database create attempt.
+PASS: Exact Zurich Native database and deletion protection verified.
+PASS: Exactly one billable isolated staging database created; no IAM/data changes.
+DO NOT RERUN. Service account, role, IAM and writes need separate approvals.
+```
+
+**Tatsächlicher Stand laut vollständig durchgelaufenem Runner samt anschliessendem Firestore-`describe`:** `projects/lszh-automations/databases/lszh-quarantine-staging` erfolgreich als **eigene Firestore Native Standard Named Database in `europe-west6` (Zürich)** erstellt. **`DELETE_PROTECTION_ENABLED`** nach der erneuten Metadatenkontrolle bestätigt. Aus der Ausgabe wird genau ein Erstellungsversuch abgeleitet; keine separate Cloud-Abfrage durch ChatGPT erfolgt. Der historische Bestand `lszh-offers-staging` blieb gemäss Quarantäne-Runner unangetastet. **Datenbank ist jetzt vorhanden: Früherer `NOT_FOUND`-Status und frühere `--plan`-Prüfungen «separate Datenbank muss fehlen» sind historisch und dürfen NICHT erneut als Voraussetzung für ein weiteres `create` verwendet werden. `--create-once` NIEMALS wiederholen.**
+
+**Offen und nicht durch die Datenbankfreigabe autorisiert:** dedizierte Quarantäne-Service-Identität (`lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`), die Custom Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit exakt `datastore.entities.get/create/update` und eine auf **diese** neue Datenbank konditionierte IAM-Bindung; Kostenalarm; Cloud Run; Firestore-CAS-Synthesetest; produktiver Versand. Diese Schritte benötigen jeweils eine eigenständige, ausdrückliche Freigabe. Bestehendes Outbox-IAM nicht erweitern; frühere ausgeführte Cloud-Run-Probes nicht erneut starten. Der nächste **ohne Freigabe** zulässige Schritt ist nur ein aktualisierter **read-only Nachweis von Existenz/Löschschutz** und eine IAM-Metadatenprüfung, die eine **vorhandene** Quarantäne-Datenbank erwartet.
+
+## 17.10.2026 – Explizite Freigabe für genau eine kostenpflichtig nutzbare Quarantäne-Staging-Datenbank
+
+**Ausdrückliche Aussage des Geschäftsführers im Chat:** Auf den bisherigen separaten Freigabeaufruf für `lszh-quarantine-staging` mit nutzungsabhängigen Google-Cloud-Kosten folgte `du hast meine genehmigung, vamos`. Dies wird als **konkrete Autorisierung ausschliesslich zur einmaligen Erstellung** der zusätzlichen Named Database `lszh-quarantine-staging` im Projekt `lszh-automations`, Standort `europe-west6`, Edition `standard`, Typ `firestore-native`, mit aktiviertem Löschschutz und nach erfolgreichem Sicherheits-Preflight verstanden. Die nutzungsabhängigen Kosten dieser separaten Firestore-Datenbank wurden zuvor erläutert und ausdrücklich genehmigt. Das Budget/der Kostenalarm ist noch nicht eingerichtet; eine Budgetwarnung ist **kein hartes Ausgabenlimit**.
+
+**Technisch bestätigte CLI-Parameter:** Offizielle Google-Cloud-SDK-Referenz `gcloud firestore databases create` unterstützt `--database`, `--location`, `--edition=standard`, `--type=firestore-native`, `--delete-protection`; der bereits veröffentlichte, synthetisch geprüfte Runner `workers/onboarding-notifications/staging-quarantine-db-provision.sh` führt vor der Erstellung nochmal die read-only Billing-/API-/DB-/Rollenfähigkeitsprüfung und eine frische Datenbankinventur durch, erstellt unter separatem expliziten Approval-Gate genau **eine** Datenbank und überprüft die Metadaten nachher. Erfolgs-/Fehlerausgänge verhindern einen stillen Retry. Die vorhandene `lszh-offers-staging` bleibt unberührt.
+
+**Ausführungsstatus:** Bis zu diesem Dokumentationscommit wurde aus dem Chat heraus **keine** Cloud-Shell-Aktion ausgeführt; ChatGPT verfügt hier über keinen direkten Google-Cloud-Zugriff. Die eigentliche Provisionierung muss der Geschäftsführer einmalig im bereits authentifizierten Cloud Shell auslösen und anschliessend die Ausgabe für die unabhängige Verifikation teilen. Eine Zustimmung ist **kein Nachweis**, dass die Datenbank schon existiert.
+
+**Nicht von dieser Freigabe umfasst:** Service-Account-Erstellung, Custom-IAM-Rolle, IAM-Bindung, Firestore-Dokumente/Write-Probe, Cloud Run, Make, Kunden-Einladungen, E-Mails, Produktion oder Wiederholung historischer Cloud-Run-Jobs. Diese benötigen weitere separate Zustimmung.
+
+## 17.10.2026 – Sichere Firestore-Datenbank-Einmal-Erstellung als gesperrtes Runbook vorbereitet
+
+**Anlass:** Nutzer antwortete auf die vorangehende Frage zur ausdrücklichen Zustimmung für die **kostenpflichtige Erstellung** einer separaten Datenbank nur mit `Vamos`. Da die bisherige verbindliche Projektregel explizit festhält, dass das allgemeine `Vamos` keine Kosten-/Cloud-Provisionierungsfreigabe ersetzt, erfolgte **keine** Datenbankerstellung, IAM-Änderung, Cloud-Run-Aktion oder reale Firestore-Schreiboperation. Der bestehende positive read-only GCP-Preflight bleibt gültig.
+
+**Technisch neu im Feature-Branch:** `workers/onboarding-notifications/staging-quarantine-db-provision.sh` und `.test.mjs`, Integration in den synthetischen GitHub-CI-Syntax-Check. Default `--plan` führt ausschliesslich bestehende read-only Prerequisite-Checks aus und beschreibt exakt das freizugebende Ziel: `lszh-quarantine-staging`, Projekt `lszh-automations`, Region `europe-west6`, Standard Edition, Firestore Native, **Löschschutz aktiviert**. Das Skript besitzt einen gesondert mit expliziter Approval-Umgebungsvariable zu entsperrenden `--create-once`-Modus; er wäre **erst nach einer eindeutigen Kosten-/Ressourcenfreigabe** zulässig. Vor dem genau einen `gcloud firestore databases create` erfolgt nochmalige frische Inventarprüfung; bei bereits existierender DB, falscher Identität, Git-Divergenz, Prerequisite-Fehler oder fehlendem Approval wird sicher gestoppt. Nach dem Erstellungsversuch würde ein separater Metadaten-Readback die Identität/Region/Edition/Löschschutz prüfen. Bei mehrdeutigem Ergebnis **kein** automatischer Retry. Kein Service-Account-/Rollen-/IAM-Grant, keine Dokumente, keine E-Mail.
+
+**Offline-Nachweis:** 8 neue synthetische Runner-Tests (Planmodus, fehlende Approval-Freigabe, genau ein gepinnter Create-Aufruf, bestehende DB, fehlgeschlagener Create ohne Retry, falscher Löschschutz, falsche Identität/Git und Shell-Syntax). GitHub Actions bestätigte **279/279 Tests bestanden** auf dem Review-Branch. Eine echte Firestore-Datenbank wurde **nicht** erstellt.
+
+**Nächster Schritt:** Separate ausdrückliche Zustimmung des Geschäftsführers für `lszh-quarantine-staging` samt möglicher nutzungsabhängiger Kosten einholen. Bis dahin nur `bash workers/onboarding-notifications/staging-quarantine-db-provision.sh --plan` zulässig. Anschliessend getrennte Freigaben für SA, minimalen IAM-Grant und die spätere synthetische Firestore-Write-Probe. Vorhandenes `lszh-offers-staging` und der historisch einmal ausgeführte erfolgreiche Airtable-Test bleiben unangetastet.
+
+## 17.10.2026 – Reale, read-only Quarantäne-Provisionierungs-Vorprüfung vollständig PASS
+
+**Neue tatsächlich vom Geschäftsführer ausgeführte Cloud-Shell-Ausgabe** nach `git pull --ff-only` bis GitHub-Commit `9047b98`: `bash workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh --plan` lieferte exakt:
+```text
+PASS: Billing active, Firestore API enabled, existing Zurich staging recognized.
+PASS: Separate quarantine database not present and project DB count below 100.
+PASS: Three requested Firestore permissions are eligible for a GA custom role.
+METADATA ONLY: Creation rights and effective IAM grants NOT confirmed.
+COST: Extra named database is usage-billed and has no free tier.
+NO APPROVAL: Database, service account, IAM role and write test remain unapproved.
+READ ONLY: No cloud resources, IAM policy, database documents or credentials changed.
+```
+
+**Nachgewiesen:** Billing ist aktiv, Firestore-API ist eingeschaltet, die bisherige `lszh-offers-staging`-Datenbank in `europe-west6` ist vorhanden, `lszh-quarantine-staging` in der aufgelisteten Projekt-Datenbankinventur **noch nicht** vorhanden, Anzahl vorhandener Datenbanken unter dem Limit, alle drei geplanten Entity-Rechte `datastore.entities.get/create/update` laut gelesenen Metadaten Custom-Role-geeignet. Damit sind die überprüften Voraussetzungen für eine isolierte, gesondert freizugebende Bereitstellung gegeben.
+
+**Noch NICHT nachgewiesen oder genehmigt:** Erstellungsberechtigung des angemeldeten Benutzers, effektiv mögliche/geerbte IAM-Rechte, Budget-Freigabe, tatsächliche Datenbankerstellung, dedizierter Service-Account, Custom Role, IAM-Bindung, Runtime-Identität, Firestore-REST-Write-Test oder produktive Aktivierung. Zusätzliche Named Database hat kein eigenes Gratis-Nutzungskontingent; nutzungsabhängige Gebühren möglich. **Keine** Cloud-Änderung oder E-Mail vorgenommen; historischer Airtable-One-Shot wurde nicht wiederholt.
+
+**Nächster Schritt nach expliziter Freigabe:** Neue separate Firestore Named Database `lszh-quarantine-staging` in `europe-west6` (Firestore Native) *als eigenständige zu bewilligende Cloud-/Kosten-Aktion* erstellen; danach metadatenlesend verifizieren, dann eigene Freigaben für dedizierten Service-Account, die minimalen Custom Role und exakte datenbankbeschränkte IAM-Bindung einholen. Für synthetische Firestore-Write-Execution später weitere Einzelgenehmigung. Kein `Vamos` oder erfolgreicher `--plan` ist eine Provisionierungsfreigabe.
+
+## 17.10.2026 – Kostensichere, read-only GCP-Voraussetzungen für isolierte Quarantäne-DB vorbereitet
+
+**Ziel:** Nach der echten `NOT_FOUND`-Rückmeldung für `lszh-quarantine-staging` die Einrichtung **noch nicht** vornehmen, sondern Billing, APIs, vorhandene Datenbanken, Limits und Custom-Role-Kompatibilität **vor einer kostenpflichtigen Bereitstellung** mit LSZH-Firmenkonto prüfen. Der bisher erfolgreiche einzelne Airtable-Cloud-Run-Job bleibt unangetastet.
+
+**Neue synthetisch geprüfte Komponenten im GitHub-Review-Branch:**
+- `workers/onboarding-notifications/quarantine-provisioning-readiness.js` + `.test.mjs`: reiner, fail-closed Metadatenklassifikator. Er verlangt aktives Billing, die aktivierte Firestore-API, vorhandenes `lszh-offers-staging` (Native/Zurich), nachweislich **noch fehlendes** `lszh-quarantine-staging`, unter 100 Firestore-DBs pro Projekt sowie GA-/Custom-Role-Unterstützung für genau `datastore.entities.get/create/update`. Ungültige/unlesbare Informationen -> BLOCKED. Ergebnis enthält ausdrücklich **keine** Bereitstellungs-/Kosten-/IAM-/Schreibfreigabe.
+- `workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh` + `.test.mjs`: ausschliesslich `--plan`, Git- und Geschäftsidentitätscheck, nur die vier lesenden GCP-Metadatenbefehle `gcloud billing projects describe`, `gcloud services list --enabled`, `gcloud firestore databases list`, `gcloud iam list-testable-permissions`. Kein Token-Mint, IAM-Grant, GCP-Build, Service-Account-Create, Datenbank-Create oder Firestore-REST-Aufruf. Temporäre JSON-Daten restriktiv gespeichert und sofort gelöscht, nie im Chat/Console ausgegeben. Offline-Mocks blockieren in Risiko-/Fehlerfällen.
+- `docs/LSZH_QUARANTAENE_STAGING_CAS_PLAN.md`: Vorbedingungen und die separate Genehmigung zur späteren Anlage ergänzt.
+
+**GitHub-CI (vor diesem Dokumentationscommit):** `Onboarding notification outbox (synthetic only)` mit **271/271 Tests bestanden** (0 Fehler); `Onboarding completion verification (synthetic only)` ebenfalls bestanden. Keine Cloud-Änderung, nur Feature-Branch.
+
+**Kostenhinweis aufgrund offizieller Google-Dokumentation:** Eine zusätzliche benannte Firestore-Datenbank erfordert aktives Billing; die reine Erstellung kostet nicht zusätzlich, aber sie hat **kein eigenes kostenloses Nutzungskontingent**. Nutzungsgebühren und ggf. Budgetalarm vor Provisionierung freigeben; `--plan` nimmt diese Freigabe nicht vor.
+
+**Nächster sicherer Schritt für Geschäftsführer in Cloud Shell (nur Metadatenlesung):**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh --plan
+```
+Resultat zur weiteren Bewertung teilen; bei `BLOCKED` erst Ursache klären, nicht reflexartig Berechtigungen vergeben. Separate ausdrückliche Freigabe für Datenbank, Service-Account, Custom Role/IAM-Bindung und spätere **einmalige** synthetische Firestore-Schreibprobe notwendig.
+
+## 17.10.2026 – Quarantäne-Staging-Datenbank fehlt; CAS und IAM auf separates Ziel umgestellt (keine GCP-Mutation)
+
+**Reale read-only Cloud-Shell-Ausgabe vom Geschäftsführer:** `gcloud firestore databases describe --project=lszh-automations --database=lszh-quarantine-staging --format='value(name,locationId,type)'` meldete `NOT_FOUND: Project 'lszh-automations' or database 'lszh-quarantine-staging' does not exist` unter aktivem Konto `lars@lszh-automations.ch`. Weil das Projekt und die bestehende `lszh-offers-staging` aus früheren erfolgreichen Vorgängen bekannt sind, liegt das Fehlen der **zusätzlichen** Named Database nahe; aufgrund der allgemeinen Fehlermeldung sind dennoch insbesondere effektive Leseberechtigungen nicht unabhängig geprüft. Der Befehl hat **nichts erstellt oder geändert**.
+
+**Anschlussarbeit ausschliesslich in GitHub:** Die Quarantäne-spezifischen festen Zielbezeichnungen wurden **vor jeder Cloud-Provisionierung** konsistent von `lszh-offers-staging` auf `lszh-quarantine-staging` umgestellt: `firestore-quarantine-cas.js`/Test, `quarantine-iam-plan.js`/Test, `staging-quarantine-iam-preflight.sh`/Test sowie das separate `docs/LSZH_QUARANTAENE_STAGING_CAS_PLAN.md`. Die read-only Vorprüfung meldet beim Fehlen ihrer neuen Ziel-Datenbank jetzt ausdrücklich `BLOCKED: Dedicated quarantine STAGING database absent or inaccessible. No database created.` und stoppt, **bevor** IAM- und Rollenprüfungen erfolgen. Zusätzliche Offline-Regression `quarantine-database-isolation.test.mjs` sichert gegen Rückfall auf die bereits genutzte Offerten-Datenbank und gegen eine auf diese gerichtete IAM-Bindung; eine weitere Regression simuliert fehlende Datenbank vor IAM-Abfragen.
+
+**Absichtliche Nichtänderungen:** `workers/onboarding-notifications/firestore-store.js` sowie bestehende Staging-Dienste, historische Cloud-Run-Jobs, Outbox-Daten, Images und deren Quell-Pins bleiben auf der alten `lszh-offers-staging`, soweit sie dies zuvor waren. Es gab keinen Firestore-Live-GET/POST, keine Datenbankerstellung, keine Custom-Role- oder Service-Account-Anlage, keine IAM-Bindung, keine Build-/Deploy-Aktion und keine E-Mail. Kein früher erfolgreich ausgeführter Job wurde wiederholt.
+
+**Nächste Gate-Entscheidung:** Die neue Named Database `lszh-quarantine-staging` ist **nur technisches Ziel im Review-Branch**, noch nicht erstellt oder zur Bereitstellung genehmigt. Für reale Einrichtung und die getrennte Testidentität `lszh-quarantine-cas-stg` sowie Rolle `lszhQuarantineCasStaging` ist jeweils eine **ausdrückliche Ressourcen-/IAM-Freigabe** einzuholen; vorausgehend sind die GCP-Quotas/Region und die erlaubten Custom-Role-Permissions zu prüfen. Der anschliessende **einmalige** synthetische Firestore-CAS-Live-Schreibtest benötigt eine weitere gesonderte Freigabe. Keine produktiven Kundenaktionen und kein E-Mail-Versand.
+
+## 17.10.2026 – Quarantäne-Staging: SA per Liste ohne Treffer, Custom Role sicher nicht vorhanden
+
+**Reale Cloud-Shell-Ausgabe des Geschäftsführers nach vorherigem BLOCKED:**
+- `gcloud iam service-accounts list --project=lszh-automations --filter='email=lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com' --format='value(email)'` ergab **keine Ausgabe und keinen berichteten Fehler**: kein Treffer für die geplante Quarantäne-Service-Identität. Als starke Evidenz für *noch nicht angelegt* werten, aber nicht als Beweis für umfassende effektive IAM-Sichtbarkeit.
+- `gcloud iam roles describe lszhQuarantineCasStaging --project=lszh-automations --format='value(name)'` ergab ausdrücklich `NOT_FOUND: The role named projects/lszh-automations/roles/lszhQuarantineCasStaging was not found.` Authentifizierung: `lars@lszh-automations.ch`. Custom Role **fehlt**.
+- Die bekannte IAM-`--plan`-Prüfung hatte an `service-accounts describe` gestoppt. **Es erfolgte keine Ressourcenerstellung, IAM-Änderung, Firestore-Schreibprobe, Deployment, Cloud-Run-Job-Ausführung oder E-Mail.**
+
+**Empfohlene sichere Umsetzung (noch NICHT autorisiert):** Eine dedizierte, leere Named Database `lszh-quarantine-staging` in `europe-west6` statt Schreibzugriff auf `lszh-offers-staging`. Erst read-only Existenz/Berechtigungen prüfen, dann die noch auf die alte Datenbank zeigenden CAS-, IAM-, Runbook- und Testkonstanten gemeinsam auf das neue Ziel ändern und CI erneut ausführen. Der beabsichtigte SA `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` und die nur drei Entitätsrechte enthaltende Custom Role `lszhQuarantineCasStaging` müssen nach **gesonderter, genauer Provisionierungsfreigabe** neu angelegt und ausschliesslich für die Quarantäne-Datenbank gebunden werden. Die Firestore-REST-Dokumentation bestätigt datenbankbezogene bedingte IAM-Bindungen und die erforderlichen Rechte `datastore.entities.get/create/update`. Nicht automatisch Owner-/Editor-/`roles/datastore.user` vergeben; keine Datenbank-/IAM-Mutation durch ein pauschales `Vamos` unterstellen.
+
+**Nächster erlaubter Test:** `gcloud firestore databases describe --database=lszh-quarantine-staging --project=lszh-automations` (nur Metadaten, Ausgabe ggf. NOT_FOUND) und `gcloud iam list-testable-permissions //cloudresourcemanager.googleapis.com/projects/lszh-automations` mit selektivem Filter nach den drei gewünschten Firestore-Entitätsrechten, um Custom-Role-Kompatibilität zu prüfen. Keine `create`, `update`, `grant` oder `add-iam-policy-binding`-Befehle ohne neue explizite Genehmigung.
+
+## 17.10.2026 – Echte Quarantäne-IAM-Vorprüfung blockiert an separater Service-Identität (wie geplant, keine Änderung)
+
+**Vom Geschäftsführer ausgeführte reale Google Cloud Shell-Vorprüfung:** Nach `git pull --ff-only` auf GitHub-Feature-Branch `feature/onboarding-notification-outbox-20261016` bis Commit `a92a4f1` wurde `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` ausgeführt. Konsolenausgabe: `BLOCKED: Separate quarantine STAGING service identity absent or inaccessible. No identity created.`
+
+**Einordnung:** Die strikte Cloud-Identitäts- und Git-Prüfung hat die Ausführung bis zum Service-Account-`describe` gebracht. Der bekannte Name `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` ist **nicht verifiziert**; die Ausgabe unterscheidet nicht zwischen **nicht vorhanden**, **fehlender IAM-Leseberechtigung** und einem anderen `describe`-Fehler, da das Skript die Standardfehlerausgabe bewusst unterdrückt. Ein weiterer Rollen-/IAM-Abgleich fand **nicht** statt, da der Preflight beim Service-Account-Check stoppt. Ein Cloud-Provisioning kann daraus nicht als schon erforderlich bzw. genehmigt abgeleitet werden. **Keine** IAM-Änderung, Ressourcenerstellung, Secret-Abfrage, Firestore-Abfrage/-Schreiboperation, Job-Ausführung oder E-Mail erfolgt.
+
+**Nächster ausschliesslich lesender Diagnose-Schritt:** Service-Accounts **listen** und die exakte Service-E-Mail ohne Fehlermeldungen abgleichen; falls `list` selbst fehlschlägt, `UNVERIFIED_PERMISSIONS` statt fälschlich `MISSING` melden. Die separate Custom Role `lszhQuarantineCasStaging` kann unabhängig ebenfalls nur lesend per `gcloud iam roles describe` geprüft werden. Keine `create`-/`grant`-/`add-iam-policy-binding`-Befehle ausführen. Vor Provisionierung bleibt die offene Entscheidung: **separate Quarantäne-Staging-Datenbank bevorzugt**, da die Custom Role mit Datenbank-IAM-Bedingung nicht auf nur eine Collection beschränkt werden kann. Erst nach getrennt dokumentierter Ressourcen-/IAM-Freigabe die Ziel-DB-Pins und Rollen konsistent anpassen und eine neue kontrollierte Bereitstellung planen.
+
+## 17.10.2026 – Firestore-Quarantäne: IAM-Minimalrolle & STAGING-Schreibprobe nur vorbereitet
+
+**Aktuell nur GitHub-Feature-Branch, kein Cloud-Vollzug.** Auf Grundlage des bereits offline geprüften atomaren `firestore-quarantine-cas.js` (CAS-Precondition `exists:false`/exaktes `updateTime`, synthetischer Readback) wurden neu erstellt:
+- `workers/onboarding-notifications/quarantine-iam-plan.js` und `.test.mjs`: strikt **offline** ausführbarer IAM-Planprüfer. Er verlangt eine **separate**, zurzeit nicht als angelegt bestätigte Staging-Dienstidentität `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` und eine neue Custom Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit **nur** `datastore.entities.get`, `datastore.entities.create`, `datastore.entities.update`. Genau **eine** auf `lszh-offers-staging` begrenzte Projekt-IAM-Bindung mit festem Ausdruck `resource.name=="projects/lszh-automations/databases/lszh-offers-staging"`. Extrarechte (`delete`, `list`, Editor/Owner/`roles/datastore.user`), unbedingte Grants, falsche Datenbank oder Identität lassen die Bewertung **fail-closed** scheitern. Selbst bei richtigem Metadatenbild ausdrücklich `activationApproved=false`, `firestoreWritesAllowed=false`; geerbte Berechtigungen, Schlüssel und effektiver REST-Zugriff noch NICHT nachgewiesen.
+- `workers/onboarding-notifications/staging-quarantine-iam-preflight.sh` plus `.test.mjs`: ausschließlich `--plan` zulassende, lesende Cloud-Shell-Bestandsaufnahme. Kontrolliert Git-Branch/-Sauberkeit, aktives Firmenkonto, Cloud-Projekt, bestehende Datenbank sowie Metadaten über SA/Custom Role/projektspezifische IAM-Policy. **Keinerlei IAM-Erstellung, Token-Impersonation, Firestore-Anfrage, Cloud Build, Job, Mail oder Secrets**; fehlende neue Rolle/Identität führt zu `BLOCKED`. Testmocks kontrollieren das Fehlen von Cloud-Schreibaufrufen und unterdrücken sensible Roh-Policies.
+- `docs/LSZH_QUARANTAENE_STAGING_CAS_PLAN.md`: detaillierter, **noch nicht freigegebener** Ablauf für eine isolierte synthetische Testidentität/Custom Role, optional getrennte Staging-Datenbank, später separat zu genehmigende Build-/Job-Erstellung und **genau einen** echten Create/Readback/Update/Readback/Conflict-Test **ohne DELETE** und ohne Versand.
+
+**Entscheidende IAM-Grenze:** Die Firestore-REST-Anwendung authentifiziert über IAM, nicht über die für Client-SDKs vorgesehenen Security Rules. Die bedingte Zuweisung schützt bestenfalls **die gesamte Named Database**, **nicht** nur die Quarantäne-Collection. Da die bestehende `lszh-offers-staging` auch andere Staging-Daten enthält, ist vor einer echten IAM-Schreibrolle zu entscheiden, ob eine eigene Named Database erforderlich ist. Falls ja, alle DB-Pins im Review-Branch zuerst einheitlich anpassen und neu testen; **kein** spontanes Rollen- oder DB-Provisioning. Der vorherige allgemeine Outbox-Service-Account wird nicht erweitert.
+
+**Prüfergebnis:** GitHub Actions «Onboarding notification outbox (synthetic only)» für den korrigierten reinen IAM-Plan bestätigte **255/255 Tests PASS** und 0 Fehler, einschliesslich der neuen read-only Preflight-Mocks. Der separate Onboarding-Completion-Workflow bestand. Die reine Runbook-/Projektstand-Ergänzung erfordert keine Cloud-Ausführung. Keine Live-IAM-Mutation, Firestore-Schreiboperation, Cloud-Run-Job-Ausführung, Deployment oder produktive E-Mail. Historischer einmaliger Cloud Run → Airtable-GET-Beleg bleibt unverändert. **Nächster zulässiger Cloud-Shell-Schritt wäre ausschliesslich `--plan`, nicht `--execute`; separate ausdrückliche Freigaben für alle späteren IAM-/Test-Änderungen nötig.**
+
+## 17.10.2026 – Atomarer Firestore-CAS für Quarantäne als Offline-Vertrag implementiert (nicht ausgeführt)
+
+**Auftrag «Vamos»:** Den bereits synthetisch getesteten Quarantäneplan mit Firestore-konformer, atomarer Compare-and-Swap-Speicherung absichern, **vorerst ausschliesslich offline**. Neu: `workers/onboarding-notifications/firestore-quarantine-cas.js`, `firestore-quarantine-cas.test.mjs`; Export der bestehenden streng validierenden `validCase()`-Funktion aus `quarantine-plan.js`. CI-Syntaxprüfung aktualisiert.
+
+**Bewusste Sicherheitsgrenze:** Das Modul ist ein **reiner Request-Builder und Antwort-/Leseabgleichsprüfer**; es enthält ausdrücklich **keinen `fetch`-Aufruf, OAuth-Token-Abruf, Laufzeit-Transport, produktiven Firestore-Schreibzugriff, Cloud-Run-Endpoint oder E-Mail-API**. Es ist nicht ins bestehende Staging-/Produktiv-Onboarding eingebunden. Der ältere Cloud-Run-Airtable-V2-Einmaljob bleibt unverändert und wurde nicht wiederholt. Kein Deployment, keine Make-, Airtable- oder Firestore-Live-Mutation, keine Einladung, keine E-Mail.
+
+**Exakter Firestore-REST-Kontrakt** (basierend auf offizieller Firebase-/Firestore-Dokumentation zur `documents:commit`-Methode und `Precondition`):
+- Eigens separater Namensraum `projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_onboarding_quarantine_cases_staging/{64-stellige-hex-Draft-ID}`; **niemals** Überschreiben der vorhandenen `lszh_onboarding_notification_drafts_staging`-Entwürfe.
+- Ein einzelner atomarer `POST .../documents:commit` mit genau **einem** Firestore-`Write.update` (dokumentierte strukturierte `fields`: Integer-/String-/Boolean-/Array-/Map-/Timestamp-Werte), **ohne** `updateMask` für diesen dedizierten Falldatensatz.
+- **Erstmaliges Anlegen:** `currentDocument: {exists:false}` und erwartete Revision 0, Dokumentrevision 1. **Änderung:** `currentDocument: {updateTime:<unverändert vom vorherigen verifizierten Firestore-Snapshot>}`, zusätzlich erwartet der Builder übereinstimmende Draft-ID, vorherige Revision und exakte, fortlaufende Audit-Präfix-Historie. Keine blinden Updates, keine automatischen Retries; bei unerwarteter Antwort/Conflict muss zuerst neu gelesen und der Status manuell bewertet werden.
+- Separater `decodeSnapshot` für strikte Prüfung von Dokumentpfad, Firestore-`updateTime`, typisierten Feldern, erlaubten Audit-Werten, Revisions- und Sicherheitsflags. Ein `commit`-Ack ist **noch kein Persistenznachweis** (`persistedVerified:false`); `verifyCommittedSnapshot` verlangt nach einer gesonderten, identitätsgeprüften Leseantwort **exakten Feldabgleich** und meldet erst dann `persistedVerified:true`, weiterhin `deliveryAllowed:false`.
+- Es werden nur opake Draft-ID, zulässige Status-/Fehlercodes und Audit-Zeitstempel modelliert; **keine** Kundendaten, Projektcodes, PATs, E-Mail-Adressen, Empfänger oder Versandberechtigungen.
+- Offline-Mock testet zwei konkurrierende Writer mit derselben `updateTime`: nur einer committet; der andere bekommt einen Konflikt und benötigt einen frischen Prüfstand. Ausserdem getestet: Anlegen-nur-wenn-fehlt, exakte Mikrosekunden-`updateTime`, manipulierte Snapshots, fehlendes Vorabbild, Revisionssprünge, falsche Collection, veränderte Audit-Ereignisse, unklare Commit-Antworten und sicherer Readback.
+
+**Nachweis:** Der GitHub-Workflow «Onboarding notification outbox (synthetic only)» bestätigte **244/244 bestandene Offline-Tests, 0 Fehler**, inklusive der neuen CAS-Regressionstests; auch der Workflow «Onboarding completion verification» bestand. Es wurde dabei lokal in GitHub Actions gebaut/getestet, **kein Image hochgeladen/deployed**. Die tatsächliche REST-Precondition wurde noch **nicht** mit Google Cloud/Firestore unter realer Last getestet; kein Anspruch auf einen produktionsbereiten transaktionalen Adapter.
+
+**Noch offen/freigabepflichtig:** Gesonderter authentifizierter Runtime-Transport mit minimalen IAM-Rechten, definierter Cloud-Staging-Read-/Write-Preflight und synthetischem Testfall, getrennte Freigabe für eine erste echte Firestore-Schreibprobe, Fehler-/Timeout-Wiederanlauf mit unabhängiger Lese-Verifikation; danach Prüfung der endgültigen Versand-/Claim-/Idempotenzlogik, Datenschutz- und Vertragsfreigaben. Produktiver Versand/Outbox bleibt deaktiviert.
+
+## 17.10.2026 – Quarantäne-Verwaltung: revisionsgebundener reiner Offline-Plan mit Audit
+
+**Auftrag «Vamos»:** Nach dem isolierten read-only Modul `draft-review-gate.js` die Quarantäne-Verwaltung nachvollziehbar und gegen doppelte/parallele Bearbeitung gehärtet vorbereiten. **Umgesetzt nur auf dem Review-Branch:** `workers/onboarding-notifications/quarantine-plan.js` und `quarantine-plan.test.mjs`. Keine Datenbankanbindung, kein Cloud Run Deployment/Job-Start, kein Airtable- oder Firestore-Schreibzugriff, keine Make-Aktion, keine E-Mail.
+
+**Technik:** Reine Funktion `planQuarantine({draftId,review,previous,expectedRevision,reviewedAt})` nimmt ausschliesslich die opake, SHA-256-abgeleitete Draft-ID und den streng allowlist-geprüften Resultatcode aus `reviewDraft`; keine Kundendaten, Tokens, Empfänger oder Fehlermeldungen in der Ausgabe. Sie erzeugt einen unveränderlichen Fallplan mit `schemaVersion=1`, monotoner `revision`, eingefrorenem revisionsgebundenem Auditverlauf (`seq`, erlaubter `status`/`reason`, `resultingState`, ISO-UTC `reviewedAt`) und permanent `deliveryAllowed=false` sowie `requiresManualApproval=true`. Bereits gleiche Prüfung erzeugt `unchanged` (keine erneute Revision). Falsche Identität, unzulässiges Schema/Manipulation, veraltete Revisionsangabe, rückwärts laufende Zeit oder mehr als 32 Audit-Ereignisse führen zu einem Fail-Closed-Fehler (manuelle Klärung nötig).
+
+**Zustandslogik (kein Sender):**
+- `MANUAL_REVIEW_ONLY`: aktuelle vollständige Prüfung, aber **keine Versandberechtigung**.
+- `HOLD_REVALIDATION_UNAVAILABLE`: Verbindungs-/Validierungsproblem, dauerhaft gesperrt, auch nach später wieder erfolgreicher Prüfung bis zur bewussten manuellen Entscheidung.
+- `QUARANTINED_REQUIRES_MANUAL_RESOLUTION`: inkompletter, widersprüchlicher oder ungültiger Entwurf; nachträgliche erfolgreiche Prüfungen lösen Quarantäne **niemals** automatisch auf.
+Die Sicherheitsstufen steigen nur, automatische Downgrades/Aufhebungen sind ausdrücklich ausgeschlossen. Es gibt absichtlich **keine Funktion zum Entquarantänisieren oder Senden**.
+
+**Nur synthetisch getestete Konkurrenz:** Zwei parallele Vorschläge für dieselbe Ausgangsrevision werden im Test gegen einen lokalen simulierten **Compare-and-Swap-Store** gehalten. Nur einer kann committet werden; der zweite benötigt einen neuen Prüfstand. Das beweist die Zustandsplanung, **nicht** eine aktive Firestore-Transaktion oder Live-Sperre. Für künftige persistierte Quarantäne-Entscheide ist ein gesonderter, auf `updateTime`/Transaktion beruhender, autorisierter Firestore-Adapter mit Audit-Protokollierung zu entwerfen und separat freizugeben. Die bestehende Outbox und `DRAFT_NOT_SENT`-Originaldokumente wurden **nicht** verändert.
+
+**Nächster sinnvoller Schritt:** Ergebnis der GitHub-CI prüfen, dann nur den CAS-basierten Firestore-Persistenzvertrag mitsamt Offline-Tests (keine produktive Ausführung) entwerfen; tatsächliche Speicherung/Deployment und spätere atomare Versandfreigabe weiterhin gesonderte Genehmigungspunkte. Bereits erfolgreicher historischer V2-Airtable-Lesejob darf nicht erneut ausgeführt werden.
+
+## 17.10.2026 – Bestehende Outbox-Drafts gegen Statusrückfälle abgesichert (Review-only)
+
+**Auftrag «Vamos»:** Nach erfolgreichem Cloud Run → Airtable Read-only-Einmaltest und synthetischer Härtung der Onboarding-Statusprüfung die Gefahr absichern, dass ein zuvor korrekt angelegter Outbox-Entwurf nachträglich ungeprüft als Versandfreigabe interpretiert wird. **Kein produktiver Versand und keinerlei Google-Cloud-Mutation freigegeben.**
+
+**Neues separates, read-only Modul `workers/onboarding-notifications/draft-review-gate.js`:** Die Funktion `reviewDraft({draft,documentId,projectCode,readToken,fetchImpl})` validiert exakt das historische `DRAFT_NOT_SENT`-Schema (Version 1, Typ `ONBOARDING_INPUT_PROCESSED_V1`, Testmodus, beide Versandflags `false`, gültige Erstellungzeit, keine Extrafelder/Empfänger/Geheimnisse), sowie die Übereinstimmung der deterministischen Event-Dokument-ID mit der Airtable-Record-ID. Nur bei bestandenem lokalen Gate prüft sie mittels **bestehendem** `verifyOnboardingState` (nur Airtable-GET) den aktuellen Onboarding-Status und die aktuelle `recordId`. Sie gibt ausschliesslich eine knappe eingefrorene Entscheidung zurück – niemals Kundencode, PAT, Empfänger, E-Mail-Payload oder Schreib-/Sende-Capability.
+
+**Mögliche Entscheidungen, alle mit `deliveryAllowed:false` und `requiresManualApproval:true`:**
+- `CURRENTLY_COMPLETE_MANUAL_REVIEW_ONLY`: *aktuell* wieder vollständig und identisch, aber weiterhin **keine** Erlaubnis für Versand; eine alte Prüfung ist keine transaktionale Versandfreigabe.
+- `QUARANTINE_RECOMMENDED`: Status wieder `processing`, doppelt/widersprüchlich oder Record-ID weicht vom historischen Entwurf ab. Dies ist eine **reine Empfehlung**, keine Firestore-Statusänderung.
+- `INVALID_DRAFT_QUARANTINE_RECOMMENDED`: falsches Schema/Flags/Event-ID, manipulierte Felder, fehlende oder fehlerhafte gespeicherte Daten; ohne Airtable-Anfrage.
+- `REVALIDATION_UNAVAILABLE_HOLD`: fehlende Prüfcredentials, unerwartete Antwort oder API-Ausfall; fail-closed ohne Statusbehauptung.
+
+**Synthetische Tests `draft-review-gate.test.mjs`:** Frischer positiver Fall bleibt ohne Sendefreigabe; `completed → processing → duplicate → missing → outage → fremde Record-ID → completed`; falscher/gesendeter/erweiterter Draft, falsche Dokument-ID, ungültiger Projektcode, fehlendes Token; Rückgaben enthalten keinerlei Token/URL/E-Mail/Record-ID. Zusätzlich simuliert der bestehende Integrationstest `onboarding-positive-transition.integration.test.mjs` einen in Firestore **synthetisch persistenten** Draft und prüft daran die erneute Statusvalidierung mit Rückfall, Mehrdeutigkeit und Wiederherstellung; kein weiterer POST oder Firestore-Quarantäne-Write, keine E-Mail, keine echten externen API-Requests. CI kontrolliert die synthetischen Tests und `node --check`; Gesamtergebnis separat festhalten.
+
+**Wichtige Grenze:** Die Funktion ist derzeit ein **isoliertes Prüf-/Planungsmodul**, bewusst **nicht** mit einem echten Transport oder einer produktiven HTTP-Route verbunden. Ein `CURRENTLY_COMPLETE`-Resultat ist **keine** dauerhafte Zustandsgarantie und niemals eine versendbare Freigabe. Später müssen (a) Quarantäne/Storno als eigene auditierte transaktionale Zustandsänderung und (b) eine frische, unmittelbar vor jedem autorisierten Versand ausgeführte Prüfung plus atomarer Claim/Idempotenz-Mechanismus gebaut und separat freigegeben werden. Das alte Cloud-Run-V2-Image `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` bleibt historisch eingefroren und wurde **nicht** erneut ausgeführt oder gebaut. Kein Make-/Airtable-/Firestore-Live-Schreibzugriff, keine produktiven E-Mails, keine externen Einladungen oder Deployments.
+
+## 17.10.2026 – Onboarding-Linkintegrität & Statusrückfälle offline gehärtet
+
+**Nächste eigenständige Weiterarbeit nach dem erfolgreich verifizierten Cloud Run → Airtable Live-GET:** Bestehende `onboarding/confirmation.js`, `outbox.js` und Firestore-`createOnce`-Persistenz geprüft. Alle Änderungen sind **nur** auf `feature/onboarding-notification-outbox-20261016` erfolgt, ohne Cloud Run Build/Job-Ausführung, Airtable-/Firestore-/Make-Mutation, E-Mail oder Deployment.
+
+**Dritte tatsächliche Logiklücke mit gezieltem Regressionstest nachgewiesen und behoben:** Die vorige `allLinks(v,id)`-Funktion verwendete `v.includes(id)`. Ein Auftrag mit `Kunden-Onboarding = [korrekterDatensatz, fremderDatensatz]` oder eine Datenschutz-Aufgabe mit `Auftrag = [korrekterAuftrag, fremderAuftrag]` konnte damit trotz mehrdeutiger Zuordnung zu `completed` führen. Die Integrationstests auf `onboarding/confirmation.test.mjs` schlugen vor der Korrektur in der Onboarding-Completion-CI fehl. Jetzt wird für beide Rückverknüpfungen `exactlyOneLink(v,id) = oneLink(v) === id` verlangt, analog zu den bereits eindeutigen Hauptlinks. Beziehungsmehrdeutigkeit führt sicher zu `processing` und erzeugt keinen neuen Outbox-Entwurf; die Änderung bestand danach beide CI-Workflows am Commit `c15ab6ac`.
+
+**Zusätzliche DSG-Aufgaben-Identitätsprüfung:** Auch bei genau einem Treffer und korrektem Aufgabencode darf eine Datenschutz-Aufgabe nicht als verifizierter Nachweis gelten, wenn die zurückgegebene Airtable-`record.id` fehlt oder das erwartete `rec…`-Format verletzt. In `onboarding/confirmation.js` wird jetzt `VALID_ID.test(tasks.records[0]?.id)` vor `completed` verlangt. Eigener rein synthetischer Regressionstest ergänzt. Bisheriger Live-Airtable-One-Shot bleibt unverändert und darf nicht nochmals ausgeführt werden.
+
+**Zusätzlicher Statusübergangs-/Outbox-Test:** `onboarding-positive-transition.integration.test.mjs` simuliert `completed → partial → duplicate/requires_review → completed`, nachdem genau ein `DRAFT_NOT_SENT` in synthetischem Firestore erstellt wurde. Bei Rückfall und Duplikat wird **kein neuer** Draft/POST erzeugt; der vorhandene Audit-Draft bleibt `deliveryEnabled=false` und `emailSent=false`. Nach späterer Wiederherstellung des eindeutigen Abschlusses führt der Firestore-409/GET-Weg zum Ergebnis `alreadyExisting` statt zu einer Neuanlage. Die zuvor geprüften positiven/negativen Fälle und die drei behobenen Logiklücken bleiben abgedeckt. **Keine realen Kundendaten oder Benachrichtigungen.**
+
+**Wichtige Freigabegrenze für spätere Produktivarbeit:** Ein einmal erstellter unveränderlicher Outbox-Entwurf wird bei nachträglichem Datenrückfall **nicht automatisch zurückgezogen oder als Versandberechtigung bestätigt**. Vor einem späteren E-Mail-Transport ist zwingend eine erneute Live-Prüfung des aktuellen Abschlussstatus sowie eine explizite Storno-/Quarantäneentscheidung für nachträglich inkonsistente Datensätze erforderlich. Der Versand bleibt vollständig deaktiviert, bis diese zusätzliche Gate-Logik separat entwickelt und freigegeben ist. Der ältere V2-Image-/Build-Pin repräsentiert die historische Codeversion; die aktuelle Branch-Änderung darf nicht per altem Image-/Job-Skript ausgeführt werden.
+
+**Nächster sicherer Schritt:** GitHub-CI-Endstatus prüfen; restliche Randfälle (z. B. ungültige DSG-Aufgaben-ID oder inkonsistente Kundenverknüpfung) ausschliesslich offline prüfen. Noch kein Merge/Deployment und keine Freigabe für Live-Schreiboperationen.
+
+## 17.10.2026 – Positive Onboarding-Übergänge, Duplikate und Pflichtfelder offline geprüft und gehärtet
+
+**Kontext:** Der echte Cloud Run → Airtable Lesezugriff für einen fehlenden synthetischen Projektcode ist bereits mit genau einem erfolgreichen Live-GET verifiziert (`lszh-airtable-read-probe-fix-staging-7ppq4`); dieser Job wurde **nicht** wiederholt. Nachfolgende Arbeit ist ausschliesslich synthetisch auf dem noch nicht gemergten GitHub-Review-Branch.
+
+**Neue integrative Offline-Simulation** `workers/onboarding-notifications/onboarding-positive-transition.integration.test.mjs`: synthetische Airtable-REST-Antworten und synthetischer Firestore-Metadatentoken/409-Duplikatweg, aber **kein externer API-Aufruf**. Sie prüft `missing → incomplete → completed → replay`, korrekte `DRAFT_NOT_SENT`-Erzeugung genau einmal, unveränderte `deliveryEnabled=false`/`emailSent=false`, den idempotenten Firestore-409-mit-GET-Nachweis, doppelte Onboarding-Datensätze, inkonsistente Auftrag-Token, fehlende bzw. später vorhandene DSG-Aufgabe und abweichende Rechnungsdaten. Die vorhandenen separaten Offline-Tests für Statusprüfung, Outbox, Candidate-Allowlist und Firestore-Store bleiben erhalten.
+
+**Zwei echte Logiklücken durch zunächst fehlgeschlagene Regressionstests festgestellt und auf dem Review-Branch in `onboarding/confirmation.js` behoben:**
+1. Wenn Rechnungsstrasse, PLZ, Ort, Land oder Rechnungs-E-Mail **sowohl im Onboarding als auch beim Kunden leer** waren, galt die bisherige Spiegelung fälschlich als vollständig. Jetzt führt jeder fehlende Pflicht-Rechnungswert zu `processing`, nicht `completed`.
+2. Wenn Make-Kontostatus oder Make-Einladungsstatus beidseitig leer waren, konnte zuvor ebenfalls `completed` entstehen. Jetzt sind beide Statuswerte ausdrücklich nichtleer zu verlangen; `Make-Organisation` darf bei `Noch kein Make-Konto` weiterhin leer sein.
+
+**Sicherheits-/Deploymentgrenzen:** Nur Quelltext und synthetische Tests im Feature-Branch verändert; **keine** Cloud Run Builds oder Job-Ausführungen, Firestore-/Airtable-/Make-Schreibzugriffe, Mails, IAM-Änderungen, Release oder Merge. Der **früher gebaute** V2-Image-Digest `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` und seine erfolgreiche einmalige Execution bleiben als historische Evidenz unverändert. **Achtung:** Durch die neue Änderung von `onboarding/confirmation.js` unterscheidet sich der aktuelle Feature-Branch bewusst vom fünf-Dateien-SOURCE_COMMIT-Pin des alten Images. Alte Source-Pin-Build-/Verify-Skripte müssen daher bei künftigem Plan/Build **STOP** liefern; sie dürfen nicht übergangen oder zur erneuten Execution benutzt werden. Für eine spätere neue Imageversion ist eine erneute getrennte Versionierung, Review, Sicherheits-/CI-Prüfung und ausdrückliche Freigabe nötig.
+
+**Noch offen:** Positive synthetische *Live*-Datensatz-Prüfung (falls geschäftlich sinnvoll), echte Statusübergänge in Make/Airtable/Firestore, einmalige verbindliche Benachrichtigungs-Outbox-Logik und ggf. Freigabe der Rechnungsfeld-Pflichtregeln im Geschäftsprozess; bisher keinerlei produktiver Versand. Nächster sicherer Schritt: Ergebnisse der CI kontrollieren, restliche offene Geschäftsfelder inventarisieren, ohne neue Live-Aktion.
+
+## 17.10.2026 – Cloud Run → Airtable REST live verifiziert: exakt ein erfolgreicher synthetischer GET (V2)
+
+**Abschliessender REALER read-only Diagnosenachweis des Geschäftsführers:** Nach Fast-Forward des Feature-Branches bis `0724c42` wurde `bash workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh` in der Cloud Shell ausgeführt. Die Diagnose hat *keinen* Job gestartet, keine Secret-Werte oder Rohlogs ausgegeben und bestätigte:
+
+```text
+PASS: One and only one V2 execution; original historic failed job preserved.
+PASS: Exact V2 execution metadata matches; no failed tasks reported.
+Successful tasks in metadata: 1
+PASS: Only exact labelled V2 execution logs inspected; raw logs never printed.
+Labelled entries for approved execution: 5
+Unlabelled job entries excluded: 2
+Other execution entries excluded: 0
+Expected safe application PASS 1: EXACTLY_ONCE
+Expected safe application PASS 2: EXACTLY_ONCE
+Expected safe application PASS 3: EXACTLY_ONCE
+Application STOP recorded: NO
+PASS: Live STAGING Cloud Run -> Airtable GET succeeded exactly once for an absent synthetic code.
+PASS: Expected no-write, no-email application checkpoints confirmed in runtime logs.
+READ ONLY: No execution, retry, Secret payload read, IAM edit, deployment or Airtable request.
+```
+
+**Endgültig nachgewiesene Teilfunktion:** Die **genau einmal** ausgeführte Cloud-Run-STAGING-Execution `lszh-airtable-read-probe-fix-staging-7ppq4` nutzte die bestehende Onboarding-Statusprüfung und einen **einzigen Airtable-REST-GET** für einen frischen, nicht vorhandenen synthetischen Projektcode. Die drei exakten Anwendungs-PASS-Zeilen belegen (1) die erfolgreiche echte Airtable-Abfrage, (2) das korrekte `processing`-Ergebnis bei nicht vorhandenem Testcode und (3) das Ausbleiben von Airtable-Schreibzugriffen, Firestore-Operationen, Serviceänderungen und E-Mails im getesteten Pfad. Cloud Run meldete einen erfolgreichen Task und keinen fehlgeschlagenen Task. Originaljob mit seiner einen historischen Fehl-Execution erhalten. Keine weiteren Cloud-Run-Executions autorisieren oder vornehmen, kein blindes Wiederholen.
+
+**Grenze:** Nur isolierter *Lesezugriff/Abwesenheitsfall* ist live bestätigt; noch **nicht** der positive Bestätigungsfall eines existierenden synthetischen Projekts, die komplette Make/Airtable/Firestore-Onboarding-Transaktion, die Offertenannahme, die Benachrichtigungs-Outbox oder produktiver Betrieb. Outbox bleibt deaktiviert. **Nächste Arbeit:** Bestehende synthetische Offline-/Staging-Tests inventarisieren und darauf aufbauend positive Statusfälle und idempotente Übergänge zuerst ohne Live-Mutationen prüfen. Echte Schreibtests, E-Mails, Einladungen, Deployment/Merge und Produktivfreigaben nur jeweils mit ausdrücklicher Genehmigung.
+
+## 17.10.2026 – Einmaliger V2-Airtable-Staging-Job erfolgreich gelaufen; App-PASS-Logs noch zu verifizieren
+
+**Realer Vollzug der ausdrücklich genehmigten Einmalausführung in Google Cloud Shell:** Nach `git pull --ff-only` bis `12db5f4` bestanden sowohl `staging-airtable-job-run-v2.sh --plan` als auch die unmittelbar vor dem Start wiederholten strikten Sicherheitsprüfungen (inkl. genau null vorherige Executions). Die anschliessende `--execute-once`-Ausgabe zeigt:
+```text
+EXECUTE ONCE: Starting the isolated read-only STAGING Cloud Run Job.
+OK Creating execution... Done.
+OK Starting execution... Started deployed execution in 3.77s.
+OK Running execution... 1 / 1 complete
+Execution [lszh-airtable-read-probe-fix-staging-7ppq4] has successfully completed.
+Cloud Run execution command returned success. DO NOT RERUN.
+```
+**Bestätigt:** neuer V2-Job `lszh-airtable-read-probe-fix-staging`, Execution `lszh-airtable-read-probe-fix-staging-7ppq4`, Region `europe-west6`, genau 1 erfolgreicher Task, keine automatische Wiederholung (`--max-retries=0`). Der ursprüngliche historische Fehl-Job blieb unberührt; Outbox weiterhin deaktiviert. **Noch nicht abschliessend bestätigt:** ob die App tatsächlich die erwarteten genau 3 sicheren `PASS:`-Zeilen zum Airtable GET und synthetisch nicht vorhandenen Projektcode geschrieben hat. Keine zweite Ausführung erlauben.
+
+**Ausschliesslich read-only Erfolgskontrolle im Review-Branch vorbereitet:** `workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh` fixiert genau diese Job-/Execution-IDs, verlangt je exakt eine registrierte V2- und historische Original-Execution, prüft exakte Ausführungs-Metadaten und scannt Cloud Logging nur für Job/Region. Es bestätigt die drei erwarteten **exakten** Anwendungsmeldungen je genau einmal **nur bei gelabelten Container-stdout-Einträgen der geprüften Execution** und ohne STOP-Meldung; gibt keine Rohlogs, Secret-Werte, Projektcodes oder URLs aus. Fehler/unvollständige Labels -> STOP/inkonklusiv, aber **niemals neu starten**. Synthetische Erfolg-, Mismatch-, STOP-, Mehrfach- und Nichtleak-Tests erstellt, CI-Syntaxkontrolle ergänzt.
+
+**Einziger nächster Cloud-Shell-Schritt (kein Job-Start):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh
+```
+Erst bei drei exakten PASS-Meldungen und ohne STOP gilt die Cloud Run → Airtable REST-Leseverbindung als live bestätigt. Keine neue Job-Erstellung, Deployment, PAT-Auslesung, Mail, CRM-/Make-/Firestore-Schreibaktivität.
+
+## 17.10.2026 – Einmalige V2-Airtable-Lesejob-Ausführung ausdrücklich freigegeben (Vollzug noch offen)
+
+Der Geschäftsführer hat nach erfolgreich durchgelaufenem echten `staging-airtable-job-run-v2.sh --plan` ausdrücklich die **einmalige Ausführung** des isolierten Cloud-Run-Jobs `lszh-airtable-read-probe-fix-staging` genehmigt. Freigegeben ist ausschliesslich der kontrollierte, auf null bisherigen Ausführungen geprüfte Modus `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once` nach synchronisiertem `git pull --ff-only`. Der Runner prüft den unveränderten Image-Digest `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`, die Identität, Service Account, Secret-spezifische Berechtigung, Secret-Version 1, ursprüngliche historische Fehl-Execution, Job-Konfiguration und **zweimal** null V2-Executions. Danach wird nur das einzelne Cloud Run Job `--wait` gestartet; eine synthetische, lesende Airtable-GET-Probe ist vorgesehen. **Keine Freigabe für Wiederholung**, selbst wenn der Lauf fehlschlägt oder die gcloud-Ausgabe unklar bleibt. Kein PAT im Chat, keine Mails, kein Make, keine CRM-/Firestore-Schreiboperation, keine Outbox-Aktivierung.
+
+**Wichtig: Freigabe dokumentiert, Ausführung hier NOCH NICHT veranlasst/nachgewiesen.** Der Chat hat keinen authentifizierten Zugriff auf die Google Cloud Shell; die genehmigte Ausführung muss in der Cloud Shell des Geschäftsführers erfolgen. Anschliessend echte Execution-ID/-Status und gefilterte Logs prüfen. Nicht ohne diese Belege eine erfolgreiche Airtable-Verbindung behaupten.
+
+## 17.10.2026 – V2-Ausführungsplan real erfolgreich geprüft, noch null Runs
+
+Der Geschäftsführer hat nach Git-Fast-Forward bis `ed55cb2` den strikt lesenden Befehl `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --plan` erfolgreich in Google Cloud Shell ausgeführt. **Echte Ausgabe:**
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Original failed job preserved with exactly its historic execution.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Reviewed successful V2 Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.
+```
+**Freigabestatus:** Der V2-Job `lszh-airtable-read-probe-fix-staging` ist erstellt, aber bisher nie ausgeführt. Die ursprüngliche ausdrücklich erteilte Genehmigung galt nur der Job-Erstellung, **nicht** der Ausführung. Nächster Schritt ist nach separater ausdrücklicher Genehmigung genau einmal `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once` über die authentifizierte Cloud Shell. Vor und unmittelbar vor Ausführung werden null vorhandene V2-Executions verlangt; bei jedem Fehler oder mehrdeutigem Resultat **nicht wiederholen**. Der Job soll einen einzigen Airtable-REST-GET mit frischem synthetischen fehlenden Projektcode ausführen; keine Mail, Make-Aktivierung, CRM-/Firestore-Schreibaktion. Nach dem Lauf die Ausführungs-Metadaten und datensparsame Logs prüfen; bis dahin kein Airtable-Live-Erfolg behaupten.
+
+## 17.10.2026 – Erster V2-Airtable-GET: einmalige Ausführung nur vorbereitet, noch NICHT autorisiert
+
+**Getrenntes Skript im nur unmerged Review-Branch:** `workers/onboarding-notifications/staging-airtable-job-run-v2.sh` (abgeleitet von altem One-Shot-Runner, dessen ursprüngliche gescheiterte Jobversion ausdrücklich unangetastet bleibt). Standardmodus `--plan` liest allein Build-/Image-Metadaten, gepinnte fünf Quell-Dateien, aktives Cloud-Konto, Service Account, Zürich-Secret-Version-1-IAM, die originale einzelne fehlgeschlagene Execution sowie **exakte V2-Job-Konfiguration und V2-Execution-Zahl 0**. Bei vorhandener Execution, falschem Digest/SA/Umgebungs-Flag, unerwarteter Job-Konfiguration oder geändertem Original wird **kein Lauf ausgelöst**. Nur der explizite Modus `--execute-once` würde nach doppelter Prüfung auf null V2-Executions den bestehenden `lszh-airtable-read-probe-fix-staging` genau einmal mit `--wait` starten, ohne Build/Update/Deploy, keine automatische oder blinde Wiederholung. Die Runtime ist auf **genau einen synthetischen Airtable-REST-GET** gegen abwesenden Projektcode begrenzt; Outbox bleibt deaktiviert. Mock-Tests für Plan, exakt einen Run, historischen Originalzustand, v1/v2-Cloud-Run-Metadaten, fehlerhafte Secret-/IAM-/Image-/Environment-Konfiguration und keine Wiederholung ergänzt; Workflow-Syntaxprüfung hinzugefügt. **Bisher kein V2-Job ausgeführt.**
+
+**Jetzt einziger zulässiger Cloud-Shell-Schritt ist READ ONLY:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --plan
+```
+**Nicht ohne gesonderte ausdrückliche Genehmigung starten:** `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once`. Die frühere Zustimmung galt nur der Job-Erstellung. Erst nach genehmigter einmaliger Ausführung und geprüften, datensparsam klassifizierten Logs lässt sich ein erfolgreicher Cloud Run → Airtable GET nachweisen.
+
+## 17.10.2026 – V2 Cloud Run Airtable-Lesejob angelegt, null Ausführungen (real bestätigt)
+
+**Tatsächliche Google-Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` bis Commit `65e0809` bestanden sowohl `staging-airtable-job-v2.sh --plan` als auch dessen geschützte Prüfungen vor `--create-only`. `gcloud run jobs create` meldete `Job [lszh-airtable-read-probe-fix-staging] has successfully been created.` Anschliessend meldete das Skript:
+```text
+PASS: Created Job spec pinned to exact digest, service identity, env gate and Secret v1 file.
+PASS: New STAGING Cloud Run Job created and verified, with ZERO executions.
+STOP HERE: Running the V2 job and live Airtable GET require a separate explicit approval.
+```
+**Faktischer Zustand:** Neuer separater Job in `lszh-automations`, Region `europe-west6`, an das geprüfte Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` gebunden. Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`; Geheimnisversion 1 als Datei auf `/var/secrets/lszh/airtable-read-pat`; 1 Task, 0 automatische Retries, Outbox aus. **Der neue V2-Job existiert, wurde aber nie ausgeführt.** Das alte gescheiterte Original `lszh-airtable-read-probe-staging` hat weiter exakt eine historische fehlgeschlagene Execution und wurde nicht wiederholt. **Noch kein Live-Airtable-GET-Erfolg und keine funktionierende End-to-End-Verbindung nachgewiesen.** Keine Mails, Make-/CRM-/Firestore-Veränderungen oder IAM-/Secret-Modifikationen erfolgt.
+
+**Ausdrückliche Grenze der Freigabe:** Die Genehmigung galt ausschliesslich dem Anlegen dieses Jobs und ist verbraucht. **Kein `gcloud run jobs execute` ohne neue ausdrückliche Zustimmung.** Nächster Schritt: V2-Lesejob-Ausführung zunächst nur per sicherem read-only Plan (metadata/source checks) vorbereiten, die einmalige synthetische Airtable-GET-Ausführung separat freigeben und erst dann starten.
+
+## 17.10.2026 – Geschäftsführer erteilt explizite Freigabe für die reine V2-Job-Neuanlage
+
+Der Geschäftsführer hat nach erfolgreichem realen `staging-airtable-job-v2.sh --plan` ausdrücklich zugestimmt: **Nur den separaten Cloud-Run-Job `lszh-airtable-read-probe-fix-staging` erstellen**, **nicht ausführen**. Die freigegebene Aktion ist `bash workers/onboarding-notifications/staging-airtable-job-v2.sh --create-only` nach synchronisiertem Git-Pull und erneuter `--plan`-Kontrolle. Das Image ist SHA-256-gepinnt auf `c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`; alle bisherigen Identity/Secret/IAM/Source-Pin-Checks bleiben verpflichtend. **Freigabe bedeutet noch keinen Vollzug:** Aus dem Chat besteht kein authentifizierter Zugriff auf die Google Cloud Shell; Job-Erstellung und anschliessende Null-Execution-Verifikation bleiben bis zur echten Shell-Ausgabe **nicht nachgewiesen**. Keine Freigabe für `gcloud run jobs execute`, Airtable-GET, Mailversand, Outbox-Aktivierung, IAM-Änderungen oder kundenseitige Mutationen. Bei einem Fehler von `--create-only` **nicht blind wiederholen**, sondern nur Jobmetadaten prüfen und die Ausgabe auswerten.
+
+## 17.10.2026 – Verifizierter V2-Image-Digest; getrennter Staging-Job vorbereitet, NICHT erstellt
+
+**Realer Cloud-Shell-Verifikationsbeleg:** Der Nutzer führte den read-only `staging-airtable-image-verify-v2.sh` nach Fast-Forward bis `be0d6da` aus. Alle PASS: Cloud Build `ebcde82f-f39b-42cf-a569-dd0c96180006` war erfolgreich und exakt erwartet; Artifact-Registry-Digest stimmt mit dem Buildresultat überein; reviewed V2 fünf Quellen unverändert; ursprünglicher fehlgeschlagener Job hat weiterhin genau eine historische Execution; neuer Staging-Fix-Job **existiert nicht**. **Immutes Image:** `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`.
+
+**Nur auf unmerged Review-Branch vorbereitet:** `workers/onboarding-notifications/staging-airtable-job-v2.sh` ist ein isolierter Plan/Create-only-Ableger der geprüften historischen Vorlage. Default `--plan` liest nur Metadaten (inklusive erneuter V2-Image-Digest-Verifikation, Firmenidentität, Service Account, genau einer Secret-Version 1, spezifischer IAM-Rechte und Job-Nichtexistenz). Ein bewusst getrennter Modus `--create-only` würde ausschliesslich den **neuen** `lszh-airtable-read-probe-fix-staging` mit gepinntem Image-Digest, nicht-root Runtime, einem Task, null Retries, Zurich Secret-v1-Dateimount und deaktivierter Outbox **anlegen, niemals ausführen**; anschliessend Job-Konfiguration und null Ausführungen lesen. Kein alter Job-Neustart, keine Make-/Airtable-/Firestore-Kundenmutation, keine Mails, keine IAM- oder Secret-Zugriffsänderung. Synthetische positive und Fail-Closed-Tests und Workflow-Syntaxkontrolle hinzugefügt. **Eine echte Neuanlage ist noch nicht freigegeben oder erfolgt.**
+
+**Nächster Schritt nur Plan, kein Deployment:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-v2.sh --plan
+```
+Nur wenn PASS und CI erfolgreich, vor `--create-only` gesonderte ausdrückliche Zustimmung einholen. Später auch vor echter `gcloud run jobs execute` getrennte Freigabe. Airtable-GET bleibt unbewiesen.
+
+## 17.10.2026 – Korrigiertes V2-Airtable-Staging-Image erfolgreich gebaut; Digest-Verifikation vorbereitet
+
+**Reales Cloud-Shell-Ergebnis nach explizitem `--plan && --build-only`:** Plan PASS; exakt ein separater Build `ebcde82f-f39b-42cf-a569-dd0c96180006` in `europe-west6` mit `STATUS: SUCCESS` (Dauer 14 s). Image-Tag: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-permfix-60a879296014`. Ausgabe bestätigte: `PASS: Permission-fixed STAGING Airtable-read v2 image build returned successfully.` Originaljob weiterhin mit exakt einer historischen fehlgeschlagenen Execution, neuer V2-Job NICHT angelegt. **Airtable-Live-GET weiterhin nicht bewiesen.**
+
+**Folgeschritt nur vorbereitet, bisher nicht real ausgeführt:** Neues `workers/onboarding-notifications/staging-airtable-image-verify-v2.sh` auf dem isolierten GitHub-Review-Branch. Es liest ausschließlich Cloud-Build-Metadaten der **exakten** Build-ID, vergleicht die exakt erwartete Image-Tag-Adresse und SHA-256-Digests aus Buildresultat (falls vorhanden) und Artifact Registry, verifiziert fünf unveränderte Quellen an Commit `60a87929601496b4b6192ec7945d80d6dc352b3e`, historische Originaljob-Execution und Nichtexistenz des separaten Fix-Jobs. Nur PASS-/STOP-Kategorien und immutables Image-Ref ausgeben; kein Secretpayload, keine Build-/Run-/IAM-Mutation. Neue vollständig gemockte synthetische Negativtests, Workflow-Syntaxprüfung ergänzt; CI-Ergebnis separat prüfen.
+
+**Einziger nächster Cloud-Shell-Befehl, strikt READ ONLY:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-verify-v2.sh
+```
+Nur nach erfolgreicher Digest-Verifikation einen neuen separaten **Create-only** Job (noch nicht angelegt) mit diesem SHA-256-Image planen und gesondert autorisieren; nie den ursprünglichen Job wiederholen. Outbox und alle produktiven Aktionen bleiben deaktiviert.
+
+## 17.10.2026 – V2-Airtable-Probe: BuildKit-Inkompatibilität im Legacy-Cloud-Build behoben (nur Review-Branch)
+
+**Tatsächlicher Befund nach dem freigegebenen isolierten `--build-only`:** Cloud Build-ID `b9e6c4f5-43db-4561-89be-2e7480da5cea` in `europe-west6` endete mit Status `FAILURE`, beim Schritt 4 `COPY --chown=node:node --chmod=0644 ...`: `the --chmod option requires BuildKit`. Damit ist **nur der Docker-Build fehlgeschlagen**; die Dateirechtekorrektur wurde in Cloud Run nicht getestet. Die Python-SyntaxWarnings in `gcloud` sind nicht die Ursache. **Kein Image-Erfolg, keine Job-Neuanlage oder Ausführung; keine Airtable-Anfrage.**
+
+**Minimaler Code-Fix auf bestehendem unmerged Review-Branch:** Die drei `COPY`-Direktiven im `Dockerfile.airtable-read-probe-v2` verwenden nur legacy-kompatibles `--chown=node:node`. Ein ausdrückliches `RUN chmod 0755` macht die vier Container-Verzeichnisse traversierbar, und `RUN chmod 0644` macht genau die drei kopierten JS-Quellen lesbar; `USER node` bleibt erhalten. Alle fünf temporären Build-Quelldateien werden bereits vor Upload auf 0644 und die Unterverzeichnisse auf 0755 gesetzt. Der fünf-Dateien-Sicherheits-Pin lautet nun `60a87929601496b4b6192ec7945d80d6dc352b3e`, und ein **neues** Image-Tag `stg-permfix-60a879296014` wird verwendet, damit das fehlgeschlagene Tag nicht wiederverwendet wird. Der synthetische Test prüft nun die Abwesenheit von `COPY --chmod`, explizite Mode-Normalisierung und weiter `USER node`. **Ein korrigierter echter Build ist noch nicht gelaufen.**
+
+**Nächster Schritt – NUR LESEN:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build-v2.sh --plan
+```
+Nur nach erfolgreichem PASS/CI getrennt einen erneuten **Build only** in Erwägung ziehen; bei Erfolg Image-Digest überprüfen, dann einen neuen Staging-Job separat planen. Kein Retrying der alten Execution, kein Job-Runtime-Aufruf, kein IAM-Edit, kein Secret-Wert-Lesen, keine Kunden-/Airtable-Mutation, keine Outbox-Mail.
+
+## 17.10.2026 – Ursache des EACCES-Containerstarts identifiziert; isolierter nicht-Root-Fix V2 nur vorbereitet
+
+**Weitere tatsächliche Cloud-Run-Diagnose des Geschäftsführers:**
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+Execution reported failed tasks: 1
+Job log entries returned: 14
+Entries matching execution label: 12
+Log source types: CONTAINER_STDERR, PLATFORM_OR_SYSTEM
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Permission evidence classification: CONTAINER_FILESYSTEM_DENIED, GENERIC_PERMISSION_DENIED_ONLY
+Denied error source: CONTAINER_STDERR
+Denied error identifiers: EACCES
+Denied filesystem operation: OPEN, OPERATION_NOT_IDENTIFIED
+Denied path family (same log entry only): APP_FILESYSTEM, PATH_NOT_IDENTIFIED_IN_ERROR_ENTRY
+Application PASS log count: 0
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+**Root Cause nach Quellinspektion sehr hoch plausibel, noch kein reparierter Live-Test:** Das alte `workers/onboarding-notifications/staging-airtable-image-build.sh` verwendet `umask 077`, erstellt in `mktemp -d` einen Build-Kontext, `mkdir -p` und `cp` ohne nachträgliche Rechtekorrektur. Dadurch sind die drei kopierten JavaScript-Quellen lokal typischerweise **0600** und die übergeordneten Quellverzeichnisse **0700**. Die alte `Dockerfile.airtable-read-probe` übernimmt via unqualifizierten `COPY` die Datei-Rechte, startet aber via `USER node` als Nicht-Eigentümer. Ein `node`-Runtime-Prozess kann die so kopierten 0600-`/app`-Dateien nicht lesen: genau passend zum Live-Fehler **`EACCES` + `OPEN` + `APP_FILESYSTEM` auf Container-`stderr`**. Der Effekt wurde im lokalen Bash-Dateirechte-Simulationstest tatsächlich nachvollzogen: `umask 077; mkdir; cp` erzeugte `0700`-Directories und `0600`-Files; nach explizitem `chmod` **0755/0644**. Offizielle Docker-Dokumentation bestätigt, dass `COPY` Dateiberechtigungen übernimmt und `COPY --chmod` und `--chown` unterstützt: https://docs.docker.com/reference/dockerfile/ . **Ein echter korrigierter Build oder Cloud Run Test fand noch NICHT statt**, daher Root Cause noch als sehr gut begründete Diagnose, nicht als end-to-end behoben kennzeichnen.
+
+**Fix mit kleinstem Rechteumfang, bestehende Sicherheitsgrenzen unverändert:**
+- Die alte fehlgeschlagene Ressource `lszh-airtable-read-probe-staging`, ihre einzige Execution `lszh-airtable-read-probe-staging-xglcz`, das alte Image `@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab` und alle ursprünglichen gepinnten Quellen/Skripte **unverändert lassen**. Kein Retry des Originaljobs.
+- Neu im nur nicht-merged GitHub-Draft-PR #8: `workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2` mit explizitem `COPY --chown=node:node --chmod=0644` für die **drei** notwendigen JS-Quellen, `RUN chmod 0755` nur für die vier `/app`-Vorfahrenverzeichnisse und weiterhin **`USER node`**. Keine privilegierte Runtime, kein Token im Image.
+- Neuer JS-Wrapper `airtable-runtime-probe-v2.js`, identisch im Test-/Leseverhalten, aber fest auf den **neuen, separaten Jobnamen** `lszh-airtable-read-probe-fix-staging` begrenzt, um keinen neuen Job unter altem Namen oder alte Execution zu überschreiben.
+- Neue explizite Cloud-Build-YAML `cloudbuild.airtable-read-probe-v2.yaml` und gated `staging-airtable-image-build-v2.sh`. Das Skript pinnt den **genau geprüften 5-Dateien-V2-Quellzustand** an Commit `0f2f7890720f468e72b8b985abdf017270ce81d4`. Es prüft dasselbe LSZH-Geschäftskonto, Zürcher Artifact Registry, aktives dediziertes Service Account, exakt eine STAGING-Secret-Version 1, direkte secret-spezifische IAM-Berechtigung sowie die Existenz des alten Jobs mit **genau seiner einen gescheiterten Execution**, plus **Nichtexistenz** des neuen Jobs. Default ist **`--plan`** (nur Metadata GET), erst `--build-only` würde ein *neues*, separates Image mit Tag `stg-permfix-0f2f7890720f` bauen. Im temporären fünf-Dateien-Buildkontext prüft es explizit `0644` für Dateien und `0755` für Unterverzeichnisse. Nur fünf Quell-/Build-Dateien, **kein PAT, kein Kundenrecord, kein HTTP-Outbox**, keine Secret-Lesung, Job-Anlage oder Ausführung durch den Build.
+- Offline-GitHub-Actions-Lauf `39023607308`: **191/191 Node-Tests, 8/8 Python-IAM-Tests PASS**; enthält Mode-Assertions am Mock-Buildkontext, Nichtroot-Dockerfile, Unveränderlichkeit der ursprünglichen fehlgeschlagenen Ausführung, Verbot von mutierenden Job-/Secret-Calls.
+
+**Nächster einzig erlaubter Schritt, nur LESENDER V2-Build-PLAN:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build-v2.sh
+```
+Bei vollständigem PASS erst getrennt der neue **Build only** (`--build-only`) erwägen, danach Digest-Check und separat ein **neuer** Cloud Run Job. Keinerlei Deployment, Mailversand, Make-Aktivierung, Firestore-/Kundenänderung oder alte Jobausführung erlaubt. Dieser Fix vermeidet eine IAM-Rechteausweitung oder ein Ausführen als Root. Die Outbox bleibt deaktiviert.
+
+## 17.10.2026 – Failed Airtable-Cloud-Run-Job: Permission verweigert, sichere Dateibereichsklassifizierung nachgerüstet
+
+Der Geschäftsführer hat nach synchronisiertem Git-Pull die read-only Diagnosis `staging-airtable-execution-diagnose.sh` erneut ausgeführt. **Reale, zuletzt bestätigte Befunde für die EXAKT EINE fehlgeschlagene Execution `lszh-airtable-read-probe-staging-xglcz`:**
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Exact execution metadata read; no new task started.
+Execution reported failed tasks: 1
+Execution reported successful tasks: not reported
+PASS: Cloud Logging query restricted to the exact STAGING job and Zurich region.
+Job log entries returned: 14
+Entries matching execution label: 12
+Job entries without execution label (only one execution exists): 2
+Other/unusable entries ignored: 0
+Matching or safely attributable entries: 14
+Safe application STOP code(s): none observed
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Log source types: CONTAINER_STDERR, PLATFORM_OR_SYSTEM
+Permission evidence classification: CONTAINER_FILESYSTEM_DENIED, GENERIC_PERMISSION_DENIED_ONLY
+Application PASS log count: 0
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+
+**Was dieser Befund aussagt:** Eine Dateisystem-Operation bzw. ein generischer Ressourcenzugriff wurde verweigert. Aktuell weder eine sicher identifizierte betroffene Datei noch ein Secret-Manager-API-403 nachgewiesen. Keine Airtable-GET-PASS-Logs. Aus `USER node` und Secret-Volume-Ownership `root` allein ist die Ursache **nicht** bewiesen (Google Secret-Volume-Modus gewöhnlich 0444). **Keine IAM-Erweiterung, keinen Betrieb als Root und kein nochmaliger Start ohne Diagnose und separate Freigabe.**
+
+**Neue weiter eingegrenzte, weiter read-only Diagnose** in `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` auf dem bestehenden GitHub-Review-Branch: Alle 14 Logeinträge werden lokal durch den schon bestehenden sanitizing Python-Code analysiert. Neu werden anhand der **gleichen Error-Logzeile** (keine spekulative Aggregation verschiedener Einträge) ausschliesslich Enum-Namen für `Denied error source` (`CONTAINER_STDERR` / `PLATFORM_OR_OTHER`), `Denied error identifiers` (`EACCES`, `EPERM` oder generisch), `Denied filesystem operation` (`OPEN`, `STAT`, `SCANDIR`, `ACCESS`, `READLINK`, `MKDIR`, `CHDIR`, `EXEC` oder unbestimmt) und `Denied path family (same log entry only)` ausgegeben: erwartete Secret-Datei / erwartetes Secret-Mountverzeichnis / Anwendung unter `/app` / Node-Home / temporäre Dateien / Systemdateien / sonstiger geschwärzter Pfad / kein Pfad erkennbar. Logtexte, Dateipfade und Secretwerte **werden nicht ausgegeben**. Weiterhin strikt der einzelne fehlgeschlagene Job, eine Execution und alle Cloud-Operationen nur lesend; **niemals** `gcloud run jobs execute` oder `gcloud secrets versions access`. Synthetischer CI-Lauf `39022908060` **183/183 JavaScript-Tests, 8/8 Python-IAM-Tests erfolgreich**. Die neue genaue Kategorisierung wurde vom Geschäftsführer **noch nicht live ausgeführt**.
+
+**Einziger nächste Schritt, wiederum NUR METADATEN/LOGS lesen:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Beurteilung anhand `Denied error identifiers:`, `Denied filesystem operation:` und `Denied path family (same log entry only):`; **nur** bei ausreichend eindeutiger Evidenz eine minimal nötige Codekorrektur bzw. einen getrennten neuen Staging-Job/Execution-Review planen. Keine unüberlegten Produktivaktionen.
+
+## 17.10.2026 – Container-Zugriffsfehler bestätigt: FILE_PERMISSION_DENIED; Root Cause weiterhin ungeklärt
+
+Der Geschäftsführer hat nach Git-Sync die **korrigierte, strikt lesende** `staging-airtable-execution-diagnose.sh` gegen die bereits einmal ausgeführte, fehlgeschlagene Cloud-Run-Execution `lszh-airtable-read-probe-staging-xglcz` ausgeführt. Die echte Cloud-Shell-Rückmeldung:
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Exact execution metadata read; no new task started.
+Execution reported failed tasks: 1
+Execution reported successful tasks: not reported
+PASS: Cloud Logging query restricted to the exact STAGING job and Zurich region.
+Job log entries returned: 14
+Entries matching execution label: 12
+Job entries without execution label (only one execution exists): 2
+Other/unusable entries ignored: 0
+Matching or safely attributable entries: 14
+Safe application STOP code(s): none observed
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Application PASS log count: 0
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+
+**Auswertung:** Die Log-Abfrage funktioniert jetzt und hat **14 Einträge** für die eine Job-Execution gefunden; eine davon oder mehrere enthalten ein Permission-denied-Signal, in der Sicherheitsroutine nur als `FILE_PERMISSION_DENIED` ausgewiesen. **Einzelursache offen**: Der Fehler kann aus lokalem Datei-/Volume-Zugriff, verweigertem Secret-Manager-API-Zugriff oder einer anderen Container-/Plattform-Operation stammen. Kein fachlicher Airtable-PASS und keine Anwendung-STOP-Zeile ist sichtbar, also **kein erfolgreicher Cloud Run → Airtable-GET nachgewiesen**. Kein Cloud-Run-Rerun, keine neue Secret-Version, keine IAM-/Job-Mutation.
+
+**Relevante technische Hypothese:** Unser gepinntes isoliertes Image `Dockerfile.airtable-read-probe` enthält `USER node` (nicht-root), während Cloud-Run-Jobs die zweite Ausführungsumgebung verwenden, in der laut Google Secret-Volume-Dateien/Verzeichnisse von `root` besessen werden. Google dokumentiert aber zugleich standardmässig **Dateimodus `0444`** für Secret-Volumes (von allen Benutzern lesbar); **Eigentümerschaft allein ist daher KEIN Beweis für die Ursache.** Unbedingt zunächst Permission-denied-Logtyp anhand sanitär gefilterter Indizien identifizieren; nicht voreilig Root aktivieren oder IAM projektweit erweitern. Quellen: https://docs.cloud.google.com/run/docs/configuring/jobs/secrets und https://docs.cloud.google.com/run/docs/reference/rest/v2/Volume .
+
+**In GitHub Review-Branch ergänzte, strikt lesende Diagnose:** `staging-airtable-execution-diagnose.sh` liest dieselben 14 Raw-Log-Datensätze ausschliesslich **lokal zur Klassifizierung**, veröffentlicht nur **fest vorgegebene Kategorien**: `NODE_SECRET_MOUNT_FILE_DENIED` (lokales EACCES/EPERM + nur erwartete Secret-Datei im Rohtext), `CONTAINER_FILESYSTEM_DENIED`, `SECRET_MANAGER_API_ACCESS_DENIED`, `SECRET_ACCESS_OR_MOUNT_DENIED_UNSPECIFIED` oder `GENERIC_PERMISSION_DENIED_ONLY`; ausserdem `CONTAINER_STDERR`, `CONTAINER_STDOUT`, `PLATFORM_OR_SYSTEM` als Log-Typen ohne Payload. Quelle/Pfade/Anfrageinhalte/Tokens werden **nie** ausgegeben. Ein Test mit fingiertem Token verweigert dessen Veröffentlichung. **Kein Mutationsbefehl hinzugefügt.** GitHub-CI nach Erweiterung **180/180 Node-Tests und 8/8 Python-IAM-Tests** erfolgreich.
+
+**Einziger nächster Schritt, NUR LESEN (identischer Befehl, neue Diagnoselogik via Git-Pull):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Anhand der neuen `Permission evidence classification:`-Zeile entscheiden, ob lokale Dateirechte, Secret-API-IAM oder ein anderer Laufzeitbereich weiter untersucht werden soll. **Keine Ausführung/Job-Update/Neuanlage, kein Token-/Rollenwechsel** bis zur gesonderten Fehlerbehebung und ausdrücklichen Freigabe. Die bestehende HTTP-Outbox bleibt deaktiviert.
+
+## 17.10.2026 – Failed Cloud Run Airtable-Job: erste Log-Abfrage ohne Treffer; Filter-Fehler behoben, sichere erneute Lesung offen
+
+Der Geschäftsführer führte in Cloud Shell die ausschliesslich lesende `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` nach `git pull --ff-only` aus. Die tatsächlich gelieferte Antwort:
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Cloud Logging query restricted to the one failed execution.
+Matching log entries: 0
+Safe application STOP code(s): none observed
+Recognized runtime error category: none identified
+Application PASS log count: 0
+STOP: No exact-execution logs found; check Cloud console filters. Never rerun.
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+**Sicher bestätigt:** Genau die eine Cloud-Run-Job-Ausführung `lszh-airtable-read-probe-staging-xglcz` wurde von der reinen Lese-Diagnose inventarisiert; nach ihrem vorherigen Start war sie mit Task-Exit 1 fehlgeschlagen. **Keine Fehlerursache ist aus dem 0-Logs-Ergebnis nachgewiesen; insbesondere weder Airtable-Token noch IAM oder Netzfehler als Ursache annehmen.** Die spezifische Logging-Abfrage war **zu streng bzw. mit falschem Labelnamen**: Für Cloud Run Job `stdout` und `stderr` dokumentiert Google die LogEntry-Label-Eigenschaft `run.googleapis.com/execution_name`; die vorherige Abfrage verlangte `labels.execution_name`. Referenz: https://docs.cloud.google.com/logging/docs/api/platform-logs .
+
+**Im GitHub Review-Branch korrigiert** wurde `staging-airtable-execution-diagnose.sh` auf einen Cloud-Logging-Filter nach exakt `resource.type=cloud_run_job`, `resource.labels.job_name=lszh-airtable-read-probe-staging` und `resource.labels.location=europe-west6`. Nach erfolgreichem Beleg, dass **genau eine Execution für diesen Job existiert**, verarbeitet das Skript alle Roh-Logs nur lokal und lässt Python eine konkrete Ausführungskennung mit `labels["run.googleapis.com/execution_name"]` (Fallback `labels.execution_name`) prüfen; abweichende Label-Werte werden ignoriert. Unlabelled Einträge werden separat gezählt, aber nur aufgrund des nachgewiesenen einzigen Job-Runs als möglicher Diagnosekontext verwendet. Ausgegeben werden **ausschliesslich erlaubte Fehlercodes, allgemeine Fehlerkategorien und Summenzahlen**, kein vollständiger Logtext, keine Dateipfade, kein Token. Zusätzlich wurde behoben, dass der alte Python-Metadatenpfad durch eine falsche `except`-Einrückung keine Count-Ausgabe erzeugt hatte; nun berichtet er tatsächlich (falls in der Google-Antwort vorhanden) `failedCount` und `succeededCount`.
+
+**Vorerst weiterhin offen:** neue reale Logabfrage mit korrigiertem Filter, konkrete Ursache des Container-Exit 1, tatsächlicher Cloud Run → Airtable-GET-Erfolg. **Nicht erneut ausführen**: `staging-airtable-job-run.sh --execute-once`, `gcloud run jobs execute`, `staging-airtable-job.sh --create-only`, jegliche neue PAT-Version oder IAM-Rolle ohne getrennte Analyse/Freigabe. Bestehender HTTP-Outbox-Dienst und alle produktiven Vorgänge unverändert/deaktiviert.
+
+**Einziger nächster Befehl, strikt read-only:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Bei erneut null Logs ist die Ausführungsansicht **Logs** in Google Cloud Console separat zu prüfen, ohne Rohlogs unbesehen zu veröffentlichen. Offline-CI deckt jetzt die offiziellen Labels und die Unterdrückung fremder Logeinträge und fingierter PAT-Zeichenketten ab. Noch keine echte Reparatur oder neue Probe-Execution ausgelöst.
+
+## 17.10.2026 – Failed-Execution-Diagnose (STRICT READ ONLY) bereit, LIVE-Lesung ausstehend
+
+Nach dem gescheiterten ersten und einzigen `lszh-airtable-read-probe-staging-xglcz`-Test (Task 0 Exit 1) wurde im GitHub Review-Branch `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` hinzugefügt. Der Befehl **startet keine weitere Execution** und liest **keinen** Secret Manager Payload aus:
+1. Prüft korrektes aktives LSZH-Geschäftskonto/Projekt und sauberen, synchronisierten Feature-Branch.
+2. Ruft `gcloud run jobs executions list --job=lszh-airtable-read-probe-staging --project=lszh-automations --region=europe-west6 --format=json` auf und verlangt genau die eine erwartete Execution `lszh-airtable-read-probe-staging-xglcz`.
+3. Liest die **Metadaten der exakt identifizierten Execution** via `gcloud run jobs executions describe ... --format=json` (nur kontrollierte Zählwerte).
+4. Fragt Google Cloud Logging **nur für diesen Job und diese Execution** ab, `gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="lszh-airtable-read-probe-staging" AND labels.execution_name="lszh-airtable-read-probe-staging-xglcz"' --project=lszh-automations --limit=100 --format=json`. Der vollständige Roh-Logtext wird nur in lokalen Pipelinevariablen verarbeitet und **NICHT in den Chat oder das Terminal ausgegeben**; ein Python-Filter zeigt lediglich eine vordefinierte Menge sicherer Anwendungs-`STOP`-Codes, allgemeine Laufzeitfehler-Kategorien (z. B. `NODE_MODULE_NOT_FOUND`, `FILE_PERMISSION_DENIED`, `NODE_SYNTAX_ERROR`), Loganzahl und Anzahl Anwendung-`PASS`-Zeilen. Unerwartete Inhalte / etwaige Bearer-Tokens werden nicht übernommen. Bei fehlenden Logs wird der Status nicht als erfolgreich interpretiert.
+
+**Offline CI:** 7 neue rein synthetische Tests stellen fehlgeschlagene Ausführung, exakte Identität, bekannte STOP-Codes, Unterschlagung fingierter PAT-Texte, Leerergebnisse, Account-/Git-Stop und Verbotsprüfung für sämtliche Mutationsbefehle nach. Erfolgreicher GitHub-Actions-Lauf `39021771890`: **176/176 Node-Tests und 8/8 Python-IAM-Tests**, kein Live-Cloud-Aufruf von CI.
+
+**Nächster Benutzerbefehl ist AUSSCHLIESSLICH DIAGNOSE:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Wenn das Skript eine Kategorie statt einer konkreten Ursache ausgibt, anhand des konkreten Status / privaten Cloud-Run-Logs weiter analysieren. Kein automatisches Neustarten und keine IAM-/Secret-/Deployment-Mutation. `--execute-once` ist endgültig verbraucht und darf auf dieser Jobversion nicht wiederholt werden. Offizielle Logs-Feldreferenz: https://docs.cloud.google.com/run/docs/logging .
+
+## KRITISCH 17.10.2026 – Erster und einziger Cloud Run → Airtable-Lesejob gestartet, EXECUTION FAILED. NICHT wiederholen
+
+Der Geschäftsführer führte ausdrücklich nach `git pull --ff-only` den abgesicherten Befehl `bash workers/onboarding-notifications/staging-airtable-job-run.sh --execute-once` aus. **Echte Cloud Shell-Ausgabe:**
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Original successful Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PASS: Zero Cloud Run executions registered for this exact Job.
+EXECUTE ONCE: Starting the isolated read-only STAGING Cloud Run Job.
+X Creating execution... Task lszh-airtable-read-probe-staging-xglcz-task0 failed with exit code: 1 and message: The container exited with an error.
+OK Provisioning resources... Provisioned imported containers.
+OK Starting execution... Started deployed execution in 3.93s.
+X Running execution... 0 / 1 complete
+Executing job failed
+ERROR: (gcloud.run.jobs.execute) The execution failed.
+STOP: Execution failed or result ambiguous. DO NOT RERUN. Inspect execution metadata/logs read-only.
+```
+
+**Wesentlicher Statuswechsel:** Job `lszh-airtable-read-probe-staging` ist nicht länger unausgeführt: Die **einzige reale Execution** `lszh-airtable-read-probe-staging-xglcz` existiert und ist **fehlgeschlagen**, Task `task0` **exit code 1**. Grund noch **unbekannt**; aus dieser Meldung kann weder ein Airtable-Authentifizierungsfehler noch ein fehlerhafter Secret-Dateimount, Laufzeitfehler oder fehlender API-Zugriff sicher abgeleitet werden. Die User-Ausgabe enthält **keine** Fach-PASS-Logs der eigentlichen Airtable-GET-Probe. **Es ist KEIN erfolgreicher Cloud Run → Airtable-GET nachgewiesen.** Die Ausführungsfunktion verfügt über `maxRetries=0`; der konkrete Task wurde nicht als erfolgreich gemeldet. **Nicht nochmals `--execute-once` ausführen und keine neue Jobversion/Deployment erstellen**, bis der Fehler read-only diagnostiziert, behoben und ein separater bewusst freigegebener neuer Prüfweg dokumentiert ist. Keine neue Secret-Version, keine zusätzlichen IAM-Rechte oder produktiven Änderungen vorsehen.
+
+Nächste Diagnose ausschliesslich LESEND, eng an diese konkrete Ausführung in Region `europe-west6` und Projekt `lszh-automations` gebunden: `gcloud run jobs executions describe lszh-airtable-read-probe-staging-xglcz --project=lszh-automations --region=europe-west6 --format=json` und genau passende Cloud-Logging-Einträge für `resource.type=cloud_run_job`, `resource.labels.job_name=lszh-airtable-read-probe-staging`, `labels.execution_name=lszh-airtable-read-probe-staging-xglcz`. **Nicht unbesehen Log-Rohdaten veröffentlichen:** Text darf nach Möglichkeit nur sicher aggregierte bekannte STOP-Codes und nicht-sensitive Fehlertypen zeigen; Secret PAT niemals im Chat. Erst nach Diagnose fachlichen Status bewerten. Der bestehende produktive/private HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`; keine Kundenbenachrichtigungen.
+
+Offizielle Referenzen: https://docs.cloud.google.com/run/docs/managing/job-executions und https://docs.cloud.google.com/run/docs/logging .
+
+## BESTÄTIGT 17.10.2026 – Airtable-Cloud-Run-EINMAL-Test-Preflight LIVE PASS; Ausführung noch ausstehend
+
+Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den rein lesenden `bash workers/onboarding-notifications/staging-airtable-job-run.sh` aus. Die tatsächlichen Live-Ergebnisse:
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Original successful Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.
+```
+
+**Bestätigter Ist-Zustand:** Die existierende STAGING-Jobressource `lszh-airtable-read-probe-staging` ist exakt an `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab` gebunden. Dediziertes aktives Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret `lszh-airtable-readonly-staging` mit nur einer Zürich-Replik `europe-west6`, Version 1 `ENABLED`, sekret-spezifische IAM-Rolle `roles/secretmanager.secretAccessor` und read-only Datei-Mount `/var/secrets/lszh/airtable-read-pat` bestätigt. Cloud-Run-Job-Container hat exakt die drei freigegebenen STAGING-Umgebungsflags, `tasks=1`, `parallelism=1`, `maxRetries=0`, keine command/args-Overrides. Cloud-Run-Ausführungsliste über `--format=json` tatsächlich **leer**. **Eine echte Cloud Run → Airtable HTTPS-GET-Verbindung ist NOCH NICHT getestet.**
+
+**Nächste explizite und irreversible Benutzeraktion (einmalig):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run.sh --execute-once
+```
+Vor dem Start führt das Skript sämtliche Metadatenprüfungen erneut und die Ausführungslistenprüfung **zweimal** aus. Nur bei weiterhin 0 Ausführungen startet es **maximal ein** `gcloud run jobs execute lszh-airtable-read-probe-staging --project=lszh-automations --region=europe-west6 --wait` ohne Overrides. Der Job soll genau eine **GET**-Abfrage nach frisch zufälligem, nicht vorhandenem synthetischen Projektcode an Airtable ausführen; niemals Kundendaten ändern, keine Firestore-, Make- oder E-Mail-Operation. **Egal ob PASS, STOP oder ambivalente CLI-Ausgabe: --execute-once NICHT wiederholen**, zuerst die exakten Cloud-Run-Execution- und Probelogs unabhängig und nur lesend prüfen. Ein `gcloud ... --wait`-SUCCESS allein beweist noch nicht den fachlichen Airtable-GET-Probe-Erfolg; dafür werden die drei beabsichtigten PASS-Logmeldungen benötigt.
+
+Der HTTP-Outbox-Dienst bleibt deaktiviert `LSZH_OUTBOX_STAGE_ENABLED=false`. Keine produktiven E-Mails, Vertragsannahmen, Make-Szenarien oder Kundendatenänderungen freigeben.
+
+## BESTÄTIGT 17.10.2026 – Separater Airtable-STAGING-Cloud-Run-Job erstellt, null Ausführungen; Einmal-Test nur als Plan vorbereitet
+
+Der Geschäftsführer führte nach `git pull --ff-only` den bewusst freigegebenen `bash workers/onboarding-notifications/staging-airtable-job.sh --create-only` in Google Cloud Shell aus. Die tatsächlichen Live-Meldungen:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.
+PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.
+CREATE ONLY: Creating one new staging Cloud Run Job; NEVER executing.
+Creating Cloud Run job [lszh-airtable-read-probe-staging] in project [lszh-automations] region [europe-west6]
+Job [lszh-airtable-read-probe-staging] has successfully been created.
+PASS: Created Job spec pinned to exact digest, service identity, env gate and Secret v1 file.
+PASS: New STAGING Cloud Run Job created and verified, with ZERO executions.
+STOP HERE: Running job and live Airtable GET require a separate explicit step.
+```
+
+**Als LIVE verifiziert:** Ausschliesslich der vorher nicht existierende separate Cloud Run Job `lszh-airtable-read-probe-staging` in `europe-west6` ist nun **tatsächlich erstellt** und seine Metadaten nach der Anlage wurden rückgeprüft: exakter `@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab`-Container, dediziertes Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret `lszh-airtable-readonly-staging` Version `1` als Datei-Mount `/var/secrets/lszh/airtable-read-pat`, isolierte drei Staging-Env-Flags, genau **eine Aufgabe**, **maxRetries=0**, damals **0 Job-Executions**. **`staging-airtable-job.sh --create-only` niemals wiederholen.** Keine Airtable-GET-Anfrage bisher, kein PAT-Klartext ausgelesen, keine Firestore- oder Mailaktion. Bestehender `lszh-onboarding-outbox-staging`-HTTP-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, keine produktiven Änderungen.
+
+**Neu in GitHub Draft-PR #8 – streng getrennter EINMAL-Test vorbereitet:** `workers/onboarding-notifications/staging-airtable-job-run.sh` mit Default `--plan` (keine Cloud-Mutation) und separatem `--execute-once` (maximal ein `gcloud run jobs execute <NAME> --region=europe-west6 --wait`, ohne Overrides). Der Preflight fordert:
+- korrektes aktives LSZH-Geschäftskonto/Projekt, saubere synchronisierte Feature-Branch und unveränderte fünf am Original-Source-Commit gepinnte Container-Dateien;
+- Live-Cloud-Build-ID `1b909760-deb7-49a9-bfe8-b4e20af68133` `SUCCESS`, exakter ursprünglicher Image-Tag und mit Artifact Registry abgeglichener **unveränderlicher** SHA-256-Digest;
+- dediziertes aktives Dienstkonto, korrektes globales Secret mit exakt einer **user-managed Zurich-Replica**, genau eine `ENABLED`-Version `1` und genau passende eigene `roles/secretmanager.secretAccessor`-Binding auf diesem einen Secret;
+- exakte **bereits existierende** Cloud-Run-Job-Spezifikation (v1/v2), eine Aufgabe, `parallelism=1`, `maxRetries=0`, unveränderlicher Image-Digest, keinerlei `command`-/`args`-Overrides, exakt drei vorgegebene Env-Flags, genau einen Secret-v1-Datei-Mount;
+- via `gcloud run jobs executions list --job=... --format=json` **leere Ausführungsliste** `[]`, bei malformed/nonempty STOP. Der Einmal-Modus prüft die Liste **zweimal**, bevor er einen einzigen Jobstart auslöst; bei fehlgeschlagenem/unklarem Jobstart **nicht wiederholen**.
+
+Der geplante einmalige Cloud-Run-Job würde exakt **eine** HTTPS-GET-Anfrage an Airtable mit einem frisch randomisierten synthetischen, nicht vorhandenen Projektcode ausführen, `processing` erwarten, nur fest definierte PASS-/STOP-Zeilen loggen und **keine** Kundendaten mutieren, Firestore aufrufen, Make triggern, Vertrag annehmen oder E-Mail versenden. Der Token-Wert wird nur im Job über den Secret-Datei-Mount gelesen, **nicht** im Shell-/GitHub-/Chat-/Cloud-Run-Env-Text. Die Google-Cloud-CLI `jobs execute --wait` und `jobs executions list --job` entsprechen https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/execute und https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/executions/list .
+
+**Offline-CI**, kein Live-Jobstart: `staging-airtable-job-run.test.mjs` prüft Plan-only, einmalige Ausführung, v2-Metadaten, eine bestehende Execution, falsche Role/Secret/Quelle/Digest/Job-Spezifikation, fehlgeschlagene Ausführung ohne Retry und ungültige Flags. Erfolgreicher CI-Lauf `39021151705` mit **169/169 Node-Tests und 8/8 IAM-Tests**. GitHub-CI führt die eigentliche Execution niemals aus.
+
+**Nächster Schritt – ausschliesslich lesender Cloud-Shell-Plan:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run.sh
+```
+Erwartet `PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.`, `PASS: Zero Cloud Run executions registered for this exact Job.` und `PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.`. Bei STOP keine Ausführung oder Änderung, Log einordnen. Erst nach unabhängigem tatsächlichen Live-Plan-PASS darf der Geschäftsführer **separat** `--execute-once` starten; ein erfolgreicher `gcloud --wait`-Exit beweist allein noch nicht die drei erwarteten Probe-PASS-Logs, Logs sind danach separat schreibgeschützt zu kontrollieren.
+
+## BESTÄTIGT 17.10.2026 – Isolierter Cloud-Run-Airtable-JOB-Preflight LIVE PASS; Job-Erstellung ausstehend
+
+Der Geschäftsführer hat den neuen `workers/onboarding-notifications/staging-airtable-job.sh` **ohne Argumente** nach einem sauberen `git pull --ff-only` in Cloud Shell ausgeführt; Live-Ausgabe:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Cloud Run job lszh-airtable-read-probe-staging not yet created.
+PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.
+PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.
+New separate Cloud Run Job: lszh-airtable-read-probe-staging
+Immutable image: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+Secret version 1 mounted only as read-only file /var/secrets/lszh/airtable-read-pat.
+Exactly one task, max retries zero, default-disabled outbox.
+PLAN ONLY: No Cloud Run Job created/executed and no secret payload read.
+```
+
+**Stand:** Der Testjob `lszh-airtable-read-probe-staging` wurde nachweislich **noch nicht erstellt**, das Image ist eindeutig auf den geprüften Build-Digest gepinnt; die dedizierte SA und der genau auf `lszh-airtable-readonly-staging` beschränkte IAM-Grant sind bestätigt, Secret-Version 1 ist `ENABLED` und wird erst nach Job-Ausführung als Datei an den isolierten Worker gemountet. **Kein PAT-Payload-Read und keine tatsächliche Cloud-Run→Airtable-Verbindung.**
+
+**Nächster separater Nutzerbefehl:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job.sh --create-only
+```
+Dies ist eine **echte Cloud-Run-Job-Erstellung** (mögliche Kosten), führt aber **keinen** Job aus. Das streng begrenzte Skript fordert sauberen Quellbranch/GCP-Account, erfolgreichen Original-Build, passenden Digest, aktives Dienstkonto, secret-spezifischen IAM-Grant, Secret-v1-Verfügbarkeit und Nichtexistenz des Jobs; erstellt danach genau einen Job mit **`--tasks=1 --parallelism=1 --max-retries=0 --task-timeout=90s`**, exakt drei statischen Env-Flags und dem ausschliesslich dateibasierten Secret-v1-Mount. Unmittelbare Metadaten-Rückprüfung von Job-Konfiguration, Dienstkonto, Image, Secret-Mount und **null Ausführungen**. Wenn die Rückprüfung wegen Cloud-Run-API-Format oder sonstiger Abweichungen STOP meldet, **nicht erneut `--create-only` ausführen**: Job kann bereits existieren und muss erst read-only geprüft werden.
+
+**Nicht freigeschaltet:** `gcloud run jobs execute`, Cloud-Run-Ausführungslog-Review, Airtable-GET, Make, Gmail, Firestore, Verträge, produktiver Outbox-Service. Bestehender Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert; der Testjob ist vollständig separat.
+
+## BESTÄTIGT 17.10.2026 – Cloud Build Image-Digest LIVE verifiziert; separater Cloud-Run-Job nur geplant
+
+Der Geschäftsführer führte `staging-airtable-image-verify.sh` nach erfolgreichem `git pull --ff-only` tatsächlich in Google Cloud Shell aus:
+```text
+PASS: Pinned Cloud Build ID reports SUCCESS for exactly the expected image tag.
+PASS: Cloud Build result digest matches Artifact Registry.
+PASS: Reviewed five-file source pin unchanged; tagged Artifact Registry image exists.
+PASS: Immutable digest: sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Deployable read-only image reference: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab
+PASS: Cloud Run job lszh-airtable-read-probe-staging not yet created.
+READ ONLY: No Cloud Build, image upload, Job deployment/execution, PAT read or IAM changes.
+```
+**Jetzt unabhängig erwiesen:** Erfolgreicher Cloud Build `1b909760-deb7-49a9-bfe8-b4e20af68133`, identische SHA-256-Build-/Artifact-Registry-Digests, unveränderte gepinnte fünf Source-Dateien. Das **vollständig unveränderliche** Container-Image ist der oben genannte `@sha256:ce88...`-Bezug; nicht den veränderbaren Tag verwenden.
+
+**Neu im Review-Branch PR #8, noch nicht live ausgeführt:** `workers/onboarding-notifications/staging-airtable-job.sh`. Modus `--plan` ist rein **lesend**, `--create-only` würde separat **genau einen neuen** Cloud-Run-Job `lszh-airtable-read-probe-staging` in `europe-west6` erstellen und **nicht ausführen** (kein `--execute-now`, kein `gcloud run jobs execute`). Vorher überprüft das Skript:
+- korrektes Google-Geschäftskonto/Projekt, sauber synchronisierten Git-Branch und den unabhängigen Original-Build-/Registry-Digest-Validator;
+- exakt das vorher live nachgewiesene Image mit dem SHA-256-Digest, ohne erneuten Build;
+- dediziertes aktives Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`;
+- einziges STAGING-Secret `lszh-airtable-readonly-staging` mit einer user-managed Replikation **nur in Zürich**, genau einer `ENABLED`-Version `1` und dem exakten sekret-spezifischen `roles/secretmanager.secretAccessor`-Grant für das Dienstkonto;
+- **Abwesenheit** des Cloud-Run-Jobs, um eine bestehende Ressource keinesfalls zu überschreiben.
+
+Die **erst nach erneuter expliziter Nutzeraktion** mögliche `--create-only`-Aktion verwendet `gcloud run jobs create` mit dem **unveränderlichen Image-Digest**, `--tasks=1 --parallelism=1 --max-retries=0 --task-timeout=90s`, nur den drei statischen Env-Flags `LSZH_AIRTABLE_RUNTIME_PROBE_ONLY=true`, `LSZH_OUTBOX_STAGE_ENABLED=false`, `GOOGLE_CLOUD_PROJECT=lszh-automations` und **geheimem DATEI-MOUNT** `--set-secrets=/var/secrets/lszh/airtable-read-pat=lszh-airtable-readonly-staging:1`. Keine Token-Umgebungsvariable, kein Payload-Read, keine sonstigen Secrets. Nach Erstellung werden Cloud-Run-Job-Metadaten zur Bestätigung der Aufgabenanzahl, Wiederholungen, Umgebung, Dienstkonto, SHA-256-Image und Secret-v1-Mount geprüft und **null Ausführungen** verlangt. Die v1- und v2-Metadatenformate werden unterstützt. **STOP** bei Abweichungen; keine erneute Job-Anlage ohne Überprüfung. Offizielle Quellen: https://docs.cloud.google.com/run/docs/configuring/jobs/secrets und https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/create . Selbst eine erfolgreich erstellte Job-Ressource prüft noch **keinen** Airtable-Zugriff.
+
+**Wichtig:** Bestehender `lszh-onboarding-outbox-staging`-HTTP-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, Make, Gmail, Firestore, Airtable-Kundendaten unverändert. Die Live-Erstellung des Jobs und der später ausdrücklich separate einmalige Testlauf sind **noch nicht** geschehen.
+
+**Nächster Schritt, nur lesen:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job.sh
+```
+Erwartet neben der unabhängigen verifizierten DIGEST-Prüfung `PASS: Company identity, original five-file Cloud Build and exact SHA-256 image.`, `PASS: Dedicated service identity, single Zurich secret version 1 and secret-specific IAM.`, `PLAN ONLY: No Cloud Run Job created/executed and no secret payload read.`. Bei einem STOP **nichts erstellen/ausführen**; Log prüfen. Erst nach dokumentiertem PASS die bewusste separate Genehmigung über `--create-only` erwägen.
+
+## 17.10.2026 – Build-SUCCESS dokumentiert; sicherer SHA-256-Image-Digest-Preflight (READ ONLY) vorbereitet
+
+Nach dem vom Geschäftsführer tatsächlich nachgewiesenen erfolgreichen Cloud Build `1b909760-deb7-49a9-bfe8-b4e20af68133` in `europe-west6` und Image-Tag `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67` wurde **ausschliesslich in GitHub PR #8** der unveränderliche Image-Nachweis vorbereitet: `workers/onboarding-notifications/staging-airtable-image-verify.sh`.
+
+Der neue **nur lesende** Preflight verlangt das exakt richtige aktive Firmenkonto/Projekt, einen sauberen vollständig synchronisierten Review-Checkout, die unveränderten fünf am Commit `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnten Container-Quelldateien. Er prüft die originale Cloud-Build-ID `1b909760-deb7-49a9-bfe8-b4e20af68133` via `gcloud builds describe --region=europe-west6` auf `SUCCESS` und exakt den erwarteten Image-Tag. Dann liest er via `gcloud artifacts docker images describe <TAG> --format='value(image_summary.digest)'` den **echten** Registry-Digest, verlangt strikt `sha256:` plus 64 Hexzeichen und gleicht den Build-Result-Digest ab, falls Google ihn separat ausweist. Schliesslich inventarisiert er Cloud-Run-Jobs read-only und verweigert einen unbemerkten bestehenden `lszh-airtable-read-probe-staging`-Job. Gibt die **unveränderliche vollständige Image-Referenz `...@sha256:...`** aus, ohne ein neues Image, einen Cloud Job oder ein Secret zu verändern.
+
+**Offizielle Syntax:** Google Cloud Build `gcloud builds describe` und Artifact Registry `gcloud artifacts docker images describe`, insbesondere `value(image_summary.digest)` laut Google-Cloud-Dokumentation. **Nur synthetische CI:** `staging-airtable-image-verify.test.mjs` testet Build-Failure, falschen Tag/Digest, Umbenennung/Retagging, fehlende Repository-Metadaten, existente Jobs, falsche Identität und verbotene Mutationsbefehle. Nach Regressionstest-Korrektur meldete GitHub Actions `39014254676` **152/152 JavaScript-Tests und 8/8 IAM-Tests**, ohne Live-Google-Cloud-Aufruf in CI. Die tatsächliche SHA-256-Digest-Prüfung **wurde vom Geschäftsführer noch nicht ausgeführt**.
+
+**Nächster ausschliesslich lesender Cloud-Shell-Aufruf:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-verify.sh
+```
+Nur bei vollständigem PASS danach die **separate** Cloud-Run-Job-Erstellung vorbereiten. Vorher und nachher den bestehenden privaten HTTP-Outbox-Dienst unverändert `LSZH_OUTBOX_STAGE_ENABLED=false` belassen. Cloud-Run-Testjob bleibt **nicht erstellt**, Secret-PAT-Zugriff aus Cloud Run nicht getestet, keine Make-/Firestore-/E-Mail-/Kundenaktion.
+
+## BESTÄTIGT 17.10.2026 – Separates Airtable-READ-Probe-Image in Zürcher Artifact Registry ERFOLGREICH GEBAUT
+
+Der Geschäftsführer führte auf dem sauberen synchronisierten Review-Branch nach `git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-image-build.sh --build-only` aus. Echte Cloud-Shell-Rückmeldung:
+```text
+PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.
+PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.
+Isolated image target: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+BUILD ONLY: five reviewed files; pushing separate image, but no Cloud Run Job.
+Creating temporary archive of 5 file(s) totalling 11.5 KiB before compression.
+Created [https://cloudbuild.googleapis.com/v1/projects/lszh-automations/locations/europe-west6/builds/1b909760-deb7-49a9-bfe8-b4e20af68133].
+ID: 1b909760-deb7-49a9-bfe8-b4e20af68133
+CREATE_TIME: 2026-10-17T07:32:20+00:00
+DURATION: 18S
+IMAGES: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+STATUS: SUCCESS
+PASS: Separate STAGING Airtable-read image build returned successfully.
+STOP HERE: No Job was deployed or executed. Build image digest and service config require further review.
+```
+
+**Damit wirklich abgeschlossen:** Der isolierte, geprüfte Fünf-Dateien-Kontext wurde über Google Cloud Build in Zürich erfolgreich zu einem Image gebaut und in die vorhandene Artifact Registry veröffentlicht. **Build-ID** `1b909760-deb7-49a9-bfe8-b4e20af68133`, **Source-Pin** `c7ebdde79b67ca767c3d36f28959a668fecbd458`, **Tag** `stg-c7ebdde79b67`. Die Log-Zeile mit `gs://lszh-automations_cloudbuild/source/...` ist der temporär für Cloud Build bereitgestellte **Quellarchive-Pfad**, nicht ein Cloud-Run-Job und keine gespeicherte PAT-Datei. Das hochgeladene Tarball enthielt laut Skriptprüfung genau fünf allowgelistete Runtime/Build-Dateien.
+
+**NOCH NICHT geprüft:** Artifact Registry `sha256`-Image-Digest und unabhängige Zuordnung zur Build-ID; diese werden als nächster **ausschliesslich lesender** GCP-Preflight geprüft. **NOCH NICHT erstellt:** `lszh-airtable-read-probe-staging` Cloud Run Job; keinerlei Jobausführung oder Cloud-Run→Airtable-REST-GET. Bestehender HTTP-Outbox-Dienst weiterhin `LSZH_OUTBOX_STAGE_ENABLED=false`. Keine neuen IAM-Bindings, Secret-Versionen, Firestore-Änderungen, Make-Aktivierungen, E-Mails oder Kundendaten durch den Build.
+
+## BESTÄTIGT 17.10.2026 – Separater Airtable-Leseimage-Build PLAN ONLY live bestanden
+
+Der Geschäftsführer hat im Firmen-Cloud-Shell-Checkout `git pull --ff-only` und anschliessend `bash workers/onboarding-notifications/staging-airtable-image-build.sh` **ohne** Schreibmodus ausgeführt. Die tatsächliche Google-Cloud-Ausgabe:
+```text
+Encryption: Google-managed key
+Repository Size: 198.545MB
+PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.
+PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.
+Isolated image target: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+Separate STAGING Job (NOT created): lszh-airtable-read-probe-staging
+No PAT payload access, CRM/Make/Firestore operations, Cloud Run deployment or emails.
+PLAN ONLY: no Cloud Build submission, image push, Job creation/execution or IAM changes.
+```
+
+**Befund:** Der synchronisierte Review-Branch, unveränderte und an `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnte Fünf-Dateien-Buildkontext, die Zürcher Artifact Registry, ein einzelnes `ENABLED`-Secret Version 1 mit ausschliesslich direkter secret-spezifischer IAM-Zugriffsrolle und die Abwesenheit des separaten Cloud-Run-Jobs sind bestätigt. Die Container-Registry war laut CLI bereits vorhanden (`Repository Size: 198.545MB` beschreibt **das gesamte Repository**, nicht das neue Probe-Image). Der reine Planlauf hat **noch kein Probe-Image gebaut oder hochgeladen**.
+
+Nächster ausdrücklich vom Geschäftsführer auszuführender **isolierter Build-only-Schritt**:
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build.sh --build-only
+```
+Dieser Befehl würde einen Cloud Build aus exakt fünf allowgelisteten lokalen Dateien erstellen, das spezifisch gepinnte `lszh-airtable-read-probe:stg-c7ebdde79b67`-Image in die bestehende Zürcher Registry pushen (mögliche Build-/Registry-Kosten), aber **keinen** Job, Service, Scheduler, IAM-Grant, Secret-Wert-Zugriff, Airtable-GET, Firestore- oder Mailvorgang auslösen. Bei fehlgeschlagenem/unklarem Buildstatus **keinen automatischen Repeat**, zunächst Build-/Registry-Metadaten lesen. Nach PASS das Container-Image per Digest identifizieren und die separate Job-Erstellung zunächst nur planen; den bestehenden `lszh-onboarding-outbox-staging`-HTTP-Service nicht verändern.
+
+## 17.10.2026 – Isolierter Cloud-Run-Airtable-Lese-Container: Build-Gate fertig, KEIN Build durchgeführt
+
+Voraussetzungen **durch echte Geschäftskonto-Cloud-Shell bestätigt**: dediziertes Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` angelegt, `lszh-airtable-readonly-staging` mit genau einer Zürcher User-managed Replik `europe-west6`, Secret-Version `1` `ENABLED` nach einmaligem verdeckten Token-Upload. Der einzelne IAM-Grant `roles/secretmanager.secretAccessor` wurde tatsächlich **nur auf diesem einen Secret** für dieses SA eingeräumt und per `get-iam-policy` bestätigt. **Nicht durchgeführt:** Secret-Payload-Read, Cloud Build, Cloud Run Job/Execute oder Make-/Firestore-/E-Mail-Aktion.
+
+**Neu im noch offenen GitHub PR #8:** `workers/onboarding-notifications/cloudbuild.airtable-read-probe.yaml` und `workers/onboarding-notifications/staging-airtable-image-build.sh` mit separaten Default `--plan` und explizitem `--build-only`. Es wird ausschliesslich ein privates, vom bestehenden Outbox-Service getrenntes Bild erstellt, **kein** Cloud-Run-Job bereitgestellt. Der Build-Kontext besteht aus exakt **5 allowgelisteten Source-Dateien**: `onboarding/confirmation.js`, `staging-airtable-rest-read.js`, `airtable-runtime-probe.js`, `Dockerfile.airtable-read-probe`, `cloudbuild.airtable-read-probe.yaml`; keine anderen Dateien, Zugangsdaten, Tests, Konfigurationsdateien, Website, CRM-Records oder .git-Ordner. Quelle auf unabhängig geprüften Commit `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnt. Bei geänderten Quellen oder unsynchronem/dirty Checkout STOP.
+
+Preflight **nur GCP-Metadaten lesen**: Business-Konto, LSZH-Projekt, dediziertes SA, Artifact Registry `cloud-run-source-deploy` in Zürich, korrektes Secret mit benannter/nummerischer Projektkennung und genau einer Zürcher Replik, genau eine `ENABLED`-Version 1, dedizierte und nicht öffentliche Secret-IAM-Bindung, **Abwesenheit des separaten Jobs** `lszh-airtable-read-probe-staging`. Der Payload des PAT wird dabei **nie** ausgelesen. Mit `--build-only` würde lediglich ein image unter `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67` mittels `gcloud builds submit` in Google Artifact Registry erzeugt, ohne Cloud-Run-Job-/Service-Änderung. Dieser Upload kann geringfügige Cloud-Build- und Registry-Kosten auslösen und braucht eine **separate ausdrückliche Nutzeraktion**.
+
+**Offline-CI:** `staging-airtable-image-build.test.mjs` mockt 7 Szenarien für Plan-only, isolierte Build-Ausführung ohne Deploy, falsche GCP-/Git-Identität, unveränderliche Build-Quellen, fehlende PAT-Version/Secret-Berechtigung, existierenden Job und unzulässige Befehle. Ein erfolgreicher Build ist kein echter Cloud-Run-Test. GitHub-Action-Job `39013691976` meldete **145/145 Node-Tests und 8/8 Python-IAM-Tests**, kein GCP-Build in CI.
+
+**Nächster risikofreier User-Befehl, nur Inventar/Preflight:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build.sh
+```
+Erwartetes Ende: `PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.`, `PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.`, `PLAN ONLY: no Cloud Build submission, image push, Job creation/execution or IAM changes.`. Bei STOP **keinen** Build/Deploy starten. Erst nach Ausgabe getrennt `--build-only` prüfen. Bestehender privater HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`, E-Mails und Make-Szenarien weiterhin deaktiviert.
+
+## BESTÄTIGT 17.10.2026 – Secret-spezifisches IAM-Lese-Recht tatsächlich vergeben
+
+Der Geschäftsführer führte in Cloud Shell nach einem `git pull --ff-only` das explizite `staging-airtable-secret-iam.sh --grant-secret-only` aus. **Echte Google-Cloud-Rückmeldung:**
+```text
+PASS: Company identity, clean review branch and dedicated service account.
+PASS: Correct global STAGING secret, Zurich-only replica, exactly one ENABLED version (1).
+PASS: Existing secret-specific IAM policy inspected; no binding for the dedicated identity.
+Adding exactly one secret-specific Secret Accessor binding (no project IAM changes).
+Updated IAM policy for secret [lszh-airtable-readonly-staging].
+PASS: Dedicated service account has exactly one secret-level Secret Accessor binding.
+PASS: Exactly one secret-level IAM grant verified; no PAT payload read.
+STOP HERE: No Cloud Run job deployment or execution; review next gate separately.
+```
+**Ergebnis:** Das tatsächlich erstellte `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` hat nun die direkt am **einzelnen** Secret `lszh-airtable-readonly-staging` gebundene Rolle `roles/secretmanager.secretAccessor`; mittels `get-iam-policy` tatsächlich rückverifiziert, ohne Tokenwert auszulesen. **Nicht** als projektweiter Grant, keine neuen Firestore-/Make-/Gmail-Zugriffe; keine neue Secret-Version. **`--grant-secret-only` NICHT nochmals ausführen.** Das bewies keine allfällig andernorts vererbten Rechte, nur exakt die Secret-IAM-Bindung.
+
+**Nächster Schritt:** Review-Pin/isolierter Cloud-Container-Build für `lszh-airtable-read-probe-staging`, bevorzugt zunächst rein lesenden Build-Preflight; jeder Push, jede Cloud-Run-Job-Anlage und jede Ausführung als getrennte Nutzeraktion. Der bestehende HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`. Noch **kein** tatsächlicher Cloud-Run-zu-Airtable-Aufruf.
+
+## BESTÄTIGT 17.10.2026 – Secret-spezifischer IAM-Preflight LIVE bestanden; Grant noch NICHT vergeben
+
+Der Geschäftsführer hat in Google Cloud Shell nach einem sauberen `git pull --ff-only` den rein lesenden `staging-airtable-secret-iam.sh` ausgeführt. Die Live-Ausgabe bestätigte:
+```text
+PASS: Company identity, clean review branch and dedicated service account.
+PASS: Correct global STAGING secret, Zurich-only replica, exactly one ENABLED version (1).
+PASS: Existing secret-specific IAM policy inspected; no binding for the dedicated identity.
+Proposed new member: serviceAccount:lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+Proposed role: roles/secretmanager.secretAccessor
+Scope: EXACTLY the one Secret Manager secret lszh-airtable-readonly-staging (not project-wide).
+No PAT access, email, Firestore, Make, Cloud Run job or customer data operations.
+PLAN ONLY: No IAM changes, no secret contents read and no Cloud Run deployment.
+```
+
+Das STAGING-Airtable-PAT liegt bereits in Secret-Manager-Version `1` (`ENABLED`) im globalen Secret mit exakt einer User-managed-Zürich-Replik `europe-west6`. Das dedizierte SA existiert und ist aktiv. Vor diesem Schritt existierte noch **keine direkte secret-spezifische IAM-Bindung** für das SA. **Wichtig: `PLAN ONLY` ist KEIN Nachweis, dass die Rolle bereits vergeben wurde.**
+
+Nächster separater Cloud-Shell-Schritt: `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-airtable-secret-iam.sh --grant-secret-only`. Das vorab offline getestete Skript führt maximal **eine** `gcloud secrets add-iam-policy-binding`-Aktion für **dieses eine Secret** (`roles/secretmanager.secretAccessor` zugunsten `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`) aus und prüft anschliessend die IAM-Richtlinie auf genau eine passende Bindung. Keine Projekt-IAM-Aktion. Es ist eine **echte Gewährung von Token-Lesezugriff**: nur mit bewusster Nutzeraktion ausführen. Falls der Befehl mit STOP abbricht, keine zweite Grant-Ausführung starten, bevor die IAM-Metadaten geprüft wurden.
+
+Noch NICHT vorhanden/ausgeführt: Cloud-Run-Airtable-Lesejob, Build/Push/Deployment des separaten Images, Secret-Mount, realer Cloud-Run→Airtable-GET, E-Mail-/Make-/Firestore- oder produktiver Prozess. Bestehender HTTP-Outbox-Dienst bleibt deaktiviert und unverändert.
+
+## BESTÄTIGT 17.10.2026 – Airtable-READ-PAT STAGING Secret-Version 1 erfolgreich gespeichert
+
+Direkt aus **Google Cloud Shell** vom Geschäftsführer über `bash workers/onboarding-notifications/staging-airtable-secret-version.sh --add-once` ausgeführter, streng kontrollierter Upload. Die tatsächliche Ausgabe bestätigte erneut die unabhängige Projekt-/Secretnamensprüfung und **genau eine Zürcher user-managed Replikation**, `0` Versionen unmittelbar vor der Übertragung, danach:
+```text
+Created version [1] of the secret [lszh-airtable-readonly-staging].
+PASS: Exactly one ENABLED STAGING secret version (1) verified; payload not read.
+PASS: Airtable PAT was stored once in Secret Manager without plaintext logs or files.
+STOP HERE: Service-account SecretAccessor IAM and Cloud Run deployment are separate gates.
+```
+**Damit nachgewiesen:** Der Token-Wert wurde genau einmal über verdecktes interaktives TTY und ephemeren Standard-Input an die **Secret-Version 1 (ENABLED)** in Google Secret Manager gesendet. Das Skript hat weder PAT-Klartext im Chat/GitHub gespeichert noch eine Secret-Version wieder ausgelesen; es wurden keine neuen IAM-Rechte, Cloud-Run-Jobs, Deployments, Make-Szenarien oder Kundenoperationen ausgelöst. **`--add-once` niemals erneut ausführen.** Aus den PASS-Meldungen allein lässt sich die tatsächliche Airtable-PAT-Scope-Beschränkung nicht unabhängig ableiten: diese ist zuvor durch den Inhaber auf `data.records:read` und nur die Website-CRM-Basis festzulegen und bei Bedarf im Airtable-Token-Portal separat zu kontrollieren (ohne Tokenwert preiszugeben).
+
+**Nächster sicher getrennter Schritt – IAM nur auf diesem Secret:** Der in PR #8 angelegte `workers/onboarding-notifications/staging-airtable-secret-iam.sh` verwendet einen standardmässig rein lesenden `--plan`. Er prüft zunächst:
+- Geschäftskonto `lars@lszh-automations.ch`, Projekt `lszh-automations`, sauber synchronisierten Review-Branch;
+- vorhandenes aktives dediziertes SA `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret-Identität inkl. unabhängiger Projektnummer, **genau eine user-managed Replikation in `europe-west6`**;
+- **eine einzelne `ENABLED`-Version `1`** ausschliesslich über *Versionsmetadaten*, kein PAT-/Payload-Read;
+- per `gcloud secrets get-iam-policy` **fehlende bestehende Secret-spezifische IAM-Bindung** für das neue SA und keine öffentlichen Secret-Policy-Bindungen. Falls bereits Berechtigungen vorhanden sind: STOP zur manuellen Prüfung.
+
+**Nur mit späterem expliziten `--grant-secret-only`:** genau ein `gcloud secrets add-iam-policy-binding lszh-airtable-readonly-staging --member=serviceAccount:lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor --condition=None`, danach sekret-spezifische Rückleseprüfung; keine projektweiten IAM- oder Firestore-Bindings, keine Cloud Run- oder E-Mail-Aktivierung. Das ist **ein echter neuer IAM-Lesezugriff auf Secret-Versionen**, deshalb muss die eigentliche Aktion getrennt geprüft und bewusst gestartet werden. Es wird keine Service Account Impersonation vorgenommen und es wurden keine geerbten Rollen geprüft; dieser Plan kontrolliert nur die direkte Secret-IAM-Policy.
+
+**CI offline:** Die sechs neuen Mock-IAM-Tests bestehen; aktueller erfolgreicher Job `39013175244` meldete **138/138 JS-Tests plus 8/8 Python-IAM-Tests** (synthetisch, kein Cloud-IAM-Grant). Die Befehlssyntax entspricht Googles offizieller Doku https://docs.cloud.google.com/sdk/gcloud/reference/secrets/add-iam-policy-binding und https://docs.cloud.google.com/sdk/gcloud/reference/secrets/get-iam-policy .
+
+**Als nächstes in Cloud Shell ausschliesslich der Planlauf:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-iam.sh
+```
+Erwartet `PLAN ONLY: No IAM changes, no secret contents read and no Cloud Run deployment.`. Bei `STOP` nicht selbst Rollen vergeben. Die bisherige private HTTP-Outbox bleibt disabled; separater Cloud-Run-Job ist weiterhin nicht erstellt.
+
+## 17.10.2026 – Secret-Version PLAN ONLY live erfolgreich; PAT-Upload separat ausstehend
+
+Der Geschäftsführer hat `git pull --ff-only` ausgeführt und in Cloud Shell den neuen sicheren `staging-airtable-secret-version.sh` **ohne `--add-once`** geprüft. Die tatsächliche Ausgabe bestätigt nochmals das richtige Projekt und Secret, nur die user-managed Replik `europe-west6`, **genau 0 Versionen** und das zweite maschinenlesbare Versions-Gate:
+```text
+PASS: Exactly zero secret versions.
+PASS: Existing empty Zurich-only STAGING secret independently verified.
+PASS: Secret has zero versions immediately before requested operation.
+PASS: Verified unchanged business source, Zurich-only secret and zero versions.
+PLAN ONLY: No credential requested or stored, no secret version created.
+```
+**Keine Secret-Version wurde dabei erstellt oder PAT eingegeben.** Als nächster separater bewusst vom Geschäftsführer zu startender Schritt ist `bash workers/onboarding-notifications/staging-airtable-secret-version.sh --add-once` nach Git-Sync vorgesehen. Dort darf ausschliesslich der auf `data.records:read` für die eine Website-CRM-Basis begrenzte Airtable-PAT am **verdeckten interaktiven Prompt** eingegeben werden; niemals im Chat oder Kommando. Einmaliger Secret-Manager-Upload durch stdin, erwartete genau eine `ENABLED`-Version 1 und danach STOP. Bei unklarem Fehler **nicht wiederholen**, sondern ausschliesslich lesen und prüfen. **Noch nicht durchgeführt:** PAT-Version, secret-spezifische IAM-Zugriffsrolle, Cloud-Run-Job oder Jobausführung.
+
+## 17.10.2026 – Einmalige sichere Staging-PAT-Version vorbereitet, noch NICHT übertragen
+
+**Live-STATUS:** Das Secret `lszh-airtable-readonly-staging` existiert; sein korrekter GCP-Projektbezug, `replication.userManaged` mit exakt einer Replikation `europe-west6` und **0 Secret-Versionen** wurden durch die vom Geschäftsführer ausgeführte korrigierte reine Lese-Diagnose vollständig bestätigt. Keine IAM-Rolle auf dem Secret, keine Airtable-PAT-Daten und kein Cloud-Run-Job eingerichtet. Das vorangegangene `staging-airtable-empty-secret.sh --create-empty` **nicht** wiederholen.
+
+**In PR #8 erstellt:** `workers/onboarding-notifications/staging-airtable-secret-version.sh` mit Default `--plan` und getrenntem `--add-once`. Beide Modi prüfen ausschliesslich `lars@lszh-automations.ch` und GCP-Projekt `lszh-automations`, sauberen exakt synchronisierten Review-Branch, rufen die reale `staging-airtable-secret-diagnose.sh`-Prüfung auf (Projektnummer/Secretidentität/Zürich/0 Versionen) und bestätigen die Versionsliste zusätzlich unmittelbar maschinenlesbar als **leeres JSON-Array**. Bereits eine vorhandene Version sperrt die Ausführung. Der Standardmodus erfordert **kein** PAT und erstellt/ändert nichts.
+
+Erst mit explizitem `--add-once` auf interaktiver **Cloud Shell**: verdeckter lokaler TTY-Prompt für das **ausschliesslich `data.records:read` auf `LSZH Automations – Website CRM` beschränkte Airtable-PAT**. Das PAT darf nicht in Chat, Shell-History, GitHub oder Cloud-Run-Umgebungsvariablen gelangen. Bash liest es ohne Terminal-Echo in eine **nicht exportierte Variable**, übergibt es per ephemerer Standardeingabe `printf '%s' "$token" | gcloud secrets versions add "$SECRET" --data-file=-` unmittelbar an Google Secret Manager, ohne Klartextdatei oder Kommandozeilenargument. **Genau ein Schreibaufruf, kein automatisches Retry.** Nach erfolgreichem Write wird **ausschliesslich Metadaten** abgefragt: genau eine `ENABLED`-Version `1`, kein Payload-Read. Bei ambivalentem Fehler NICHT erneut ausführen, zuerst read-only diagnostizieren. Keine IAM-Rolle, kein Job, keine Make-/Kundendaten-/Versandoperation.
+
+Offizielle CLI-Syntax bestätigt: https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/add (Secret-Name positional, `--data-file=-` für stdin). CI: `staging-airtable-secret-version.test.mjs` mockt Plan/fehlende Version/fehlerhafte Identität/unberechtigte Flags und erzwungene TTY-Grenze. **132/132 JavaScript-Tests und 8/8 IAM-Tests** am Source-Commit `e39b9daf2477928a7421c5951968e968a55ee295` bestanden; kein tatsächliches Secret wurde von CI hochgeladen.
+
+**Nächster Schritt ohne Mutation:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-version.sh
+```
+Erwartet `PLAN ONLY` und 0 Versionen. Für die spätere Ausführung `--add-once` ausdrückliche lokale Benutzeraktion am verdeckten TTY; danach erst Secret-spezifische `roles/secretmanager.secretAccessor`-IAM-Bindung für das dedizierte Dienstkonto planen und isolierten Cloud-Run-Lesejob erstellen. **Der bestehende HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`.**
+
+## BESTÄTIGT 17.10.2026 – Leeres Zürich-STAGING-Secret tatsächlich vollständig verifiziert
+
+Der Geschäftsführer führte `git pull --ff-only` und anschliessend das korrigierte rein lesende `staging-airtable-secret-diagnose.sh` im LSZH-Cloud-Shell-Projekt aus. Die Live-Ausgabe lautete:
+```text
+PASS: Company identity and independently verified project number.
+Secret identifier matches: PASS
+Secret project verified (ID or numeric): PASS
+Replication mode: user-managed
+Replica regions: europe-west6
+Zurich-only replica: PASS
+PASS: Exactly zero secret versions.
+PASS: Existing empty Zurich-only STAGING secret independently verified.
+READ ONLY: No token, IAM grants, Cloud Run resources or customer data touched.
+```
+Damit sind **Name, richtiges GCP-Projekt (Projekt-ID oder unabhängig nachgeprüfte Projektnummer), exakt eine Zürcher Replikation und 0 Secret-Versionen tatsächlich unabhängig geprüft**. Der frühere Fehler mit der falschen `gcloud secrets versions list --secret=...`-Syntax ist durch die korrigierte Positionsargument-Syntax nachweislich behoben. Keine zweite Secret-Ressource erstellen; insbesondere `staging-airtable-empty-secret.sh --create-empty` **nicht wiederholen**. Der gesonderte Lesedienst `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` existiert, hat jedoch keine neue SecretAccessor-Berechtigung; das Cloud-Run-Job-Deployment und die später zu hinterlegende Token-Version bleiben separate Schritte.
+
+## 17.10.2026 – Secret-Name, Google-Projekt und Zürcher Replikation LIVE bestätigt; Versionsprüfung noch offen
+
+Der Geschäftsführer führte `staging-airtable-secret-diagnose.sh` nach `git pull --ff-only` aus. **Nachgewiesene echte CLI-Antwort:**
+```text
+PASS: Company identity and independently verified project number.
+Secret identifier matches: PASS
+Secret project verified (ID or numeric): PASS
+Replication mode: user-managed
+Replica regions: europe-west6
+Zurich-only replica: PASS
+ERROR: (gcloud.secrets.versions.list) unrecognized arguments: --secret=lszh-airtable-readonly-staging
+STOP: Cannot enumerate version metadata.
+```
+
+**Fazit:** `lszh-airtable-readonly-staging` ist tatsächlich im richtigen Projekt angelegt, mit genau einer vom Nutzer verwalteten Replikation ausschliesslich in `europe-west6`. Der frühere Ressourcen-/Replikations-STOP war ein zu strikter/inkompatibler Vergleich; das ist jetzt durch die unabhängige Diagnoseroutine korrigiert und live bestätigt. **Noch NICHT nachgewiesen:** tatsächliche Zahl der Secret-Versionen, weil die Secret-Manager-CLI bei `gcloud secrets versions list` den Secret-Namen als **Positionsargument** erwartet; `--secret=` ist für `versions list` unzulässig. Referenz: https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/list .
+
+**Codefix in PR #8:** Beide Skripte `staging-airtable-secret-diagnose.sh` und `staging-airtable-empty-secret.sh` verwenden jetzt `gcloud secrets versions list "$SECRET" --project="$PROJECT" --format='value(name)'`; Mock-Tests fordern die korrekte Positionsargument-Syntax ausdrücklich. Das Skript für die Initialanlage **niemals erneut mit `--create-empty` ausführen**. Keine neue Secret-Version, kein PAT, keine IAM-Bindung, kein Cloud-Run-Job.
+
+**Einziger nächste Schritt (READ ONLY):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
+```
+Erwartetes Ende nur bei wirklich leerem Versionsinventar: `PASS: Exactly zero secret versions.` und `PASS: Existing empty Zurich-only STAGING secret independently verified.`. Bei STOP keinerlei weitere Änderungen; insbesondere keine PAT-Version hinterlegen oder IAM-Rechte vergeben.
+
+## WICHTIG 17.10.2026 – Secret angelegt, strenge Replikations-/Namensprüfung zunächst fehlgeschlagen
+
+Der Geschäftsführer führte nach sauberem Cloud-Shell-`git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-empty-secret.sh --create-empty` aus. **Die Live-CLI hat bestätigt:** `Created secret [lszh-airtable-readonly-staging].` Unmittelbar darauf kam `STOP: Secret name or Zurich-only replication mismatch; inspect metadata, do not add PAT.`
+
+**Ergebnis daher nicht als durchgängig PASS markieren!** Ein Secret-Manager-Ressourcenobjekt wurde wirklich erstellt, aber die Sicherheitsroutine hat das zurückgelesene Resource-`name` **oder** die exakte `replication.userManaged.replicas`-Liste nicht akzeptiert. Grund ist derzeit ungeklärt. Möglich wäre die alternative von Google ausgegebene Ressourcennotation `projects/<numericProjectNumber>/secrets/... ` statt `projects/lszh-automations/secrets/...`, aber diese Hypothese ist **nicht verifiziert**. Der Name und Speicherort werden erst mit Metadaten aus Cloud Shell beurteilt.
+
+**STOP-Gate:** `--create-empty` nicht erneut aufrufen (Ressource existiert schon); **keine** Secret-Version / kein PAT hochladen, **keinen** IAM-SecretAccessor einrichten und **keinen** Cloud-Run-Job bauen/deployen/ausführen. Das Skript kam vor der nachfolgenden Secret-Versionskontrolle zum STOP; auch **null Versionen sind derzeit noch nicht unabhängig nachgewiesen**. Es wurde von diesem Skript kein PAT oder Secret-Wert hinzugefügt und kein IAM-Binding vergeben.
+
+**Sicherer Diagnoseweg im GitHub-Zweig neu vorbereitet:** `workers/onboarding-notifications/staging-airtable-secret-diagnose.sh` darf ohne Argumente nur `gcloud projects describe`, `gcloud secrets describe`, `gcloud secrets versions list` und die Identitäts-/Git-Prüfung ausführen. Kein Secret-Payload-`access`, kein Mutationsbefehl. Das Skript akzeptiert nur den exakt erwarteten Secret-Namen unter entweder der korrekt unabhängig abgefragten **numerischen Projektkennung** oder `lszh-automations`, und fordert **genau eine** `userManaged`-Replik in `europe-west6` sowie **null** Versionen. Gibt einzelne Prüfergebnisse zur Fehlerunterscheidung aus. Falls es STOP meldet: keinen weiteren schreibenden Schritt durchführen.
+
+**Nächster Befehl, nur Diagnose:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
+```
+Erst nach echter Log-Ausgabe Replikation und leeren Zustand als bestanden dokumentieren. Kein neuer Versuch, das Secret zu erstellen.
+
+## 17.10.2026 – Leeres Airtable-STAGING-Secret PLAN ONLY in Cloud Shell bestätigt
+
+Der Geschäftsführer führte nach `git pull --ff-only` das sichere `staging-airtable-empty-secret.sh` **ohne** schreibenden Modus aus. Tatsächlich von Google Cloud Shell bestätigte Ausgabe:
+
+```text
+PASS: Dedicated STAGING service identity exists and is enabled.
+PASS: Company identity, reviewed branch and separate service account verified.
+Expected empty Secret Manager resource: lszh-airtable-readonly-staging
+Replication: user-managed, exactly one replica in europe-west6 (Zurich).
+Existing secret/job: false/false
+No PAT, secret version, IAM grant, Cloud Run job/service or customer data operation.
+PLAN ONLY: no Secret Manager resources or versions created.
+```
+
+**Befund:** Das separate Dienstkonto ist aktiv, Secret und Testjob sind noch nicht vorhanden; der Planlauf hat keine neue Ressource und kein Secret-Payload angelegt. Nächster genau abgegrenzter Schritt ist `bash workers/onboarding-notifications/staging-airtable-empty-secret.sh --create-empty` nach `git pull --ff-only`: ausschliesslich leeres Secret `lszh-airtable-readonly-staging` mit einer Zürcher Replikation erstellen, anschliessend Resource-Name, Replikationsort und null Versionen bestätigen. Mögliche geringe Google-Cloud-Kosten. **Nach dem Anlegen stoppen**: Keine PAT-Version, SecretAccessor-Rolle, Cloud-Run-Job, E-Mail oder Kundenänderung durch diesen Schritt. Erst bei zurückgemeldetem Live-Output als erstellt dokumentieren.
+
+## 17.10.2026 – Airtable-PAT-Secret sicher vorbereitet (nur leere Ressource; noch nicht angelegt)
+
+Nach der vom Geschäftsführer bestätigten Erstellung von `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` ist der **nächste isolierte Schritt** als plan-first Shell-Skript vorbereitet: `workers/onboarding-notifications/staging-airtable-empty-secret.sh`. Er basiert auf dem Google-Cloud-CLI-Feature `gcloud secrets create --replication-policy=user-managed --locations=europe-west6`; Secret Manager verwaltet die Ressource global, die einzige Nutzdaten-Replikation soll in Zürich liegen.
+
+Der Default `--plan` prüft Geschäftskonto, Projekt und sauberen Review-Git-Branch; er liest die vorhandene dedizierte Dienstkontoidentität und enumeriert die Secret-/Jobnamen. Bei nicht vorhandenen Ressourcen meldet er `Existing secret/job: false/false`, ohne Ressourcen zu erstellen. Ein separater expliziter `--create-empty`-Modus erstellt **ausschliesslich** das globale Metadaten-Secret `lszh-airtable-readonly-staging` ohne Wert, mit **genau einer user-managed Replik `europe-west6`**, und liest die exakte Resource-Identität, Replikationsliste und die erwartete **leere Versionsliste** zurück. Er bricht bei Fehlern und Namenskollisionen ab. Er besitzt **keine** Token-/Secret-Version-Upload-Funktion, IAM-Binding-, Cloud-Run-Job-, Kunden- oder Versandanweisungen. **Achtung:** Bei erfolgreichem Anlegen können geringe Secret-Manager-Grundkosten entstehen, auch wenn noch kein Token gespeichert ist.
+
+**Offline-GitHub-CI:** `staging-airtable-empty-secret.test.mjs` simuliert ohne Cloud-Verbindung Plan, explizite leere Anlage, Zürich-Replikation, Schutz vor Ressourcenkollision, falsche Identität, Listen-Fehler, unerwartete Replikation, unerwartet bestehende Versionen und unerlaubte Modi. Der synthetische Outbox-CI-Lauf bestätigte **119/119 JavaScript-Tests und 8/8 IAM-Tests**; reiner lokaler CI-Test.
+
+**Nächste überprüfbare Ausführung:** In Cloud Shell `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-airtable-empty-secret.sh`. Nur der Default-Planlauf, **kein PAT nötig**. **Weder die Secret-Ressource noch eine Version oder SecretAccess-IAM-Bindung wurde durch diese Programmänderung angelegt.** Danach einzelne Freigabe für `--create-empty` und getrennt für die spätere sichere PAT-Version plus Secret-Level-Zugriffsrolle. Bestehender HTTP-Outbox-Dienst bleibt `enabled=false`; der ursprüngliche Firestore-Write-Job darf nicht wiederholt werden.
+
+## BESTÄTIGT 17.10.2026 – separates Airtable-STAGING-Dienstkonto tatsächlich erstellt; noch keine Rechte oder Secrets
+
+Direkt vom Geschäftsführer in der Geschäftskonto-Cloud-Shell ausgeführter Befehl `bash workers/onboarding-notifications/staging-airtable-identity.sh --create-identity`, nach erfolgreichem `git pull --ff-only`. Die vorgelagerte Inventarisierung meldete `Existing resources (identity/secret/job): false/false/false`; der Google-Cloud-CLI-Lauf:
+```text
+Created service account [lszh-airtable-read-stg].
+Service account email: lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+PASS: Dedicated staging Airtable-read service account exists, with NO new IAM grants.
+STOP HERE: Secret creation, IAM secret access, job deployment and execution require separate gated steps.
+```
+**Nachgewiesen:** separates Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` angelegt und per `describe` rückgelesen. Das Skript hat **keine** IAM-Bindings vergeben, keine Service-Account-Schlüssel, Secret-Manager-Secrets, Cloud-Run-Jobs oder -Deployments erstellt und keine Airtable-Datensätze oder Mails angefasst. Eine Prüfung eventuell **geerbter** IAM-Rollen ist durch diesen Schritt nicht erbracht.
+
+**Als nächstes:** Nur die **leere** Secret-Manager-Ressource `lszh-airtable-readonly-staging` mit genau einer vom Benutzer verwalteten Replikation in `europe-west6` (Zürich) vorbereiten und eigenständig prüfen. **Keine** Secret-Version/PAT einspielen, keine Berechtigungen setzen und keinen Job erstellen oder ausführen, bis spätere getrennte Gates erfolgreich sind. Bestehender Outbox-HTTP-Service bleibt weiterhin `enabled=false`. Globaler Secret-Ressourcenname mit auf Zürich begrenzter Benutzer-Replikation ist von einem *regionalen Secret* zu unterscheiden.
+
+## 17.10.2026 – Airtable-STAGING-Dienstkonto: reiner PLAN ONLY-Preflight bestanden
+
+Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den Planlauf `bash workers/onboarding-notifications/staging-airtable-identity.sh` auf Branch `feature/onboarding-notification-outbox-20261016` aus. **Nachgewiesene Originalausgabe:**
+
+```text
+PASS: LSZH company identity, clean pinned branch and read-only metadata enumeration.
+Proposed service account: lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+Proposed separate job: lszh-airtable-read-probe-staging
+No Firestore role, no emails, no production service changes and no customer records.
+Existing resources (identity/secret/job): false/false/false
+PLAN ONLY: no IAM grant, new service account, secret, image, job or execution.
+```
+
+**Interpretation:** Firmenkonto, ausgewähltes Projekt, synchroner sauberer Git-Branch und Leserechte auf das Ressourcen-Inventar sind bestätigt. Die drei exklusiv vorgesehenen neuen Ressourcennamen (Dienstkonto, Secret, Job) waren laut Live-Abfrage noch frei. **Es wurde bisher noch kein Google-Dienstkonto, Secret oder Cloud-Run-Job erstellt**, keine IAM-Rolle erteilt und keine Kunden- oder E-Mail-Operation ausgeführt.
+
+**Nächster eigenständiger, eng begrenzter Schritt:** `bash workers/onboarding-notifications/staging-airtable-identity.sh --create-identity`; erstellt nur `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, ohne zusätzliche IAM-Rolle, SA-Key, Secret, Cloud-Run-Deployment oder Ausführung; bricht bei zwischenzeitlich entstandenem Ressourcen-Namenskonflikt ab. Nach tatsächlicher Ausgabe den Erfolg prüfen und dokumentieren. Der zuvor erfolgreiche `--plan` ist **keine** Bestätigung der Erstellung.
+
+## 17.10.2026 – Airtable→Cloud-Run-Staging-Identität vorbereitet, NOCH KEINE Ressourcen erstellt
+
+Der Geschäftsführer gab mit `vamos` den Auftrag, an der zuvor vorgeschlagenen Einrichtung von separatem Service Account, Secret und STAGING-Probejob weiterzuarbeiten. Die Sicherheitsarbeit wurde bewusst auf den ersten isolierten Schritt begrenzt: **eigenes Google-Dienstkonto ohne zusätzliche Rollen**. Datei `workers/onboarding-notifications/staging-airtable-identity.sh` hat Default `--plan` (GCP-Konto-/Projektcheck, reines Listen der bereits vorhandenen Service Accounts, Secrets und Cloud-Run-Jobs) und optional `--create-identity` für maximal **ein** Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` – nur wenn die drei geplanten Resource-Namen komplett frei sind. Kein Erzeugen von IAM-Keys, keine Projekt-/Firestore-Rollen, keine Secrets, keine Cloud-Run-Jobs, keine Änderungen bestehender Dienste, keine Kunden-/Make-/E-Mail-Operationen. Identitäts- und Kollisions-Fehler brechen vor Schreiboperationen ab.
+
+In GitHub Actions bestätigt: **112/112 JavaScript- und 8/8 IAM-Tests** am Source-Commit `510d77825f75d8b25c653800bad2f0b426727d17`; sechs neue Shell-/Cloud-Simulationstests beweisen PLAN ONLY, bewusstes Identitäts-Anlegen ohne Rollen, STOP bei Bestandskollision, fehlerhafter Geschäftsidentität und unsicherem Git-Checkout. Detaillierter Folgeplan [LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md](./LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md).
+
+**Nächster rein lesender Schritt, bevor irgendetwas in GCP erstellt wird:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-identity.sh
+```
+Der erwartete Abschluss `PLAN ONLY` erstellt keinerlei Cloud-Ressourcen. **Offen:** Dienstkonto in Cloud wirklich erstellen, dann getrennt Secret/Zürich-Replikation/engste Secret-Zugriffsrolle/PAT-Version, review-pinned Build, separaten Job, einmalige Execution und anschliessende Prüfung. Keine PAT-Eingabe in den Chat; früherer Airtable-REST-Test aus Cloud Shell bleibt separat als PASS. Bestehender Outbox-Service bleibt disabled. Noch kein realer End-to-End-Cloud-Run→Airtable→Firestore-Lauf.
+
+## 17.10.2026 – Separater Cloud-Run-Airtable-Lesetest entwickelt, NOCH NICHT DEPLOYED
+
+Nach dem ausdrücklich bestandenen echten Airtable-REST-GET **aus Cloud Shell** (ein erster 401/403-ähnlicher Berechtigungsfehler, zweiter Durchlauf PASS) wurde **nur in GitHub PR #8** ein ausfallsicherer *separater* Job-Baustein vorbereitet:
+- `workers/onboarding-notifications/airtable-runtime-probe.js`: benutzt die unveränderte `onboarding/confirmation.js::verifyOnboardingState` via dem zuvor geprüften `staging-airtable-rest-read.js`, erlaubt genau ein GET nach einem neuen zufälligen Abwesenheitscode und verbietet Nebenabfragen, Tokens in Environment/Logs, Firestore-Konfiguration und Outbox-Aktivierung. Die GCP-Projektidentität, der eigens vorgesehene Jobname `lszh-airtable-read-probe-staging` sowie Index 0/Attempt 0 und zwei streng definierte Betriebsflags sind zwingend. Ein erst später separat freigegebener Secret-Manager-Dateimount unter `/var/secrets/lszh/airtable-read-pat` wäre die einzige Credential-Quelle.
+- `airtable-runtime-probe.test.mjs`: Offline-Tests mit vollständig synthetischen Antworten für fail-closed Flags, Secret-Verfügbarkeit, falschen Job, HTTP 403 und unerwarteten CRM-Datensatz.
+- `Dockerfile.airtable-read-probe`: **nur drei Runtime-JavaScript-Dateien**, ausdrücklich **ohne** Server/Firestore/Make/Email-Code oder eingebettete Zugangsdaten. GitHub Actions überprüft Syntax, Testfälle, containerisierte Default-Sperre und führt lediglich einen lokalen Docker-Build ohne Push/Deployment durch.
+
+Design und unabhängige Freigabegrenze: [LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md](./LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md). Für einen späteren STAGING-Job **separates Dienstkonto ohne Firestore-Zugriff**, neues beschränktes `data.records:read`-Airtable-Token nur auf Website CRM und **auf das einzelne Secret beschränktes** `roles/secretmanager.secretAccessor`; kein projektweites Grant. **Es wurde noch kein neues Dienstkonto, Secret, Google-Cloud-Image oder Cloud-Run-Job erzeugt und kein Zugangstoken in Google Cloud gespeichert.** Bestehender HTTP-Outbox-Dienst bleibt `enabled=false`; reale Kundendaten und Automationen unberührt. Ein späterer Cloud-Run-Lesetest beweist noch kein vollständiges Kunden-Onboarding, keine Mail und keine RC1/AVV-Freigabe.
+
+## Bestätigt 17.10.2026 – Echte Airtable-REST-Authentifizierung in Cloud Shell: PASS
+
+Der Geschäftsführer führte das zuvor genehmigte, gezielt lesende Skript `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe` **zweimal** aus. Die Git-Branch-/Geschäftskonto- und Projektidentitätsprüfung war jeweils erfolgreich. Beim **ersten** Durchlauf wurde das verdeckt eingegebene Airtable-Token zurückgewiesen: `STOP: airtable_token_not_authorized` (401/403-Klasse; genaue Ursache nicht belegt). Nach einem zweiten verdeckten Eingabeversuch meldete derselbe strikt beschränkte Probe-Code:
+```text
+PASS: Existing verifyOnboardingState() used Airtable REST via exactly one GET.
+PASS: Fresh unprinted synthetic project code absent; processing (not completed).
+PASS: No Airtable writes, Firestore operations, service changes or emails.
+PASS: Isolated Airtable REST verifier finished; no customer record was changed.
+```
+
+**Damit nachgewiesen:** Die unveränderte Node.js-`verifyOnboardingState()`-Funktion konnte **aus Cloud Shell heraus** mit einem vom Nutzer lokal verdeckt eingegebenen, für die LSZH Website-CRM-Basis bestimmten Airtable-REST-PAT genau einen HTTPS-`GET` auf die projektcodegefilterte Kunden-Onboarding-Tabelle ausführen und die Abwesenheit eines zufällig generierten, nicht veröffentlichten `ob_<UUIDv4>`-Fixture-Codes korrekt als `processing` einordnen. Keine Kundensuche ausserhalb der festgelegten Tabelle, kein Anlegen, keine E-Mail, keine Make-Aktion, keine Firestore-Aktion. Die bereits drei zuvor bereinigten CRM-Testdatensätze bleiben bereinigt; der Probe-Code speichert keinen Token und enthält keine Kunden-IDs in den Logs.
+
+**Grenze:** Der erste Abweisungsgrund (ungültiges PAT, Scopes oder Base-Zugriff) wurde nicht diagnostiziert und muss nicht weiter erforscht werden, solange der spätere Zugriff sicher bestätigt ist. Der PAT wurde **nicht** in Google Secret Manager hinterlegt, nicht in Cloud Run exportiert und nicht im Repository gespeichert. Der Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` bleibt explizit `LSZH_OUTBOX_STAGE_ENABLED=false`, ohne Scheduler oder Mailtransport. **Noch NICHT nachgewiesen:** Cloud-Run-zu-Airtable-REST mit minimalem Secret-Zugriff, reale unveränderte Airtable-Onboarding-Fixture als `completed` via Node in Cloud Run, oder ein durchgehender verbunden gestarteter Airtable→Cloud-Run→Firestore-Probelauf. Erfolg eines Absenzchecks bedeutet kein erfolgreich abgewickeltes Kunden-Onboarding.
+
+**Nächste technische Entscheidung:** Für einen sicheren Cloud-Run-STAGING-Read-Probe einen *separaten*, standardmässig nicht ausführbaren und ausschliesslich lesenden Cloud-Run-Job vorbereiten, mit nur einer festgelegten Airtable-REST-GET-Anfrage (neuer zufälliger Abwesenheitscode), ohne Cloud-Run-HTTP-Outbox zu aktivieren. Hierfür nach separater Freigabe den vorhandenen PAT ausschliesslich als geschütztes, eng berechtigtes Staging-Secret bereitstellen, keinen Key in Shell-History/GitHub/Logs. Nicht unbemerkt weiterverwenden oder extern versenden.
+
+## Bestätigt 17.10.2026 – Airtable-REST-Einmal-Preflight `PLAN ONLY` erfolgreich
+
+Der Geschäftsführer führte nach erfolgreichem `git pull --ff-only` im LSZH-Cloud-Shell-Checkout `bash workers/onboarding-notifications/staging-airtable-rest-read.sh` ohne Parameter aus. Die Ausgabe bestätigte `PASS: Checked business identity, source branch and clean reviewed checkout.` sowie `PLAN ONLY: no Airtable token requested, no external API calls or cloud changes.`. **Es wurde noch kein Airtable-REST-GET mit einem PAT ausgeführt.** Der beschränkte externe REST-Zugriff des vorhandenen Node.js-Statusverifizierers muss erst separat nachgewiesen werden. Keine CRM-Datensätze, Dienstkonfigurationen, Make-Szenarien, IAM-Berechtigungen oder E-Mails geändert.
+
+**Nächster Schritt bei bereitgestelltem, ausdrücklich auf `data.records:read` und die eine Website-CRM-Airtable-Basis begrenzten PAT** (Token niemals in Chat/GitHub/Cloud-Logs einfügen): `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe`, Token ausschliesslich an verdecktem Cloud-Shell-Prompt eingeben. Es ist ein eigenständiger bewusst ausgelöster **einziger GET** auf die synthetische zufällige Abwesenheit, keine Cloud-Run-Ausführung. Bei `STOP` nicht mit ungeschützten Curl- oder Logging-Alternativen fortsetzen.
+
+## AKTUELL – 17.10.2026 07:34 (Zürich): Echte Airtable-REST-Leseprüfung vorbereitet, kein Cloud-Dienst aktiviert
+
+**Erneuter exakter, ausschliesslich lesender Cleanup-Nachweis über den verbundenen Airtable-Zugang:** Die drei früheren ausschliesslich synthetischen Airtable-IDs aus dem ausdrücklich genehmigten CRM-Fixture-Test ergeben weiterhin jeweils **0 Treffer**: `Kunden-Onboarding/recx6PnnpSgpbZbYn`, `Aufträge/recPbqkocPYokgK2n`, `Kunden/rec6Mu0uaBdy4H3K7`. Es wurde kein weiterer Testkunde angelegt.
+
+**Weiteres Sicherheits-Gate implementiert (offline getestet, NICHT live ausgeführt):**
+- `workers/onboarding-notifications/staging-airtable-rest-read.sh`: ausschliesslich `--plan` (kein Netzwerkzugriff) oder bewusst `--probe` (interaktiv). Prüft das LSZH-Google-Geschäftskonto, den Projektkontext sowie den sauberen geprüften Git-Branch. Erfordert ein **nur auf die CRM-Basis eingeschränktes Airtable-PAT mit `data.records:read`**. Das PAT wird am sicheren Cloud-Shell-Prompt **verdeckt** eingegeben, über eine temporäre Standard-Input-Pipe direkt an Node übergeben, nicht als Parameter/Environment/Datei/GitHub/Cloud Run/Logs gespeichert. Token weder hier noch im Chat posten.
+- `staging-airtable-rest-read.js`: verwendet die **unveränderte reale** `onboarding/confirmation.js -> verifyOnboardingState()`-Funktion, erzeugt einen frischen, kryptografisch zufälligen `ob_<UUIDv4>`-Testcode und erlaubt über eine Request-Whitelist **genau ein** `GET` an `https://api.airtable.com/v0/appzJiskpAdaR1HEv/tblWIY4l4VASz8Vse` mit streng geprüftem `{Projektcode}='...'`-Filter. Die Erwartung ist `processing` für die fehlende Fixture, **nicht `completed`**. Bei 401/403/429, unerwarteter Antwort oder zweiter Anforderung: STOP ohne Folgeanfrage; keine Kundendaten-Lektüre, Firestore, Make, E-Mail oder CRM-Schreiboperation. Es werden weder zufälliger Code noch Token oder Antwortbody geloggt.
+- `staging-airtable-rest-read.test.mjs`: acht offline gefälschte REST-Testfälle für exakten GET, Freigabeflag, Token-/Codevalidierung, 401/403, 429, unerwartete Treffer und defekte Antwort. CI im Outbox-Workflow meldete nach Hinzufügung **99/99 JavaScript-Tests und 8/8 IAM-Tests** bestanden.
+
+**Noch OFFEN:** Die externe Airtable-REST-Probe wurde **nicht** ausgeführt, da ein minimales echtes Airtable-PAT eingegeben werden muss. Der verbundene Airtable-App-Zugang wird niemals als Cloud-Run-PAT ausgegeben. Dieser PRE-Integrationstest validiert nur die Node.js-REST-Leseverbindung von Cloud Shell für einen **nicht vorhandenen** Testcode; er belegt **noch keinen** Cloud-Run-zu-Airtable-Lesezugriff und auch keinen vollständigen CRM→Outbox-Produktivzyklus. Kein Secret Manager, neues Cloud-Run-Deployment, neuer Testkunde oder Scheduler eingerichtet.
+
+**Nächster Schritt für den Geschäftsführer (nur read-only zuerst):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-rest-read.sh
+```
+Erwartet `PLAN ONLY`, ohne Passwortabfrage/API-Aufruf. Anschliessend als **eigene** Aktion und erst mit geeigneten Airtable-Read-only-PAT `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe` (ein gezielter GET). Der Cloud-Run-HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`; keine realen Kundenveränderungen oder Automationsaktivierungen.
+
+## AKTUELL – 17.10.2026: Synthetischer Airtable-CRM-Onboarding-Test LIVE bestanden UND VOLLSTÄNDIG bereinigt
+
+Der Geschäftsführer erteilte ausdrücklich die Freigabe für die kontrollierte Erstellung und anschliessende Bereinigung von **genau drei** synthetischen Datensätzen in der real verbundenen Website-CRM-Airtable-Basis `appzJiskpAdaR1HEv`. Vorher wurden live die neun Airtable-Automationen (acht aktiv), zwei aktiven Make-Szenarien (ohne Airtable) und sieben inaktiven Make-Onboarding-Szenarien überprüft. Die aktuellen Feldschema-Optionen und Berechnungsformeln bestätigten den geplanten risikoarmen Datensatztyp. Der einmalig zufällig generierte, nicht veröffentlichte synthetische Onboarding-Code hatte vor Anlage **0** exakte CRM-Treffer. Kein laufendes System wurde deaktiviert oder aktiviert.
+
+In dieser Reihenfolge angelegt: fiktiver `Kunden`-Record `rec6Mu0uaBdy4H3K7`, fiktiver `Aufträge`-Record `recPbqkocPYokgK2n`, fiktiver `Kunden-Onboarding`-Record `recx6PnnpSgpbZbYn`. Nur `synthetisch@example.invalid` als Kontaktadresse, keine echten Personen-/Kundendaten, keine Offerte oder Rechnung, kein Versand. Der Auftrag war `Leistung=Beratung`, `Status=Pausiert`, `Abrechnungsmodell=Individuell`, `Standardaufgaben erstellt=true`, CHF 0 und ohne Fakturierungsdatum. **13/13 unabhängige Live-Leseprüfungen** der Verknüpfungen, Rechnungsdaten-/Make-Status-Konsistenz, Versandsperren und Sicherheitsformeln waren positiv. `Auto-Fakturierung fällig=0`, `Projekt vollständig=0`, keine automatisch angelegten Projektaufgaben-/Rechnungslinks.
+
+Danach ausdrücklich **alle drei angelegten synthetischen Datensätze bereinigt**: Onboarding → Auftrag → Kunde. Vor jeder Löschung wurden Identität und fehlende nicht autorisierte Verknüpfungen kontrolliert. Die Cloud-Airtable-Schnittstelle bestätigte jede Delete-Aktion und gesonderte nachfolgende Reads meldeten **für jede der drei Record-IDs null Treffer**; die abschliessende projektcodegenaue Onboarding-Suche ergab ebenfalls **0 Treffer**. Keine synthetische Fixture blieb zurück. Keine Make-Einladung, Gmail-Nachricht, Cloud-Run-Reconcile, Firestore-Aktion oder Aktivierung des weiterhin gesperrten Cloud-Run-HTTP-Outbox-Dienstes. Die bestehenden erfolgreichen Firestore-Lese-/Schreib-/bereinigten Tests sind getrennte technische Nachweise.
+
+**Wichtiges Gate bleibt bestehen:** Durchgängiger Live-Codepfad `verifyOnboardingState()` über echtes Airtable-REST-Token auf einem Cloud-Run-Ausführungsdienst und anschliessend Outbox-Speicherung **wurde NICHT ausgeführt**. Das Ergebnis ist ein nachweislich sauberer realer Airtable-Fixture-/Referenzdaten-/Konsistenz-/Cleanup-Test, ergänzt durch bereits grüne synthetische Offline-E2E-Tests. Rechtliche RC1-/AVV-Freigaben und produktive Systeme bleiben separat offen. Für erneute CRM-Fixtures oder Cloud-Run-Verbindung eigene erneute Freigaben einholen; **nicht** heimlich neue Testdaten anlegen.
+
+**Einzelheiten:** [LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md](./LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md).
+
+## Update 17.10.2026 – Airtable-Fixture-Nebenwirkungen auditiert; keine CRM-Schreibfreigabe
+
+**Ausschliesslich lesende Live-Bestandsaufnahme:** In der Website-CRM-Airtable-Base `appzJiskpAdaR1HEv` sind 9 Automationen vorhanden, davon **8 deployed/aktiv**. Die vier wichtigsten Bedingungen wurden in der aktuell bereitgestellten Automation-Konfiguration kontrolliert:
+- `LSZH Projekte – Standard-Onboarding` läuft nur bei Aufträgen `Leistung=Automation-Projekt` plus Kunden-Link, leerer Aufgaben-Linkliste und `Standardaufgaben erstellt=false`; Folge: **sechs Projektaufgaben** und ein Auftragsupdate. Für E2E-Test daher **Leistung=Beratung** und **Standardaufgaben erstellt=true**.
+- `LSZH Projekte – Abschluss & Betreuung` reagiert auf `Projekt vollständig=1`, fehlendes Abschlussdatum und Nicht-Storniert; synthetischer Auftrag darf **Projektabschluss durchgeführt nicht setzen**.
+- Zwei aktive Rechnungs-Automationen laufen **täglich 08:00 / 08:05 Europe/Zurich** und suchen Aufträge mit `Auto-Fakturierung fällig=1`; nur wiederkehrende beziehungsweise einmalige Abrechnungsmodelle. Für die Fixture `Abrechnungsmodell=Individuell`, `Status=Pausiert`, **kein Fakturierungstermin** und CHF-Entgelte 0.
+- Die übrigen aktiven Trigger betreffen Website-Leads, Rechnungsstatus oder Projektaufgaben; wir erstellen **keinen** Website-Lead und keine Projektaufgabe. Keine direkte aktive Airtable-Automation wird von der `Kunden-Onboarding`- oder `Kunden`-Tabelle getriggert. Änderungen an Triggern unmittelbar vor einem echten Live-Test erneut lesen.
+
+Make wurde ebenfalls live read-only geprüft: Organisation `LZSH AUTOMATIONS`, Team `My Team`; **zwei aktive** Szenarien (`Integration Apple iOS`, `MG - Delete`) ohne Airtable-App und sieben spezifische LSZH-Make-Onboarding-Szenarien (inkl. `7777695`, `7963278`, `7963329`, `7963343`, `7936546`, `7835639`, `7936151`) **inaktiv**. Die Verbindung im alten Onboarding-Szenario ist technisch OK, aber die produktive E-Mail-Sperre bleibt bestehen. **Kein** Szenario ausgeführt oder geändert.
+
+**Neuer Live-Testentwurf ohne Cloud-Veränderungen:** [LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md](./LSZH_AIRTABLE_E2E_FIXTURE_SAFETY_PLAN_20261017.md) beschreibt drei *später* anzulegende ausschliesslich synthetische CRM-Records (Kunde, Auftrag, Onboarding) mit `example.invalid`-Kontaktfeldern, zufälligem einmaligen `ob_<UUID4>`-Token, sicheren Leistungs-/Status-/Fakturierungswerten, exakten Verknüpfungen und kontrolliertem Cleanup. Das bisherige all-zero-Offline-Token ist als echter Link-Token ausdrücklich **verboten**. Der neue Code `synthetic-crm-fixture-gate.js` validiert diesen fixierten Datensatzumschlag vollständig **offline**; der Test lehnt Rechnungsdatum, realistische Empfänger, Automation-Projekt-Typ, Make-Einladungsbestätigung und unerwartete Felder ab. Code enthält **keine** Airtable-Schreiboperation.
+
+**Wichtiger Gate:** Trotz der sorgfältigen Feldwahl garantiert nichts, dass ein gemeinsames, bereits aktives Website-CRM keinerlei weitere Trigger hat. **Bis auf ausdrückliche zusätzliche Genehmigung KEINE CRM-Fixture erstellen, keine Airtable-/Make-Automationen deaktivieren, keine E-Mails senden und den Cloud-Run-Outbox-Dienst nicht aktivieren.** Ein erfolgreiches Eingangsformular ist weiterhin kein vollständig abgeschlossenes Kunden-Onboarding.
+
+## UPDATE 17.10.2026 – Automationstrigger vor echter synthetischer Airtable-Fixture geprüft
+
+**Reine Metadaten-Leseprüfung mit verbundenen Apps:**
+- `LSZH Automations – Website CRM`: **9 Airtable-Automationen**, davon **8 deployed/aktiv**. Die aktive `LSZH Projekte – Standard-Onboarding` erzeugt bei erfüllten Auftragsbedingungen automatisch mehrere Projektaufgaben und setzt Statusfelder. Die ebenfalls aktiven `LSZH Projekte – Abschluss & Betreuung` und `LSZH Betreuung – Folgecheck anlegen` können Folgeaufgaben auslösen; zwei weitere aktive Automationen betreffen die Fakturierung. Sie wurden **nicht** verändert.
+- Make-Organisation `LZSH AUTOMATIONS` (verbundenes Team): Aktuell **2 aktive Szenarien**, keines davon das LSZH-Onboarding oder ein Airtable-Onboarding-Trigger. Sieben Szenarien mit `Onboarding` im Namen sind `inactive`, darunter `LSZH Kunden-Onboarding – Eingang` (`7777695`) und Make-Einrichtungs-/Folgecheck-Szenarien. Kein Szenario gestartet oder aktiviert.
+- Ein gefilterter Airtable-Read auf den explizit fiktiven Projektcode `ob_00000000-0000-4000-8000-000000000000` ergab 0 Onboarding-Records. Der vollverbundene Test bleibt noch offen.
+
+**Sicherheitsentscheid:** Keine künstlichen Kunden-/Auftrags-/Onboarding-Datensätze in der gemeinsam genutzten Website-CRM-Basis ohne gezielte Prüfung der aktiven Airtable-Trigger und eventueller automatischer Kettenreaktionen. Keine pauschalen Abschaltungen oder Änderungen am CRM. Für eine risikoarme fortgesetzte Staging-Integration zuerst ein isoliertes Testdatenkonzept ausarbeiten; nur mit separater Zustimmung erstellen/ausführen. Die Offline-E2E-Suite läuft erfolgreich über die echten Kernfunktionen (82/82 JavaScript-Tests plus 8/8 IAM). Verweis: [LSZH_ONBOARDING_OUTBOX_E2E_20261017.md](./LSZH_ONBOARDING_OUTBOX_E2E_20261017.md).
+
+## UPDATE 17.10.2026 – Onboarding→Outbox Offline-End-to-End bestanden; reale CRM-Fixture fehlt
+
+Fortsetzung nach vollständig abgeschlossenem Firestore-Lese-/Schreib-/Löschtest. Über den verbundenen Airtable-Zugang wurde die **tatsächliche Tabellen-/Feldstruktur ohne Kundendatenänderungen** geprüft. Die Basis `LSZH Automations – Website CRM` (`appzJiskpAdaR1HEv`) enthält die vier vom bestehenden `onboarding/confirmation.js` benötigten Tabellen `Kunden-Onboarding`, `Aufträge`, `Kunden`, `Projektaufgaben` mit den geprüften Feldern, Links und Auswahlwerten (einschliesslich `Eingegangen`/`Vollständig`, `Sensible Daten`, `AVV erforderlich=Prüfen`, Make-Statusfeldern). Die technisch referenzierten Spalten stimmen mit der Live-Metadatenstruktur überein.
+
+**Sieben zusätzliche synthetische End-to-End-Testfälle** nutzen den bestehenden HTTP-Server, reale `listCandidateCodes`, `reconcile`, `verifyOnboardingState` und die echte Firestore-`createOnce`-Logik mit lokal abgefangenen Airtable-/Firestore-Antworten. Geprüft wurden vollständige Verknüpfung mit einem nicht sendbaren Draft, erneuter Aufruf mit idempotentem 409/GET, fehlende DSG-Aufgabe, Rechnungsdaten-Widerspruch, Doppelbelegung des Projektcodes, Airtable 401 und abgeschalteter/Falsch-Secret-Zugriff. GitHub CI meldet `82/82` JavaScript- und `8/8` separate IAM-Tests erfolgreich, **ohne** Cloud-Deployment oder Änderung echter Kundendaten. Neue Datei: `workers/onboarding-notifications/onboarding-e2e.synthetic.test.mjs`. Detaillierte Prüfmatrix: [LSZH_ONBOARDING_OUTBOX_E2E_20261017.md](./LSZH_ONBOARDING_OUTBOX_E2E_20261017.md).
+
+**Live-Fixture-Existenz:** Eine gezielt auf den festen synthetischen Projektcode `ob_00000000-0000-4000-8000-000000000000` begrenzte Airtable-**Leseabfrage** der Onboarding-Tabelle ergab exakt **0 Datensätze**. Damit ist ein durchgängiger, real verbundener Airtable→Cloud-Run→Firestore-Test **noch NICHT durchgeführt**; diese Aussage nicht mit dem erfolgreichen Offline-Test oder dem separaten Firestore-Google-Cloud-Test verwechseln.
+
+**Sicherer nächster Entscheidungspunkt:** Bevor wir eine echte Test-Fixture im gemeinsamen Website-CRM schreiben, müssen die dadurch möglicherweise ausgelösten Airtable-/Make-Automationen und Nebeneffekte gezielt geprüft werden. Keine neuen Testkunden im Live-CRM, keine Einladungen, keine externen E-Mails, keine Aktivierung des deaktivierten Cloud-Run-Outbox-Dienstes ohne separate ausdrückliche Freigabe. Make-Mitgliedseinladungen bleiben bislang nur kundenseitige Statusangaben, keine verifizierte Berechtigung.
+
+## Bestätigter Abschluss 17.10.2026 – Firestore-Outbox-STAGING Lese- UND Schreibpfad bestanden
+
+**Echter Cloud-Run-Nachweis aus den vom Geschäftsführer kontrollierten Execution-Logs** am 16.10.2026, 22:20:11 (UTC), für die genau einmal ausgeführte Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` im Projekt `lszh-automations`, Region `europe-west6`, benannte Firestore-Datenbank `lszh-offers-staging`, eigenes Staging-Dienstkonto:
+
+```text
+PASS: Fixed synthetic STAGING document was absent before the write.
+PASS: Actual outbox createOnce persisted one test-only, send-disabled draft.
+PASS: Created draft read back with exact testOnly=true and delivery=false fields.
+PASS: Test fixture deleted with a version precondition.
+PASS: Test fixture removal verified (HTTP 404).
+PASS: Outbox Firestore synthetic WRITE/READ/DELETE cycle completed.
+No Airtable calls, emails, customer records or credentials logged.
+```
+
+**Technischer Befund: BESTANDEN.** Die echte `createFirestoreStore().createOnce()`-Implementierung konnte mit der Laufzeit-Dienstidentität ein **festes, fiktives Testdokument** in `lszh_onboarding_notification_drafts_staging` anlegen, als `DRAFT_NOT_SENT` mit `testOnly=true`, `deliveryEnabled=false`, `emailSent=false` vollständig zurücklesen, über die aktuelle `updateTime`-Versionsbedingung löschen und die Abwesenheit mit einem abschliessenden HTTP 404 bestätigen. Das synthetische Dokument ist nach dieser Abfrage nicht mehr vorhanden. Weitere Cloud-Firestore-Testarbeiten sind für diese eng umrissene Speicherfunktion **nicht nötig**. Den Einmal-Job **nicht nochmals starten**.
+
+Bereits zuvor separat erfolgreich: Firestore-Metadaten-GET 200, absichtlich fehlendes Staging-Testdokument GET 404 durch dieselbe Cloud-Run-Identität; Cloud-Run-HTTP-Outbox-Service `lszh-onboarding-outbox-staging` meldete authentifiziert `enabled=false`; ein anonymer `GET /health` wurde nachweislich mit HTTP **403** verweigert. Es wurden keine Benutzer-Token-Creator-Rechte ergänzt, keine JSON-Schlüssel genutzt und keine produktiven E-Mails, Make-Szenarien, Airtable-Kundendaten oder Vertragsannahmen aktiviert.
+
+**Weiterhin ausdrücklich OFFEN:** Der eigentliche Airtable→Onboarding-Verifikations→Outbox-End-to-End-Lauf wurde **nicht** live geprüft, und der bestehende Cloud-Run-HTTP-Dienst bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` und ohne Airtable-Zugangsdaten, Fixture-Codes oder Scheduler gesperrt. Auch rechtliche RC1-/AVV-Freigaben, produktive Vertragsannahme/Archivierungsfreigabe, echtes Kunden-Onboarding, Versandpfad und allfällige vererbte IAM-Rechte sind nicht durch diesen synthetischen Speichertest abgedeckt. Der Code liegt weiterhin im nicht gemergten Draft-PR #8 (auf Draft-PR #7 aufbauend).
+
+**Empfohlene nächste Arbeit:** Nicht noch einen Firestore-Probejob bauen. Stattdessen den gesamten bislang nur offline getesteten **Onboarding-Zustandsprüfpfad** für einen ausdrücklich synthetischen Airtable-Fall vorbereiten und über die App-/GitHub-Verbindungen lesend prüfen; keine produktiven Daten ändern und den Outbox-Dienst ohne ausdrückliche Freigabe nicht aktivieren. Ergebnisse fortlaufend hier festhalten.
+
+## Update 17.10.2026 – Erster synthetischer Firestore-Schreibtest Cloud Run JOB: 1/1 erfolgreich, Logs noch offen
+
+**Vom Geschäftsführer ausdrücklich in Cloud Shell ausgeführt:** `staging-firestore-write-job.sh --execute-once`, nachdem ein neuer, isolierter, nicht automatisch gestarteter Staging-Job angelegt worden war. Die vorangestellte Sicherheitskontrolle meldete `PASS: reviewed image, only test env vars, dedicated identity, task=1, retries=0.` Die eine Cloud-Run-Execution `lszh-firestore-write-probe-staging-cb7mm` wurde in `europe-west6` mit `1 / 1 complete` und `Execution [...] has successfully completed` beendet. Gepinntes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34`. Keine automatischen Retries, keine Änderung bestehender HTTP-Services/IAM/Make/E-Mail-Szenarien.
+
+**Prüfstand:** Der Job-Exit-Code 0 ist ein starkes Indiz für den erfolgreichen vorgesehenen Zyklus (GET auf fehlende fixe synthetische ID, `createOnce` via echter Outbox-Firestore-Routine, strikte Readback-Prüfung, bedingtes DELETE, GET erwartet 404). **Noch nicht anhand der separaten Ausführungslogs einzeln bestätigt** sind alle PASS-Zeilen und damit die endgültige Bestätigung der Bereinigung. Nicht behaupten, dass Cleanup bereits anhand von Logdaten nachgewiesen sei. Als nächster *rein lesender* Schritt gezielt die Logs **dieser** Execution abrufen:
+
+```bash
+gcloud beta run jobs executions logs read lszh-firestore-write-probe-staging-cb7mm \
+  --project=lszh-automations --region=europe-west6 --limit=50
+```
+
+Bei `PASS: Test fixture removal verified (HTTP 404).` und `PASS: Outbox Firestore synthetic WRITE/READ/DELETE cycle completed.` zusammen mit vorangegangenen Create/Readback/Cleanup-PASS als durchgängig verifiziert markieren. **Job keinesfalls erneut ausführen**; Skript verhindert einen Zweitlauf. Bei fehlenden PASS/unerwarteten Fehlern nur read-only analysieren, vor jeglicher manueller Bereinigung ausdrücklich entscheiden. Bestehender Outbox-HTTP-Dienst bleibt weiterhin `enabled=false`; produktiver Versand und Verträge nicht aktiviert.
+
+## Update 17.10.2026 – Synthetischer Firestore-Schreibprobe-Job erfolgreich angelegt, nicht ausgeführt
+
+Bestätigt durch Geschäftskonto/Cloud Shell: `staging-firestore-write-job.sh --create-only` lief erfolgreich, Google Cloud meldet `Job [lszh-firestore-write-probe-staging] has successfully been created` in `europe-west6`. Geplantes Container-Image: `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34` (zuvor bereits Cloud Build SUCCESS). Das Skript bestätigte `PASS: New STAGING write-probe Job CREATED; NOT EXECUTED.`. Es hat damit bislang **noch keinen** Firestore-Testdatensatz geschrieben, gelesen oder gelöscht, keine Scheduler eingerichtet, keine IAM-Rollen geändert und keine E-Mails verschickt. Der ursprüngliche Cloud-Run-HTTP-Outbox-Dienst bleibt weiterhin deaktiviert (`enabled=false`).
+
+**Nächster expliziter Gate:** `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-firestore-write-job.sh --execute-once`. Dieser Modus muss vorher prüfen, dass es **keine frühere Execution** des neuen Jobs gibt, dass Image und Dienstidentität exakt stimmen, dass die Umgebungswerte nur den synthetischen Test mit deaktiviertem Outbox-HTTP-Dienst betreffen, sowie `taskCount=1` und `maxRetries=0`. Er startet maximal einmal den bewusst auf eine künstliche `recZZZZZZZZZZZZZZ`-ID begrenzten Test: vorheriges GET 404, echte Outbox-`createOnce`-Routine, strikte GET-Feldprüfung, versionsbedingte DELETE-Anfrage und erneutes GET 404. **Bei Fehlern nicht wiederholen und etwaige synthetische Restfixture zuerst separat überprüfen.** Das Ausführen verursacht reale synthetische Schreib-/Löschoperationen und ist von der vorausgegangenen Job-Erstellung unabhängig.
+
+Die tatsächliche Firestore-Schreibberechtigung und die erfolgreiche Bereinigung sind aktuell **noch nicht verifiziert**; erst nach Ausführungs- und Container-Lognachweis als PASS markieren. Weiterhin keine produktiven Onboarding-, Vertragsannahme- oder Versandfreigaben.
+
+## Update 17.10.2026 – Synthetisches Firestore-Schreibprobe-Image gebaut, Job noch nicht angelegt
+
+Der Geschäftsführer hat den Build `bash workers/onboarding-notifications/staging-firestore-write-job.sh --build-only` erfolgreich in Google Cloud Shell ausgeführt. Cloud Build `59efd378-075e-4a53-8bc3-e72de99a5551` meldete **SUCCESS** (12 Sekunden, nur sechs explizit erlaubte Quelldateien). Das Image ist in der bestehenden Zürcher Artifact Registry gespeichert:
+`europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-write-probe:staging-a20757439a34`.
+Prüf-Basis: GitHub-Review-Branch `feature/onboarding-notification-outbox-20261016`, Runtime-/Dockerfile-Quellstand `a20757439a34`, mit korrigierter Firestore-RFC3339-Zeitstempel-Normalisierung.
+
+**Nachweisliche Grenzen:** `PASS: Isolated synthetic probe image pushed; no job deployed/executed.` Es wurde kein Firestore-Dokument geschrieben oder gelöscht. Der Schreibprobe-Job `lszh-firestore-write-probe-staging` wurde noch nicht erstellt. Der bestehende Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert, ohne Airtable-/E-Mail-/Scheduler-Funktionen. Kein neues IAM gewährt.
+
+**Nächster strikt getrennter Schritt:** Beim User ausschliesslich `bash workers/onboarding-notifications/staging-firestore-write-job.sh --create-only` auf dem bereits synchronisierten Branch; erzeugt maximal den **neuen**, nicht automatisch ausgeführten Testjob (1 Task, 0 Retries, 512 MiB). Bei `STOP` nicht umgehen. Erst danach nach separater bewusster Freigabe `--execute-once` und die tatsächlichen Cloud-Run-Logs prüfen. Der Test kann für genau eine fiktive Fixture Firestore-Create/Read/Conditional-Delete durchführen; es entstehen mögliche Cloud-Kosten. Das Image ist bereits gebaut, deshalb **kein erneuter `--build-only`-Aufruf**.
+
+## Update 17.10.2026 – Firestore-Schreibprobe vor Container-Build um RFC3339-Normalisierung ergänzt
+
+Der Geschäftsführer führte `staging-firestore-write-job.sh` erfolgreich im Modus `PLAN ONLY` aus: richtiges LSZH-Konto, benannte Zürcher Staging-Datenbank, eigenes Dienstkonto, kein bereits existierender Write-Probe-Job; es erfolgten weder Cloud-Build/Deployment noch Firestore-Operationen. Im anschliessenden Code-Review wurde eine **potenzielle Live-Falschfehlermeldung** entdeckt: Die echte Firestore-REST-API Z-normalisiert Zeitstempel beim Lesen (gesendet `.000Z`, zurückgeliefert unter Umständen `Z` oder `.000000Z`). Das vormals strikte Gleichsetzen aller JSON-Timestamp-Strings hätte nach erfolgreichem Schreibversuch einen unberechtigten Abbruch und ein stehen gebliebenes synthetisches Dokument verursachen können. **Vor dem ersten Build behoben:** Der Test akzeptiert nur 0/3/6/9 Nachkommastellen mit exakt null für den fest verankerten Testzeitpunkt; zusätzliche oder veränderte Mikrosekunden werden abgewiesen, alle anderen Felder strikt geprüft; DELETE weiterhin nur nach erfolgreicher Prüfung per `currentDocument.updateTime`-Precondition. Synthetische Offline-Testfälle umfassen die Firestore-Normalisierung und ablehnende Fehlerpfade.
+
+Der geplante Container ist nun quellengebunden an den neuen Commit `a20757439a34`; bei späteren Änderungen der sechs Runtime-/Build-Dateien verweigert das Skript die Wiederverwendung des Image-Tags. **Nicht deployed, keine produktiven Daten angefasst, noch kein Schreibrecht live nachgewiesen.** Nächster Schritt nach Git-Pull erneut nur Preflight `staging-firestore-write-job.sh` (PLAN ONLY), danach separat ggf. Build-only. Bestehender Outbox-HTTP-Dienst bleibt deaktiviert; anonymer HTTP-Zugriff bereits mit 403 abgewiesen.
+
+## AKTUELLER STAND – 17.10.2026: Cloud-Run-Outbox auch für anonymen Zugriff gesperrt; synthetischer Schreibtest OFFLINE vorbereitet
+
+**Neue tatsächliche Gesundheitsprüfung vom Geschäftsführer:** `staging-health-check.sh` meldet
+`PASS: Cloud Run name, identity, ingress and disabled no-secret runtime environment`;
+`PASS: No allUsers/allAuthenticatedUsers entries in service IAM policy`;
+`PASS: Anonymous caller rejected with HTTP 403`;
+`PASS: Authenticated health returned enabled=false`;
+und `PASS: Disabled private STAGING health check`.
+Damit ist die Ablehnung des anonymen Aufrufs **am echten Cloud-Run-HTTP-Endpoint** zusätzlich zu den direkten IAM-Bindings nachgewiesen. Der Dienst `lszh-onboarding-outbox-staging` bleibt deaktiviert und verwendet weiterhin keine Airtable-Credentials, Fixture-Codes, E-Mail-Dienste oder Scheduler. Geerbte IAM-Zugriffsrechte wurden dadurch nicht formal vollständig auditiert.
+
+**Neu nur im ungemergten PR #8 vorbereitet:** Der streng begrenzte synthetische Firestore-Schreibtest `firestore-write-probe.js` verwendet exakt die **vorhandene** Outbox-`createFirestoreStore().createOnce()`-Schreibroutine und `makeDraft()` für den ausdrücklich fiktiven Datensatz `recZZZZZZZZZZZZZZ`. Er verweigert einen bereits vorhandenen Dokumentpfad; legt maximal **ein** synthetisches `DRAFT_NOT_SENT`-Dokument mit `testOnly=true`, `deliveryEnabled=false`, `emailSent=false` in der vorhandenen dedizierten Staging-Collection an; liest das exakte Dokument samt Flags zurück; löscht es nur per Firestore-REST-`currentDocument.updateTime`-Precondition und prüft danach HTTP 404. Bei unbekannten Daten oder unpassenden Werten **keine** Löschung; bei Teilausfall kann das synthetische Dokument zur manuellen Nachkontrolle bestehen bleiben. Kein Airtable-/Make-/E-Mail-Zugriff oder Kundenrecord. Separates Minimal-Dockerfile und offline Mock-Tests; kein Aufruf oder Änderung an bestehenden Cloud-Run-HTTP-Diensten. Die noch nicht live gebaute/ausgeführte Probe verlangt neben den festen Datenbank- und Identitätswerten ausdrücklich `LSZH_SYNTHETIC_WRITE_PROBE_ONLY=true` und `LSZH_OUTBOX_STAGE_ENABLED=false`.
+
+`staging-firestore-write-job.sh` sieht vier getrennte bewusst auszuführende Schritte vor: zuerst ausschliesslich `--plan` (read-only), danach optional `--build-only` (Image), `--create-only` (neuer Job ohne Execution) und zuletzt **nach ausdrücklicher Genehmigung** `--execute-once`. Das Skript bindet das Image an den überprüften Source-Commit, blockiert Job-Überschreibungen, verlangt 1 Task/0 Retries/512 MiB und verweigert einen zweiten Lauf auch nach fehlgeschlagener Ausführung. Es baut/deployt/startet **nichts automatisch**. Die Firestore-Leserechte sind bereits real geprüft; die Schreibrechte weiterhin **UNGETESTET**.
+
+**Empfohlener nächster Schritt:** Im Geschäfts-Cloud-Shell-Checkout `git pull --ff-only`, anschliessend **nur** `bash workers/onboarding-notifications/staging-firestore-write-job.sh` (kein Cloud-Write). Vor späterem Live-Test synthetischen Schreibzugriff und mögliche Restfixture-Bereinigung ausdrücklich freigeben. Kein produktiver Versand/Vertragsabschluss/Deploy.
+
+## AKTUELLER STAND – 17.10.2026: Firestore-REST-LESERECHTE NACHGEWIESEN (STAGING)
+
+**Bestätigtes Ergebnis:** Der Geschäftsführer hat die Logs der am 16.10.2026 einmalig abgeschlossenen Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` (Region Zürich, `europe-west6`) ausgelesen. Die relevanten Logzeilen lauteten:
+
+```text
+2026-10-16 22:01:33 PASS: Named Zurich STAGING Firestore metadata GET 200.
+2026-10-16 22:01:33 PASS: Missing, fixed synthetic document GET 404.
+2026-10-16 22:01:33 PASS: Cloud Run service identity effective Firestore READ probe successful.
+2026-10-16 22:01:33 NO document body, personal data, token, customer info, write or email operation.
+```
+
+Damit sind **die technische Erreichbarkeit der benannten Firestore-Staging-Datenbank und die effektive Leseoperation mit der dedizierten Google-Cloud-Run-Dienstidentität** erstmals real belegt, **ohne** Token-Creator-Berechtigungen für den Cloud-Shell-Benutzer, Dienstkontoschlüssel oder separate Service-Credentials. Die Dokumentenabfrage betraf ausschliesslich eine **absichtlich nicht existente** synthetische Dokument-ID und bestätigte HTTP 404; die Probe hat keine vorhandenen Datensatzinhalte geladen.
+
+**Weiterhin bewusst offen / nicht bewiesen:** Firestore-Schreibrechte (`createDocument`) sowie End-to-End-Airtable-/Outbox-Verarbeitung, produktiver Vertrags-/Rechnungs-/E-Mail-Versand, rechtliche RC1/AVV-Freigaben und übergeordnete IAM-Zugriffe. Es fand **kein** Schreibtest statt. Bestehender Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` ist weiterhin gesperrt: `LSZH_OUTBOX_STAGE_ENABLED=false`, keine Credentials/Fixture-Codes/Scheduler. Ein Service-Health-Test mit IAM wurde bereits bestanden; der später ergänzte anonyme HTTP-401/403-Gegencheck ist **noch ohne bestätigte Nutzerausgabe**.
+
+**Sicherer nächster Schritt:** Ausschliesslich die erweiterte `staging-health-check.sh` mit Prüfung auf verweigerten anonymen Zugriff durchführen (kein POST, keine Datenbank, keine Änderungen). Erst danach separat einen exakt begrenzten synthetischen Firestore-Schreibtest vorbereiten, vor dessen Durchführung ausdrücklich die Ziel-Collection, den Testinhalt, die Idempotenz und Bereinigung festlegen. Der erfolgreiche Read-Job soll **nicht nochmals ausgeführt** werden. Vorhandene STAGING-Services niemals überschreiben oder aktivieren, ohne erneute manuelle Entscheidung.
+
+## Nachtrag 16./17.10.2026 – Firestore-Leseprobe-Job einmalig erfolgreich abgeschlossen; Logs noch zu verifizieren
+
+Der Geschäftsführer führte **ausdrücklich** den separat gesicherten `staging-firestore-job.sh --execute-once` in Cloud Shell aus. Der Sicherungscheck bestätigte `PASS: Job pinned to reviewed image, exact service identity and fixed read-only config.` Danach wurde die **eine** Cloud-Run-Jobausführung `lszh-firestore-read-probe-staging-s76jq` in `europe-west6` gestartet und von Google Cloud mit `1 / 1 complete` und `Execution [...] has successfully completed` abgeschlossen. Genaue Container-Version weiterhin `lszh-firestore-read-probe:staging-49297f5b6cb0`; es gab **keine automatische Wiederholung**. Der separate HTTP-Outbox-Staging-Dienst bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` deaktiviert; keine produktiven E-Mails, keine Änderungen an Airtable/Firestore-Daten oder IAM-Rollen vorgesehen.
+
+**Noch nicht unabhängig anhand der Container-Logs nachgewiesen:** Ob beide beabsichtigten Firestore-REST-GETs exakt `PASS: Named Zurich STAGING Firestore metadata GET 200.` und `PASS: Missing, fixed synthetic document GET 404.` protokollierten. Die erfolgreich abgeschlossene Jobausführung ist ein starkes Indiz, aber die Bestätigung soll über die Logs der **konkreten** Execution erfolgen. Nächster Schritt ausschliesslich lesend:
+
+```bash
+gcloud beta run jobs executions logs read lszh-firestore-read-probe-staging-s76jq \
+  --project=lszh-automations --region=europe-west6 --limit=50
+```
+
+Die Antwort soll genau drei erwartete PASS-Zeilen zum benannten Datenbank- und fehlenden Dokumentzugriff zeigen. **Job nicht wiederholen**, bevor die konkreten Logs geprüft sind. Danach kann der read-only Firestore-IAM-Nachweis als bestanden dokumentiert werden; Schreibzugriff ist separat ungetestet.
+
+## Nachtrag 16.10.2026 – Firestore-Leseprobe-Job erfolgreich erstellt (NOCH NICHT AUSGEFÜHRT)
+
+Der Geschäftsführer hat nach Behebung des Cloud-Run-Gen2-Mindestwerts von 512 MiB RAM die Aktion `staging-firestore-job.sh --create-only` erfolgreich im LSZH-Geschäftskonto ausgeführt. Google Cloud bestätigt `Job [lszh-firestore-read-probe-staging] has successfully been created` in `europe-west6`, mit unverändert wiederverwendetem, zuvor gebauten Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-firestore-read-probe:staging-49297f5b6cb0`. Das Tool meldet ausdrücklich: `PASS: New Cloud Run Job CREATED but NOT EXECUTED. No Firestore traffic.` Keine Scheduler, Schlüssel, Kunden- oder Firestore-Datenoperationen; der separate bestehende Outbox-HTTP-Dienst bleibt mit `enabled=false` deaktiviert.
+
+**Nächster Gate:** Der `--execute-once`-Modus muss vor einer einzigen Ausführung die vorhandene Job-Spezifikation (Image-Tag, Laufzeit-Dienstkonto, ausschliesslich drei festgelegte Umgebungsvariablen, ein Task, null Retries) lesen und gegen die fest codierten Sicherheitswerte prüfen. Erst nach ausdrücklicher Aktion darf er `gcloud run jobs execute ... --wait` aufrufen. Dieser einmalige Job bezieht Tokens ausschliesslich von seiner Cloud-Run-Dienstidentität und führt nur zwei feste Firestore-GET-Abfragen aus (benannte DB-Metadaten und absichtlich fehlender synthetischer Dokumentpfad); keine Writes oder E-Mails. Der Erfolg dieser tatsächlichen Leseprobe ist noch **nicht bestätigt**. Bei unerwarteter Job-Konfiguration abbrechen, nicht ungeprüft neu deployen/ausführen.
+
+## Nachtrag 16.10.2026 – Cloud Run Job Speichergrenze korrigiert
+
+Der vom Geschäftsführer gestartete `staging-firestore-job.sh --create-only` ist beim Google-Cloud-Deploy wegen **256 MiB RAM mit 1 vCPU in Cloud Run Gen2** abgewiesen worden (Cloud Run Job verlangt mindestens 512 MiB). Die Ausgabe `Job failed to deploy` zeigt **keinen erfolgreichen Job-Deploy**; es erfolgte auch **keine Jobausführung, keine Firestore-Abfrage, keine Kundenmail**. Andere Cloud-Run-Dienste unverändert.
+
+Korrektur ausschliesslich im Entwicklungsbranch: `--memory=512Mi`; der bestehende **erfolgreich gebaute** Container `lszh-firestore-read-probe:staging-49297f5b6cb0` wird absichtlich wiederverwendet, ohne Image-Rebuild. Das Job-Skript prüft dazu, dass Container-Code, Dockerfile und Cloud-Build-Definition seit dem Original-Build unverändert sind. Es verweigert weiterhin Überschreiben vorhandener Jobs und automatische Ausführung. Neue synthetische Tests prüfen die Cloud-Run-Gen2-Grenze und Image-Tag-Pinning. **Nächste userseitige Aktion: nach Pull rein lesendes `staging-firestore-job.sh`-Preflight**, dann ausdrücklich `--create-only` bei Erfolg. Bei unerwartet doch existierendem Job vor jeder Änderung stoppen.
+
+## Nachtrag 16.10.2026 – Ursache des abgebrochenen Impersonations-Tests eingegrenzt; Cloud-Run-Job vorbereitet
+
+Geschäftskonto bestätigte lesend mit `staging-impersonation-diagnostics.sh`: `iamcredentials.googleapis.com` ist **aktiv**. Für `lars@lszh-automations.ch` ist weder direkt am einzelnen Outbox-Dienstkonto noch direkt am Projekt eine `roles/iam.serviceAccountTokenCreator`-Bindung vorhanden. Die Prüfung beweist nicht, ob Gruppen-/Custom-/vererbte Berechtigungen existieren. Die vorherige Impersonation war `UNVERIFIED`, ohne dass Firestore auch nur einen Request erhalten hat. **Keine** neuen Rollen anlegen.
+
+Technisch vorbereitet ist nun der ausschliesslich lesende, eigenständige Cloud-Run-Job `lszh-firestore-read-probe-staging`: `staging-firestore-job.sh` teilt die Aktion in **vier explizite** Modi – nur `--plan` (keine Änderungen), nur `--build-only` (3-Dateien-Container bauen), nur `--create-only` (Job ohne Ausführung anlegen), `--execute-once` (erst nach striktem Image-/Dienstkonto-/Umgebungsabgleich eine einzelne Ausführung ohne Retries). Der Job verwendet die vorhandene Dienstkontoidentität direkt aus dem Cloud-Run-Metadatenserver; er liest **nur** Datenbank-Metadaten sowie einen fest codierten nicht existierenden Test-Dokumentpfad und loggt nur PASS/FAIL, keine Daten/Kundencodes/Tokens. Offline-/Mock-Tests und GitHub CI sichern die Zwischenstufen. Cloud Run Jobs unterstützen ausdrücklich die konfigurierte Runtime-Serviceidentität und eine `execute`-Aktion mit `--wait` (Google-Cloud-Dokumentation geprüft). Bestehender Outbox-HTTP-Service bleibt unverändert und `enabled=false`.
+
+**Wichtig:** Bis jetzt ist **kein** Probe-Image gepusht, **kein** Job angelegt oder ausgeführt. Zuerst nur `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-firestore-job.sh` ausführen, erwartetes `PLAN ONLY`. Spätere Build-/Create-/Execute-Schritte können Cloud-Kosten auslösen und benötigen jeweils separate bewusste Ausführung. Keine Kundendaten oder produktiven E-Mails.
+
+## Nachtrag 16.10.2026 – Firestore-Zugriffstest vor IAM-Impersonation gestoppt
+
+Der separate `staging-firestore-read-probe.sh --probe-read`-Lauf wurde vom Geschäftsführer ausdrücklich gestartet. Geschäftskonto, benannte Staging-Datenbank und Ziel-Servicekonto waren bestätigt. Bei der anschliessenden **Benutzer-zu-Servicekonto-Impersonation** stoppte das Skript mit `UNVERIFIED: Could not impersonate dedicated STAGING service account`; es wurden **keine** Firestore-REST-GET-Requests ausgeführt. Das ist **kein** Nachweis einer fehlenden Firestore-Berechtigung des bereits bereitgestellten Cloud-Run-Dienstes. Der deaktivierte Health-Check war zuvor erfolgreich, das beweist jedoch ebenfalls keinen Firestore-Zugriff.
+
+Neues rein lesendes Diagnose-Skript `workers/onboarding-notifications/staging-impersonation-diagnostics.sh`: kontrolliert aktive Geschäftsidentität, IAM-Credentials-API-Aktivierung und **direkte** Token-Creator-Rollen auf Ziel-Servicekonto und Projekt; keine Tokens, keine IAM-Änderungen. Als spätere, alternative sichere Prüfung sind `firestore-runtime-probe.js` + separates minimales `Dockerfile.firestore-probe` entworfen und offline getestet; ein einmaliger Cloud-Run-Job würde über **seine eigene** Service-Identität nur feste Firestore-Metadaten und ein absichtlich fehlendes Testdokument lesen. **Kein Job erstellt, kein neues Image hochgeladen, keine Probe ausgeführt.** Build, Bereitstellung und Test brauchen jeweils gesonderte manuelle Zustimmung. Bestehende Cloud-Run-Revision bleibt deaktiviert, keine Kundendaten, keine produktiven E-Mails.
+
+## Nachtrag 16.10.2026 – Cloud-Run-Healthcheck bestanden, Firestore-Leseprobe vorbereitet
+
+**Durch Geschäftsführer ausgeführter STAGING-Test:** `staging-health-check.sh` bestätigte die erwartete Cloud-Run-Laufzeitidentität, die ausschliesslich deaktivierten/no-secret Umgebungsvariablen, das Fehlen öffentlicher Invoker-Bindings *auf Service-Ebene* und den authentifizierten `GET /health` mit `enabled:false`. Alles PASS. Keine produktiven Onboardings, keine Firestore-Operation, kein Scheduler und kein Mailversand. Geerbte Invoker-Rechte und die tatsächliche Firestore-IAM-Wirksamkeit sind damit weiterhin **nicht** belegt.
+
+Neu vorbereitet auf Draft-Branch/PR #8: `workers/onboarding-notifications/staging-firestore-read-probe.sh`. Ohne Argumente prüft es nur geschäftliche Identität, Datenbank und Servicekonto. Mit **separat manuell** ausgeführtem `--probe-read` versucht es eine kurzlebige Dienstkonto-Impersonation und dann zwei ausschliesslich lesende HTTP-GETs (benannte Firestore-DB-Metadaten: 200; garantiert nicht selbst erstelltes Probe-Dokument in dedizierter Outbox-Collection: erwartetes NOT_FOUND/404); Bodies und Tokens werden nicht ausgegeben. Eine Servicekonto-Impersonation setzt bereits vorhandene `iam.serviceAccounts.getAccessToken`-Berechtigung und ggf. die IAM-Credentials-API voraus. Bei Fehlen **keine** pauschalen Rollen vergeben, sondern den gescheiterten Test dokumentieren und den nächsten isolierten Ansatz abklären. Neue synthetische Tests prüfen beide Modi und Fehlersperren. **Kein neues Cloud-Run-Deployment**, vorhandene Revision weiterhin deaktiviert.
+
+## Nachtrag 16.10.2026 – Outbox Cloud Run STAGING deployed (GESPERT)
+
+**Über das LSZH-Geschäftskonto ausgeführt und durch Cloud-Shell-Erfolgsausgaben bestätigt:** Container-Build `46e3293e-8b9b-44b1-b7ec-34dd330b3e44` am 16.10.2026 um 21:32 UTC `SUCCESS`, 8 allowlist-Quelldateien, Container-Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-onboarding-outbox:staging-4075f23f47b8`. Anschliessend wurde ausschliesslich der **neue** private Cloud-Run-Staging-Dienst `lszh-onboarding-outbox-staging` in `europe-west6` angelegt, Revision `lszh-onboarding-outbox-staging-00001-pz6`, 100% Traffic. Dienst-URL: `https://lszh-onboarding-outbox-staging-470613067122.europe-west6.run.app`. Das Deployment verwendete `--no-allow-unauthenticated`, das dedizierte Outbox-Servicekonto, `LSZH_OUTBOX_STAGE_ENABLED=false`, `FIRESTORE_PROJECT_ID=lszh-automations`, `FIRESTORE_DATABASE_ID=lszh-offers-staging`. **Keine Airtable-Credentials, synthetischen Fixture-Codes, Versand-Secrets oder Cloud Scheduler eingerichtet.** Der Dienst beantwortet nur den Gesundheitscheck; der geschützte `/internal/reconcile` ist technisch gesperrt. **Noch KEIN authentifizierter Live-Healthcheck**; Cloud-Run-IAM-Konfiguration und tatsächliche Firestore-REST-Wirksamkeit ebenfalls noch nicht mit dem laufenden Dienst getestet. **Nicht** `--deploy-disabled` erneut ausführen: Skript verweigert absichtlich das Ändern eines vorhandenen Dienstes.
+
+**Nächste, ausschliesslich lesende Aktion:** `cd ~/lszh-outbox-review && bash workers/onboarding-notifications/staging-health-check.sh`. Der Check validiert nur Identität, deaktivierte Laufzeitvariablen, Service-IAM-Policy und authentifiziertes `GET /health`; erwartetes `enabled:false`. Bei 401/403 die Invoker-Rechte klären, **keine öffentliche Freigabe**. Kein POST, kein Airtable-/Firestore-Zugriff, keine E-Mails. PR #8 und vorgelagerter PR #7 bleiben Draft/ungemergt; Staging-Deployment ist keine produktive Freigabe.
+
+## Nachtrag 16.10.2026 – private Cloud-Run-Staging-Bereitstellung vorbereitet
+
+Der Geschäftsführer hat die *read-only* IAM-Sicherheitsprüfung bestanden: separate Staging-Dienstidentität vorhanden und aktiv; die benannte Firestore-Zürichdatenbank stimmt; exakt ein konditionierter `roles/datastore.user`-Projekt-IAM-Binding für diese Identität; keine weiteren Projektrollen für das Konto; keine nutzerverwalteten privaten Schlüssel. **Noch offen:** Vererbte Rechte und tatsächliche Firestore-REST-Wirksamkeit. Es erfolgte kein Firestore-Lese-/Schreibzugriff.
+
+Im nicht gemergten Outbox-Branch sind danach die **sicher getrennten, ausdrücklich auszuführenden** Cloud-Shell-Schritte ergänzt:
+- `workers/onboarding-notifications/staging-service.sh` ohne Argumente: prüft nur die vorhandenen Ressourcen, Geschäftskonto, exakten Git-Commit und Abwesenheit eines existierenden Cloud-Run-Outbox-Diensts (keine Änderungen).
+- `--build-only`: nach expliziter Ausführung ausschliesslich die acht für den Worker nötigen Quelldateien über Cloud Build in die vorhandene Zürcher Artifact Registry bauen/hochladen; keine Geheimnisse und kein Deployment.
+- `--deploy-disabled`: nach expliziter Ausführung **nur einen neuen** Cloud-Run-Service `lszh-onboarding-outbox-staging` mit separatem Dienstkonto, verpflichtender IAM-Authentisierung, `LSZH_OUTBOX_STAGE_ENABLED=false`, ohne Secrets, Testcodes, Scheduler und Mailtransporte deployen. Ein vorhandener Service wird nie aktualisiert. Es können Cloud-Kosten entstehen.
+- `staging-health-check.sh`: liest Konfiguration/Service-IAM und führt nur einen authentifizierten `GET /health` aus; erwartet `enabled=false`, kein Kunden-/Datenbankzugriff.
+
+**Momentaner Zustand:** Nur Code/CI/Dokumentation vorbereitet; **kein** Container-Push, **kein** Cloud-Run-Deployment, **keine** Kundenmails oder Onboarding-Schreibzugriffe. Vor späterer Aktivierung zusätzlich Test-Fixures und Firestore-Rechte isoliert prüfen. Erläuterungen in `workers/onboarding-notifications/README.md`.
+
+## Nachtrag 16.10.2026 – Staging-Dienstidentität vom Geschäftsführer angelegt
+
+Google Cloud Shell hat nach der ausdrücklich ausgeführten Aktion `bash workers/onboarding-notifications/staging-identity-setup.sh --apply` **`Created service account [lszh-onboarding-outbox-staging]`** und **`Updated IAM policy for project [lszh-automations]`** gemeldet. Die Identität ist `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com`. Die eingerichtete `roles/datastore.user`-Bedingung zielt auf `resource.name=="projects/lszh-automations/databases/lszh-offers-staging"`. Keine Schlüsseldatei, kein Cloud-Run-Deployment, keine Firestore-Datenoperationen und keine Kundenmails.
+
+**Nächster Gate:** Projekt-Policy ist noch keine bewiesene effektive Firestore-Berechtigung. Neu ergänzt: `workers/onboarding-notifications/staging-identity-verify.sh` und `verify_iam_policy.py` für eine rein lesende Prüfung des Konto-/Datenbank-/IAM-Zustands, zusätzlicher Projektrollen und user-managed SA-Keys; synthetische Policy-Tests in CI. Ererbte IAM-Berechtigungen und tatsächliche REST-Lese-/Schreibrechte sind mit diesem Check weiterhin nicht nachgewiesen. Vor Einsatz ausschliesslich synthetischen Staging-End-to-End-Test durch separate private Cloud Run durchführen; produktive Systeme bleiben unverändert.
+
+## Nachtrag 16.10.2026 – Cloud-Shell-Diagnose und sichere Staging-Anpassungen
+
+Die vom Geschäftsführer ausgeführte rein lesende Cloud-Shell-Diagnose bestätigt die **bestehende** Firestore-Native-Datenbank `lszh-offers-staging` in Zürich (`europe-west6`) und das bestehende Container-Repository `cloud-run-source-deploy`. Das zuvor hartkodierte Firestore-Ziel `(default)` war falsch: Eine solche Datenbank existiert hier nicht. Der Outbox-Worker und seine Tests wurden auf die **bestehende benannte Staging-Datenbank** und die separate Test-Collection `lszh_onboarding_notification_drafts_staging` angepasst. Cloud-Build verweist auf das vorhandene Registry-Repository. Somit aktuell **keine zweite Datenbank / kein zweites Registry-Repository nötig**.
+
+Sicherheitskorrektur: Der Test-Worker führt **keine vollständige CRM-Liste** mehr durch, sondern lässt nur 1–3 explizit freigegebene synthetische Codes über `LSZH_STAGING_FIXTURE_CODES` zu. Ein falscher/unbekannter Code führt zum fail-closed Ergebnis. Zusätzlich wird `FIRESTORE_DATABASE_ID=lszh-offers-staging` verlangt; die Firestore-Duplikatprüfung blockiert auch vorhandene Einträge mit abweichendem Versandstatus. Alle Versandfunktionen sind weiterhin nicht implementiert.
+
+**Noch nicht durchgeführt:** eigenes Dienstkonto `lszh-onboarding-outbox-staging` erstellen und nur für die benannte Firestore-Datenbank konditional autorisieren; Private-Cloud-Run-Testinstanz; eigene Airtable-Read-only-Secrets/Scheduler-Freigabe; echter rein synthetischer End-to-End-Lauf. Weil die benannte Datenbank Offerten-Staging enthält, gewährt ein IAM-Recht auf sie technisch auch Zugriff auf deren andere Collections. Nutzung nur für isolierte synthetische Tests; vor Produktionsanbindung separate Datenbank entscheiden. Keine bestehenden Offer-Dienste, Make-Szenarien oder Kundendaten wurden verändert.
+
+Das Opt-in-Skript `workers/onboarding-notifications/staging-identity-setup.sh` ist vorbereitet. Ohne Parameter zeigt es nur eine reine Leseprüfung und den Berechtigungsplan; erst ein vom Geschäftsführer selbst ausgeführtes `--apply` erstellt das eigene Dienstkonto und die auf `lszh-offers-staging` konditionierte Firestore-IAM-Berechtigung. Es erzeugt **keine** Schlüsseldatei, startet keine Cloud-Run-Dienste, schreibt keine Datensätze und versendet nichts.
+
+Einzelheiten: `workers/onboarding-notifications/README.md`.
+
+## Nachtrag 16.10.2026 – dauerhafte Onboarding-Benachrichtigungsentwürfe (nur Code, STAGING)
+
+Auf dem getrennten Branch `feature/onboarding-notification-outbox-20261016` ist ein **privater Cloud-Run-Outbox-Worker** vorbereitet. Er liest mögliche Onboarding-Abschlüsse aus Airtable, verifiziert den gesamten bisherigen Verarbeitungspfad mit der read-only Prüfkomponente und legt erst nach erfolgreich nachgewiesenem technischen Abschluss einen eindeutigen `DRAFT_NOT_SENT`-Eintrag per atomarem Firestore-Create an. Wiederholungen finden denselben Eintrag; Fehler erzeugen weder Erfolgsbehauptung noch Nachricht. Keine Kunden-E-Mail-Adresse und kein Geheimtoken werden gespeichert. Zugriffe sollen künftig über privates Cloud Run, dediziertes Google-Dienstkonto und separates Secret erfolgen. Keine JSON-Schlüsseldateien.
+
+**Status (aktualisiert 16.10.):** Offline-/HTTP-Synthetiktests samt echtem lokalen HTTP-zu-Fake-Airtable-zu-Fake-Firestore-Integrationspfad und separatem Docker-Image-Build in GitHub Actions; kein Cloud-Run-Deployment, kein aktiver Scheduler, kein Firestore-Live-Test, kein produktiver E-Mail-Versand. Read-only Cloud-Shell-Prüfskript `workers/onboarding-notifications/staging-preflight.sh` bereitgestellt. Die Google-Cloud-Voraussetzungen müssen im Geschäftskonto noch tatsächlich geprüft werden. Das originale Make-Szenario `7777695` und dessen `0=1`-Mail-Sperre bleiben unverändert. Ein separater Sender mit Freigabegates und Provider-Deduplikation muss später noch gebaut werden. Branch enthält ausserdem eine öffentliche Static-File-Allowlist des Website-Servers, sodass `/workers/**`, interne Dateien und Dokumentation nicht öffentlich abrufbar sind. Laufende Tests für diese Grenzen.
+
+Betriebs- und technische Einzelheiten: [Outbox-Staging README](../workers/onboarding-notifications/README.md).
+
+
+
 ## Nachtrag 16.10.2026 – serverseitige Onboarding-Vorgangsbestätigung (Entwicklungsbranch)
 
 **Nur im isolierten Feature-Branch** `feature/onboarding-server-confirmation-20261016`: Das Website-Onboarding prüft nach einem Make-Eingang den technischen Abschluss durch **read-only** Airtable-Nachverifikation (Onboarding, Auftrag, Kundendaten und ggf. Datenschutz-Prüfaufgabe). Neuer `POST /api/onboarding/status`, fail-closed: nur tatsächliche geprüfte Persistenz = `completed`; Make-`Accepted`/200 = kein Erfolgsbeleg; sonst `processing`, `requires_review` oder Ausfall. Das Frontend fragt den Status nach einer unbestätigten Einsendung lesend nach, ohne erneut ein Formular zu senden.

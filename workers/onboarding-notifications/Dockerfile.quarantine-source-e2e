@@ -1,0 +1,24 @@
+# SINGLE-USE SYNTHETIC STAGING E2E source. No secrets or fixture in image.
+# Source checkout copied only through explicit allowlisted Cloud Build context.
+FROM node:22.16.0-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --chown=node:node onboarding/confirmation.js onboarding/confirmation.js
+COPY --chown=node:node workers/onboarding-notifications/airtable-candidates.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/draft-review-gate.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/outbox.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/firestore-store.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/firestore-quarantine-cas.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-plan.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-cas-offline-cycle.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/firestore-scoped-readers.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-protocol.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-offline-flow.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-replay-cas.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-http-contract.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-replay-runtime.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-receiver.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/quarantine-handoff-source.js workers/onboarding-notifications/
+COPY --chown=node:node workers/onboarding-notifications/staging-synthetic-source-e2e-once.js workers/onboarding-notifications/
+USER node
+CMD ["node","workers/onboarding-notifications/staging-synthetic-source-e2e-once.js"]

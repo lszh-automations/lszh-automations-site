@@ -1,0 +1,8 @@
+# LSZH one-shot READ-ONLY Firestore probe job, not a Cloud Run HTTP service.
+# Build context contains ONLY this file and firestore-runtime-probe.js.
+FROM node:22.16.0-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --chown=node:node workers/onboarding-notifications/firestore-runtime-probe.js /app/probe.js
+USER node
+CMD ["node", "/app/probe.js"]

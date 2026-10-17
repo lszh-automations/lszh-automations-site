@@ -15,7 +15,8 @@ function oneLink(v) {
   return Array.isArray(v) && v.length === 1 && VALID_ID.test(v[0]) ? v[0] : null;
 }
 function norm(v) { return String(v ?? '').trim(); }
-function allLinks(v, id) { return Array.isArray(v) && v.includes(id); }
+// Backlinks must be unambiguous: the expected record may be the only link.
+function exactlyOneLink(v, id) { return oneLink(v) === id; }
 
 async function readAirtable({token, fetchImpl, table, id, formula, fields, timeoutMs = 7000}) {
   const url = new URL('https://api.airtable.com/v0/' + BASE + '/' + table + (id ? '/' + id : ''));
@@ -68,9 +69,13 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
   if (!VALID_ID.test(order.id) || !order.fields) throw new Error('invalid_status_response');
   const of = order.fields;
   if (of['Onboarding-Token'] !== projectCode) return {state:'requires_review'};
-  if (!allLinks(of['Kunden-Onboarding'], record.id) ||
+  if (!exactlyOneLink(of['Kunden-Onboarding'], record.id) ||
       of['Verbindungen erforderlich'] !== true ||
       of['AVV erforderlich'] !== 'Prüfen' ||
+      // Explicit Make statuses are required: equal-but-blank fields prove nothing.
+      // The organisation may legitimately be blank before an account is set up.
+      !norm(f['Make-Konto Status']) ||
+      !norm(f['Make-Einladung Status']) ||
       norm(of['Make-Kontostatus']) !== norm(f['Make-Konto Status']) ||
       norm(of['Make-Organisation']) !== norm(f['Make-Organisation']) ||
       norm(of['Make-Einladungsstatus']) !== norm(f['Make-Einladung Status']))
@@ -84,7 +89,10 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
   });
   if (!VALID_ID.test(customer.id) || !customer.fields) throw new Error('invalid_status_response');
   for (const field of ['Rechnungsstrasse','Rechnungs-PLZ','Rechnungsort','Rechnungsland','Rechnungs-E-Mail']) {
-    if (norm(customer.fields[field]) !== norm(f[field])) return {state:'processing'};
+    // Two missing mirrored fields are not evidence of a completed billing profile.
+    // This is a fail-closed readiness check; no customer records are modified.
+    if (!norm(f[field]) || norm(customer.fields[field]) !== norm(f[field]))
+      return {state:'processing'};
   }
   if (['Ja','Unsicher'].includes(f['Sensible Daten'])) {
     const code = orderId + '-DSG-01';
@@ -95,8 +103,9 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
     if (!Array.isArray(tasks.records)) throw new Error('invalid_status_response');
     if (tasks.records.length > 1) return {state:'requires_review'};
     if (tasks.records.length !== 1 ||
+        !VALID_ID.test(tasks.records[0]?.id) ||
         tasks.records[0].fields?.['Aufgabencode'] !== code ||
-        !allLinks(tasks.records[0].fields?.['Auftrag'], orderId))
+        !exactlyOneLink(tasks.records[0].fields?.['Auftrag'], orderId))
       return {state:'processing'};
   } else if (f['Sensible Daten'] !== 'Nein') {
     return {state:'processing'};

@@ -1,5 +1,13 @@
 # LSZH Onboarding-Outbox – STAGING-only, keine E-Mails
 
+## 17.10.2026 – Offline-Bridge zur Quarantäne ergänzt; bestehender Server deaktiviert
+
+Die neue `onboarding-quarantine-integration.js`-Funktion `reviewOnboardingForQuarantine` verbindet **nur im Quellcode und synthetischen Tests** den bereits vorhandenen send-gesperrten `makeDraft`-/`eventId`-Outbox-Entwurf, die enge `listCandidateCodes`-Fixture-Allowlist und den vorhandenen **read-only** `reviewDraft`-Airtable-Statusnachweis mit `prepareQuarantineCAS` für die separate `lszh-quarantine-staging`-Datenbank. Ungültige Drafts, fremde IDs, nicht gelistete Projektcodes oder unverifizierbare Firestore-Snapshots ergeben `BLOCKED_NO_PERSISTENCE`; Airtable-Ausfall ergibt `HOLD_NO_PERSISTENCE`; gleichbleibender Review-Status `NO_CHANGE`.
+
+Die Bridge gibt **ausschliesslich einen nicht ausführbaren Status ohne Cloud-POST, Projektcode, Token oder E-Mail-Adresse** zurück. `server.js` und die Cloud-Run-Konfiguration wurden **nicht angefasst**; der Worker bleibt mit `LSZH_OUTBOX_STAGE_ENABLED=false` deaktiviert, und es wurde keine neue IAM-Berechtigung vergeben. **357 von 357 Offline-Tests bestanden** nach dieser Ergänzung. Bestehende **zwei einzelne synthetische** erfolgreiche Schreib-/Lese-Nachweise sind separat: bereits vorhandener Outbox-Lese/Schreib/Lösch-Test sowie Quarantäne-CAS-Create+Update-Livetest; daraus folgt **keine produktive End-to-End-Integration**.
+
+Vor einem späteren realen Integrationslauf sind unabhängige, bankübliche Authentifizierungs- und Identitätsprüfungen für das Lesen des bestehenden Drafts in `lszh-offers-staging` **und** den Zugriff auf `lszh-quarantine-staging` nötig. Die auf die jeweilige Named Database beschränkten Service-Account-Rechte werden **nicht zusammengelegt**, und es darf keinen stillen Firestore-Schreib-/Retry- oder Mail-Pfad geben. Gesonderte Zustimmung für IAM, Deploy und produktive Daten bleibt erforderlich.
+
 **Stand:** 17.10.2026. Code weiterhin Draft PR #8 (nicht gemergt). Separater Cloud-Run-STAGING-HTTP-Dienst bereitgestellt und weiterhin **deaktiviert**. Isolierte Cloud-Run-Jobs bestätigten echten Firestore-GET-Zugriff sowie das synthetische **createOnce → Readback → versionsgebundene Löschung → abschliessendes 404**. Keine Kundenmails, kein Scheduler und keine Onboarding-End-to-End-Verarbeitung.
 
 ## 17.10.2026 – Tatsächlicher Firestore STAGING WRITE/READ/DELETE-Nachweis: PASS

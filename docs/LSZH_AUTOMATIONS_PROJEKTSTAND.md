@@ -1,5 +1,30 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Airtable-Cloud-Run-EINMAL-Test-Preflight LIVE PASS; Ausführung noch ausstehend
+
+Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den rein lesenden `bash workers/onboarding-notifications/staging-airtable-job-run.sh` aus. Die tatsächlichen Live-Ergebnisse:
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Original successful Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.
+```
+
+**Bestätigter Ist-Zustand:** Die existierende STAGING-Jobressource `lszh-airtable-read-probe-staging` ist exakt an `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:ce88fa70db14f5d297095da3e8faa26b72e69cdc837ca133212ebc10a09fe8ab` gebunden. Dediziertes aktives Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`, Secret `lszh-airtable-readonly-staging` mit nur einer Zürich-Replik `europe-west6`, Version 1 `ENABLED`, sekret-spezifische IAM-Rolle `roles/secretmanager.secretAccessor` und read-only Datei-Mount `/var/secrets/lszh/airtable-read-pat` bestätigt. Cloud-Run-Job-Container hat exakt die drei freigegebenen STAGING-Umgebungsflags, `tasks=1`, `parallelism=1`, `maxRetries=0`, keine command/args-Overrides. Cloud-Run-Ausführungsliste über `--format=json` tatsächlich **leer**. **Eine echte Cloud Run → Airtable HTTPS-GET-Verbindung ist NOCH NICHT getestet.**
+
+**Nächste explizite und irreversible Benutzeraktion (einmalig):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-job-run.sh --execute-once
+```
+Vor dem Start führt das Skript sämtliche Metadatenprüfungen erneut und die Ausführungslistenprüfung **zweimal** aus. Nur bei weiterhin 0 Ausführungen startet es **maximal ein** `gcloud run jobs execute lszh-airtable-read-probe-staging --project=lszh-automations --region=europe-west6 --wait` ohne Overrides. Der Job soll genau eine **GET**-Abfrage nach frisch zufälligem, nicht vorhandenem synthetischen Projektcode an Airtable ausführen; niemals Kundendaten ändern, keine Firestore-, Make- oder E-Mail-Operation. **Egal ob PASS, STOP oder ambivalente CLI-Ausgabe: --execute-once NICHT wiederholen**, zuerst die exakten Cloud-Run-Execution- und Probelogs unabhängig und nur lesend prüfen. Ein `gcloud ... --wait`-SUCCESS allein beweist noch nicht den fachlichen Airtable-GET-Probe-Erfolg; dafür werden die drei beabsichtigten PASS-Logmeldungen benötigt.
+
+Der HTTP-Outbox-Dienst bleibt deaktiviert `LSZH_OUTBOX_STAGE_ENABLED=false`. Keine produktiven E-Mails, Vertragsannahmen, Make-Szenarien oder Kundendatenänderungen freigeben.
+
 ## BESTÄTIGT 17.10.2026 – Separater Airtable-STAGING-Cloud-Run-Job erstellt, null Ausführungen; Einmal-Test nur als Plan vorbereitet
 
 Der Geschäftsführer führte nach `git pull --ff-only` den bewusst freigegebenen `bash workers/onboarding-notifications/staging-airtable-job.sh --create-only` in Google Cloud Shell aus. Die tatsächlichen Live-Meldungen:

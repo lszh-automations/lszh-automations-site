@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Live öffentliche Website-Erreichbarkeit bestätigt (drei unabhängige GETs)
+
+**Ausgabe aus der vom Geschäftsführer ausgeführten Cloud-Shell-HTTP-GET-Schleife**, die je URL `curl -L -sS --max-time 20 --max-redirs 3 -o /dev/null -w 'HTTP %{http_code} | %{url_effective}'` ausführt: `HTTP 200 | https://www.lszh-automations.ch/onboarding/`, `HTTP 200 | https://www.lszh-automations.ch/make-start/` und `HTTP 200 | https://lszh-automations-site.onrender.com/onboarding/`. Nachweis: Alle drei Ziele öffentlich erreichbar und erfolgreiche GET-Statusantwort, keine Redirects auf andere finale URLs. **Dieser Nachweis ist kein tatsächlicher HTML-Inhalts-/Browser-Rendering-Test, kein HTTP-POST, keine Airtable-/Make-Speicherung und kein 200/202/409-Proxy-Semantiktest**. Keine produktive Aktivierung, Kundenaktion, E-Mail oder Einladung. Bereits erfolgter synthetischer Airtable→Outbox→Quarantäne-E2E-Test bleibt separat abgeschlossen und wird **nicht wiederholt**. Nächster gezielter Ansatz: read-only Public-HTML-Form-Feld-/Asset-Abgleich und risikofreie isolierte Prüfung der Website-Proxystatuslogik, anschliessend abgesicherte elektronische Offertenannahme und geschäftlicher Drive-Archiv-Lesezugriff. Keine öffentliche Formulareinsendung ohne explizite gesonderte Freigabe.
+
+
 ## 17.10.2026 – Nächster Produktionsreife-Abschnitt: Angebots-/Onboarding-Vorstufe geprüft, ausstehender öffentlicher HTTP-Nachweis
 
 **Letzter synthetischer Airtable→Firestore→Quarantäne-Handoff:** zuvor real SUCCESS (einmalig `lszh-quarantine-source-e2e-staging-slhkc`), weiterhin strikt **nicht wiederholen**. Neue Arbeit gilt ausdrücklich **anderen** Produktionsreife-Gates.

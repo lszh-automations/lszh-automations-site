@@ -734,11 +734,20 @@ const server=http.createServer(async (req,res)=>{
   catch { return send(res,400,'Bad request','text/plain; charset=utf-8'); }
   const pathname=urlObj.pathname;
   const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
+  // A design-only page with synthetic content may be viewed without a token.
+  // Keep the exception narrow: staging only, acceptance disabled, GET only,
+  // exact canonical path and one exact query parameter. All APIs stay private.
+  const publicDemo=process.env.NODE_ENV==='staging' &&
+    process.env.OFFER_ACCEPTANCE_ENABLED==='false' &&
+    req.method==='GET' &&
+    pathname==='/offerte-annehmen/' &&
+    urlObj.searchParams.size===1 &&
+    urlObj.searchParams.get('demo')==='1';
 
   if(sitePrivate) {
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Cache-Control','no-store');
-    if(!hasPreviewAccess(req,res,urlObj)) {
+    if(!publicDemo && !hasPreviewAccess(req,res,urlObj)) {
       return send(res,503,'LSZH Automations ist vorübergehend nicht öffentlich verfügbar.','text/plain; charset=utf-8');
     }
   }

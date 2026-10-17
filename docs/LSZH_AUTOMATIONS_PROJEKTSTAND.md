@@ -1,5 +1,18 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – VERBINDLICH: Google Drive für LSZH nur noch geschäftlich
+
+**Geschäftsführerentscheidung:** «alles im geschäftlichen google drive und nichts mehr im privaten». Für LSZH-Automations-Unterlagen sind ausschliesslich das Konto `lars@lszh-automations.ch` und nachweislich geschäftlich verwaltete Google-Drive-Ordner zulässig. Dies betrifft **alle** Tests, Archiv-PDFs, Offerten, Rechnungen, Belege und später Kundendokumente. Neue private Ordner/Uploads oder eine Freigabe des privaten Staging-Archivs an Dienstkonten sind untersagt.
+
+**Live-Verbindungsprüfung (read-only):** Die aktuell verbundene ChatGPT-Google-Drive-Integration ist **noch am privaten Google-Konto angemeldet**, nicht an der geschäftlichen Identität. Ein bisheriger «LSZH Vertragsarchiv – STAGING»-Privatordner ist kein gültiges Geschäftsziel. Das hinterlegte `STAGING.archiveFolderId` ist weiterhin nicht als geschäftlich verwaltet bestätigt. Keine Cloud-/Drive-/IAM-Änderungen ausgeführt.
+
+**Nächster zwingender Schritt:** Der Nutzer verbindet ChatGPT Google Drive mit **`lars@lszh-automations.ch`** oder stellt die bestehende Verbindung darauf um. Danach zuerst über `get_profile` die Geschäftsidentität und die Eigentums-/Berechtigungsinformationen des vorgesehenen neuen geschäftlichen Testordners verifizieren; erst dann 4 synthetische PDFs hochladen bzw. minimalen Cloud-Run-Zugriff für diesen Ordner freigeben. Bis dahin **NO-GO für Google-Drive-Uploads und für einen echten Drive/Firestore-E2E-Test**. Keine privaten Dokumente kopieren, verschieben oder löschen; eine allfällige Bestandsmigration wird separat geprüft und genehmigt.
+
+**Projektregel im Detail:** `docs/LSZH_DRIVE_BUSINESS_ONLY_POLICY_20261018.md`. Die geschützte Cloud-Run-Designvorschau, die funktionierenden Offline-Tests und die bisherige interne Read-only-Revision bleiben unverändert.
+
+---
+
+
 ## 18.10.2026 – Vollständig fiktives PDF-Testpaket AVV Ja/Nein mit echten SHA-256-Abnahmen PASS
 
 **Umgesetzt (noch ausschliesslich offline):**

@@ -3,9 +3,9 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const http=require('node:http');
 const ORIGIN='https://portal-staging.lszh-automations.ch';
-async function setup(enabled,portal){
+async function setup(enabled,portal,pageHtml){
   const {createOfferPortalHttp}=await import('../cloud-run/offer-portal-staging/portalHttp.mjs');
-  const listener=createOfferPortalHttp({enabled,allowedOrigin:ORIGIN,portal});
+  const listener=createOfferPortalHttp({enabled,allowedOrigin:ORIGIN,portal,pageHtml});
   const server=http.createServer(listener);
   await new Promise((resolve,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
@@ -47,6 +47,28 @@ test('HTTP adapter rejects invalid JSON, bad content type and excessive body bef
  assert.equal((await call(s.base,'/api/offer/preview',{code:'Z'.repeat(48)},ORIGIN,'POST','text/plain')).status,400);
  assert.equal((await call(s.base,'/api/offer/accept',{padding:'A'.repeat(16000)})).status,400);
  assert.equal(reads,0);
+});
+test('single-origin browser page is static and disabled by default',async t=>{
+ const portal={preview:async()=>{},accept:async()=>{}};
+ const pageHtml='<!DOCTYPE html><html><body>SYNTHETIC ONLY NO CONTRACT</body></html>';
+ const off=await setup(false,portal,pageHtml);t.after(()=>off.close());
+ const closed=await fetch(off.base+'/offerte-annehmen/?demo=1');
+ assert.equal(closed.status,503);
+ assert.equal((await closed.json()).error,'not_available');
+ const on=await setup(true,portal,pageHtml);t.after(()=>on.close());
+ const shown=await fetch(on.base+'/offerte-annehmen/?demo=1');
+ assert.equal(shown.status,200);
+ assert.equal(await shown.text(),pageHtml);
+ assert.equal(shown.headers.get('content-type'),'text/html; charset=utf-8');
+ assert.equal(shown.headers.get('cache-control'),'no-store');
+ assert.equal(shown.headers.get('referrer-policy'),'no-referrer');
+ assert.match(shown.headers.get('x-robots-tag'),/noindex/);
+ assert.equal(shown.headers.get('x-frame-options'),'DENY');
+ assert.equal(shown.headers.get('access-control-allow-origin'),null);
+ assert.equal((await fetch(on.base+'/offerte-annehmen/index.html')).status,404);
+ assert.equal((await fetch(on.base+'/api/offer/document',{method:'GET'})).status,404);
+ const missing=await setup(true,portal);t.after(()=>missing.close());
+ assert.equal((await fetch(missing.base+'/offerte-annehmen/')).status,503);
 });
 test('safe error mapping never exposes internal exception messages',async t=>{
  const p={preview:async()=>{throw Error('secret-google-token-diagnostic')},

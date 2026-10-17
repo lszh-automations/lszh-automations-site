@@ -1,5 +1,36 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
+## Einmaliger realer synthetischer CREATE-/UPDATE-CAS-Test – ausdrücklich freigegeben, Ausführung noch offen (17.10.2026)
+
+**Freigabe:** Nach der 324/324 erfolgreich geprüften Offline-CAS-State-Machine und der ausdrücklichen Bitte um Genehmigung für einen ersten echten synthetischen Quarantäne-CAS-Schreibtest hat der Geschäftsführer mit `du hast die freigabe, vamos` zugestimmt. Diese Freigabe gilt **nur** für eine synthetische einmalige CREATE-/UPDATE-Serie im bereits bestehenden `lszh-quarantine-staging`, nicht für produktive Angebote, Notifications oder fremde Datenbanken.
+
+**Die Ausführung erfolgt erst nach weiteren Offline-Tests durch den Geschäftsführer persönlich in Cloud Shell.** Vorhandene IAM-Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` (genau `datastore.entities.create/get/update`) und Datenbank-IAM-Bedingung bleiben unverändert. Der Runner erteilt **maximal einmal** `roles/iam.serviceAccountTokenCreator` an `user:lars@lszh-automations.ch`, **nur auf** `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`, mit einer **30-Minuten-Ablaufbedingung**. Kein breitflächiges IAM und keine permanenten Schlüssel. Nach 600 Sekunden IAM-Propagation erzeugt nur der isolierte Node-Executor ein kurzlebiges impersoniertes Token im Prozessspeicher. Beide Runner haben einen EXIT- und Signal-Cleanup zur **sofortigen exakten Entfernung des temporären SA-Policy-Bindings plus unabhängiger Readback-Kontrolle**. Bei Abbruch ohne Cleanup lässt die Bedingung die Rolle nach maximal 30 Minuten unwirksam werden; bereits ausgestellte OAuth-Tokens können separat noch gültig bleiben, werden aber nicht auf Disk geschrieben.
+
+**Eindeutige synthetische Daten:**
+- 64 Hex-Zeichen aus kryptografischem Zufall, unabhängig von realen Airtable-Record-IDs; die Konsole zeigt `FIXTURE_ID` zur späteren manuellen Nachverfolgung. Einmal-Sperre am Host verhindert normale Wiederholung.
+- Nur `projects/lszh-automations/databases/lszh-quarantine-staging/documents/lszh_onboarding_quarantine_cases_staging/<FIXTURE_ID>`. Start mit einem gezielten GET auf genau dieses Testdokument; nur bei `404` weiter.
+- Schritt 1: genau ein atomarer `POST documents:commit` mit `currentDocument.exists=false`, Audit-Revision 1, `deliveryAllowed=false`, `requiresManualApproval=true`. Anschliessend unabhängig GET 200 und strenger Abgleich von Version, Identität, Schema und Audit.
+- Schritt 2 nur nach bestätigtem Schritt 1: genau ein `POST documents:commit` mit der **gelesenen exakten** `currentDocument.updateTime`-Precondition, Revision 2 und stärkerem Sticky-Quarantäne-Status. Unabhängiger GET 200 mit verifizierter Version, Payload und Revision. Insgesamt maximal **3 Dokument-GET** und **2 konditionierte POST**. Kein Update bei einem unerwartet vorhandenen Dokument. Keine automatischen Wiederholungen bei HTTP 403/409/412/503, Netzwerkfehlern oder unklarem Ack.
+- Der Test-Executor verwendet die bereits vorhandenen Offline-Sicherheitsbibliotheken `planQuarantine` und `buildQuarantineCommit` über `quarantine-cas-offline-cycle.js`. Firestore-normalisierte Zeitstempel werden strikt kanonisiert, ohne fehlerhafte Kalenderdaten oder Submillisekunden in der Auditspur zuzulassen.
+- Da die CAS-Serviceidentität absichtlich **keine** `datastore.entities.delete`-Berechtigung besitzt, **bleibt das reine Testdokument bestehen**. Kein automatischer DELETE-Versuch, keine neue privilegierte Löschrolle und kein fremdes Löschen. Bei Fehlern nach dem ersten Commit könnte die Revision 1 bestehen bleiben. `FIXTURE_ID` und `BLOCKED`-/`PASS`-Zeilen reichen zur getrennten read-only Sichtung; keine Tokens/Rohantworten an ChatGPT senden.
+
+**Der nun freigegebene Aufruf, EXAKT EINMAL (nicht bereits ausgeführt):**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_SINGLE_SYNTHETIC_QUARANTINE_CAS_WRITE \
+bash workers/onboarding-notifications/staging-quarantine-cas-write-once.sh --run-approved-once
+```
+
+**Optionaler vorheriger nur lesender Planmodus:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-cas-write-once.sh --plan
+```
+
+**Erfolg erfordert** erfolgreiche Erstellung + Readback Revision 1, erfolgreiche bedingte Aktualisierung + Readback Revision 2 sowie die beiden Meldungen zum widerrufenen temporären IAM-Grant und unabhängigen IAM-Policy-Readback. Nach einem Fehler **niemals denselben Einmal-Runner wiederholen**. Für die spätere Aufräumung ist eine separate explizite Löschfreigabe und ein minimaler Löschweg zu planen; keine pauschale IAM-Aufrüstung. Ältere V1-/V2-Leserunner dürfen ebenfalls nicht erneut ausgeführt werden.
+
 ## Offline-CAS-Einmaldurchlauf: Create und Update vorbereitbar, reale Schreibprobe weiterhin gesperrt
 
 Nach der erfolgreichen **echten** 404-/403-Leseisolation und unabhängig verifizierten Entfernung des V2-Token-Creator-Grants ist auf `Vamos` **ausschliesslich Offline-Code** entstanden:

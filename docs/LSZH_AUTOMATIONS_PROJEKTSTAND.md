@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Offerten-MVP: erster kompletter, isolierter Import→Annahme-Test PASS
+
+**Auftrag `Vamos`:** Statt neuer Systeme die bestehende Airtable→Portal→Firestore-Kette mit *synthetischen* Offerten prüfen und Browser-Datenvertrag vereinheitlichen. Alles ausschliesslich auf dem **ungemergten** GitHub-Branch `feature/optional-avv-acceptance-staging-20261014`, Draft-PR #5. **KEIN neuer Render-Deploy**, **KEIN Cloud-Run-Deploy** und **keine** Kunden-, Airtable-, Make-, Mail- oder Vertragsaktionen.
+
+**Konkret korrigiert:**
+- `airtableSyntheticImport.mjs`: Neben Preis und AVV jetzt auch die tatsächlichen Airtable-Feld-IDs für **Leistung** (`fldnx2HPMJlyOaPyN`) und **Zahlungsmodell** (`fld5YaoIeYLE1MZFW`) aus der live read-only geprüften Offerten-Tabellenstruktur übernehmen; nur für fiktive, ungeprüfte TEST-ONLY-Entwürfe mit `example.invalid`-Empfänger.
+- `portalCore.mjs`: Die Vorschau liefert zusätzlich die von `offerte-annehmen/index.html` verwendeten Felder `company`, `service`, `once`, `monthly`, `payment_model`, `valid_until`, `avv_version` (Bestehendes `details`/`expires_at` beibehalten). Somit werden Daten nicht mehr zwischen Backend und Formular falsch strukturiert.
+- **AVV-Nein-Fix:** Browser sendet für nicht benötigte AVV-Felder `avv_sha256:null` und `avv_version:null`; die Portal-Validierung akzeptiert diese Nullwerte jetzt ohne die Zustimmung fälschlich abzulehnen. Tatsächlich angegebene unerwartete AVV-Daten bleiben verboten. Bei AVV-Ja werden vorhandene Versionsangaben gegen den Staging-Datensatz geprüft.
+
+**Neuer durchgängiger Emulator-Test:** `test/offerPortalAirtableE2E.emulator.test.js` mappt zwei echte Airtable-API-förmige **fiktive** Datensätze, seedet sie **nur** im lokalen, benannten Firestore-Emulator, lässt den echten PDF-Integritätsprüfer gegen *simulierte* Google-Drive-PDF-Bytes laufen, ruft echte lokale HTTP-Preview-/Accept-Endpunkte auf, kontrolliert Preise/Versionen/AVV-Felder und sendet je 8 parallele fiktive Annahmeanfragen. Erwartung und Nachweis: jeweils **1 akzeptiert, 7 verweigert**, `status=accepted`, `revision=2`, Nachweis gespeichert, Roh-Token nicht gespeichert, alle externen Folgeaktionen `downstream.airtable/proofPdf/email=disabled`. Synthetische Datensätze werden im Emulator exakt referenziert wieder gelöscht; es gibt **keinen** echten Google-, Airtable- oder Mail-Aufruf.
+
+**CI-Ergebnis:** GitHub Actions [Run 39069039960](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39069039960) **SUCCESS**; reguläre Tests **82 insgesamt, 79 bestanden, 0 Fehler, 3 planmässig übersprungen**; separater Firestore-Emulator **12/12 bestanden, 0 Fehler**, inklusive der zwei neuen kompletten Import→PDF-Prüfung→HTTP→einmalige Annahme-Fälle. Offline-Cloud-Run-Rollback-Check ebenfalls PASS.
+
+**Grenze / nächste Schritte:** Dies beweist die **lokal synthetische** funktionale Kette und den Datenvertrag, **nicht** den echten Browserlauf mit Kunden-Datensätzen. Die Live-Render-Demo bleibt unverändert auf dem vorherigen, geprüften Stand; das vollständige Cloud-Run-Portal ist weiterhin nicht produktiv ausgerollt, `OFFER_ACCEPTANCE_ENABLED=false`; kein PDF-Annahmebeleg, keine Airtable-Statussynchronisierung oder Bestätigungsmail wurde live ausgeführt. Nächste Integration: bereits vorhandenen Cloud-Run-Portal-Entwurf sicher an die isolierte Testumgebung koppeln und die browserseitige Vorschau mit ausschliesslich fiktiven Daten testen, **ohne** produktive Vertragsannahme zu aktivieren. Separat danach: idempotente Annahmebeleg-/Status-/Bestätigungs-Outbox und rechtliche RC1/AVV-Freigabe. **Keine Wiederholung** des bereits erfolgreichen separaten synthetischen Outbox→Quarantäne-Source-E2E-Jobs.
+
+---
+
+
 
 ## 17.10.2026 – Entwicklungsprinzip: unnötige Komplexität vermeiden / Offerten-Demo
 

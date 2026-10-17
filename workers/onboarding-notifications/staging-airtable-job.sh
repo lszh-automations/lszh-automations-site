@@ -133,15 +133,21 @@ if ! printf '%s\n' "$spec" | python3 -c '
 import json,sys
 try:
  d=json.load(sys.stdin)
- s=d.get("spec",{}).get("template",{}).get("spec",{})
- task=s.get("template",{}).get("spec",{})
+ if "spec" in d:  # Cloud Run Admin API v1
+  s=d["spec"]["template"]["spec"]
+  task=s["template"]["spec"]
+  sa=task.get("serviceAccountName")
+ else:  # Cloud Run Admin API v2
+  s=d["template"]
+  task=s["template"]
+  sa=task.get("serviceAccount")
  containers=task.get("containers",[])
  assert len(containers)==1
  c=containers[0]
  assert c.get("image")==sys.argv[1]
- assert task.get("serviceAccountName")==sys.argv[2]
- assert int(s.get("taskCount",1))==1
- assert int(task.get("maxRetries",0))==0
+ assert sa==sys.argv[2]
+ assert int(s["taskCount"])==1
+ assert int(task["maxRetries"])==0
  env={x["name"]:x["value"] for x in c.get("env",[])}
  assert env=={"LSZH_AIRTABLE_RUNTIME_PROBE_ONLY":"true",
              "LSZH_OUTBOX_STAGE_ENABLED":"false",
@@ -152,9 +158,11 @@ try:
  volumes=task.get("volumes",[])
  assert len(volumes)==1 and volumes[0]["name"]==volume_name
  secret=volumes[0]["secret"]
- assert secret.get("secretName") in (sys.argv[3],"projects/"+sys.argv[4]+"/secrets/"+sys.argv[3])
+ assert secret.get("secretName",secret.get("secret")) in (
+  sys.argv[3],"projects/"+sys.argv[4]+"/secrets/"+sys.argv[3],
+  "projects/lszh-automations/secrets/"+sys.argv[3])
  items=secret["items"]
- assert len(items)==1 and str(items[0].get("key"))=="1"
+ assert len(items)==1 and str(items[0].get("key",items[0].get("version")))=="1"
  assert items[0].get("path")=="airtable-read-pat"
 except (ValueError,KeyError,AssertionError,TypeError,AttributeError):
  print("STOP: Job CREATED but exact configuration not verified. Do NOT execute or retry.")

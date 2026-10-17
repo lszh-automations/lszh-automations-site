@@ -35,13 +35,21 @@ case "$1:$2:$3" in
   else exit 70; fi ;;
  logging:read:*)
   [[ "$*" == *'resource.type="cloud_run_job"'* ]] || exit 71
-  [[ "$*" == *'labels.execution_name="lszh-airtable-read-probe-staging-xglcz"'* ]] || exit 72
+  [[ "$*" == *'resource.labels.job_name="lszh-airtable-read-probe-staging"'* ]] || exit 72
+  [[ "$*" == *'resource.labels.location="europe-west6"'* ]] || exit 74
+  [[ "$*" != *'labels.execution_name='* ]] || exit 75
   if [[ "\${FAKE_LOG_FAIL:-0}" == 1 ]]; then exit 73;fi
   if [[ "\${FAKE_NO_LOGS:-0}" == 1 ]]; then echo '[]';else
     python3 - <<'PY'
 import json,os
 txt=os.environ.get("FAKE_LOG","STOP: airtable_runtime_probe_disabled")
-print(json.dumps([{"textPayload":txt},{"textPayload":"Do not print pat_SUPER_SECRET_VALUE_12345"}]))
+label={"run.googleapis.com/execution_name":os.environ.get("FAKE_LOG_EXECUTION","lszh-airtable-read-probe-staging-xglcz")}
+entry={"resource":{"type":"cloud_run_job","labels":{"job_name":"lszh-airtable-read-probe-staging","location":"europe-west6"}},"labels":label}
+print(json.dumps([
+ {**entry,"textPayload":txt},
+ {**entry,"textPayload":"Do not print pat_SUPER_SECRET_VALUE_12345"},
+ {**entry,"labels":{"run.googleapis.com/execution_name":"unrelated-job-execution"},"textPayload":"STOP: airtable_token_not_authorized"}
+]))
 PY
   fi ;;
  *) exit 89 ;;
@@ -61,8 +69,19 @@ test('read-only report shows known stop code, not arbitrary raw logs or PAT',()=
  assert.match(r.stdout,/Exactly one recorded Job execution/);
  assert.match(r.stdout,/READ ONLY:/);
  assert.doesNotMatch(r.stdout,/pat_SUPER_SECRET|Do not print/);
- assert.match(r.audit,/logging read .*execution_name=/);
+ assert.match(r.audit,/logging read .*resource.labels.job_name=/);
+ assert.doesNotMatch(r.audit,/logging read .*labels.execution_name=/);
+ assert.match(r.stdout,/Entries matching execution label: 2/);
+ assert.match(r.stdout,/Other\/unusable entries ignored: 1/);
+ assert.doesNotMatch(r.stdout,/airtable_token_not_authorized/);
  assert.doesNotMatch(r.audit,/jobs execute|jobs create|secrets versions access/);
+});
+test('mismatched execution labels are ignored without leaking unrelated log content',()=>{
+ const r=run({FAKE_LOG_EXECUTION:'some-other-execution'});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Matching or safely attributable entries: 0/);
+ assert.match(r.stdout,/Other\/unusable entries ignored: 3/);
+ assert.doesNotMatch(r.stdout,/airtable_runtime_probe_disabled|airtable_token_not_authorized|SUPER_SECRET/);
 });
 test('runtime module-not-found error is categorized without leaking module path',()=>{
  const r=run({FAKE_LOG:"Error: Cannot find module '/app/private/customer_secret' PAT=pat_SUPER_SECRET"});
@@ -73,7 +92,7 @@ test('runtime module-not-found error is categorized without leaking module path'
 test('empty log results are explicitly inconclusive without rerun',()=>{
  const r=run({FAKE_NO_LOGS:'1'});
  assert.equal(r.status,0);
- assert.match(r.stdout,/No exact-execution logs found/);
+ assert.match(r.stdout,/No matching job\/container logs found/);
  assert.doesNotMatch(r.audit,/jobs execute/);
 });
 test('wrong execution identity stops before Cloud Logging',()=>{

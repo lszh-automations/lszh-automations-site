@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Sicherer Cloud-Browser-Test: Kandidat vorbereitet, kein Deployment
+
+**Ausgangslage:** Vom Betreiber verifizierter Cloud-Run-Ist-Zustand: `lszh-offer-portal-staging-00004-qt7` / 100 % Traffic, `ingress=internal`, bisheriges IAM-Service-`bindings=null`, korrektes Read-only-Preflight und Dienstkonto. Der neue Portalcode ist noch nicht auf Google Cloud ausgerollt.
+
+**Nächste Etappe umgesetzt (nur Featurebranch, kein Cloud-Zugriff):**
+1. `portalCore.mjs`: Die Browser-Preview gibt `details` jetzt nur als explizite Projektion bekannter Darstellungsfelder aus. Beliebige zusätzliche Firestore-Notizen, interne Metadaten oder sensible Detail-Properties werden nicht an den Browser durchgereicht. Neuer Regressionstest beweist diese Begrenzung.
+2. `test-browser/offerPortal.browser.spec.cjs`: Zwei zusätzliche echte Chromium-End-to-End-Fälle **CLOUD PREVIEW ONLY** mit AVV `Ja` und `Nein`, korrekt fiktiver `source.kind`/`example.invalid`-Quelle und allen drei deaktivierten Folgeaktionen. Browser testet die vorhandenen Formular-/2-3-PDF-HTTP-Routen; `POST /api/offer/accept` bleibt 503, Firestore-Testzustand bleibt `sent`, keine Abschlussbelege, keine Mails. Diese Tests verwenden weiterhin nur lokalen Code, simuliertes Drive und einen In-Memory-Store.
+3. `scripts/offer-cloud-readiness-readonly.py`: Strikt **read-only** Cloud-Run-Baselinekontrolle für alte Revision, IAM-Bindings, internem Ingress, Funktionsziel und Dienstkonto; prüft ausschliesslich mit `gcloud run services describe` und `get-iam-policy`. Kein IAM- oder Deploy-Befehl, keine Ausgabe von Credentials. **6** Offline-Negativtests in CI.
+4. `docs/LSZH_OFFER_CLOUD_BROWSER_STAGING_GATE_20261017.md`: Konkreter Go/No-Go- und Cleanup-Plan für den einmaligen isolierten Browser-Test, mit expliziten Kosten-/IAM-/Datenschutz-/Löschfreigaben. Wichtige Erkenntnis aus offizieller Google-Dokumentation: `gcloud run services proxy` authentifiziert zwar IAM, kann aber von ausserhalb **nicht** einen `ingress=internal`-Dienst erreichen. Für externen Browserzugriff ist daher ein bewusst freigegebener **temporärer eigener**, IAM-geschützter Testdienst sinnvoller, als den bestehenden Read-only-Dienst zu öffnen. Der temporäre Dienst wurde **nicht** erstellt. Dessen eigenständige Service-Identity/Origin und echte ausschliesslich fiktive PDF-/Firestore-Testdaten sind vor Deploy noch vorzubereiten.
+
+**Abnahme:** [GitHub Actions 39073297013](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39073297013) **SUCCESS**: regulär **95 gesamt / 92 PASS / 3 SKIP / 0 FAIL**; **5/5** echte Chromium-Tests, **12/12** Firestore-Emulator-Tests, **6/6** Cloud-Sicherheits-Selbsttests und Docker-Image-Build / gesperrter Start PASS. Alle Testdaten synthetisch; keine produktiven Kunden oder externen Cloud-Daten verändert.
+
+**Offen / harte Grenze:** Realen Browser→Cloud-Run-Test noch nicht durchgeführt. Er benötigt die explizite Freigabe einer befristeten separaten Testressource, einer minimierten IAM-Identität, separat archivierter fiktiver PDFs und einer streng beschränkten, bereinigbaren Cloud-Testdatensatz-Anlage (bisheriger Importer ist absichtlich Emulator-only). Existing `main`, Render, Cloud-Run-Traffic, Ingress, Service-Policy, Airtable, Make, Mail und rechtsverbindliche Annahme **unverändert**. Keine Cloud-Erstellung, kein Deployment und kein Go-Live.
+
+---
+
+
 ## 17.10.2026 – IAM-Abfrage Cloud-Run-Staging: direkte Bindings leer
 
 - Betreiber hat read-only ausgeführt: `gcloud run services get-iam-policy lszh-offer-portal-staging --project=lszh-automations --region=europe-west6 --format="yaml(bindings)"`; Ergebnis: **`null`**.

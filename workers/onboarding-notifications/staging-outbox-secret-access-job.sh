@@ -103,7 +103,7 @@ echo 'CREATE ONLY: Creating a separate disabled-by-nonexecution one-task zero-re
 if ! gcloud run jobs create "$JOB" --project="$PROJECT" --region="$REGION" \
  --image="$IMAGE" --service-account="$SOURCE" \
  --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=60s \
- --cpu=1 --memory=256Mi --command=/bin/sh --args="-c,$PROBE" \
+ --cpu=1 --memory=512Mi --command=/bin/sh --args="-c,$PROBE" \
  --set-env-vars='LSZH_SECRET_PROBE_ONLY=true,LSZH_OUTBOX_STAGE_ENABLED=false' \
  --set-secrets="LSZH_PROBE_SECRET=$SECRET:1" \
  --labels='environment=staging,purpose=secret-access-probe' --quiet;then

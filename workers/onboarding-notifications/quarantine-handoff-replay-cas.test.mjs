@@ -23,6 +23,40 @@ function safe(result){
  assert.equal(result.deliveryAllowed,false);
  assert.equal(Object.isFrozen(result),true);
 }
+test('replay plan is deeply immutable so nested Firestore fields cannot be rewritten',()=>{
+ const p=make();
+ for(const value of [p,p.request,p.request.body,p.request.body.writes,
+  p.request.body.writes[0],p.request.body.writes[0].update,
+  p.request.body.writes[0].update.fields,
+  p.request.body.writes[0].update.fields.state,
+  p.request.body.writes[0].currentDocument]){
+  assert.equal(Object.isFrozen(value),true);
+ }
+ assert.throws(()=>{p.request.body.writes[0].update.fields.state.stringValue='APPROVED';},TypeError);
+ assert.equal(p.request.body.writes[0].update.fields.state.stringValue,
+  'CLAIMED_PENDING_MANUAL_REVIEW');
+});
+test('forged claim plans fail even with a matching fake receipt and readback',()=>{
+ const changes=[
+  p=>{p.request.body.writes[0].update.fields.state.stringValue='APPROVED';},
+  p=>{p.request.body.writes[0].update.fields.purpose.stringValue='OTHER_PURPOSE';},
+  p=>{p.request.body.writes[0].update.fields.claimedAt.timestampValue=
+   '2026-10-17T16:30:00.001Z';},
+  p=>{p.request.body.writes[0].update.fields.extra={booleanValue:true};},
+  p=>{p.request.body.writes[0].update.name=ROOT+COLLECTION+'/'+'f'.repeat(64);},
+  p=>{p.claimedAt='2026-10-17T16:30:00.001Z';},
+  p=>{p.unexpected=true;}
+ ];
+ for(const change of changes){
+  const p=structuredClone(make());
+  change(p);
+  const r=verifiedReplayClaim({plan:p,commitStatus:200,
+   commitResponse:receipt(),readStatus:200,document:saved(p)});
+  assert.equal(r.status,'BLOCKED_NO_REPLAY_CLAIM');
+  assert.equal(r.reason,'UNREVIEWED_REPLAY_PLAN');
+  safe(r);
+ }
+});
 test('single replay claim uses dedicated quarantine DB/collection and atomic exists:false precondition',()=>{
  const p=make();
  assert.equal(COLLECTION,'lszh_quarantine_handoff_replay_staging');

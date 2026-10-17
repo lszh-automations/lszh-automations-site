@@ -133,7 +133,8 @@ test('mismatched PDF content, parent, lock or metadata fails closed',async t=>{
  for(const variant of [{tamper:true},{wrongParent:true},{noLock:true},{metaSha:true}]){
   const {base}=await setup(t,'Ja',{driveVariant:variant});
   const r=await post(base,'quote');
-  assert.equal(r.status,409);
+  assert.equal(r.status,409,'PDF corruption variant '+JSON.stringify(variant)+
+    ' returned '+r.status+' ('+JSON.stringify(r.error)+')');
   assert.equal(r.error.error,'archive_changed');
   assert.ok(!r.bytes.toString().startsWith('%PDF-'));
  }

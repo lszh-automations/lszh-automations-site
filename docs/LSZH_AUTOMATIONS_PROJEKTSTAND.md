@@ -1,5 +1,40 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Failed Airtable-Cloud-Run-Job: Permission verweigert, sichere Dateibereichsklassifizierung nachgerüstet
+
+Der Geschäftsführer hat nach synchronisiertem Git-Pull die read-only Diagnosis `staging-airtable-execution-diagnose.sh` erneut ausgeführt. **Reale, zuletzt bestätigte Befunde für die EXAKT EINE fehlgeschlagene Execution `lszh-airtable-read-probe-staging-xglcz`:**
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Exact execution metadata read; no new task started.
+Execution reported failed tasks: 1
+Execution reported successful tasks: not reported
+PASS: Cloud Logging query restricted to the exact STAGING job and Zurich region.
+Job log entries returned: 14
+Entries matching execution label: 12
+Job entries without execution label (only one execution exists): 2
+Other/unusable entries ignored: 0
+Matching or safely attributable entries: 14
+Safe application STOP code(s): none observed
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Log source types: CONTAINER_STDERR, PLATFORM_OR_SYSTEM
+Permission evidence classification: CONTAINER_FILESYSTEM_DENIED, GENERIC_PERMISSION_DENIED_ONLY
+Application PASS log count: 0
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+
+**Was dieser Befund aussagt:** Eine Dateisystem-Operation bzw. ein generischer Ressourcenzugriff wurde verweigert. Aktuell weder eine sicher identifizierte betroffene Datei noch ein Secret-Manager-API-403 nachgewiesen. Keine Airtable-GET-PASS-Logs. Aus `USER node` und Secret-Volume-Ownership `root` allein ist die Ursache **nicht** bewiesen (Google Secret-Volume-Modus gewöhnlich 0444). **Keine IAM-Erweiterung, keinen Betrieb als Root und kein nochmaliger Start ohne Diagnose und separate Freigabe.**
+
+**Neue weiter eingegrenzte, weiter read-only Diagnose** in `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` auf dem bestehenden GitHub-Review-Branch: Alle 14 Logeinträge werden lokal durch den schon bestehenden sanitizing Python-Code analysiert. Neu werden anhand der **gleichen Error-Logzeile** (keine spekulative Aggregation verschiedener Einträge) ausschliesslich Enum-Namen für `Denied error source` (`CONTAINER_STDERR` / `PLATFORM_OR_OTHER`), `Denied error identifiers` (`EACCES`, `EPERM` oder generisch), `Denied filesystem operation` (`OPEN`, `STAT`, `SCANDIR`, `ACCESS`, `READLINK`, `MKDIR`, `CHDIR`, `EXEC` oder unbestimmt) und `Denied path family (same log entry only)` ausgegeben: erwartete Secret-Datei / erwartetes Secret-Mountverzeichnis / Anwendung unter `/app` / Node-Home / temporäre Dateien / Systemdateien / sonstiger geschwärzter Pfad / kein Pfad erkennbar. Logtexte, Dateipfade und Secretwerte **werden nicht ausgegeben**. Weiterhin strikt der einzelne fehlgeschlagene Job, eine Execution und alle Cloud-Operationen nur lesend; **niemals** `gcloud run jobs execute` oder `gcloud secrets versions access`. Synthetischer CI-Lauf `39022908060` **183/183 JavaScript-Tests, 8/8 Python-IAM-Tests erfolgreich**. Die neue genaue Kategorisierung wurde vom Geschäftsführer **noch nicht live ausgeführt**.
+
+**Einziger nächste Schritt, wiederum NUR METADATEN/LOGS lesen:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Beurteilung anhand `Denied error identifiers:`, `Denied filesystem operation:` und `Denied path family (same log entry only):`; **nur** bei ausreichend eindeutiger Evidenz eine minimal nötige Codekorrektur bzw. einen getrennten neuen Staging-Job/Execution-Review planen. Keine unüberlegten Produktivaktionen.
+
 ## 17.10.2026 – Container-Zugriffsfehler bestätigt: FILE_PERMISSION_DENIED; Root Cause weiterhin ungeklärt
 
 Der Geschäftsführer hat nach Git-Sync die **korrigierte, strikt lesende** `staging-airtable-execution-diagnose.sh` gegen die bereits einmal ausgeführte, fehlgeschlagene Cloud-Run-Execution `lszh-airtable-read-probe-staging-xglcz` ausgeführt. Die echte Cloud-Shell-Rückmeldung:

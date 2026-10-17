@@ -1,5 +1,10 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Source-SA-Airtable-Secret-Probe wurde tatsächlich angelegt, null Executions
+
+Cloud-Shell-Geschäftsführer-Ausgabe: `staging-outbox-secret-access-job.sh --create-only` legte `lszh-outbox-secret-access-probe-stg` in Projekt `lszh-automations`, Region `europe-west6` erfolgreich an. Das Skript bestätigte den **tatsächlich rückgelesenen Job**: exakt angeheftetes SHA-256-Image, Shell-Only statt Geschäftslogik, Outbox-Identität, Secret-Version 1, ein Task/keine Retries, **ZERO executions**. Dieser Job verändert keine alten Jobs, führt ohne gezieltes `gcloud run jobs execute` nichts aus. Als nächstes erlaubt ist der einzige kontrollierte Secret-Verfügbarkeitstest mit `gcloud run jobs execute lszh-outbox-secret-access-probe-stg --project=lszh-automations --region=europe-west6 --wait`. Bei unterbrochenem CLI-Wait oder Fehlermeldung nicht ein zweites Mal execute auslösen; vorher die eine Execution samt Exit/konstantem Log-Signal auslesen. Ein erfolgreicher Shell-Probe-Test bestätigt nur, dass Cloud Run die Secret-Version unter der Outbox-SA bereitstellen konnte, **nicht** Airtable-REST-/Firestore-/Receiver-E2E.
+
+
 ## 17.10.2026 – Outbox-Secret-Probe-Erstellung von Cloud Run Gen2 abgewiesen (Speichergrenze)
 
 **Echte Geschäfts-Cloud-Shell-Ausgabe:** `staging-outbox-secret-access-job.sh --create-only` bestand erneut alle Identitäts-, Image-, Secret-IAM- und Job-Inventarprüfungen und versuchte den neuen, vom Bestandsbetrieb unabhängigen Job `lszh-outbox-secret-access-probe-stg` anzulegen. Google Cloud Run meldete jedoch **`Job failed to deploy`** und konkret `spec.template.spec.task_spec.containers[0].limits.memory: Invalid value ... Total memory < 512 Mi is not supported with gen2 execution environment with cpu always allocated (unthrottled)`. Das Skript brach fail-closed ab: `STOP: Cloud Run create failure or ambiguity. DO NOT retry; inspect Job metadata.`. **Kein erfolgreicher Job-Deploy nachgewiesen und keine Job-Ausführung erfolgt.** Ein zurückgebliebenes Job-Objekt kann nicht ohne erneuten Live-Readback ausgeschlossen werden.

@@ -1,5 +1,10 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Erfolgreicher synthetischer End-to-End-Test (Anwendungslogs bestätigt)
+
+Cloud Run Execution `lszh-quarantine-source-e2e-staging-slhkc` meldete `Completed=True`, `succeededCount=1`, Dauer 10,45 Sekunden. Die echten Joblogs vom 17.10.2026 um 19:49:25 UTC zeigen `PASS_SYNTHETIC_SOURCE_E2E_REVIEW_ONLY` sowie `PASS: One new staged draft was verified and private review-only receiver acknowledged.` und `PASS: No customer, mail or contract delivery. Never rerun the job.` Damit wurde der vollständige synthetische Source→Airtable-Prüfung→Firestore-Outbox-Create/Readback→privater Quarantäne-Handoff technisch bestanden. Dies ist keine Freigabe für reale Kundenprozesse. Der Job darf niemals erneut ausgeführt werden. Eine optionale spätere read-only-Persistenzprüfung bleibt getrennt.
+
+
 ## 17.10.2026 – Erster echter synthetischer Source→Quarantäne-End-to-End-Test in Cloud Run SUCCESS
 
 **Vom Geschäftsführer aus Google Cloud Shell gelieferter Cloud-Run-Status der einzigen einmaligen Ausführung:** Job `lszh-quarantine-source-e2e-staging`, Execution `lszh-quarantine-source-e2e-staging-slhkc`, `completionTime: 2026-10-17T19:49:28.639416Z` (21:49:28 Schweizer Zeit), `type: Completed`, `status: True`, `message: Execution completed successfully in 10.45s.`, `succeededCount: 1`, kein angezeigter failedCount. `ContainerReady`, `ResourcesAvailable`, `Started` ebenfalls `True`. **Damit ist der Cloud-Run-Lauf nachweisbar erfolgreich beendet und NICHT nur gestartet.**

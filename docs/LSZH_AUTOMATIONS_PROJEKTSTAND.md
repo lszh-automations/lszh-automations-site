@@ -1,5 +1,28 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einmaliger V2-Airtable-Staging-Job erfolgreich gelaufen; App-PASS-Logs noch zu verifizieren
+
+**Realer Vollzug der ausdrücklich genehmigten Einmalausführung in Google Cloud Shell:** Nach `git pull --ff-only` bis `12db5f4` bestanden sowohl `staging-airtable-job-run-v2.sh --plan` als auch die unmittelbar vor dem Start wiederholten strikten Sicherheitsprüfungen (inkl. genau null vorherige Executions). Die anschliessende `--execute-once`-Ausgabe zeigt:
+```text
+EXECUTE ONCE: Starting the isolated read-only STAGING Cloud Run Job.
+OK Creating execution... Done.
+OK Starting execution... Started deployed execution in 3.77s.
+OK Running execution... 1 / 1 complete
+Execution [lszh-airtable-read-probe-fix-staging-7ppq4] has successfully completed.
+Cloud Run execution command returned success. DO NOT RERUN.
+```
+**Bestätigt:** neuer V2-Job `lszh-airtable-read-probe-fix-staging`, Execution `lszh-airtable-read-probe-fix-staging-7ppq4`, Region `europe-west6`, genau 1 erfolgreicher Task, keine automatische Wiederholung (`--max-retries=0`). Der ursprüngliche historische Fehl-Job blieb unberührt; Outbox weiterhin deaktiviert. **Noch nicht abschliessend bestätigt:** ob die App tatsächlich die erwarteten genau 3 sicheren `PASS:`-Zeilen zum Airtable GET und synthetisch nicht vorhandenen Projektcode geschrieben hat. Keine zweite Ausführung erlauben.
+
+**Ausschliesslich read-only Erfolgskontrolle im Review-Branch vorbereitet:** `workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh` fixiert genau diese Job-/Execution-IDs, verlangt je exakt eine registrierte V2- und historische Original-Execution, prüft exakte Ausführungs-Metadaten und scannt Cloud Logging nur für Job/Region. Es bestätigt die drei erwarteten **exakten** Anwendungsmeldungen je genau einmal **nur bei gelabelten Container-stdout-Einträgen der geprüften Execution** und ohne STOP-Meldung; gibt keine Rohlogs, Secret-Werte, Projektcodes oder URLs aus. Fehler/unvollständige Labels -> STOP/inkonklusiv, aber **niemals neu starten**. Synthetische Erfolg-, Mismatch-, STOP-, Mehrfach- und Nichtleak-Tests erstellt, CI-Syntaxkontrolle ergänzt.
+
+**Einziger nächster Cloud-Shell-Schritt (kein Job-Start):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh
+```
+Erst bei drei exakten PASS-Meldungen und ohne STOP gilt die Cloud Run → Airtable REST-Leseverbindung als live bestätigt. Keine neue Job-Erstellung, Deployment, PAT-Auslesung, Mail, CRM-/Make-/Firestore-Schreibaktivität.
+
 ## 17.10.2026 – Einmalige V2-Airtable-Lesejob-Ausführung ausdrücklich freigegeben (Vollzug noch offen)
 
 Der Geschäftsführer hat nach erfolgreich durchgelaufenem echten `staging-airtable-job-run-v2.sh --plan` ausdrücklich die **einmalige Ausführung** des isolierten Cloud-Run-Jobs `lszh-airtable-read-probe-fix-staging` genehmigt. Freigegeben ist ausschliesslich der kontrollierte, auf null bisherigen Ausführungen geprüfte Modus `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once` nach synchronisiertem `git pull --ff-only`. Der Runner prüft den unveränderten Image-Digest `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`, die Identität, Service Account, Secret-spezifische Berechtigung, Secret-Version 1, ursprüngliche historische Fehl-Execution, Job-Konfiguration und **zweimal** null V2-Executions. Danach wird nur das einzelne Cloud Run Job `--wait` gestartet; eine synthetische, lesende Airtable-GET-Probe ist vorgesehen. **Keine Freigabe für Wiederholung**, selbst wenn der Lauf fehlschlägt oder die gcloud-Ausgabe unklar bleibt. Kein PAT im Chat, keine Mails, kein Make, keine CRM-/Firestore-Schreiboperation, keine Outbox-Aktivierung.

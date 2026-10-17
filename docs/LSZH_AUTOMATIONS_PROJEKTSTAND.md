@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Airtable-Staging: gezielte Secret-IAM-Freigabe umgesetzt
+
+Google Cloud Shell meldete nach der genehmigten Secret-Level-Berechtigungsänderung `Updated IAM policy for secret [lszh-airtable-readonly-staging]`. Die Bindung `roles/secretmanager.secretAccessor` enthält zwei Dienstkonten: den bisherigen Airtable-Lesetestdienst und die neue Outbox-Staging-Identität. Es gab keine projektweite neue IAM-Rolle, keinen Secret-Payload-Abruf und keinen Testauftrag. Als nächstes effektiven Zugriff für `secretmanager.versions.access` auf Secret-Version 1 erneut mit dem IAM Troubleshooter rein lesend prüfen; erwartet `CAN_ACCESS`. Der synthetische End-to-End-Lauf ist weiter offen.
+
+
 ## 17.10.2026 – Effektives Outbox→Airtable-Secret-Recht fehlt: IAM Troubleshooter CANNOT_ACCESS
 
 **Echte Cloud-Shell-Rückmeldung:** Der IAM Policy Troubleshooter gegen die **konkrete Version 1** von `lszh-airtable-readonly-staging` und den Principal `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` für die Permission `secretmanager.versions.access` lieferte `CANNOT_ACCESS`. Gemäss Google bedeutet dieser Zustand **Berechtigung nicht vorhanden** (nicht `UNKNOWN_INFO` oder `UNKNOWN_CONDITIONAL`). Zudem `secret: no direct binding` und `project: roles/datastore.user (conditional)`, letztere Rolle umfasst keinen Secret-Zugriff. Die geprüfte Secret-Version ist `ENABLED`.

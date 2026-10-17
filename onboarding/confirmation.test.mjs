@@ -117,3 +117,11 @@ test('sensitive-data task may link exactly one order; extra linkage is not compl
  assert.deepEqual(await check(null,api),{state:'processing'});
  assert.equal(api.calls(),4);
 });
+
+test('DSG task without a valid Airtable record ID is not a completed evidence',async()=>{
+ const x=clone(onboarding);x.fields['Sensible Daten']='Ja';
+ const t=clone(task);t.id='malformed_synthetic_id';
+ const api=transport({onboarding:[x],tasks:[t]});
+ assert.deepEqual(await check(null,api),{state:'processing'});
+ assert.equal(api.calls(),4);
+});

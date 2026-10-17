@@ -119,3 +119,11 @@ test('source module contains no scheduler, customer mail or automatic Firestore 
  for(const name of ['sendMail','schedule','createService','commit','delete','grantIam'])
   assert.equal(name in m,false);
 });
+
+test('2026-10-17 live private receiver a.run.app URL is recognized as exact audience',()=>{
+ const actual='https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app';
+ assert.equal(targetBase(actual),actual);
+ assert.equal(targetBase(actual+'/internal/quarantine/handoff'),null);
+ assert.equal(targetBase(actual+'?redirect=1'),null);
+ assert.equal(targetBase(actual+'.attacker.net'),null);
+});

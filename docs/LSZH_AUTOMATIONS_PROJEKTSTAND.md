@@ -1,5 +1,25 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Cloud-Run-Stagingvorbereitung: synthetischer Datengate + Annahmesperre PASS
+
+**Entwicklungsgrundsatz:** Bestehende Cloud-Run-, HTML-, Firestore- und Archivmodule weiterverwenden; keinen zweiten Proxy, Dienst oder neuen Datenbestand bauen. Nutzerauftrag `Vamos` mit **ausschliesslich lokalen, synthetischen Tests**; keine operative Cloud-Freigabe oder Aktivierung.
+
+**Wichtigster Fund:** Das Portal lieferte `test_only:true` im Beleg zurück, erzwang aber zuvor beim Lesen des Datensatzes keine ausschliesslich synthetische Herkunft. Für einen späteren realen Cloud-Test war dies eine unzureichende Schutzgrenze.
+
+**Nun im nicht gemergten Entwicklungsbranch umgesetzt:**
+- `portalCore.mjs` akzeptiert `syntheticOnly:true` und prüft vor jeder Vorschau, jedem PDF-Download und jeder Annahme verbindlich: `source.kind=LSZH_SYNTHETIC_ONLY`, feste Airtable-Testquell-IDs, synthetische Record-ID, `TEST_..._NO_CONTRACT`-Offertennummer, `example.invalid`-Empfänger, `TEST_v1.0_RC1` und sämtliche Folgeaktionen `downstream.airtable/proofPdf/email=disabled`. Fehlende oder reale Daten führen fail-closed zu 404, **ohne Archivprüfung oder Firestore-Annahme**.
+- Der Angebots-Fingerprint umfasst zusätzlich `source` und `downstream`. Änderungen dieser Herkunfts-/Sperrfelder zwischen dem ersten Lesen und der Firestore-Transaktion blockieren den Commit.
+- `index.mjs` legt **für den Cloud-Run-Entrypoint fest**: `syntheticOnly:true` und `acceptEnabled:false`. Selbst bei später eingeschalteter Staging-Vorschau kann der reale Cloud-Run-Code **keine POST-Annahme** ausführen; POST `/api/offer/accept` liefert `503 not_available`. Nur ein künftiger **separat geprüfter Codeänderungs-/Freigabevorgang** könnte dies ändern.
+- Die existierende `offerte-annehmen/index.html` zeigt bei `offer.test_only=true` den klaren Hinweis **„Nur synthetische Testdaten. Hier kann kein Vertrag geschlossen werden“**, benennt den dritten Abschnitt in Testvorschau um, blendet den verbindlichen Rechtshinweis aus und verhindert sämtliche Formular-Submits. Render-Design-Demo und bisherige normale UI-Fälle bleiben unverändert.
+- Neue Negativ- und Regressionstests decken echte/falsch markierte Empfänger, Nummern, Record-Quelle, aktive Folgeaktionen, nachträgliche Mutation während Drive-I/O, gesperrten Annahme-Endpunkt und Browser-Submit ab. Die CI kontrolliert ausserdem explizit die `syntheticOnly:true` / `acceptEnabled:false`-Verdrahtung im eigentlichen Cloud-Entrypoint.
+
+**Abnahme:** [GitHub Actions 39071250068](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39071250068) vollständig **SUCCESS**: normal **94 total / 91 PASS / 3 SKIP / 0 FAIL**; Firestore-Emulator **12/12 PASS**; echter Chromium **3/3 PASS**; Docker-Image gebaut, vorhandenes HTML korrekt enthalten und HTTP 503 bei deaktiviertem Cloud-Run-Entrypoint bestätigt. Staging-Branch `feature/optional-avv-acceptance-staging-20261014`, ungemergte Draft-PR #5. Render/Google-Cloud/produktive Services wurden **nicht** verändert.
+
+**Operativer nächster Schritt, vor Deploy ausschliesslich read-only:** Im Cloud-Projekt `lszh-automations`, Region `europe-west6` die aktuell live geschaltete Revision (zuletzt `00004-qt7`, 100 % Traffic), den Ingress-/Invoker-Schutz, die eigentliche Laufzeitidentität, Staging-Datenbank und den Zugriff auf den geschäftlichen Archivordner erneut verifizieren. Keine Secrets exportieren. Es gibt weiterhin **keinen** genehmigten Cloud-Deployment-Schritt; der bestehende private read-only Preflight darf nicht überschrieben werden. Für einen echten Cloud-Browser-Test braucht es danach eine gesondert autorisierte, isolierte Testrevision sowie ausdrücklich synthetische Archiv-PDFs und einen nur dafür bestimmten Testdatensatz. Echte Vertragsannahme, automatischer Mailversand, Annahmebeleg, Airtable-Statussynchronisierung und juristische RC1/AVV-Freigabe bleiben separat offen.
+
+---
+
+
 ## 17.10.2026 – Single-Origin-Offertenportal: ein vollständiges, deaktiviertes Docker-Paket PASS
 
 **Leitentscheid:** Das bestehende Kundenformular und alle zugehörigen API-/PDF-Routen künftig **unter genau einer dedizierten Portal-Origin** betreiben; keinen neuen Render-Proxy, keine direkte Browser-Verbindung auf intern gesperrte Google-Reader-Dienste. Dieselbe bestehende Datei `offerte-annehmen/index.html` bleibt die einzige Oberfläche.

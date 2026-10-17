@@ -29,6 +29,7 @@ on:
       - 'scripts/offer-browser-cloud-bootstrap.sh'
       - 'scripts/offer-browser-cloud-cleanup.sh'
       - 'scripts/offer-browser-cloud-resume.sh'
+      - 'scripts/offer-browser-cloud-smoke.sh'
       - 'test/offerBrowserCloudScript.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
@@ -50,6 +51,7 @@ jobs:
           bash -n scripts/offer-browser-cloud-bootstrap.sh
           bash -n scripts/offer-browser-cloud-cleanup.sh
           bash -n scripts/offer-browser-cloud-resume.sh
+          bash -n scripts/offer-browser-cloud-smoke.sh
       - name: Syntax checks
         run: |
           node --check server.js

@@ -1,6 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
 
+## 18.10.2026 – Temporäres Dienstkonto: minimaler Geschäfts-Drive-Reader vorbereitet, noch NICHT erteilt
+
+**Neu im Entwicklungsbranch:** `scripts/offer-temp-drive-folder-reader.py --folder <Testunterordner-ID> --check|--apply`.
+- Vor jeder Aktion prüft das Skript ausschliesslich lesend den ursprünglichen internen Cloud-Run-Preflight und die **exakte** geschützte temporäre Demo-Revision `lszh-offer-browser-staging-00002-fkq`, aktives Demo-only-Flag, deaktiviertes vollständiges Portal sowie die erwartete temporäre Dienstidentität. Es verlangt einen namentlich angemeldeten **geschäftlichen** Benutzer `lars@lszh-automations.ch`; kein Privatkonto, kein Service-Account-Key.
+- Über die offizielle Drive-v3-API kontrolliert es den **exakten leeren-früheren, nun vierteiligen** Test-Unterordnernamen, dessen direktes geschäftliches Elternarchiv, den geschäftlichen Alleineigentümer, keine öffentlichen/Domain-Permissions und **genau die vier vorgesehenen, fiktiven PDF-Dateinamen**. Eine fremde, veränderte oder überfüllte Ablage führt NO-GO.
+- `--check` ist vollständig read-only. `--apply` darf **nur wenn alle Vorbedingungen stimmen** exakt eine `Drive permissions.create`-Operation durchführen: `role=reader`, `type=user`, Ziel `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`, **nur auf dem synthetischen Unterordner**, `sendNotificationEmail=false`. Das Stammarchiv, Kundenordner, der ursprüngliche Archivreader, projektweite IAM-Rollen, Firestore, Mail und Cloud-Run-Deploy bleiben unverändert. Danach wird die neue Permission durch Drive-v3 gelesen und der alte interne Cloud-Run-Sicherheitszustand erneut geprüft.
+- Zusätzliche Offline-Tests im bestehenden GitHub-CI prüfen gefälschte Zielordner, falschen Parent/Eigentümer, öffentliche Freigaben, zu weitreichende Rollen, andere Datei-Sets, fehlgeleitete PDF-Parents und ausgeschaltete Benachrichtigungen. Keine echte Berechtigung wurde über CI vergeben.
+
+**Noch offen:** Der Betreiber muss den gezielten `--apply`-Befehl im eigenen Cloud Shell aktiv ausführen und die Rückgabe bestätigen. Erst dann darf der tatsächliche Cloud-Run-Service-Account-Drive-Lesetest vorbereitet werden. Die erfolgreiche statische Demo selbst hat **weiterhin keinen Drive-Zugriff und alle PDF-/Vertrags-APIs bleiben deaktiviert**; auch eine Reader-Berechtigung allein aktiviert keine Funktion.
+
+---
+
+
+
 ## 18.10.2026 – Synthetisches Geschäfts-Drive-Archiv: vier Sperr-/Hash-Prüfungen unabhängig PASS
 
 **Echter Cloud-Shell-Prüfbericht des Betreibers:** `scripts/offer-business-drive-readonly-verify.py` wurde unter der Geschäftsidentität `lars@lszh-automations.ch` ausgeführt und meldet **genau vier PASS** (AVV-Ja-Offerte, AVV-Nein-Offerte, Projektbedingungen, AVV) sowie abschliessend `SUCCESS: all four business-Drive PDFs locked and byte-verified.`

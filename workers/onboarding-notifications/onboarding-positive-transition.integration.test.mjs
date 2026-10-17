@@ -22,7 +22,7 @@ const billing={
 function fixture(){
  const f={
   stage:'missing',sensitive:'Nein',taskExists:true,duplicate:false,
-  ownerValid:true,blankInvoice:'', mismatchedCustomer:false,
+  ownerValid:true,blankInvoice:'', blankMakeStatus:'', mismatchedCustomer:false,
   fetches:[],docs:new Map(),posts:0,gets:0,mailCalls:0
  };
  const fetchImpl=async(input,options={})=>{
@@ -43,6 +43,7 @@ function fixture(){
       ...billing
     }};
     if(f.blankInvoice)record.fields[f.blankInvoice]='';
+    if(f.blankMakeStatus)record.fields[f.blankMakeStatus]='';
     json={records:f.stage==='missing'?[]:[record,...(f.duplicate?[{...structuredClone(record),id:OTHER}]:[])]};
    }else if(url.pathname.endsWith('/tblXUogIvWbulxfnN/'+ORDER)){
     json={id:ORDER,fields:{
@@ -52,6 +53,8 @@ function fixture(){
      'Make-Kontostatus':'Noch kein Make-Konto','Make-Organisation':'',
      'Make-Einladungsstatus':'Noch nicht eingeladen'
     }};
+    if(f.blankMakeStatus==='Make-Konto Status')json.fields['Make-Kontostatus']='';
+    if(f.blankMakeStatus==='Make-Einladung Status')json.fields['Make-Einladungsstatus']='';
    }else if(url.pathname.endsWith('/tbl8cUUfFVqsjj2Z0/'+CUSTOMER)){
     json={id:CUSTOMER,fields:{...billing}};
     if(f.blankInvoice)json.fields[f.blankInvoice]='';
@@ -144,4 +147,13 @@ test('divergent customer billing data never marks an onboarding complete',async(
  assert.deepEqual(await x.status(),{state:'processing'});
  assert.equal((await x.scan()).created,0);
  assert.equal(x.f.docs.size,0);onlyGetAirtable(x.f);
+});
+test('matching blank Make account/invitation statuses do not prove readiness',async()=>{
+ for(const field of ['Make-Konto Status','Make-Einladung Status']){
+  const x=fixture();x.f.stage='completed';x.f.blankMakeStatus=field;
+  assert.deepEqual(await x.status(),{state:'processing'});
+  const counts=await x.scan();
+  assert.equal(counts.processing,1);assert.equal(x.f.docs.size,0);
+  assert.equal(x.f.posts,0);onlyGetAirtable(x.f);
+ }
 });

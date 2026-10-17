@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17./18.10.2026 – Betreiberfreigabe für TEMPORÄREN Cloud-Browser-Stagingdienst, Bootstrap vorbereitet
+
+**Freigabe des Betreibers im Projektchat:** „du hast die freigabe“ als Zustimmung zur vorher vorgeschlagenen, separaten temporären Google-Cloud-Testressource. Diese Freigabe umfasst **nicht** das Öffnen/Überschreiben des bestehenden internen Diensts, produktive Vertragsannahmen oder reale Kundendaten.
+
+**Ausführungsmöglichkeit geprüft:** In diesem Chat sind zwar GitHub, Render, Airtable usw. verbunden, aber keine Google-Cloud-Run-Verwaltungs- oder Cloud-Shell-Exec-Aktion. **Deshalb noch kein Cloud-Dienst, IAM-Dienstkonto, Image oder sonstige Cloud-Ressource angelegt.** Stattdessen sind ausführbare, geprüfte Cloud-Shell-Skripte im ungemergten Entwicklungsbranch vorbereitet.
+
+- `scripts/offer-browser-cloud-bootstrap.sh --check|--apply`: Prüft zuerst read-only die alte Preflight-Revision, Ingress, Service-IAM und feste Runtime-Schutzgrenzen. Weigert sich, vorhandene temporäre Namen, nicht saubere Branches oder eine potenziell öffentliche Projekt-IAM-Invoker-Bindung zu überschreiben. Erst bei `--apply` lädt es **nur** gezielt ausgewählte Portaldateien zur Cloud-Build-Imageerstellung hoch (nicht das komplette Git-/Arbeitsverzeichnis), legt das **neue dedizierte** Konto `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com` **ohne Firestore-/Drive-Rollen** und den **neuen** Dienst `lszh-offer-browser-staging` an. App-Umgebung `LSZH_PORTAL_STAGING_ENABLED=false`; max. 1 Instanz, min. 0, IAM-Invoker-Prüfung EIN, `--no-allow-unauthenticated`, Netz-Ingress nur am **neuen** Dienst `all`, direkte Invoker-Berechtigung ausschliesslich für den aktiven benannten Google-Cloud-Nutzer. Neue Dienstressource ist zunächst nur deaktiviert erreichbar: HTTP 503. Unveränderten Originaldienst danach erneut read-only prüfen.
+- `scripts/offer-browser-cloud-cleanup.sh --check|--apply`: Löscht nach separater Betreiberaktion nur den exakt mit `lszh-purpose=offer-browser-smoke` und `lszh-temporary=true` gekennzeichneten **deaktivierten** Dienst, dessen exklusives Konto sowie das exakt referenzierte temporäre Image. Verweigert Cleanup bei veränderter Identität, fehlender Testmarkierung oder aktivierter Anwendung. Alter Preflight-Dienst ist kein Löschziel. Cleanup nach aktiviertem Test bedarf einer gesonderten kontrollierten Stilllegung, damit keine falsche Sicherheitsannahme entsteht.
+- `test/offerBrowserCloudScript.test.js` enthält drei statische Regressionstests: Skript-Syntax, eigener Dienst/Identität, IAM-Check, Verbot von anonymem Invoker, keine DB-/Drive-Rollen, Rückbau nur bei genauen Labels und deaktiviertem Zustand.
+- `.github/workflows/offer-acceptance-check.yml` führt `bash -n` und diese Tests ohne Google-Credentials aus.
+
+**Abnahme:** [GitHub Actions 39074026397](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39074026397) vollständig **SUCCESS**: normale Tests **98 total / 95 PASS / 3 SKIP / 0 FAIL**; Firestore-Emulator **12/12 PASS**, Chromium **5/5 PASS**, Docker-Image-Build und Read-only-Gate PASS.
+
+**Nächster operativer Schritt:** Betreiber startet im eigenen **Google Cloud Shell** aus einem frischen Checkout dieses Staging-Branches `bash scripts/offer-browser-cloud-bootstrap.sh --apply` und sendet den nicht-sensiblen Ergebnisstatus. Mögliches Cloud-Build-/Run-Billing ist genehmigt, aber tatsächliche IAM-/Abrechnungsfreigaben hängen an Google Cloud. Vor gesondertem späteren Test mit Daten fehlen weiterhin eine eigene Identitäts-/Origin-Anpassung für den temporären Servicenamen, minimalistische DB-/synthetische Drive-Freigaben, sicherer Cloud-Testseed und autorisierte fiktive PDFs. **Kein Go-Live.** Ursprüngliche Revision `lszh-offer-portal-staging-00004-qt7`, 100 % Traffic, `ingress=internal` bleibt unangetastet.
+
+---
+
+
 ## 17.10.2026 – Sicherer Cloud-Browser-Test: Kandidat vorbereitet, kein Deployment
 
 **Ausgangslage:** Vom Betreiber verifizierter Cloud-Run-Ist-Zustand: `lszh-offer-portal-staging-00004-qt7` / 100 % Traffic, `ingress=internal`, bisheriges IAM-Service-`bindings=null`, korrektes Read-only-Preflight und Dienstkonto. Der neue Portalcode ist noch nicht auf Google Cloud ausgerollt.

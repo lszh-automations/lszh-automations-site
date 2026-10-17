@@ -2,7 +2,20 @@
 
 Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
 
-## Künftiger Lesetest V2 – Quellcode sicher vorbereitet, neue IAM-Freigabe ausstehend (17.10.2026)
+## Einmaliger V2-Lesetest: zweite eng begrenzte IAM-Freigabe liegt vor (17.10.2026)
+
+Nach erfolgreichem *realem* `--plan` des V2-Lesetestskripts (`PLAN ONLY: No Cloud changes or API calls to Firestore.`) hat der Geschäftsführer die **zweite, konkrete IAM-Genehmigung** am 17.10.2026 ausdrücklich mit `du hast meine genehmigung` erteilt. Diese Zustimmung gilt **ausschliesslich** für den bereits geprüften einmaligen V2-Ablauf: nur SA-gebundenes `roles/iam.serviceAccountTokenCreator` für `user:lars@lszh-automations.ch`, mit auf 30 Minuten ab Vergabe ablaufender Bedingung; 600 Sekunden IAM-Propagation-Wartezeit; genau ein impersonierter Tokenversuch; maximal zwei lesende GETs mit zufälliger Test-ID auf neue Quarantäne-Datenbank (404 erwartet) und bisherige Offerten-Datenbank (403 erwartet), und sofortige Entfernung der exakten temporären Bindung samt unabhängiger Prüfung auch bei Fehler. **Keine Firestore-Schreiboperation, kein Cloud Run/Deployment, keine produktive Aktivierung, keine neue permanente Berechtigung.**
+
+**Einmalig genehmigter ausführbarer Cloud-Shell-Befehl:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_SEPARATELY_APPROVE_SECOND_TIMED_QUARANTINE_READ_TEST_V2 \
+bash workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh --run-approved-once
+```
+Die bereits einmal ausgeführte V1 darf weiterhin **nie erneut** gestartet werden. Die V2 ist mit einer neuen eigenen `.once`-Sperre ausgestattet; bei Fehlschlag **nicht erneut ausführen**. Teilen nur kontrollierte Statusausgabe ohne Tokens. Erfolg verlangt positive Firestore-404- und verweigerte Offerten-403-Meldungen **sowie** den unabhängigen Nachweis, dass die temporäre IAM-Bindung entfernt ist. Ein 404 alleine beweist keinen vollständigen IAM-Isolationszustand. Die **Freigabe ist keine Behauptung, dass diese Live-Anwendung bereits stattgefunden hat**.
+
+## Historischer Plan des Lesetests V2 – zuvor noch keine IAM-Freigabe (17.10.2026)
 
 Auf das Fortsetzungssignal `Vamos` nach der **leeren `GenerateAccessToken`-Auditlogabfrage** und dem `null`-Ergebnis der projektseitigen `auditConfigs` wurden **nur Review-Branch-Code und Offline-Tests** erweitert. Eine erneute Berechtigungserteilung oder Live-Token-Erzeugung wurde **nicht** autorisiert. Vorheriger Einmal-Lauf (V1) bleibt abgeschlossen: kein Firestore GET, sofortige überprüfte Grant-Entfernung. **V1 niemals wiederholen.**
 

@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Geschäftliches Google Drive VERBUNDEN und Test-Unterordner erstellt
+
+**Geschäftsführerentscheidung** bleibt: LSZH-Dokumente ausschliesslich im geschäftlichen Google Drive, keine neuen privaten Uploads/Archive.
+
+**Live verifiziert (Geschäftsverbindung `LSZHA`):**
+- `get_profile` bestätigt **`lars@lszh-automations.ch`**. Die zuvor verwendete private Standardverbindung ist weiterhin separat vorhanden, wird für LSZH weder lesend noch schreibend benutzt.
+- Bereits vorhandener **geschäftlicher** Staging-Hauptordner `LSZH Automations Vertragsarchiv – STAGING – Geschäftskonto` ist mit `STAGING.archiveFolderId` im bestehenden Code **exakt identisch**. Owner laut Drive-API = geschäftliches Konto; vorbestehende Reader-Rollen an Archivreader und internem Portal-Dienst wurden kontrolliert. **Kein Austausch der bisherigen Konfigurations-ID erforderlich.** Der 404 aus dem privaten Konto war nur eine Identitäts-/Sichtbarkeitsabweichung.
+- Bereits vorhandene geschäftliche Unterordner **Offerten-PDF**, **Projektbedingungen**, **_TEST_Archivpruefung**, **Annahmenachweise** und der separate noch inaktive **Echtbetrieb** wurden identifiziert. Bestehende Dateien und Freigaben nicht verändert.
+- Neuer **leerer isolierter Geschäfts-Unterordner** `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT` unter dem bestehenden Geschäftsstagingarchiv erstellt. Mit dem geschäftlichen Konto danach Owner, direktes Elternverzeichnis, MIME-Typ, Reader-Rollen und tatsächliche Leere nachgeprüft. **Noch keine PDF-Uploads, keine neuen Cloud-Rollen, keine Firestore-Schreibaktionen**.
+- **Technische Schranke:** Unser unveränderter Archivprüfer akzeptiert nur den unmittelbaren Elternordner in `parents[]`. Für synthetische PDFs im neuen Unterordner ist später ein **isolierter, exakt daran gebundener temporärer Archivordner-Wert** erforderlich. Die bestehende Hauptarchiv-ID für den geschützten Originaldienst/Reader wird **nicht** überschrieben. Das neue temporäre Dienstkonto hat derzeit keine eigene Reader-Freigabe.
+- Vollständige Policy-Aktualisierung: `docs/LSZH_DRIVE_BUSINESS_ONLY_POLICY_20261018.md`, Test-Go/No-Go: `docs/LSZH_SYNTHETIC_PDF_DRIVE_GATE_20261018.md`. Keine privaten Identitäts-/Ordnerdetails als Ersatz-Business-Daten übernehmen.
+
+**Nächste Etappe:** Die vier bereits lokal getesteten PDF-Fixtures der geschäftlichen Test-Unterordnerstruktur zuordnen; nach tatsächlichem Upload reale Drive-IDs, Bytes+SHA-256, unmittelbare Parent-ID und `contentRestrictions.readOnly` bestätigen. Erst danach einen begrenzten temporären Read-only-Drive-/Firestore-Test vorbereiten; kein echtes Kunden-Onboarding/Vertragsabschluss, keine E-Mails, keine automatische Folgeaktion.
+
+---
+
+
 ## 18.10.2026 – VERBINDLICH: Google Drive für LSZH nur noch geschäftlich
 
 **Geschäftsführerentscheidung:** «alles im geschäftlichen google drive und nichts mehr im privaten». Für LSZH-Automations-Unterlagen sind ausschliesslich das Konto `lars@lszh-automations.ch` und nachweislich geschäftlich verwaltete Google-Drive-Ordner zulässig. Dies betrifft **alle** Tests, Archiv-PDFs, Offerten, Rechnungen, Belege und später Kundendokumente. Neue private Ordner/Uploads oder eine Freigabe des privaten Staging-Archivs an Dienstkonten sind untersagt.

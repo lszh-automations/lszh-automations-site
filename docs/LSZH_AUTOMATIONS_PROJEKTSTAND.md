@@ -1,6 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
-_Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
+
+## 17.10.2026 – Entwicklungsprinzip: unnötige Komplexität vermeiden / Offerten-Demo
+
+**Leitentscheidung des Geschäftsführers:** LSZH Automations wird künftig konsequent nach „so einfach wie möglich, so sicher wie nötig“ entwickelt. Vor jeder neuen technischen Hürde prüfen: (a) konkreter Sicherheits-/Rechts-/Geschäftsnutzen, (b) einfachere Alternative, (c) Aufwand für Bedienung und Betrieb. Bei reinen fiktiven Design-Demos keine überflüssige Tokenpflicht; echte Kunden-, Vertrags- und Secret-Funktionen unverändert streng absichern.
+
+**Umsetzung ausschliesslich im ungemergten Offerten-Staging-Branch** `feature/optional-avv-acceptance-staging-20261014` (kein Render-Deploy / keine Produktion):
+- Öffentlicher Zugriff ist **nur** auf `GET /offerte-annehmen/?demo=1` erlaubt, und nur wenn `SITE_PRIVATE=true`, `NODE_ENV=staging` und `OFFER_ACCEPTANCE_ENABLED=false`. Exakter Pfad, exakt ein `demo=1`-Parameter, keine weiteren Query-Parameter. Das fiktive Angebots-HTML verwendet lokale Musterwerte; Formular-Submit und PDF-Downloads sind im Demo-Modus deaktiviert.
+- Sämtliche anderen GET-/HEAD-Routen (auch echte Offerten-URLs und Onboarding) sowie sämtliche POST-/API-Routen bleiben ohne Preview-Zugang auf HTTP 503. Durch den öffentlichen Demo-Aufruf wird **kein** Preview-Cookie gesetzt.
+- `SITE_PRIVATE`, `OFFER_ACCEPTANCE_ENABLED`, Make, Airtable, Gmail und Produktionswebsite **nicht verändert**. Bestehender separater privater Preview-Mechanismus bleibt vorhanden für andere Staging-Bereiche.
+- Lokale synthetische HTTP-Regression in `test/offerStaging.private.test.js` ergänzt: Demo 200, private Seiten und APIs 503, kein Cookie, keine Freigabe bei `NODE_ENV=production` oder aktivierter Vertragsannahme.
+- **Noch offen:** GitHub-CI-Auswertung und nach ausdrücklicher Render-Workspace-Freigabe ein kontrolliertes Staging-Deployment, danach Browser-GET-Prüfung des vereinfachten Links ohne Token. `autoDeploy=no` verhindert automatische Veröffentlichung.
+
+---
+
+
+_Stand: 17.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
 ## Geschäftsmodell / Eigentümerschaft
 

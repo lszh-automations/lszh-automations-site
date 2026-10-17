@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – IAM Troubleshooter nach engem Airtable-Secret-Grant: UNKNOWN_INFO
+
+**Echte Cloud-Shell-Ausgabe:** Nach erfolgreichem direkten `roles/secretmanager.secretAccessor`-Grant am einzelnen bestehenden Airtable-Read-only-Secret für das Outbox-Dienstkonto liefert die Abfrage von `secretmanager.versions.access` auf Version 1 jetzt `UNKNOWN_INFO` (vor Grant: `CANNOT_ACCESS`). Gemäss Google IAM Policy Troubleshooter bedeutet `UNKNOWN_INFO`, dass der aufrufende Principal **nicht alle Richtlinieninformationen** zum eindeutigen Beurteilen sehen kann, **nicht** dass der Secret-Zugriff verweigert wird. Der direkte IAM-Binding-Readback bleibt nachgewiesen. **Keine weiteren Berechtigungen vergeben.** Als nächster read-only Diagnosepunkt gezielt `allowPolicyExplanation.allowAccessState` und `denyPolicyExplanation.denyAccessState` abfragen, ohne Secret-Payload oder vollständige Policies auszugeben. Den effektiven Zugriff bei späterem kontrollierten One-Shot-Source-Job gesondert bestätigen; kein Job und keine Kundenaktion bisher gestartet.
+
+
 ## 17.10.2026 – Airtable-Staging: gezielte Secret-IAM-Freigabe umgesetzt
 
 Google Cloud Shell meldete nach der genehmigten Secret-Level-Berechtigungsänderung `Updated IAM policy for secret [lszh-airtable-readonly-staging]`. Die Bindung `roles/secretmanager.secretAccessor` enthält zwei Dienstkonten: den bisherigen Airtable-Lesetestdienst und die neue Outbox-Staging-Identität. Es gab keine projektweite neue IAM-Rolle, keinen Secret-Payload-Abruf und keinen Testauftrag. Als nächstes effektiven Zugriff für `secretmanager.versions.access` auf Secret-Version 1 erneut mit dem IAM Troubleshooter rein lesend prüfen; erwartet `CAN_ACCESS`. Der synthetische End-to-End-Lauf ist weiter offen.

@@ -6,9 +6,10 @@ const cp=require('node:child_process');
 
 const boot='scripts/offer-browser-cloud-bootstrap.sh';
 const clean='scripts/offer-browser-cloud-cleanup.sh';
+const resume='scripts/offer-browser-cloud-resume.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean]){
+ for(const file of [boot,clean,resume]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
@@ -42,4 +43,20 @@ test('cleanup refuses to delete unlabelled/active/non-owned services',()=>{
  assert.match(s,/gcloud run services delete "\$TEMP"/);
  assert.match(s,/gcloud iam service-accounts delete "\$SA_EMAIL"/);
  assert.doesNotMatch(s,/gcloud run services delete "\$ORIGINAL"/);
+});
+
+test('failed actAs deployment resumes from EXACT digest without rebuild or wider IAM',()=>{
+ const s=fs.readFileSync(resume,'utf8');
+ assert.match(s,/IMAGE_DIGEST="sha256:ba69188de7d71b9410ccc519b0249388d66401a01c20d09bb687932265f71678"/);
+ assert.match(s,/\[ "\$ACTUAL_DIGEST" = "\$IMAGE_DIGEST" \]/);
+ assert.match(s,/--member="user:\$ACCOUNT"/);
+ assert.match(s,/--role="roles\/iam.serviceAccountUser"/);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false"/);
+ assert.match(s,/--labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true"/);
+ assert.match(s,/gcloud run services add-iam-policy-binding "\$TEMP"/);
+ assert.doesNotMatch(s,/gcloud builds submit|gcloud iam service-accounts create/);
+ assert.doesNotMatch(s,/gcloud projects add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud run deploy "\$ORIGINAL"/);
 });

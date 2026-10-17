@@ -1,5 +1,18 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – separates Airtable-STAGING-Dienstkonto tatsächlich erstellt; noch keine Rechte oder Secrets
+
+Direkt vom Geschäftsführer in der Geschäftskonto-Cloud-Shell ausgeführter Befehl `bash workers/onboarding-notifications/staging-airtable-identity.sh --create-identity`, nach erfolgreichem `git pull --ff-only`. Die vorgelagerte Inventarisierung meldete `Existing resources (identity/secret/job): false/false/false`; der Google-Cloud-CLI-Lauf:
+```text
+Created service account [lszh-airtable-read-stg].
+Service account email: lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com
+PASS: Dedicated staging Airtable-read service account exists, with NO new IAM grants.
+STOP HERE: Secret creation, IAM secret access, job deployment and execution require separate gated steps.
+```
+**Nachgewiesen:** separates Dienstkonto `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` angelegt und per `describe` rückgelesen. Das Skript hat **keine** IAM-Bindings vergeben, keine Service-Account-Schlüssel, Secret-Manager-Secrets, Cloud-Run-Jobs oder -Deployments erstellt und keine Airtable-Datensätze oder Mails angefasst. Eine Prüfung eventuell **geerbter** IAM-Rollen ist durch diesen Schritt nicht erbracht.
+
+**Als nächstes:** Nur die **leere** Secret-Manager-Ressource `lszh-airtable-readonly-staging` mit genau einer vom Benutzer verwalteten Replikation in `europe-west6` (Zürich) vorbereiten und eigenständig prüfen. **Keine** Secret-Version/PAT einspielen, keine Berechtigungen setzen und keinen Job erstellen oder ausführen, bis spätere getrennte Gates erfolgreich sind. Bestehender Outbox-HTTP-Service bleibt weiterhin `enabled=false`. Globaler Secret-Ressourcenname mit auf Zürich begrenzter Benutzer-Replikation ist von einem *regionalen Secret* zu unterscheiden.
+
 ## 17.10.2026 – Airtable-STAGING-Dienstkonto: reiner PLAN ONLY-Preflight bestanden
 
 Der Geschäftsführer führte in Google Cloud Shell nach `git pull --ff-only` den Planlauf `bash workers/onboarding-notifications/staging-airtable-identity.sh` auf Branch `feature/onboarding-notification-outbox-20261016` aus. **Nachgewiesene Originalausgabe:**

@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Quellen-Secret-Probe: realer Cloud-Shell-Plan erfolgreich
+
+**Geschäftsführer-Cloud-Shell-Ausgabe** nach `git pull --ff-only` auf Feature-Branch: `staging-outbox-secret-access-job.sh --plan` meldete vier PASS-/Plan-Punkte: richtige LSZH-Geschäftsidentität, das gepinnte und bereits geprüfte Container-Image sowie korrektes Outbox-Quell-SA; Airtable-Secret Version 1 `ENABLED` und genau zwei direkte Secret-Level-Accessors; alle vier bestehenden Staging-Jobs unverändert und neuer Job `lszh-outbox-secret-access-probe-stg` **noch nicht vorhanden**. Für den geplanten Job wird ausschliesslich `/bin/sh` als Entrypoint verwendet, wodurch die Airtable-/Firestore-Anwendung nicht gestartet wird. `PLAN ONLY`: **keine Cloud-Veränderung, kein Secret-Payload-Abruf und keine Job-Ausführung**. Nächster einzeln zu prüfender Schritt ist `--create-only` zur Erstellung genau dieses neuen separaten Jobs mit 1 Task und 0 Retries, **ohne ihn zu starten**. Danach Job-Spezifikation und fehlende Execution separat auswerten; bei unklarer Erstellung den Create-Befehl keinesfalls wiederholen.
+
+
 ## 17.10.2026 – Vier bestehende Cloud-Run-Jobs bestätigt; eigene Outbox-Secret-Probe vorbereitet
 
 **Tatsächliche Cloud-Shell-Job-Inventarliste des Geschäftsführers:** `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging`, `lszh-firestore-write-probe-staging`. Keinen dieser Jobs wiederverwenden, verändern oder ausführen.

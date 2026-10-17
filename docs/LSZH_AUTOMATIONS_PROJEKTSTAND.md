@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Offline-Fixture-Tests bestätigt: 447/447 PASS
+
+**Echte GitHub-Actions-Verifikation:** Für Code/Test-Commit `a362e69052a58e234e0b74da8990a00b750e0d31` sind die Workflows `Onboarding notification outbox (synthetic only)` und `Onboarding completion verification (synthetic only)` erfolgreich abgeschlossen. Der Workflow-Protokoll-Readback meldet **447 Tests, 447 PASS, 0 FAIL**. Dies enthält fünf neue Tests zur lokalen einmalkonfigurierten, privaten und send-gesperrten synthetischen Fixture. Noch kein echtes neues Fixture-File im Cloud-Shell-Konto angelegt, kein echter Airtable-GET, Firestore-Write, Quell-Job oder Handoff gestartet. Für den nächsten Schritt nach `git pull --ff-only` ist `node workers/onboarding-notifications/synthetic-source-fixture-local.js --prepare-local` vorgesehen; es schreibt einmalig ausschliesslich eine lokale private Manifest-Datei (0700/0600), niemals GitHub oder Cloud. Nicht manuell Geheimwerte ins Chatprotokoll kopieren.
+
+
 ## 17.10.2026 – Synthetische Handoff-Fixture ohne Airtable-Schreibzugriff vorbereitet
 
 **Echte Airtable-Bestandsaufnahme über verbundenen Account, nur lesend:** Die bestehende Website-CRM-Base `appzJiskpAdaR1HEv` und Onboarding-Tabelle `tblWIY4l4VASz8Vse` wurden anhand echter Base- und Table-Metadaten bestätigt. Namensfilter ergaben **4** Onboarding-Zeilen mit `TEST` sowie **1** mit `SYNTH` in der Onboarding-Bezeichnung. Deren synthetische Herkunft und sichere E2E-Tauglichkeit wurden **nicht** bestätigt; keine Kundennamen, Tokens oder Projektcodes in den Chat oder GitHub übernommen und **keine** Airtable-Records verändert.

@@ -2,6 +2,30 @@
 
 Status: **Quarantäne-Named-Database am 17.10.2026 erfolgreich erstellt, Löschschutz bestätigt; Service-Account, Rolle, IAM-Bindung, Cloud-Run-Runtime und Dokument-Schreibtests noch NICHT eingerichtet/freigegeben.** Ältere nachfolgende Abschnitte dokumentieren den vorherigen Planungsstand.
 
+## Dedizierte IAM-Einrichtung: separat ausdrücklich genehmigt, Cloud Shell noch ausstehend
+
+**Freigabe des Geschäftsführers am 17.10.2026:** Auf den konkret genannten nächsten Schritt «Service-Account, minimale Custom Role, nur auf `lszh-quarantine-staging` begrenzte IAM-Zuweisung» antwortete er `du hast meine freigabe, vamos`. **Umfang dieser Genehmigung:** genau eine dedizierte IAM-Dienstidentität und eine benutzerdefinierte Rolle mit **nur** `datastore.entities.create`, `datastore.entities.get`, `datastore.entities.update`, mit genau einer auf `projects/lszh-automations/databases/lszh-quarantine-staging` beschränkten projektweiten IAM-Bedingung. **Nicht freigegeben:** Cloud Run/Build, Firebase-Dokumentzugriffe, Testdaten-Schreiboperationen, E-Mails, Kunden-Onboarding oder Produktivbetrieb.
+
+**Vorbereitete isolierte Skripte:** `workers/onboarding-notifications/quarantine-iam-provisioning.js` (rein synthetischer Metadatenvergleich), `staging-quarantine-iam-setup.sh` (Standard `--plan`, explizites gesichertes `--apply-once` nur nach genauer Approval-Markierung) und `staging-quarantine-iam-setup.test.mjs` (Mock-GCP mit Erfolgs-, Fehler- und Teilzustandsfällen). Die bestehende `quarantine-iam-plan.js` wurde so gehärtet, dass ein in der Cloud-API bei `false` fehlendes optionales `disabled`-Feld nicht fälschlich ablehnt und die Custom Role exakt `GA` sein muss.
+
+**Sicherheitsbedingungen:** Vor jedem Cloud-Mutation-Befehl verifiziert das Skript Git-Branch, unveränderten und synchronisierten Checkout, LSZH-Geschäftsidentität, die bestehende separate Quarantäne-Named-Database mit aktivem Löschschutz, dass SA/Custom Role noch nicht existieren sowie das vollständige abrufbare Projekt-IAM-Policy-Metadatenbild ohne bereits an die neue Identität gebundene Rechte. **Kein pauschaler Wiederanlauf und keine Bereinigung** bei einer Teil-Einrichtung. Erst danach sind genau drei Änderungen zulässig: 1) Service Account ohne vom Skript angelegte Schlüssel, 2) exakt dreirechtige Custom Role, 3) exakt konditionierter IAM-Grant. Nach dem letzten Schritt werden SA-/Rollen-/IAM-/User-managed-Key-Metadaten streng geprüft. Die gesamte Ausgabe gibt nur kontrollierte Prüfstatusmeldungen aus; keine Tokens, rohen IAM-Policies oder Key-Metadaten. Eine bestandene IAM-Metadatenprüfung beweist **noch nicht** geerbte Rechte, effektive Firestore-REST-Berechtigungen oder eine aktive Runtime.
+
+**Planmodus, derzeit ohne Cloud-Mutation ausführbar:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-iam-setup.sh --plan
+```
+
+**Nur bei bereits dokumentierter expliziter Freigabe und bestandener GitHub-CI kann danach einmalig ausgeführt werden:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+LSZH_QUARANTINE_IAM_PROVISIONING_APPROVAL=I_APPROVE_LSZH_QUARANTINE_SA_CUSTOM_ROLE_AND_CONDITIONAL_IAM \
+bash workers/onboarding-notifications/staging-quarantine-iam-setup.sh --apply-once
+```
+Bei `BLOCKED`/`UNVERIFIED` **STOP, nicht erneut ausführen**. Bei Erfolg den stdout ohne geheime Daten zur Bestandsverifikation mitteilen. Keine zusätzliche Datenbank anlegen oder die bereits durch den Nutzer einmal erfolgreich ausgeführte Datenbankerstellung erneut starten.
+
 ## Nachweis der genehmigten einmaligen Datenbankerstellung (17.10.2026)
 
 Der Geschäftsführer hat mit `du hast meine genehmigung, vamos` **explizit** die neue kostenpflichtig nutzbare Datenbank genehmigt und den freigegebenen Runner `staging-quarantine-db-provision.sh --create-once` selbst in Cloud Shell auf dem aktuellen Review-Branch ausgeführt. Der Ablauf meldete einen einzigen Firestore-Datenbank-Create-Versuch und anschliessend nach eigenem `describe`:

@@ -20,6 +20,27 @@ Der Geschäftsführer hat nach erfolgreicher einmaliger Jobausführung `lszh-fir
 
 **Weiterhin gesperrt/ungeprüft:** Der bestehende HTTP-Outbox-Dienst bleibt bei `LSZH_OUTBOX_STAGE_ENABLED=false`, hat weder Airtable-Read-Token noch Fixture-Codes, Control-Secret oder Scheduler. Kein vollständiger Airtable→Onboarding→Outbox-End-to-End-Test durchgeführt. Kein Produktivversand, keine Vertragsannahme, kein RC1-/AVV-Rechtsentscheid; PR #8 ist weiterhin Draft und nicht gemergt. Eine sichere nächste Phase sollte den vollständig synthetischen Airtable-Zustandsnachweis **lesend** vorbereiten, ohne weitere Firestore-Infrastruktur zu erstellen.
 
+## 17.10.2026 – Echte Airtable-REST-Prüfung gefahrlos vorbereitet (NEU; NOCH NICHT AUSGEFÜHRT)
+
+Vorbereitung eines **rein lesenden** Node.js-Laufzeittests der tatsächlichen `onboarding/confirmation.js`-Funktion `verifyOnboardingState()` mit einem Airtable Personal Access Token, **ohne** zuvor einen neuen CRM-Testkunden anzulegen. Die drei vormals genehmigten synthetischen CRM-Records wurden am 17.10. erneut jeweils mit exakten Record-ID-Filtern geprüft: **je 0 Treffer**, Bereinigung weiterhin bestätigt.
+
+`staging-airtable-rest-read.sh` (default `--plan`, keine externen Requests) und `staging-airtable-rest-read.js` (nur bei `--probe`) erzwingen:
+- sauberen Review-Git-Branch, echtes LSZH-Google-Cloud-Geschäftskonto und Projekt;
+- lokale verdeckte Eingabe eines Airtable-**Read-only**-PAT, beschränkt auf `data.records:read` für `LSZH Automations – Website CRM`, über eine private Pipe an Node; keine Secret-Dateien, keine Kommandozeilen-PATs, keine Logs mit Token oder Suchcode;
+- genau **einen** REST-`GET` auf die `Kunden-Onboarding`-Tabelle, gefiltert nach einem frisch generierten, unvorhersagbaren `ob_<UUIDv4>`-Projektcode;
+- den realen `verifyOnboardingState()`-Code. Erwartet wird für einen **nicht vorhandenen** Testcode ausschliesslich `{state:'processing'}`, NICHT ein Abschluss;
+- bei fehlender Authentifizierung/401/403, Rate-Limit 429, fehlerhaften Daten oder weiterer Abfrage eine sichere Verweigerung; keine Anlage/Änderung realer CRM-Daten, kein Cloud-Run-Reconcile, keine Firestore-Aktion oder Mail.
+
+**Offline-Kontrolle:** Acht zusätzliche Mock-/Fail-closed-Tests in `staging-airtable-rest-read.test.mjs`; GitHub Actions **99/99 JavaScript-Tests** und **8/8 IAM-Tests** grün.
+
+**Erst nur den Plan ausführen:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-rest-read.sh
+```
+Das meldet `PLAN ONLY`. Die eigenständige, spätere Aktion `--probe` verlangt ein zuvor vom Firmeninhaber beschränktes Airtable-PAT und führt eine tatsächliche, eng begrenzte externe Leseabfrage aus, **ohne das Token hier im Chat einzufügen**. Dieser Nachweis belegt dann die aktuelle Airtable-REST-Authentifizierung des Node-Verifizierers **in Cloud Shell**, nicht schon eine Cloud-Run-Airtable-Verbindung. Der getrennte Cloud-Run-HTTP-Outbox-Dienst bleibt weiterhin `enabled=false`.
+
 ## Bestätigte Infrastruktur aus Geschäftskonto (diagnostiziert am 16.10.2026)
 
 - Google-Cloud-Projekt: `lszh-automations`; aktives Geschäftskonto bestätigt.

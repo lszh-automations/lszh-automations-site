@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Separate Quarantäne-Firestore-Datenbank erfolgreich erstellt und verifiziert
+
+**Bestätigung durch echte vom Geschäftsführer ausgeführte Cloud-Shell-Ausgabe:** Nach `git pull --ff-only` (Review-Branch bis `138954d`) wurde der ausdrücklich freigegebene, zuvor offline geprüfte einmalige Befehl mit `LSZH_QUARANTINE_DB_CREATION_APPROVAL=I_APPROVE_LSZH_QUARANTINE_STAGING_BILLABLE_DATABASE_CREATION` und `staging-quarantine-db-provision.sh --create-once` ausgeführt. Der Runner meldete:
+```text
+PASS: Billing active, Firestore API enabled, existing Zurich staging recognized.
+PASS: Separate quarantine database not present and project DB count below 100.
+PASS: Three requested Firestore permissions are eligible for a GA custom role.
+PASS: Final database inventory allows isolated creation.
+APPROVED CREATION PATH: One Firestore database create attempt.
+PASS: Exact Zurich Native database and deletion protection verified.
+PASS: Exactly one billable isolated staging database created; no IAM/data changes.
+DO NOT RERUN. Service account, role, IAM and writes need separate approvals.
+```
+
+**Tatsächlicher Stand laut vollständig durchgelaufenem Runner samt anschliessendem Firestore-`describe`:** `projects/lszh-automations/databases/lszh-quarantine-staging` erfolgreich als **eigene Firestore Native Standard Named Database in `europe-west6` (Zürich)** erstellt. **`DELETE_PROTECTION_ENABLED`** nach der erneuten Metadatenkontrolle bestätigt. Aus der Ausgabe wird genau ein Erstellungsversuch abgeleitet; keine separate Cloud-Abfrage durch ChatGPT erfolgt. Der historische Bestand `lszh-offers-staging` blieb gemäss Quarantäne-Runner unangetastet. **Datenbank ist jetzt vorhanden: Früherer `NOT_FOUND`-Status und frühere `--plan`-Prüfungen «separate Datenbank muss fehlen» sind historisch und dürfen NICHT erneut als Voraussetzung für ein weiteres `create` verwendet werden. `--create-once` NIEMALS wiederholen.**
+
+**Offen und nicht durch die Datenbankfreigabe autorisiert:** dedizierte Quarantäne-Service-Identität (`lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`), die Custom Role `projects/lszh-automations/roles/lszhQuarantineCasStaging` mit exakt `datastore.entities.get/create/update` und eine auf **diese** neue Datenbank konditionierte IAM-Bindung; Kostenalarm; Cloud Run; Firestore-CAS-Synthesetest; produktiver Versand. Diese Schritte benötigen jeweils eine eigenständige, ausdrückliche Freigabe. Bestehendes Outbox-IAM nicht erweitern; frühere ausgeführte Cloud-Run-Probes nicht erneut starten. Der nächste **ohne Freigabe** zulässige Schritt ist nur ein aktualisierter **read-only Nachweis von Existenz/Löschschutz** und eine IAM-Metadatenprüfung, die eine **vorhandene** Quarantäne-Datenbank erwartet.
+
 ## 17.10.2026 – Explizite Freigabe für genau eine kostenpflichtig nutzbare Quarantäne-Staging-Datenbank
 
 **Ausdrückliche Aussage des Geschäftsführers im Chat:** Auf den bisherigen separaten Freigabeaufruf für `lszh-quarantine-staging` mit nutzungsabhängigen Google-Cloud-Kosten folgte `du hast meine genehmigung, vamos`. Dies wird als **konkrete Autorisierung ausschliesslich zur einmaligen Erstellung** der zusätzlichen Named Database `lszh-quarantine-staging` im Projekt `lszh-automations`, Standort `europe-west6`, Edition `standard`, Typ `firestore-native`, mit aktiviertem Löschschutz und nach erfolgreichem Sicherheits-Preflight verstanden. Die nutzungsabhängigen Kosten dieser separaten Firestore-Datenbank wurden zuvor erläutert und ausdrücklich genehmigt. Das Budget/der Kostenalarm ist noch nicht eingerichtet; eine Budgetwarnung ist **kein hartes Ausgabenlimit**.

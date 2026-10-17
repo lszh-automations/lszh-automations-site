@@ -159,6 +159,10 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    const attempts=await Promise.all(Array.from({length:8},()=>
     post(base,'/api/offer/accept',submission)));
    assert.equal(attempts.filter(x=>x.status===200).length,1);
+   const receipt=attempts.find(x=>x.status===200).body;
+   assert.equal(receipt.test_only,true);
+   assert.equal(receipt.offer_number,mapped.offerNumber);
+   assert.equal(receipt.confirmation_email_pending,false);
    assert.equal(attempts.filter(x=>[404,409].includes(x.status)).length,7);
    const end=(await ref.get()).data();
    assert.equal(end.status,'accepted');assert.equal(end.revision,2);

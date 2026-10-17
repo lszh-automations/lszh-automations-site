@@ -1,5 +1,35 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
+## Getrennte IAM-Laufzeitgrenzen: vorbereitete Reader, aber noch kein echter Übergabetransport (17.10.2026)
+
+Auf `Vamos` wurde der bereits existierende `reviewDraft` → `prepareQuarantineCAS`-Offline-Pfad um **zwei separate, standardmässig deaktivierte, GET-only Firestore-Runtime-Reader** ergänzt: `workers/onboarding-notifications/firestore-scoped-readers.js` und `.test.mjs`. Gemeinsame Implementierung vermeidet doppelte Bibliotheken, aber jeder Laufzeitkontext muss genau seine eigene **tatsächliche** Google-Cloud-Metadata-Service-Account-E-Mail haben: `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` liest nur `lszh-offers-staging / lszh_onboarding_notification_drafts_staging`; `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` liest nur `lszh-quarantine-staging / lszh_onboarding_quarantine_cases_staging`. Keine Kreuzung der Tokens, keine Firestore-Schreib-, Lösch- oder List-APIs. **Kein neuer IAM-Grant, kein Cloud-Run-Deploy, keine DB-Anfragen beim Implementieren.**
+
+Ablauf **nur im simulierten Test**:
+```text
+Quelle (eigenes Servicekonto)                     Ziel (anderes Servicekonto)
+  GET Metadata/email → Identität prüfen            GET Metadata/email → Identität prüfen
+  GET Metadata/token                                 GET Metadata/token
+  GET genau einen gültigen DRAFT_NOT_SENT            GET genau denselben opaken 64-Hex-Key
+  → streng validierter Entwurf                       → 404 / gültiger Snapshot
+            \                          /
+       OFFLINE-TESTHARNESS: synthetische Übergabe innerhalb eines Testprozesses
+                   → reviewDraft() (Airtable GETs nur simuliert)
+                   → prepareQuarantineCAS() (reine Planung)
+                   → NO_CHANGE / gesperrte CAS-Prüfzusammenfassung
+          X keine Firestore-Mutation, kein Versand, kein Runtime-Handoff live
+```
+
+Die Reader verlangen ausdrücklich `LSZH_SCOPED_STAGING_READER_ENABLED=true`, `LSZH_OUTBOX_STAGE_ENABLED=false`, `LSZH_SCOPED_READER_SCOPE=outbox|quarantine`, `FIRESTORE_PROJECT_ID=lszh-automations` und exakt passende `FIRESTORE_DATABASE_ID` **bevor sie irgendeinen Netzwerkrequest machen**. Zusätzlich ist ein Metadata-`email`-Read mit exakt erwartetem Servicekonto nötig, **bevor** eine Metadata-`token`-Abfrage erfolgt. Alle drei Netzwerkzugriffe eines erlaubten einzelnen Dokuments sind GET; nur ein Firestore-Dokument-GET. Nicht-200, fehlende Identität, fehlerhafter Token, falsche Dokumentidentität/Feldstruktur, ungültige Read-Timestamps und zu grosse Antwort führen zum STOP. Ein fehlender Outbox-Entwurf ist kein Quarantäne-Nachweis; ein fehlendes Quarantäne-Dokument wird lediglich als `MISSING` signalisiert. Keine Consumer-/Server-Routen führen diese Reader heute aus. Der vorhandene deaktivierte Outbox-`server.js` bleibt unberührt. Das Setzen dieser Flags ist **nicht** freigegeben und ist im bestehenden Cloud-Run-Service nicht erfolgt.
+
+**Tests:** 13 zusätzliche Mock-Tests isolieren die zwei Runtime-Identitäten; 2 zusätzliche Offline-End-to-End-Tests übergeben nur in einer simulierten Testumgebung die verifizierten Dokumente an die bisherige Airtable-Review-/CAS-Planung. **372/372 synthetische JavaScript-Tests bestanden**, beide GitHub-Actions-Workflows erfolgreich. Das ist kein live überprüfter Metadaten-Service-Account-/Cross-Cloud-Run-Zugriff.
+
+**Vor einer echten Aktivierung ungelöst:**
+1. Verbindlicher authentifizierter Übergabekanal zwischen Quelle und Ziel. Keine einfache Weitergabe nicht-signierter JSON-Review-Resultate als Schreibfreigabe. Bei einer späteren privaten Cloud-Run-/OIDC-Übergabe müssen Authentizität des Aufrufers, Ziel-Audience, engster Invoker-Rollenscope, Datenminimierung und Replay-/Idempotenzschutz unabhängig geprüft werden. Eine beglaubigte, aber veraltete Statusmeldung ist immer noch **keine** positive Versandfreigabe.
+2. Gültige synthetische Outbox-Fixtures, kontrollierte Übergabe und getrennte Test-Identitäten ohne breite IAM-Rolle. Eine Erlaubnis zum Ausführen/Deployen, Erteilen von Invoke-Rechten oder Aktualisieren der bestehenden Services wurde **noch nicht** erteilt.
+3. Quarantäneseitige **einmalige** CAS-Commit-Ausführung nach neuem, exakt getrennt genehmigtem End-to-End-Test, ohne Retry und ohne Mail, mit unabhängigen Readbacks. Frühere V1/V2-Lese- und einmalige CAS-Write-Runner nicht wiederholen.
+
+Der reale synthetische Quarantäne-CAS-Fall `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42` verbleibt als Revision 2 und wird nicht ohne neue explizite Freigabe gelöscht.
+
 ## Offline-Integration bestehender Onboarding-Review → Quarantäne-CAS (17.10.2026)
 
 Nach der erfolgreichen echten **synthetischen** Firestore-Liveprüfung (ein Create, ein Update; Revision 2; temporäre Service-Account-Berechtigung bestätigt entfernt) hat der Geschäftsführer mit `Vamos` den nächsten nichtproduktiven Entwicklungsschritt gestartet. Dieser ist **keine neue Freigabe** für weitere Cloud-IAM-Bindungen, Firestore-Operationen oder Runtime-/Make-Aktivierung.

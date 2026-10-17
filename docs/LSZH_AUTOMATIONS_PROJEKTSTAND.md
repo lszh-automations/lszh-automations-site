@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Build-SUCCESS dokumentiert; sicherer SHA-256-Image-Digest-Preflight (READ ONLY) vorbereitet
+
+Nach dem vom Geschäftsführer tatsächlich nachgewiesenen erfolgreichen Cloud Build `1b909760-deb7-49a9-bfe8-b4e20af68133` in `europe-west6` und Image-Tag `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67` wurde **ausschliesslich in GitHub PR #8** der unveränderliche Image-Nachweis vorbereitet: `workers/onboarding-notifications/staging-airtable-image-verify.sh`.
+
+Der neue **nur lesende** Preflight verlangt das exakt richtige aktive Firmenkonto/Projekt, einen sauberen vollständig synchronisierten Review-Checkout, die unveränderten fünf am Commit `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnten Container-Quelldateien. Er prüft die originale Cloud-Build-ID `1b909760-deb7-49a9-bfe8-b4e20af68133` via `gcloud builds describe --region=europe-west6` auf `SUCCESS` und exakt den erwarteten Image-Tag. Dann liest er via `gcloud artifacts docker images describe <TAG> --format='value(image_summary.digest)'` den **echten** Registry-Digest, verlangt strikt `sha256:` plus 64 Hexzeichen und gleicht den Build-Result-Digest ab, falls Google ihn separat ausweist. Schliesslich inventarisiert er Cloud-Run-Jobs read-only und verweigert einen unbemerkten bestehenden `lszh-airtable-read-probe-staging`-Job. Gibt die **unveränderliche vollständige Image-Referenz `...@sha256:...`** aus, ohne ein neues Image, einen Cloud Job oder ein Secret zu verändern.
+
+**Offizielle Syntax:** Google Cloud Build `gcloud builds describe` und Artifact Registry `gcloud artifacts docker images describe`, insbesondere `value(image_summary.digest)` laut Google-Cloud-Dokumentation. **Nur synthetische CI:** `staging-airtable-image-verify.test.mjs` testet Build-Failure, falschen Tag/Digest, Umbenennung/Retagging, fehlende Repository-Metadaten, existente Jobs, falsche Identität und verbotene Mutationsbefehle. Nach Regressionstest-Korrektur meldete GitHub Actions `39014254676` **152/152 JavaScript-Tests und 8/8 IAM-Tests**, ohne Live-Google-Cloud-Aufruf in CI. Die tatsächliche SHA-256-Digest-Prüfung **wurde vom Geschäftsführer noch nicht ausgeführt**.
+
+**Nächster ausschliesslich lesender Cloud-Shell-Aufruf:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-verify.sh
+```
+Nur bei vollständigem PASS danach die **separate** Cloud-Run-Job-Erstellung vorbereiten. Vorher und nachher den bestehenden privaten HTTP-Outbox-Dienst unverändert `LSZH_OUTBOX_STAGE_ENABLED=false` belassen. Cloud-Run-Testjob bleibt **nicht erstellt**, Secret-PAT-Zugriff aus Cloud Run nicht getestet, keine Make-/Firestore-/E-Mail-/Kundenaktion.
+
 ## BESTÄTIGT 17.10.2026 – Separates Airtable-READ-Probe-Image in Zürcher Artifact Registry ERFOLGREICH GEBAUT
 
 Der Geschäftsführer führte auf dem sauberen synchronisierten Review-Branch nach `git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-image-build.sh --build-only` aus. Echte Cloud-Shell-Rückmeldung:

@@ -22,6 +22,10 @@ const REASONS=Object.freeze({
  ]
 });
 const RANK={[STATES.REVIEW]:0,[STATES.HOLD]:1,[STATES.QUARANTINED]:2};
+function validTime(v) {
+ return typeof v==='string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v) &&
+   Number.isFinite(Date.parse(v)) && new Date(v).toISOString()===v;
+}
 const EXACT_CASE_KEYS=[
  'schemaVersion','draftId','revision','state','lastReviewStatus',
  'lastReason','events','deliveryAllowed','requiresManualApproval'
@@ -56,10 +60,13 @@ function validCase(record,draftId) {
     last.resultingState!==record.state)return false;
  return record.events.every((e,i)=>{
   if(!e || typeof e!=='object' || Array.isArray(e) ||
-     Object.keys(e).length!==4 || !['seq','status','reason','resultingState'].every(k=>Object.hasOwn(e,k)) ||
-     e.seq!==i+1 || !Object.hasOwn(RANK,e.resultingState))return false;
+     Object.keys(e).length!==5 || !['seq','status','reason','resultingState','reviewedAt'].every(k=>Object.hasOwn(e,k)) ||
+     e.seq!==i+1 || !Object.hasOwn(RANK,e.resultingState) ||
+     !validTime(e.reviewedAt) ||
+     (i>0 && e.reviewedAt<record.events[i-1].reviewedAt))return false;
+  if(typeof e.status!=='string' || !Object.hasOwn(REASONS,e.status))return false;
   const reasons=REASONS[e.status];
-  if(!reasons || !reasons.includes(e.reason))return false;
+  if(!reasons.includes(e.reason))return false;
   if(i>0 && RANK[e.resultingState]<RANK[record.events[i-1].resultingState])return false;
   const prior=i?record.events[i-1].resultingState:STATES.REVIEW;
   return e.resultingState === (RANK[target({status:e.status})]>RANK[prior]
@@ -78,15 +85,19 @@ function immutable(record) {
  * The returned next state is not a transaction: any future persistence MUST
  * compare the stored revision atomically and never use a blind overwrite.
  */
-function planQuarantine({draftId,review,previous=null,expectedRevision=0}={}) {
+function planQuarantine({draftId,review,previous=null,expectedRevision=0,
+                         reviewedAt=new Date().toISOString()}={}) {
  if(typeof draftId!=='string' || !RECORD.test(draftId))
   throw Error('invalid_quarantine_draft_id');
  if(!permittedReview(review))throw Error('unsafe_review_result');
+ if(!validTime(reviewedAt))throw Error('invalid_quarantine_review_time');
  if(previous===null) {
   if(expectedRevision!==0)throw Error('stale_quarantine_revision');
  }else {
   if(!validCase(previous,draftId))throw Error('invalid_existing_quarantine_case');
   if(expectedRevision!==previous.revision)throw Error('stale_quarantine_revision');
+  if(reviewedAt<previous.events.at(-1).reviewedAt)
+   throw Error('quarantine_time_regression');
  }
  const priorState=previous?.state??STATES.REVIEW;
  const proposed=target(review);
@@ -101,7 +112,7 @@ function planQuarantine({draftId,review,previous=null,expectedRevision=0}={}) {
  if(rev>32)throw Error('quarantine_audit_limit_requires_manual_review');
  const events=[
   ...(previous?.events??[]),
-  {seq:rev,status:review.status,reason:review.reason,resultingState:state}
+  {seq:rev,status:review.status,reason:review.reason,resultingState:state,reviewedAt}
  ];
  const record=immutable({
   schemaVersion:CASE_SCHEMA,draftId,revision:rev,state,

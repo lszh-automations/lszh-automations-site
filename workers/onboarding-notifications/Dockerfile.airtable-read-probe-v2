@@ -3,11 +3,14 @@
 FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --chown=node:node --chmod=0644 onboarding/confirmation.js /app/onboarding/confirmation.js
-COPY --chown=node:node --chmod=0644 workers/onboarding-notifications/staging-airtable-rest-read.js /app/workers/onboarding-notifications/staging-airtable-rest-read.js
-COPY --chown=node:node --chmod=0644 workers/onboarding-notifications/airtable-runtime-probe-v2.js /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js
-# Build only: all ancestor directories must be traversable by USER node.
-# Runtime remains unprivileged. Secret volume is not part of this image.
-RUN chmod 0755 /app /app/onboarding /app/workers /app/workers/onboarding-notifications
+COPY --chown=node:node onboarding/confirmation.js /app/onboarding/confirmation.js
+COPY --chown=node:node workers/onboarding-notifications/staging-airtable-rest-read.js /app/workers/onboarding-notifications/staging-airtable-rest-read.js
+COPY --chown=node:node workers/onboarding-notifications/airtable-runtime-probe-v2.js /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js
+# Explicit file and directory modes in a legacy-Docker-compatible RUN step.
+# No BuildKit-specific COPY --chmod; retain an unprivileged runtime.
+RUN chmod 0755 /app /app/onboarding /app/workers /app/workers/onboarding-notifications \
+    && chmod 0644 /app/onboarding/confirmation.js \
+        /app/workers/onboarding-notifications/staging-airtable-rest-read.js \
+        /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js
 USER node
 CMD ["node","/app/workers/onboarding-notifications/airtable-runtime-probe-v2.js"]

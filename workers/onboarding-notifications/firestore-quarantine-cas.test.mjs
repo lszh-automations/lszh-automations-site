@@ -108,6 +108,24 @@ test('two racing actors with same source snapshot: synthetic backend accepts exa
  assert.equal(accepted,2);
  assertPrivate(third);
 });
+test('Firestore normalizes audit timestamps: 0/3/6/9 digit equivalent UTC values verify unchanged',()=>{
+ const proposal=make(ok);
+ const request=buildQuarantineCommit({proposal});
+ const base=snapshotFromCommit(request);
+ for(const timestamp of ['2026-10-17T12:00:00Z','2026-10-17T12:00:00.000Z',
+   '2026-10-17T12:00:00.000000Z','2026-10-17T12:00:00.000000000Z']){
+  const doc=structuredClone(base);
+  doc.fields.events.arrayValue.values[0].mapValue.fields.reviewedAt.timestampValue=timestamp;
+  assert.equal(decodeSnapshot(doc,ID).record.events[0].reviewedAt,DATE);
+  assert.equal(verifyCommittedSnapshot({proposal,document:doc}).persistedVerified,true);
+ }
+ for(const timestamp of ['2026-10-17T12:00:00.000001Z',
+   '2026-10-17T12:00:00.000000001Z','2026-02-30T12:00:00Z']){
+  const doc=structuredClone(base);
+  doc.fields.events.arrayValue.values[0].mapValue.fields.reviewedAt.timestampValue=timestamp;
+  assert.throws(()=>decodeSnapshot(doc,ID),/quarantine_snapshot_fields_invalid/);
+ }
+});
 test('no blind writes on missing snapshot, old revision, changed history or wrong identity',()=>{
  const existing=make(ok);
  const request=buildQuarantineCommit({proposal:existing});

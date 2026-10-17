@@ -28,6 +28,8 @@ on:
       - 'scripts/offer-cloud-readiness-readonly.py'
       - 'scripts/offer-business-drive-readonly-verify.py'
       - 'scripts/offer-temp-drive-folder-reader.py'
+      - 'scripts/offer-temp-drive-probe-release.sh'
+      - 'test/temporaryDriveProbe.test.js'
       - 'scripts/offer-browser-cloud-bootstrap.sh'
       - 'scripts/offer-browser-cloud-cleanup.sh'
       - 'scripts/offer-browser-cloud-resume.sh'
@@ -65,6 +67,7 @@ jobs:
           bash -n scripts/offer-browser-cloud-smoke.sh
           bash -n scripts/offer-browser-static-demo-release.sh
           bash -n scripts/offer-browser-static-demo-smoke.sh
+          bash -n scripts/offer-temp-drive-probe-release.sh
       - name: Syntax checks
         run: |
           node --check server.js
@@ -84,6 +87,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
           node --check cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs
+          node --check cloud-run/offer-portal-staging/temporaryDriveProbe.mjs
+          node --check test/temporaryDriveProbe.test.js
           node --check test/temporaryBrowserDemo.test.js
           node --check scripts/offerSyntheticPdfFixtures.mjs
           node --check test/offerSyntheticPdfFixtures.test.js

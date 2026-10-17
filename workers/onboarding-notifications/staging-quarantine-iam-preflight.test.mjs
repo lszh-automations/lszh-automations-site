@@ -30,7 +30,7 @@ function run(overrides={},args=['--plan']) {
  try {
   const p=spawnSync('bash',[SCRIPT,...args],{cwd:root,encoding:'utf8',timeout:20000,
    env:{...process.env,PATH:bin+':'+process.env.PATH,
-    FAKE_ROOT:root,FAKE_AUDIT:audit,FAKE_ACCOUNT:overrides.account??'lars@lszh-automations.ch',
+    FAKE_ROOT:process.cwd(),FAKE_AUDIT:audit,FAKE_ACCOUNT:overrides.account??'lars@lszh-automations.ch',
     FAKE_DB:path.join(root,'db.json'),FAKE_SA:path.join(root,'sa.json'),
     FAKE_ROLE:path.join(root,'role.json'),FAKE_POLICY:path.join(root,'policy.json'),
     FAKE_DIRTY:overrides.dirty??'',FAKE_MISSING_SA:overrides.missingSA?'1':'0',

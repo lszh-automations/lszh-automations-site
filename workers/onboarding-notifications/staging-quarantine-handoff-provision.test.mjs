@@ -55,7 +55,7 @@ esac
 function simulate(mode,{preexisting=false,listFailure=false,badGate=false,badImage=false,
  reviewEnabled=false,badSecretRef=false,badSecretIam=false,badRevision=false}={}){
  const flags={
-  LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED:badGate?'false':(reviewEnabled?'true':'false'),
+  LSZH_QUARANTINE_HANDOFF_HTTP_ENABLED:badGate?(reviewEnabled?'false':'true'):(reviewEnabled?'true':'false'),
   LSZH_QUARANTINE_REPLAY_WRITE_ENABLED:reviewEnabled?'true':'false',
   LSZH_SCOPED_STAGING_READER_ENABLED:reviewEnabled?'true':'false',
   LSZH_SCOPED_READER_SCOPE:'quarantine',

@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## WICHTIG 17.10.2026 – Secret angelegt, strenge Replikations-/Namensprüfung zunächst fehlgeschlagen
+
+Der Geschäftsführer führte nach sauberem Cloud-Shell-`git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-empty-secret.sh --create-empty` aus. **Die Live-CLI hat bestätigt:** `Created secret [lszh-airtable-readonly-staging].` Unmittelbar darauf kam `STOP: Secret name or Zurich-only replication mismatch; inspect metadata, do not add PAT.`
+
+**Ergebnis daher nicht als durchgängig PASS markieren!** Ein Secret-Manager-Ressourcenobjekt wurde wirklich erstellt, aber die Sicherheitsroutine hat das zurückgelesene Resource-`name` **oder** die exakte `replication.userManaged.replicas`-Liste nicht akzeptiert. Grund ist derzeit ungeklärt. Möglich wäre die alternative von Google ausgegebene Ressourcennotation `projects/<numericProjectNumber>/secrets/... ` statt `projects/lszh-automations/secrets/...`, aber diese Hypothese ist **nicht verifiziert**. Der Name und Speicherort werden erst mit Metadaten aus Cloud Shell beurteilt.
+
+**STOP-Gate:** `--create-empty` nicht erneut aufrufen (Ressource existiert schon); **keine** Secret-Version / kein PAT hochladen, **keinen** IAM-SecretAccessor einrichten und **keinen** Cloud-Run-Job bauen/deployen/ausführen. Das Skript kam vor der nachfolgenden Secret-Versionskontrolle zum STOP; auch **null Versionen sind derzeit noch nicht unabhängig nachgewiesen**. Es wurde von diesem Skript kein PAT oder Secret-Wert hinzugefügt und kein IAM-Binding vergeben.
+
+**Sicherer Diagnoseweg im GitHub-Zweig neu vorbereitet:** `workers/onboarding-notifications/staging-airtable-secret-diagnose.sh` darf ohne Argumente nur `gcloud projects describe`, `gcloud secrets describe`, `gcloud secrets versions list` und die Identitäts-/Git-Prüfung ausführen. Kein Secret-Payload-`access`, kein Mutationsbefehl. Das Skript akzeptiert nur den exakt erwarteten Secret-Namen unter entweder der korrekt unabhängig abgefragten **numerischen Projektkennung** oder `lszh-automations`, und fordert **genau eine** `userManaged`-Replik in `europe-west6` sowie **null** Versionen. Gibt einzelne Prüfergebnisse zur Fehlerunterscheidung aus. Falls es STOP meldet: keinen weiteren schreibenden Schritt durchführen.
+
+**Nächster Befehl, nur Diagnose:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-secret-diagnose.sh
+```
+Erst nach echter Log-Ausgabe Replikation und leeren Zustand als bestanden dokumentieren. Kein neuer Versuch, das Secret zu erstellen.
+
 ## 17.10.2026 – Leeres Airtable-STAGING-Secret PLAN ONLY in Cloud Shell bestätigt
 
 Der Geschäftsführer führte nach `git pull --ff-only` das sichere `staging-airtable-empty-secret.sh` **ohne** schreibenden Modus aus. Tatsächlich von Google Cloud Shell bestätigte Ausgabe:

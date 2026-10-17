@@ -103,6 +103,7 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
     if (!Array.isArray(tasks.records)) throw new Error('invalid_status_response');
     if (tasks.records.length > 1) return {state:'requires_review'};
     if (tasks.records.length !== 1 ||
+        !VALID_ID.test(tasks.records[0]?.id) ||
         tasks.records[0].fields?.['Aufgabencode'] !== code ||
         !exactlyOneLink(tasks.records[0].fields?.['Auftrag'], orderId))
       return {state:'processing'};

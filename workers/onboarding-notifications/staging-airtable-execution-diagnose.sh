@@ -128,6 +128,8 @@ known={
 }
 signals=set()
 categories=set()
+permission_evidence=set()
+log_classes=set()
 pass_count=0
 for x in selected:
  text=x.get("textPayload","")
@@ -136,6 +138,36 @@ for x in selected:
   v=payload.get("message",payload.get("msg",""))
   if isinstance(v,str): text=(text+" "+v if isinstance(text,str) else v)
  if not isinstance(text,str):continue
+ # All classifications below inspect log text locally and only print fixed
+ # enum names; never print a full message, file path, URI or credential.
+ text_lower=text.lower()
+ log_name=x.get("logName","")
+ if isinstance(log_name,str):
+  if log_name.endswith("/logs/run.googleapis.com%2Fstderr") or log_name.endswith("/logs/run.googleapis.com/stderr"):
+   log_classes.add("CONTAINER_STDERR")
+  elif log_name.endswith("/logs/run.googleapis.com%2Fstdout") or log_name.endswith("/logs/run.googleapis.com/stdout"):
+   log_classes.add("CONTAINER_STDOUT")
+  elif "run.googleapis.com" in log_name:
+   log_classes.add("PLATFORM_OR_SYSTEM")
+ if ("eacces" in text_lower or "eperm" in text_lower) and (
+      "/var/secrets/lszh" in text_lower or "airtable-read-pat" in text_lower):
+  permission_evidence.add("NODE_SECRET_MOUNT_FILE_DENIED")
+ elif ("eacces" in text_lower or "eperm" in text_lower) and (
+       "open " in text_lower or "scandir " in text_lower or "stat " in text_lower):
+  permission_evidence.add("CONTAINER_FILESYSTEM_DENIED")
+ if ("secretmanager.versions.access" in text_lower or
+     "secret manager secret accessor" in text_lower or
+     "secret manager secret access" in text_lower) and (
+     "denied" in text_lower or "forbidden" in text_lower or
+     "permission_denied" in text_lower or "403" in text_lower):
+  permission_evidence.add("SECRET_MANAGER_API_ACCESS_DENIED")
+ if ("permission_denied" in text_lower or
+     "permission denied" in text_lower) and (
+     "secret" in text_lower or "volume" in text_lower or "mount" in text_lower):
+  permission_evidence.add("SECRET_ACCESS_OR_MOUNT_DENIED_UNSPECIFIED")
+ if ("permission denied" in text_lower or "permission_denied" in text_lower or
+     "eacces" in text_lower) and not permission_evidence:
+  permission_evidence.add("GENERIC_PERMISSION_DENIED_ONLY")
  signals.update(k for k in known if re.search(r"(?<![a-zA-Z_])"+re.escape(k)+r"(?![a-zA-Z_])",text))
  for needle,label in (
   ("Cannot find module","NODE_MODULE_NOT_FOUND"),
@@ -160,6 +192,8 @@ if signals:print("Safe application STOP code(s): "+", ".join(sorted(signals)))
 else:print("Safe application STOP code(s): none observed")
 if categories:print("Recognized runtime error category: "+", ".join(sorted(categories)))
 else:print("Recognized runtime error category: none identified")
+print("Log source types: "+(", ".join(sorted(log_classes)) if log_classes else "not identified"))
+print("Permission evidence classification: "+(", ".join(sorted(permission_evidence)) if permission_evidence else "none identified"))
 print("Application PASS log count: "+str(pass_count))
 if not selected:print("STOP: No matching job/container logs found; open exact execution Logs tab privately. Never rerun.")
 elif not signals and not categories and pass_count==0:

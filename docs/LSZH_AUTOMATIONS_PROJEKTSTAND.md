@@ -1,5 +1,9 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einmaliger zeitlich begrenzter Service-Account-Testzugang genehmigt
+
+Der Geschäftsführer genehmigt die zuvor ausdrücklich vorgeschlagene, **maximal eine Stunde gültige** Berechtigung `roles/iam.serviceAccountTokenCreator` für sein LSZH-Geschäftskonto, **nur direkt am separaten Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`**, ausschliesslich zur vorher autorisierten Lesetestsequenz. Die beabsichtigte IAM-Bindung soll eine `request.time`-Ablaufbedingung unter einer Stunde haben und nach der Probe unabhängig vom Ergebnis aktiv entfernt und überprüft werden; bei Unterbrechung beendet die Ablaufbedingung die Wirksamkeit. Erlaubt sind maximal zwei Firestore-Dokument-GETs mit zufälliger, nicht vorhandener ID, einmal Quarantäne-DB (erwartet 404), einmal bisherige Offerten-DB (erwartet 403). Keine Schreib- oder Deploy-Autorisierung, keine Änderung an der eigenen minimalen Quarantäne-CAS-Rolle. Vorherige Diagnose meldete `CANNOT_ACCESS`; die Credentials API ist aktiv, ebenso wurde die Policy-Troubleshooter API auf ausdrückliche interaktive Bestätigung durch den Geschäftsführer aktiviert. **Status bei Dokumentationszeitpunkt: Freigabe erteilt, zeitlich begrenzte Berechtigung noch nicht vergeben, Lesetest noch nicht ausgeführt.**
+
 ## 17.10.2026 – Diagnose: Credentials API aktiv, Policy Troubleshooter meldet CANNOT_ACCESS
 
 Vom Geschäftsführer in Cloud Shell ausgeführte Prüfschritte ergaben: `iamcredentials.googleapis.com` ist aktiviert. Der Policy-Troubleshooter-Dienst `policytroubleshooter.googleapis.com` war zunächst deaktiviert und wurde vom Geschäftsführer nach einer interaktiven Rückfrage mit `y` eingeschaltet; die API-Aktivierung wurde erfolgreich bestätigt. Die anschliessende Zugriffsanalyse für `lars@lszh-automations.ch` und `iam.serviceAccounts.getAccessToken` auf der dedizierten Quarantäne-Dienstidentität ergab `CANNOT_ACCESS`.

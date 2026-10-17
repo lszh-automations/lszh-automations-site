@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Korrigierte 512-MiB-Quellprobe: Cloud-Shell-Preflight PASS
+
+Nach `git pull --ff-only` auf Feature-Branch `feature/onboarding-notification-outbox-20261016` lieferte der Geschäftsführer erneut `staging-outbox-secret-access-job.sh --plan` mit **PASS** für exakte Geschäftsidentität, unveränderliches Container-Image und Outbox-SA; Secret `lszh-airtable-readonly-staging` Version 1 `ENABLED` und exakt zwei direkte Secret-Level-Accessors; alle vier bestehenden Staging-Jobs unverändert und `lszh-outbox-secret-access-probe-stg` weiterhin abwesend. `ENTRYPOINT: /bin/sh only` und `PLAN ONLY: No cloud mutation, no Secret payload access, no Job creation/execution`. Das Skript enthält bereits die auf 512 MiB korrigierte Gen2-Speicherkonfiguration; 442/442 synthetische Tests bestanden. **Als Nächstes** nur nach bewusstem Cloud-Shell-Aufruf `--create-only`: separaten Probe-Job anlegen, 1 Task/0 Retry, keine Ausführung; bei CLI-Fehler keinesfalls wiederholen, sondern Job-Inventar prüfen. Keine Kunden- oder Mailaktivität.
+
+
 ## 17.10.2026 – Cloud-Run-Job-Inventar nach fehlgeschlagenem Gen2-Deploy erneut bestätigt
 
 **Geschäftsführer-Cloud-Shell-Readback:** Nach der 256-MiB-Abweisung listet `gcloud run jobs list` weiterhin ausschliesslich `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging` und `lszh-firestore-write-probe-staging`. Der geplante fünfte Job `lszh-outbox-secret-access-probe-stg` ist **nicht vorhanden**. Die Quell-Probe ist im GitHub-Review-Branch auf 512 MiB korrigiert; 442/442 synthetische Tests und beide GitHub-Workflows waren erfolgreich. Nächster Schritt ausschliesslich `git pull --ff-only` und `staging-outbox-secret-access-job.sh --plan` in Cloud Shell; erst nach erfolgreichem neuen Preflight den separaten `--create-only`-Schritt erwägen. Keine Secrets ausgelesen, kein Job erstellt/gestartet, keine Kundenverarbeitung.

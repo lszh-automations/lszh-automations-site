@@ -1,5 +1,21 @@
 # LSZH Automations – Staging Airtable→Cloud Run reine Leseprobe
 
+## UPDATE 17.10.2026 – Dienstkonto erstellt, getrennte leere Secret-Ressource vorbereitet
+
+**Tatsächlicher Cloud-Shell-Nachweis durch Geschäftsführer**: `staging-airtable-identity.sh --create-identity` meldet `Created service account [lszh-airtable-read-stg]`, anschliessend `PASS: Dedicated staging Airtable-read service account exists, with NO new IAM grants.` Die andere erwartete Secret-Ressource und der Cloud-Run-Lesejob existierten laut unmittelbar vorausgegangenem Cloud-Inventar noch **nicht**. Kein IAM-Grant, Key, Secret oder Job durch den Befehl.
+
+Neue **getrennte** Shell-Phase `staging-airtable-empty-secret.sh`, getestet durch `staging-airtable-empty-secret.test.mjs` (7 simulierte Prüfungen). Default `--plan` liest ausschliesslich GCP-Metadaten für aktives Geschäftskonto, Review-Git-Branch, bereits bestehende SA, Secret und Job; **noch keine Cloud-Änderung**. Späterer einmaliger `--create-empty`-Modus legt ausschliesslich das **leere** Secret `lszh-airtable-readonly-staging` mit `gcloud secrets create --replication-policy=user-managed --locations=europe-west6` an. Kein `--data-file`, keine Version, kein PAT, keine IAM-Rollenvergabe, keine Cloud-Run-Änderung. Prüft Resource-Name, genau eine Zürcher Replikation und **null Secret-Versionen** nach Anlage; STOP bei bestehenden Ressourcen oder unerwarteten Metadaten.
+
+GitHub CI nach der Neuerung: **119/119 JS-Tests + 8/8 IAM-Tests grün**, nur Offline-Mocks, keine Cloud-Ressourcen durch Tests.
+
+**Nächster Cloud-Shell-Aufruf (nur Plan!):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-empty-secret.sh
+```
+Erwartet `Existing secret/job: false/false` und `PLAN ONLY`; sonst STOP und zuerst prüfen. Bei separater expliziter `--create-empty`-Ausführung kann das leere Secret geringe Kosten verursachen. Erst **anschliessend**, in jeweils getrennten gesicherten Schritten, eine Secret-Version mit ausschliesslich CRM-Read-PAT und eine **secret-spezifische** SecretAccessor-Rolle für das neue SA einrichten, dann Image/Job mit Versions-Pin erstellen und manuell genau einmal ausführen. Keine Tokens im Chat/GitHub/Cloud-Shell-Verlauf und kein Zugriff auf andere Secrets.
+
 ## UPDATE 17.10.2026 – Eigenständiges Cloud-Dienstkonto: Freigabe in Etappen
 
 Der Geschäftsführer bestätigte mit `vamos` die Weiterarbeit an den zuvor vorgeschlagenen **separaten, rein synthetischen STAGING-Ressourcen**; noch kein Ausführen, Erzeugen, Hinterlegen oder Freigeben eines realen Google-Cloud-Secrets durch diesen Schritt.

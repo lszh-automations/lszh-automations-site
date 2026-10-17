@@ -123,6 +123,25 @@ test('changing synthetic owner/notification flags during archive I/O cancels cla
  await rejects(()=>portal.accept(token,{...accepted('Ja'),email:base.recipientEmail}),e=>e.code==='offer_changed');
  equal(data.state().updates,0);
 });
+test('preview hides unexpected Firestore detail fields, including private notes',async()=>{
+ const {portal,data}=await make('Ja');
+ data.mutate(d=>({...d,details:{...d.details,
+   internalNote:'SYNTHETIC_PRIVATE_INTERNAL_DO_NOT_SHOW',
+   credentials:'SYNTHETIC_FAKE_TOKEN_DO_NOT_SHOW',
+   billing:{email:'private@example.invalid',source:'private'}
+ }}));
+ const response=await portal.preview(token);
+ const json=JSON.stringify(response);
+ for(const secret of ['SYNTHETIC_PRIVATE_INTERNAL_DO_NOT_SHOW',
+   'SYNTHETIC_FAKE_TOKEN_DO_NOT_SHOW','private@example.invalid'])
+   ok(!json.includes(secret),'preview must only contain explicitly approved fields');
+ equal(response.details.company,'Synthetic GmbH');
+ equal(response.details.onceCHF,99);
+ ok(!('internalNote' in response.details));
+ ok(!('credentials' in response.details));
+ ok(!('billing' in response.details));
+ equal(data.state().updates,0);
+});
 test('preview returns only offer information, never Drive IDs or stored recipient',async()=>{
  const {portal,data}=await make();
  const r=await portal.preview(token);

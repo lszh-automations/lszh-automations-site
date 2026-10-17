@@ -1,5 +1,11 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Source-Airtable-Secret: Effektives Recht fehlt, gezielte Freigabe erforderlich
+
+Echter IAM Policy Troubleshooter für `secretmanager.versions.access` auf der **Version 1** des bestehenden `lszh-airtable-readonly-staging`-Secrets und Principal `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` meldete **`CANNOT_ACCESS`**. Diese Permission steht dem geprüften Outbox-Dienstkonto somit nicht zur Verfügung. Vorbefund: keine direkte Secret-Level-Rolle und auf Projektebene ausschliesslich bedingtes `roles/datastore.user`. Das Airtable-Secret ist `ENABLED`.
+
+**Nächster geplanter IAM-Einzelschritt (nicht autonom in Chat ausgeführt):** `gcloud secrets add-iam-policy-binding lszh-airtable-readonly-staging --project=lszh-automations --member=serviceAccount:lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor`. Dies ist eine **schreibende** IAM-Berechtigungsänderung, beschränkt auf dieses Secret. Danach die direkte IAM-Policy **nur lesend** prüfen und den versiongenauen IAM Troubleshooter erneut ausführen. Erst bei bestätigtem `CAN_ACCESS` die restlichen Quell-Job-/synthetischen Testvoraussetzungen planen. Keine Schlüsselwerte ins Chatprotokoll oder Repository kopieren.
+
 ## 17.10.2026 – Tatsächlicher Live-Postflight PASS; Übergang zur Quelle
 
 Cloud Shell meldete nach `--verify-review-only` **PASS** für: live Revision `00002-ttf` mit originalem `staging-131d67982f83`-Image, alle neun Staging-Werte einschliesslich Secret-Env-Referenz, direkte private Source-Invoker-IAM-Policy und zwei HMAC-Secret-Level-Accessors (Version 1 aktiviert). Ergebnis ausdrücklich **READ ONLY**, keine Secret-Payload-Abfrage, kein Firestore- oder Kundendatenzugriff. Die Empfängerseite ist damit konfiguriert; effektive Quelle→Ziel-Interaktion ist noch ungetestet.

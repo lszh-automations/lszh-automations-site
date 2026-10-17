@@ -29,6 +29,7 @@ const EXACT_CASE_KEYS=[
 
 function permittedReview(review) {
  if(!review || typeof review!=='object' || Array.isArray(review))return false;
+ if(typeof review.status!=='string' || !Object.hasOwn(REASONS,review.status))return false;
  const allowed=REASONS[review.status];
  if(!allowed || !allowed.includes(review.reason))return false;
  return review.deliveryAllowed===false && review.requiresManualApproval===true &&

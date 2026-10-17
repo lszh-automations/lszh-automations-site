@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Bestätigt 17.10.2026 – Airtable-REST-Einmal-Preflight `PLAN ONLY` erfolgreich
+
+Der Geschäftsführer führte nach erfolgreichem `git pull --ff-only` im LSZH-Cloud-Shell-Checkout `bash workers/onboarding-notifications/staging-airtable-rest-read.sh` ohne Parameter aus. Die Ausgabe bestätigte `PASS: Checked business identity, source branch and clean reviewed checkout.` sowie `PLAN ONLY: no Airtable token requested, no external API calls or cloud changes.`. **Es wurde noch kein Airtable-REST-GET mit einem PAT ausgeführt.** Der beschränkte externe REST-Zugriff des vorhandenen Node.js-Statusverifizierers muss erst separat nachgewiesen werden. Keine CRM-Datensätze, Dienstkonfigurationen, Make-Szenarien, IAM-Berechtigungen oder E-Mails geändert.
+
+**Nächster Schritt bei bereitgestelltem, ausdrücklich auf `data.records:read` und die eine Website-CRM-Airtable-Basis begrenzten PAT** (Token niemals in Chat/GitHub/Cloud-Logs einfügen): `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe`, Token ausschliesslich an verdecktem Cloud-Shell-Prompt eingeben. Es ist ein eigenständiger bewusst ausgelöster **einziger GET** auf die synthetische zufällige Abwesenheit, keine Cloud-Run-Ausführung. Bei `STOP` nicht mit ungeschützten Curl- oder Logging-Alternativen fortsetzen.
+
 ## AKTUELL – 17.10.2026 07:34 (Zürich): Echte Airtable-REST-Leseprüfung vorbereitet, kein Cloud-Dienst aktiviert
 
 **Erneuter exakter, ausschliesslich lesender Cleanup-Nachweis über den verbundenen Airtable-Zugang:** Die drei früheren ausschliesslich synthetischen Airtable-IDs aus dem ausdrücklich genehmigten CRM-Fixture-Test ergeben weiterhin jeweils **0 Treffer**: `Kunden-Onboarding/recx6PnnpSgpbZbYn`, `Aufträge/recPbqkocPYokgK2n`, `Kunden/rec6Mu0uaBdy4H3K7`. Es wurde kein weiterer Testkunde angelegt.

@@ -13,7 +13,7 @@ const TOKEN='Z'.repeat(48); // synthetic, never a production credential
 const ORIGIN='https://portal-staging.lszh-automations.ch'; // adapter's synthetic allowed origin
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 
-async function localFixture(mode){
+async function localFixture(mode,{previewOnly=false}={}){
  const [{createOfferPortal,offerFingerprint},{createOfferPortalHttp},
   {verifyArchiveBundle,readVerifiedArchivePdf}]=await Promise.all([
   import('../cloud-run/offer-portal-staging/portalCore.mjs'),
@@ -45,6 +45,11 @@ async function localFixture(mode){
   termsVersion:'TEST_v1.0_RC1',expiresAt:'2099-12-31T23:59:59Z',
   recipientEmail:'synthetic@example.invalid',
   offerNumber:'TEST_BROWSER_'+mode.toUpperCase()+'_NO_CONTRACT',
+  ...(previewOnly?{
+    source:{kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
+      tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'},
+    downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}
+  }:{}),
   details:{company:'Muster KMU AG',service:'Automatisierter Anfrageprozess',
    paymentModel:'50 % bei Auftrag / 50 % nach Abnahme',
    onceCHF:1490,monthlyCHF:149,
@@ -70,9 +75,11 @@ async function localFixture(mode){
   readPdf:(bundle,which)=>readVerifiedArchivePdf(bundle,which,options),
   approvedVersion:'TEST_v1.0_RC1',
   proofSalt:'SYNTHETIC_BROWSER_ONLY_NOT_A_SECRET_12345',
+  syntheticOnly:previewOnly,
   clock:()=>new Date('2026-10-17T12:00:00.000Z')
  });
- const handle=createOfferPortalHttp({portal,enabled:true,allowedOrigin:ORIGIN,pageHtml:HTML});
+ const handle=createOfferPortalHttp({portal,enabled:true,acceptEnabled:!previewOnly,
+  allowedOrigin:ORIGIN,pageHtml:HTML});
  let base='';
  const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');
@@ -164,5 +171,44 @@ for(const mode of ['Ja','Nein']){
    expect(fixture.offer.revision).toBe(2);
    expect(fixture.getEvidence().avv_required).toBe(mode==='Ja');
   }finally{await fixture.close();}
+ });
+}
+
+for(const mode of ['Ja','Nein']){
+ test('CLOUD PREVIEW ONLY: synthetic browser + verified PDFs; acceptance blocked AVV '+mode,
+  async({page})=>{
+   const fixture=await localFixture(mode,{previewOnly:true});
+   try{
+     await page.goto(fixture.base+'/offerte-annehmen/?code='+TOKEN);
+     await expect(page.locator('#number')).toHaveText(fixture.offer.offerNumber);
+     await expect(page.locator('#message')).toContainText('Hier kann kein Vertrag geschlossen werden');
+     await expect(page.locator('#acceptanceHeading')).toContainText('Testvorschau');
+     await expect(page.locator('#submit')).toBeDisabled();
+     await expect(page.locator('#legalNote')).toBeHidden();
+     if(mode==='Ja')await expect(page.locator('#avvSection')).toBeVisible();
+     else await expect(page.locator('#avvSection')).toBeHidden();
+     expect(new URL(page.url()).searchParams.has('code')).toBe(false);
+     for(const which of ['quotePdf','termsPdf',...(mode==='Ja'?['avvPdf']:[])]){
+       const downloading=page.waitForEvent('download');
+       await page.locator('#'+which).click();
+       const download=await downloading;
+       expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+     }
+     const blocked=await page.evaluate(async code=>{
+       const res=await fetch('/api/offer/accept',{method:'POST',
+         headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({code})});
+       return {status:res.status,body:await res.json()};
+     },TOKEN);
+     expect(blocked).toEqual({status:503,body:{error:'not_available'}});
+     expect(fixture.offer.status).toBe('sent');
+     expect(fixture.offer.revision).toBe(1);
+     expect(fixture.getEvidence()).toBe(null);
+     expect(fixture.stats.preview).toBe(1);
+     expect(fixture.stats.pdf).toBe(mode==='Ja'?3:2);
+     await page.reload();
+     await expect(page.locator('#message')).toContainText('vollständigen Link');
+     expect(fixture.offer.status).toBe('sent');
+   }finally{await fixture.close();}
  });
 }

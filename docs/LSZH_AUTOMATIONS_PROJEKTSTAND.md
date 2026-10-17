@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Finaler synthetischer End-to-End-Lauf: SUCCESS + Anwendungserfolg bestätigt
+
+**Echte Cloud-Shell-Anwendungslogs der einzigen Ausführung `lszh-quarantine-source-e2e-staging-slhkc`:**
+
+```text
+2026-10-17 19:49:25 PASS_SYNTHETIC_SOURCE_E2E_REVIEW_ONLY
+2026-10-17 19:49:25 PASS: One new staged draft was verified and private review-only receiver acknowledged.
+2026-10-17 19:49:25 PASS: No customer, mail or contract delivery. Never rerun the job.
+```
+
+Zuvor durch Google Cloud Run separat bestätigt: **`Completed=True`**, `succeededCount=1`, **10,45 Sekunden**, Ende `2026-10-17T19:49:28.639416Z`. Der Erfolgscode des unveränderten synthetischen Source-Workers wird **nur** nach frischer Airtable-Abwesenheitskontrolle, **neuem** `DRAFT_NOT_SENT`-Firestore-Create, exaktem unabhängigem Outbox-Readback und akzeptiertem signiertem HMAC/OIDC-POST beim privaten Quarantäne-Empfänger mit `REVIEW_ONLY_HANDOFF_ACKNOWLEDGED` ausgegeben. Kein Kunden-Mail, kein Vertragsabschluss, keine Quarantäne-Case-Freigabe; Empfänger bleibt `MANUAL_REVIEW_REQUIRED`.
+
+**Bewertung: Technischer synthetischer Source→Firestore-Outbox→Quarantäne-Receiver-End-to-End-Test BESTANDEN.** Nicht gleichzusetzen mit vollständiger LSZH-Automations-Produktionsreife oder einem produktiven Kunden-Onboarding/Offerten-/Rechnungsprozess. Die Ausführung hat reale Staging-Dienste und Firestore, aber ausschliesslich synthetische Testdaten benutzt. Als optionaler letzter Nachweis für den Auditbericht können bestehende Staging-Firestore-Dokumente/Replay-Claims **nur lesend**, ohne Token oder Projektcode in Chat/Logs, nachträglich verifiziert werden; dies ist **keine Voraussetzung, um die vorhandenen Erfolgslogs anzuerkennen**, aber unterscheidet Laufzeit-Readback von späterer unabhängiger Persistenzprüfung.
+
+**STRIKT NICHT WIEDERHOLEN:** Nie erneut `gcloud run jobs execute lszh-quarantine-source-e2e-staging`, `--create-only`, `--build-only` oder Secret-`--stage-once` ausführen. Der einmalige E2E-Lauf hat ggf. einen persistenten synthetischen Outbox-Entwurf und einen Replay-Claim angelegt. Keine automatische Bereinigung, Mutation oder Löschung ohne gesonderten Review. Danach Fokus zurück auf restliche sichere Produktionsreife-Gates (Kunden-Onboarding, Offerten-/Rechnungsprozesse, Recht/Freigaben), ohne diesen E2E-Strang neu aufzubauen.
+
+
 ## 17.10.2026 – Erster echter synthetischer Source→Quarantäne-End-to-End-Test in Cloud Run SUCCESS
 
 **Vom Geschäftsführer aus Google Cloud Shell gelieferter Cloud-Run-Status der einzigen einmaligen Ausführung:** Job `lszh-quarantine-source-e2e-staging`, Execution `lszh-quarantine-source-e2e-staging-slhkc`, `completionTime: 2026-10-17T19:49:28.639416Z` (21:49:28 Schweizer Zeit), `type: Completed`, `status: True`, `message: Execution completed successfully in 10.45s.`, `succeededCount: 1`, kein angezeigter failedCount. `ContainerReady`, `ResourcesAvailable`, `Started` ebenfalls `True`. **Damit ist der Cloud-Run-Lauf nachweisbar erfolgreich beendet und NICHT nur gestartet.**

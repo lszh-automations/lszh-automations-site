@@ -39,7 +39,8 @@ const ERRORS={
   document_changed:409,archive_changed:409,offer_changed:409,
   already_accepted:409
 };
-export function createOfferPortalHttp({portal,enabled=false,allowedOrigin,pageHtml}={}){
+export function createOfferPortalHttp({portal,enabled=false,acceptEnabled=true,
+  allowedOrigin,pageHtml}={}){
   if(!portal || typeof portal.preview!=='function' || typeof portal.accept!=='function')
     throw Error('portal_missing');
   if(enabled===true){
@@ -74,6 +75,10 @@ export function createOfferPortalHttp({portal,enabled=false,allowedOrigin,pageHt
     if(req.method!=='POST' ||
        !['/api/offer/preview','/api/offer/accept','/api/offer/document'].includes(path))
       return send(res,404,{error:'not_found'});
+    // Cloud staging may serve previews/PDFs but MUST NOT accept any contract
+    // until a separate explicit code review and go-live decision.
+    if(path==='/api/offer/accept' && acceptEnabled!==true)
+      return send(res,503,{error:'not_available'});
     // Origin is a CSRF barrier, not proof of identity. Token is still required.
     if(req.headers.origin!==allowedOrigin)
       return send(res,403,{error:'forbidden'});

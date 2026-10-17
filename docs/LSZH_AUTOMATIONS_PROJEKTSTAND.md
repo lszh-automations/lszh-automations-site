@@ -1,5 +1,40 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Container-Zugriffsfehler bestätigt: FILE_PERMISSION_DENIED; Root Cause weiterhin ungeklärt
+
+Der Geschäftsführer hat nach Git-Sync die **korrigierte, strikt lesende** `staging-airtable-execution-diagnose.sh` gegen die bereits einmal ausgeführte, fehlgeschlagene Cloud-Run-Execution `lszh-airtable-read-probe-staging-xglcz` ausgeführt. Die echte Cloud-Shell-Rückmeldung:
+```text
+PASS: Exactly one recorded Job execution; expected failed execution ID confirmed.
+PASS: Exact execution metadata read; no new task started.
+Execution reported failed tasks: 1
+Execution reported successful tasks: not reported
+PASS: Cloud Logging query restricted to the exact STAGING job and Zurich region.
+Job log entries returned: 14
+Entries matching execution label: 12
+Job entries without execution label (only one execution exists): 2
+Other/unusable entries ignored: 0
+Matching or safely attributable entries: 14
+Safe application STOP code(s): none observed
+Recognized runtime error category: FILE_PERMISSION_DENIED
+Application PASS log count: 0
+No raw log text or Secret Manager payload printed.
+READ ONLY: No Job execution, Secret read, IAM edit, deployment, Airtable request or customer data action.
+```
+
+**Auswertung:** Die Log-Abfrage funktioniert jetzt und hat **14 Einträge** für die eine Job-Execution gefunden; eine davon oder mehrere enthalten ein Permission-denied-Signal, in der Sicherheitsroutine nur als `FILE_PERMISSION_DENIED` ausgewiesen. **Einzelursache offen**: Der Fehler kann aus lokalem Datei-/Volume-Zugriff, verweigertem Secret-Manager-API-Zugriff oder einer anderen Container-/Plattform-Operation stammen. Kein fachlicher Airtable-PASS und keine Anwendung-STOP-Zeile ist sichtbar, also **kein erfolgreicher Cloud Run → Airtable-GET nachgewiesen**. Kein Cloud-Run-Rerun, keine neue Secret-Version, keine IAM-/Job-Mutation.
+
+**Relevante technische Hypothese:** Unser gepinntes isoliertes Image `Dockerfile.airtable-read-probe` enthält `USER node` (nicht-root), während Cloud-Run-Jobs die zweite Ausführungsumgebung verwenden, in der laut Google Secret-Volume-Dateien/Verzeichnisse von `root` besessen werden. Google dokumentiert aber zugleich standardmässig **Dateimodus `0444`** für Secret-Volumes (von allen Benutzern lesbar); **Eigentümerschaft allein ist daher KEIN Beweis für die Ursache.** Unbedingt zunächst Permission-denied-Logtyp anhand sanitär gefilterter Indizien identifizieren; nicht voreilig Root aktivieren oder IAM projektweit erweitern. Quellen: https://docs.cloud.google.com/run/docs/configuring/jobs/secrets und https://docs.cloud.google.com/run/docs/reference/rest/v2/Volume .
+
+**In GitHub Review-Branch ergänzte, strikt lesende Diagnose:** `staging-airtable-execution-diagnose.sh` liest dieselben 14 Raw-Log-Datensätze ausschliesslich **lokal zur Klassifizierung**, veröffentlicht nur **fest vorgegebene Kategorien**: `NODE_SECRET_MOUNT_FILE_DENIED` (lokales EACCES/EPERM + nur erwartete Secret-Datei im Rohtext), `CONTAINER_FILESYSTEM_DENIED`, `SECRET_MANAGER_API_ACCESS_DENIED`, `SECRET_ACCESS_OR_MOUNT_DENIED_UNSPECIFIED` oder `GENERIC_PERMISSION_DENIED_ONLY`; ausserdem `CONTAINER_STDERR`, `CONTAINER_STDOUT`, `PLATFORM_OR_SYSTEM` als Log-Typen ohne Payload. Quelle/Pfade/Anfrageinhalte/Tokens werden **nie** ausgegeben. Ein Test mit fingiertem Token verweigert dessen Veröffentlichung. **Kein Mutationsbefehl hinzugefügt.** GitHub-CI nach Erweiterung **180/180 Node-Tests und 8/8 Python-IAM-Tests** erfolgreich.
+
+**Einziger nächster Schritt, NUR LESEN (identischer Befehl, neue Diagnoselogik via Git-Pull):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Anhand der neuen `Permission evidence classification:`-Zeile entscheiden, ob lokale Dateirechte, Secret-API-IAM oder ein anderer Laufzeitbereich weiter untersucht werden soll. **Keine Ausführung/Job-Update/Neuanlage, kein Token-/Rollenwechsel** bis zur gesonderten Fehlerbehebung und ausdrücklichen Freigabe. Die bestehende HTTP-Outbox bleibt deaktiviert.
+
 ## 17.10.2026 – Failed Cloud Run Airtable-Job: erste Log-Abfrage ohne Treffer; Filter-Fehler behoben, sichere erneute Lesung offen
 
 Der Geschäftsführer führte in Cloud Shell die ausschliesslich lesende `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` nach `git pull --ff-only` aus. Die tatsächlich gelieferte Antwort:

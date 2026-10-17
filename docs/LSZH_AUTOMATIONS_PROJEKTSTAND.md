@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Privater Fixture-Fingerprint-Check CI-verifiziert (449/449)
+
+GitHub-Actions-Readback für Code-/Test-Commit `0bec6e32f7ac1fc1e31d51969dc0743696484f3b`: **beide** synthetischen Workflows erfolgreich, **449 Tests, 449 PASS, 0 FAIL**, einschliesslich zusätzlicher Manipulations-, Berechtigungs- und Fingerprint-Tests. Die lokal erzeugte UUID-Fixture bleibt ausschliesslich in der Cloud Shell; selbst das Fingerprint-Kommando gibt nur SHA-256 aus. Kein echter Airtable-Matchcheck gegen die neuen sechs existierenden Codes erfolgt, weil der lokale Hash noch nicht geteilt wurde. Keine Cloud-Änderung oder weitere GCP-Jobs.
+
+
 ## 17.10.2026 – Einmalige private synthetische Fixture real erstellt; lesender Airtable-Code-Abgleich vorbereitet
 
 **Bestätigte Cloud-Shell-Ausgabe:** Nach Fast-Forward-Pull führte der Geschäftsführer `node workers/onboarding-notifications/synthetic-source-fixture-local.js --prepare-local` erfolgreich aus: `PASS: One private synthetic fixture created outside the Git checkout (directory 0700, file 0600)` und `PASS: Staging-only draft is DRAFT_NOT_SENT and send/approval disabled`. Das File `~/.local/state/lszh-automations/handoff-source-fixture-20261017/fixture.json` enthält einen einmalig zufälligen UUID-v4-ähnlichen `ob_...`-Code und eine fiktive `rec...`-Record-ID, ist **privat** und wurde weder nach GitHub noch in Chat transportiert. Ein Airtable-GET oder Firestore-Write ist dadurch **nicht** geschehen; der Inhalt darf nicht ausgegeben werden.

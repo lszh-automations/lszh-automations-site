@@ -75,12 +75,29 @@ test('only the synthetic offer demo GET is public on private staging', {timeout:
  assert.match(html,/MUSTER-2026-001/,'fake offer only');
  assert.match(html,/if\(!current\|\|demo\|\|!form\.reportValidity\(\)\)return/,'demo has no submit path');
 
+ // ChatGPT and other link providers append tracking to opened URLs.
+ // These parameters must not turn a harmless public demo into HTTP 503.
+ for(const route of [
+  '/offerte-annehmen/?demo=1&utm_source=chatgpt.com',
+  '/offerte-annehmen/?utm_source=chatgpt.com&demo=1',
+  '/offerte-annehmen/?demo=1&utm_source=chatgpt.com&utm_medium=referral'
+ ]) {
+  const tracked=await fetch(origin+route,{redirect:'manual',signal:AbortSignal.timeout(4000)});
+  assert.equal(tracked.status,200,'tracked synthetic GET '+route);
+  assert.match(await tracked.text(),/MUSTER-2026-001/);
+  assert.equal(tracked.headers.get('set-cookie'),null);
+ }
+
  for(const route of [
   '/', '/onboarding/', '/make-start/', '/secure/', '/secure-admin/',
   '/offerte-annehmen/', '/offerte-annehmen/?demo=0',
   '/offerte-annehmen/?code=real-looking&demo=1',
   '/offerte-annehmen/?demo=1&code=anything',
   '/offerte-annehmen/?demo=1&demo=1',
+  '/offerte-annehmen/?demo=1&code=real-offer',
+  '/offerte-annehmen/?demo=1&preview=guess',
+  '/offerte-annehmen/?demo=1&something_else=1',
+  '/offerte-annehmen/?demo=1&utm_source=x&utm_medium=x&utm_campaign=x&utm_term=x&utm_content=x&utm_source=y',
   '/offerte-annehmen/index.html?demo=1',
   '/?demo=1', '/api/offer/preview?demo=1'
  ]) await assertDenied(origin,route);

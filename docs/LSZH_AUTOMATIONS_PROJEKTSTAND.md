@@ -1,5 +1,24 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Reale, read-only Quarantäne-Provisionierungs-Vorprüfung vollständig PASS
+
+**Neue tatsächlich vom Geschäftsführer ausgeführte Cloud-Shell-Ausgabe** nach `git pull --ff-only` bis GitHub-Commit `9047b98`: `bash workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh --plan` lieferte exakt:
+```text
+PASS: Billing active, Firestore API enabled, existing Zurich staging recognized.
+PASS: Separate quarantine database not present and project DB count below 100.
+PASS: Three requested Firestore permissions are eligible for a GA custom role.
+METADATA ONLY: Creation rights and effective IAM grants NOT confirmed.
+COST: Extra named database is usage-billed and has no free tier.
+NO APPROVAL: Database, service account, IAM role and write test remain unapproved.
+READ ONLY: No cloud resources, IAM policy, database documents or credentials changed.
+```
+
+**Nachgewiesen:** Billing ist aktiv, Firestore-API ist eingeschaltet, die bisherige `lszh-offers-staging`-Datenbank in `europe-west6` ist vorhanden, `lszh-quarantine-staging` in der aufgelisteten Projekt-Datenbankinventur **noch nicht** vorhanden, Anzahl vorhandener Datenbanken unter dem Limit, alle drei geplanten Entity-Rechte `datastore.entities.get/create/update` laut gelesenen Metadaten Custom-Role-geeignet. Damit sind die überprüften Voraussetzungen für eine isolierte, gesondert freizugebende Bereitstellung gegeben.
+
+**Noch NICHT nachgewiesen oder genehmigt:** Erstellungsberechtigung des angemeldeten Benutzers, effektiv mögliche/geerbte IAM-Rechte, Budget-Freigabe, tatsächliche Datenbankerstellung, dedizierter Service-Account, Custom Role, IAM-Bindung, Runtime-Identität, Firestore-REST-Write-Test oder produktive Aktivierung. Zusätzliche Named Database hat kein eigenes Gratis-Nutzungskontingent; nutzungsabhängige Gebühren möglich. **Keine** Cloud-Änderung oder E-Mail vorgenommen; historischer Airtable-One-Shot wurde nicht wiederholt.
+
+**Nächster Schritt nach expliziter Freigabe:** Neue separate Firestore Named Database `lszh-quarantine-staging` in `europe-west6` (Firestore Native) *als eigenständige zu bewilligende Cloud-/Kosten-Aktion* erstellen; danach metadatenlesend verifizieren, dann eigene Freigaben für dedizierten Service-Account, die minimalen Custom Role und exakte datenbankbeschränkte IAM-Bindung einholen. Für synthetische Firestore-Write-Execution später weitere Einzelgenehmigung. Kein `Vamos` oder erfolgreicher `--plan` ist eine Provisionierungsfreigabe.
+
 ## 17.10.2026 – Kostensichere, read-only GCP-Voraussetzungen für isolierte Quarantäne-DB vorbereitet
 
 **Ziel:** Nach der echten `NOT_FOUND`-Rückmeldung für `lszh-quarantine-staging` die Einrichtung **noch nicht** vornehmen, sondern Billing, APIs, vorhandene Datenbanken, Limits und Custom-Role-Kompatibilität **vor einer kostenpflichtigen Bereitstellung** mit LSZH-Firmenkonto prüfen. Der bisher erfolgreiche einzelne Airtable-Cloud-Run-Job bleibt unangetastet.

@@ -80,6 +80,11 @@ jobs:
           ! grep -E 'Bearer |access_token|@gmail.com' /tmp/lszh-write-probe.log
       - name: Build isolated one-shot Airtable read probe (no push/deploy)
         run: docker build -f workers/onboarding-notifications/Dockerfile.airtable-read-probe -t lszh-airtable-read-ci:synthetic .
+      - name: Build V2 Airtable read probe and verify node file access (no push or deploy)
+        run: |
+          docker build -f workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2 -t lszh-airtable-read-v2-ci:synthetic .
+          docker run --rm --network none --user node lszh-airtable-read-v2-ci:synthetic sh -c \
+            'test -r /app/onboarding/confirmation.js && test -r /app/workers/onboarding-notifications/staging-airtable-rest-read.js && test -r /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js && node --check /app/workers/onboarding-notifications/airtable-runtime-probe-v2.js && test ! -e /app/.env && test ! -e /app/docs && test ! -e /app/server.js'
       - name: Verify Airtable job is disabled without cloud identity and contains no customer app or secrets
         run: |
           docker run --rm --network none lszh-airtable-read-ci:synthetic sh -c \

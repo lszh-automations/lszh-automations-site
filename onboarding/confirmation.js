@@ -71,6 +71,10 @@ async function verifyOnboardingState(projectCode, token, fetchImpl = fetch) {
   if (!allLinks(of['Kunden-Onboarding'], record.id) ||
       of['Verbindungen erforderlich'] !== true ||
       of['AVV erforderlich'] !== 'Prüfen' ||
+      // Explicit Make statuses are required: equal-but-blank fields prove nothing.
+      // The organisation may legitimately be blank before an account is set up.
+      !norm(f['Make-Konto Status']) ||
+      !norm(f['Make-Einladung Status']) ||
       norm(of['Make-Kontostatus']) !== norm(f['Make-Konto Status']) ||
       norm(of['Make-Organisation']) !== norm(f['Make-Organisation']) ||
       norm(of['Make-Einladungsstatus']) !== norm(f['Make-Einladung Status']))

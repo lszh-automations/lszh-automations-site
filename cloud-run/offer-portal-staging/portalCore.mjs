@@ -9,6 +9,23 @@ const ID=/^[A-Za-z0-9_-]{20,100}$/;
 const isoDate=v=>typeof v==='string'&&!Number.isNaN(Date.parse(v))&&
   /^\d{4}-\d{2}-\d{2}T/.test(v);
 const sha=x=>createHash('sha256').update(x).digest('hex');
+const SYNTHETIC_NUMBER=/^TEST[-_][A-Z0-9_-]{8,90}[-_]NO[-_]CONTRACT$/;
+const SYNTHETIC_EMAIL=/^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)*example\.invalid$/;
+const SYNTHETIC_SOURCE={baseId:'appzJiskpAdaR1HEv',tableId:'tbljeIUoD7wwKuSmS'};
+function isSyntheticOnly(s){
+  const source=s?.source, downstream=s?.downstream;
+  return source?.kind==='LSZH_SYNTHETIC_ONLY' &&
+    source.baseId===SYNTHETIC_SOURCE.baseId &&
+    source.tableId===SYNTHETIC_SOURCE.tableId &&
+    /^rec[A-Za-z0-9]{14}$/.test(source.recordId||'') &&
+    SYNTHETIC_NUMBER.test(s.offerNumber||'') &&
+    SYNTHETIC_EMAIL.test(s.recipientEmail||'') &&
+    s.termsVersion==='TEST_v1.0_RC1' &&
+    downstream?.airtable==='disabled' &&
+    downstream?.proofPdf==='disabled' &&
+    downstream?.email==='disabled';
+}
+
 function bad(code){const err=new Error(code);err.code=code;return err;}
 function archiveShape(bundle){
   if(!bundle || typeof bundle!=='object' || Array.isArray(bundle) ||
@@ -36,7 +53,7 @@ export function offerFingerprint(s){
   // of Firestore object key order or whether writers incremented a revision.
   return sha(JSON.stringify(canonical([
     s.tokenHash,s.status,s.approved,s.revision,s.termsVersion,s.expiresAt,
-    s.recipientEmail,s.offerNumber,s.bundle,s.details
+    s.recipientEmail,s.offerNumber,s.bundle,s.details,s.source,s.downstream
   ])));
 }
 function validateOffer(s,tokenHash,now,approvedVersion){
@@ -74,12 +91,13 @@ function consent(offer,b){
   return {name,email,avv:expected.avv_required==='Ja'};
 }
 export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
-  proofSalt}={}){
+  proofSalt,syntheticOnly=false}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
     typeof verifyBundle!=='function'||
     (readPdf!==undefined && typeof readPdf!=='function') ||
     typeof approvedVersion!=='string'||
-    !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16)
+    !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16 ||
+    typeof syntheticOnly!=='boolean')
     throw Error('portal_not_configured');
   async function offerFor(code){
     if(typeof code!=='string'||!TOKEN.test(code))throw bad('unavailable');
@@ -87,6 +105,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     const offer=await store.get(tokenHash);
     const now=clock();if(!(now instanceof Date)||Number.isNaN(now.valueOf()))throw bad('unavailable');
     const fingerprint=validateOffer(offer,tokenHash,now,approvedVersion);
+    if(syntheticOnly && !isSyntheticOnly(offer))throw bad('unavailable');
     return {offer,tokenHash,fingerprint,now};
   }
   async function preview(code){
@@ -95,7 +114,8 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     // Never expose email, archive file IDs, internal datastore IDs or token hash.
     // Keep the established browser form contract: flat, display-only fields.
     // Existing domain/API consumers may still use details and expires_at.
-    return {number:offer.offerNumber,details:offer.details,
+    return {number:offer.offerNumber,test_only:syntheticOnly,
+      details:offer.details,
       company:String(offer.details.company||''),
       service:String(offer.details.service||''),
       once:offer.details.onceCHF??0,monthly:offer.details.monthlyCHF??0,

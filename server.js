@@ -734,15 +734,19 @@ const server=http.createServer(async (req,res)=>{
   catch { return send(res,400,'Bad request','text/plain; charset=utf-8'); }
   const pathname=urlObj.pathname;
   const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
-  // A design-only page with synthetic content may be viewed without a token.
-  // Keep the exception narrow: staging only, acceptance disabled, GET only,
-  // exact canonical path and one exact query parameter. All APIs stay private.
+  // Synthetic design-only demo. Allow standard UTM tracking added by
+  // link providers, but never offer codes, preview tokens or API requests.
+  const demoQuery=[...urlObj.searchParams];
+  const demoParamsValid=demoQuery.length<=6 &&
+    urlObj.searchParams.getAll('demo').length===1 &&
+    demoQuery.every(([key,value])=>
+      (key==='demo' && value==='1') ||
+      (/^utm_(?:source|medium|campaign|content|term)$/.test(key) && value.length<=160));
   const publicDemo=process.env.NODE_ENV==='staging' &&
     process.env.OFFER_ACCEPTANCE_ENABLED==='false' &&
     req.method==='GET' &&
     pathname==='/offerte-annehmen/' &&
-    urlObj.searchParams.size===1 &&
-    urlObj.searchParams.get('demo')==='1';
+    demoParamsValid;
 
   if(sitePrivate) {
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');

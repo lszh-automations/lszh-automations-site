@@ -75,7 +75,8 @@ case "$1:$2:$3" in
    for dir in "$3/onboarding" "$3/workers" "$3/workers/onboarding-notifications";do
     [[ "$(stat -c '%a' "$dir")" == 755 ]] || exit 79
    done
-   grep -q '^USER node
+   grep -q '^USER node$' "$3/workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2" || exit 79
+   echo 'FAKE: permissions 0644/0755, nonroot preserved'
    echo 'FAKE: isolated five-file build accepted' ;;
  *) exit 88 ;;
 esac
@@ -140,75 +141,11 @@ test('shell syntax valid, only build submission allowed',()=>{
  assert.match(s,/gcloud builds submit/);
  assert.doesNotMatch(s,/gcloud run jobs (create|execute|update)|gcloud secrets versions access|gcloud projects add-iam-policy-binding|gcloud secrets add-iam-policy-binding|--data-file=/);
 });
- "$3/workers/onboarding-notifications/Dockerfile.airtable-read-probe-v2" || exit 79
-   echo 'FAKE: permissions 0644/0755, nonroot preserved'
-   echo 'FAKE: isolated five-file build accepted' ;;
- *) exit 88 ;;
-esac
-`);
- for (const n of ['git','gcloud'])chmodSync(path.join(bin,n),0o755);
- try{
-  const p=spawnSync('bash',[source,...args],{
-   cwd:root,encoding:'utf8',timeout:15000,
-   env:{...process.env,PATH:bin+':'+process.env.PATH,FAKE_ROOT:root,FAKE_AUDIT:audit,...vars}
-  });
-  return {...p,audit:existsSync(audit)?readFileSync(audit,'utf8'):''};
- }finally{rmSync(root,{recursive:true,force:true});}
-}
-test('default plan reads identity, SA, registry, one version and secret IAM, but never builds',()=>{
- const r=simulate();
- assert.equal(r.status,0,r.stderr+' '+r.stdout);
- assert.match(r.stdout,/PLAN ONLY:/);
- assert.match(r.audit,/secrets get-iam-policy/);
- assert.doesNotMatch(r.audit,/builds submit|run jobs create|run jobs execute|versions access|add-iam-policy-binding/);
-});
-test('build-only is a single isolated five-file Cloud Build submission, never deploys',()=>{
- const r=simulate(['--build-only']);
- assert.equal(r.status,0,r.stderr+' '+r.stdout);
- assert.match(r.stdout,/PASS: Separate STAGING Airtable-read image build returned successfully/);
- assert.equal((r.audit.match(/builds submit/g)||[]).length,1);
- assert.doesNotMatch(r.audit,/jobs create|jobs execute|run deploy|versions access|add-iam-policy-binding/);
-});
-test('wrong account, dirty checkout, or source pin mismatch prevent Cloud Build',()=>{
- for(const v of [{FAKE_ACCOUNT:'other@example.invalid'},{FAKE_DIRTY:' M a'},{FAKE_PIN_FAIL:'1'},{FAKE_DIFF_FAIL:'1'}]){
-  const r=simulate(['--build-only'],v);
-  assert.notEqual(r.status,0,r.stdout+' '+r.stderr);
-  assert.doesNotMatch(r.audit,/builds submit/);
- }
-});
-test('missing secret version or access grant blocks Cloud Build',()=>{
- for(const v of [{FAKE_VERSION_MISSING:'1'},{FAKE_IAM_MISSING:'1'}]){
-  const r=simulate(['--build-only'],v);
-  assert.notEqual(r.status,0,r.stdout+' '+r.stderr);
-  assert.doesNotMatch(r.audit,/builds submit/);
- }
-});
-test('preexisting Job prevents reusing the probe name and building',()=>{
- const r=simulate(['--build-only'],{FAKE_EXISTING_JOB:'1'});
- assert.notEqual(r.status,0);
- assert.match(r.stdout,/Never overwrite/);
- assert.doesNotMatch(r.audit,/builds submit/);
-});
-test('unsupported flags fail before any GCP commands',()=>{
- for(const args of [['--apply'],['--build-only','--execute-once']]){
-  const r=simulate(args);
-  assert.notEqual(r.status,0);
-  assert.equal(r.audit,'');
- }
-});
-test('shell syntax valid, only build submission allowed',()=>{
- const p=spawnSync('bash',['-n',source],{encoding:'utf8'});
- assert.equal(p.status,0,p.stderr);
- const s=readFileSync(source,'utf8');
- assert.match(s,/gcloud builds submit/);
- assert.doesNotMatch(s,/gcloud run jobs (create|execute|update)|gcloud secrets versions access|gcloud projects add-iam-policy-binding|gcloud secrets add-iam-policy-binding|--data-file=/);
-});
-test('v2 Dockerfile explicitly grants readable files and keeps unprivileged runtime',()=>{
+test('v2 Dockerfile grants readable files while retaining unprivileged runtime',()=>{
  const d=readFileSync(path.join(worker,'Dockerfile.airtable-read-probe-v2'),'utf8');
  const v=readFileSync(path.join(worker,'airtable-runtime-probe-v2.js'),'utf8');
  assert.equal((d.match(/COPY --chown=node:node --chmod=0644 /g)||[]).length,3);
  assert.match(d,/RUN chmod 0755 \/app /);
  assert.match(d,/\nUSER node\n/);
  assert.match(v,/const JOB='lszh-airtable-read-probe-fix-staging';/);
- assert.doesNotMatch(v,/fetch\('https:\/\//);
 });

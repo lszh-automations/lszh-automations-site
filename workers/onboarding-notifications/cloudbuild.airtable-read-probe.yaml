@@ -1,0 +1,16 @@
+# LSZH: BUILD ONLY a completely isolated one-shot Airtable read-only probe.
+# No secrets included, no Cloud Run job/service creation, no execution or IAM grants.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - workers/onboarding-notifications/Dockerfile.airtable-read-probe
+      - -t
+      - "${_IMAGE}"
+      - .
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

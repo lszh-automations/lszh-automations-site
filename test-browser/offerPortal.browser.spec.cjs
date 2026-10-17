@@ -72,15 +72,12 @@ async function localFixture(mode){
   proofSalt:'SYNTHETIC_BROWSER_ONLY_NOT_A_SECRET_12345',
   clock:()=>new Date('2026-10-17T12:00:00.000Z')
  });
- const handle=createOfferPortalHttp({portal,enabled:true,allowedOrigin:ORIGIN});
+ const handle=createOfferPortalHttp({portal,enabled:true,allowedOrigin:ORIGIN,pageHtml:HTML});
  let base='';
  const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');
-  if(req.method==='GET'&&url.pathname==='/offerte-annehmen/'){
-   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8',
-    'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});
-   res.end(HTML);return;
-  }
+  if(req.method==='GET'&&url.pathname==='/offerte-annehmen/')
+   return handle(req,res);
   if(req.method==='POST'&&
      ['/api/offer/preview','/api/offer/accept','/api/offer/document'].includes(url.pathname)){
    // Do not allow cross-origin browser requests even in this loopback fixture.

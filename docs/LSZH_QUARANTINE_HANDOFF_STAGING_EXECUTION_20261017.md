@@ -1,5 +1,10 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Direktes Airtable-Secret-IAM der Outbox-Quelle aktualisiert
+
+Vom Geschäftsführer in Cloud Shell bestätigter `roles/secretmanager.secretAccessor`-Grant am einzelnen Staging-Airtable-Secret: die Policy enthält nun den ursprünglichen Airtable-Testdienst und das Outbox-Staging-Dienstkonto. Der Secret-Wert wurde nicht gelesen, und es fand kein Source-Job-Lauf statt. Nächste rein lesende Kontrolle: IAM Policy Troubleshooter für das Quell-Dienstkonto, die konkrete Secret-Version 1 und `secretmanager.versions.access`. Bei anderem Ergebnis als `CAN_ACCESS` keine Testausführung.
+
+
 ## 17.10.2026 – Source-Airtable-Secret: Effektives Recht fehlt, gezielte Freigabe erforderlich
 
 Echter IAM Policy Troubleshooter für `secretmanager.versions.access` auf der **Version 1** des bestehenden `lszh-airtable-readonly-staging`-Secrets und Principal `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` meldete **`CANNOT_ACCESS`**. Diese Permission steht dem geprüften Outbox-Dienstkonto somit nicht zur Verfügung. Vorbefund: keine direkte Secret-Level-Rolle und auf Projektebene ausschliesslich bedingtes `roles/datastore.user`. Das Airtable-Secret ist `ENABLED`.

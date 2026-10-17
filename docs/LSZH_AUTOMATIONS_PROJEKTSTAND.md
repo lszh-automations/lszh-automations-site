@@ -1,5 +1,30 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Cloud Run → Airtable REST live verifiziert: exakt ein erfolgreicher synthetischer GET (V2)
+
+**Abschliessender REALER read-only Diagnosenachweis des Geschäftsführers:** Nach Fast-Forward des Feature-Branches bis `0724c42` wurde `bash workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh` in der Cloud Shell ausgeführt. Die Diagnose hat *keinen* Job gestartet, keine Secret-Werte oder Rohlogs ausgegeben und bestätigte:
+
+```text
+PASS: One and only one V2 execution; original historic failed job preserved.
+PASS: Exact V2 execution metadata matches; no failed tasks reported.
+Successful tasks in metadata: 1
+PASS: Only exact labelled V2 execution logs inspected; raw logs never printed.
+Labelled entries for approved execution: 5
+Unlabelled job entries excluded: 2
+Other execution entries excluded: 0
+Expected safe application PASS 1: EXACTLY_ONCE
+Expected safe application PASS 2: EXACTLY_ONCE
+Expected safe application PASS 3: EXACTLY_ONCE
+Application STOP recorded: NO
+PASS: Live STAGING Cloud Run -> Airtable GET succeeded exactly once for an absent synthetic code.
+PASS: Expected no-write, no-email application checkpoints confirmed in runtime logs.
+READ ONLY: No execution, retry, Secret payload read, IAM edit, deployment or Airtable request.
+```
+
+**Endgültig nachgewiesene Teilfunktion:** Die **genau einmal** ausgeführte Cloud-Run-STAGING-Execution `lszh-airtable-read-probe-fix-staging-7ppq4` nutzte die bestehende Onboarding-Statusprüfung und einen **einzigen Airtable-REST-GET** für einen frischen, nicht vorhandenen synthetischen Projektcode. Die drei exakten Anwendungs-PASS-Zeilen belegen (1) die erfolgreiche echte Airtable-Abfrage, (2) das korrekte `processing`-Ergebnis bei nicht vorhandenem Testcode und (3) das Ausbleiben von Airtable-Schreibzugriffen, Firestore-Operationen, Serviceänderungen und E-Mails im getesteten Pfad. Cloud Run meldete einen erfolgreichen Task und keinen fehlgeschlagenen Task. Originaljob mit seiner einen historischen Fehl-Execution erhalten. Keine weiteren Cloud-Run-Executions autorisieren oder vornehmen, kein blindes Wiederholen.
+
+**Grenze:** Nur isolierter *Lesezugriff/Abwesenheitsfall* ist live bestätigt; noch **nicht** der positive Bestätigungsfall eines existierenden synthetischen Projekts, die komplette Make/Airtable/Firestore-Onboarding-Transaktion, die Offertenannahme, die Benachrichtigungs-Outbox oder produktiver Betrieb. Outbox bleibt deaktiviert. **Nächste Arbeit:** Bestehende synthetische Offline-/Staging-Tests inventarisieren und darauf aufbauend positive Statusfälle und idempotente Übergänge zuerst ohne Live-Mutationen prüfen. Echte Schreibtests, E-Mails, Einladungen, Deployment/Merge und Produktivfreigaben nur jeweils mit ausdrücklicher Genehmigung.
+
 ## 17.10.2026 – Einmaliger V2-Airtable-Staging-Job erfolgreich gelaufen; App-PASS-Logs noch zu verifizieren
 
 **Realer Vollzug der ausdrücklich genehmigten Einmalausführung in Google Cloud Shell:** Nach `git pull --ff-only` bis `12db5f4` bestanden sowohl `staging-airtable-job-run-v2.sh --plan` als auch die unmittelbar vor dem Start wiederholten strikten Sicherheitsprüfungen (inkl. genau null vorherige Executions). Die anschliessende `--execute-once`-Ausgabe zeigt:

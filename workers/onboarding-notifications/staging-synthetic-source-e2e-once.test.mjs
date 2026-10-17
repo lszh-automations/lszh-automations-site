@@ -14,7 +14,7 @@ const env={
  LSZH_SCOPED_STAGING_READER_ENABLED:'true',LSZH_SCOPED_READER_SCOPE:'outbox',
  FIRESTORE_PROJECT_ID:'lszh-automations',FIRESTORE_DATABASE_ID:'lszh-offers-staging',
  LSZH_QUARANTINE_HANDOFF_MODE:'REVIEW_ONLY',
- LSZH_QUARANTINE_SERVICE_URL:'https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app',
+ LSZH_QUARANTINE_SERVICE_URL:'https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app',
  CLOUD_RUN_JOB:'lszh-quarantine-source-e2e-staging',CLOUD_RUN_TASK_INDEX:'0',
  CLOUD_RUN_TASK_COUNT:'1',CLOUD_RUN_TASK_ATTEMPT:'0',
  AIRTABLE_ONBOARDING_READ_TOKEN:'A'.repeat(44),

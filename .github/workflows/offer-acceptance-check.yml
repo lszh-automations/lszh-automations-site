@@ -26,6 +26,9 @@ on:
       - 'test-browser/**'
       - 'cloud-run/Dockerfile.offer-portal-staging'
       - 'scripts/offer-cloud-readiness-readonly.py'
+      - 'scripts/offer-browser-cloud-bootstrap.sh'
+      - 'scripts/offer-browser-cloud-cleanup.sh'
+      - 'test/offerBrowserCloudScript.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -43,6 +46,8 @@ jobs:
         run: |
           python3 -m py_compile scripts/offer-cloud-readiness-readonly.py
           python3 scripts/offer-cloud-readiness-readonly.py --self-test
+          bash -n scripts/offer-browser-cloud-bootstrap.sh
+          bash -n scripts/offer-browser-cloud-cleanup.sh
       - name: Syntax checks
         run: |
           node --check server.js

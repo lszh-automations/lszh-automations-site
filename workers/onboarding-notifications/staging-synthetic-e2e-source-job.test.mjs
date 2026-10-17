@@ -48,3 +48,9 @@ test('source OIDC receiver audience is pinned to actual live private Cloud Run U
  assert.match(script,/\[\[ "\$\(cat "\$TMP\/receiver-url"\)" == "\$RECEIVER" \]\]/);
  assert.match(script,/Live receiver URL differs from pinned OIDC audience/);
 });
+
+test('source uses verified 2026-10-17 real receiver URL, not legacy project-number alias',()=>{
+ assert.match(script,/^RECEIVER=https:\/\/lszh-quarantine-handoff-staging-ozx7mp2bka-oa\.a\.run\.app$/m);
+ assert.doesNotMatch(script,/lszh-quarantine-handoff-staging-470613067122\.europe-west6\.run\.app/);
+ assert.match(script,/Live receiver URL differs from pinned OIDC audience/);
+});

@@ -1,5 +1,18 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporäre Cloud-Run-Design-Demo wirklich deployt; Live-Browser-Smoke steht an
+
+**Vom Betreiber bestätigtes Google-Cloud-Deployment:** `gcloud builds submit` **SUCCESS** (Build-ID `6f02af2c-9465-4657-9d35-d4c317276253`); neues isoliertes Container-Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:d69d76a2f3c4`, Digest `sha256:d49ccc6c9fc8b5ca781e4893f3fbacb6e24f1c8e561639261bf07fea5f439a32`. Ausschliesslich der temporäre Dienst `lszh-offer-browser-staging` wurde auf **Revision `lszh-offer-browser-staging-00002-fkq`** aktualisiert und erhielt **100 % seines eigenen Traffic**. URL `https://lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app`. IAM-Invoker bleibt authentifizierungspflichtig. Die originale Revision `lszh-offer-portal-staging-00004-qt7` auf dem internen Dienst wurde vor und nach diesem Deploy durch das read-only-Skript als unverändert bestätigt.
+
+**Beabsichtigter Modus:** `LSZH_PORTAL_STAGING_ENABLED=false`, `LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true`; unverändertes eigenes temporäres Dienstkonto ohne explizite Firestore- oder Drive-Berechtigungen. `GET /offerte-annehmen/?demo=1` soll ausschließlich statisches, fiktives Bestands-HTML ausliefern; `GET` ohne Demo-/mit Tokenparametern sowie **alle** Offerten-API-POSTs sollen 503 zurückgeben. Die Content-Security-Policy verbietet Netz-Fetch und Formularaktion. Diese Erwartungen sind bisher offline mit **6/6 Chromium** und Unit-/HTTP-Tests verifiziert, **aber der echte GET auf der neuen Cloud-Revision ist noch nicht abgefragt**. Kein echter PDF-Download, kein Kundendatum, kein Vertrag oder Versand.
+
+**Nächste Verifikation:** Neu `scripts/offer-browser-static-demo-smoke.sh`, ein vollständig **read-only** Script, das vor/nach dem Test den Originaldienst schützt, nur den exakt identifizierten Temp-Dienst Revision `00002-fkq` mit Labels, Dienstkonto, Flags und IAM prüft, über `gcloud run services proxy` die authentifizierte **Live-Demo GET HTTP 200**, korrekten synthetischen HTML-Body, no-store und restriktive CSP prüft, alle anderen GETs/API-POSTs als 503 erwartet und den lokalen Proxy danach aufräumt. Es führt keine Deployments, IAM-Änderungen oder Cloud-Datenschreibungen aus. Shell-/Sicherheitstests über `test/offerBrowserCloudScript.test.js` und Github Actions. Die tatsächlichen Live-Ergebnisse sind erst nach der Ausführung des Cloud-Shell-Befehls bekannt; nicht als PASS vorwegnehmen.
+
+**Offen:** Firestore-/Drive-Synthetikseed und autorisierte fiktive archivierte PDFs, später (nicht diese Demo) vollständige Offertenvorschau. Weitere Cloud-Deployment-Aktionen bleiben vom Umfang der vorherigen zeitlich begrenzten Testfreigabe begrenzt. Kein Merge nach `main`, kein produktiver Vertragsabschluss, keine E-Mails.
+
+---
+
+
 ## 18.10.2026 – Cloud-Run-HTTP-Smoketest echt PASS; statische Browser-Demo als nächste Testrevision vorbereitet
 
 **Live-Ergebnis aus Cloud Shell (Betreiber, read-only):**

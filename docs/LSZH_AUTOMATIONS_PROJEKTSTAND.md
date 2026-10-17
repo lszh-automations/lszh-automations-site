@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Secret-spezifisches IAM-Lese-Recht tatsächlich vergeben
+
+Der Geschäftsführer führte in Cloud Shell nach einem `git pull --ff-only` das explizite `staging-airtable-secret-iam.sh --grant-secret-only` aus. **Echte Google-Cloud-Rückmeldung:**
+```text
+PASS: Company identity, clean review branch and dedicated service account.
+PASS: Correct global STAGING secret, Zurich-only replica, exactly one ENABLED version (1).
+PASS: Existing secret-specific IAM policy inspected; no binding for the dedicated identity.
+Adding exactly one secret-specific Secret Accessor binding (no project IAM changes).
+Updated IAM policy for secret [lszh-airtable-readonly-staging].
+PASS: Dedicated service account has exactly one secret-level Secret Accessor binding.
+PASS: Exactly one secret-level IAM grant verified; no PAT payload read.
+STOP HERE: No Cloud Run job deployment or execution; review next gate separately.
+```
+**Ergebnis:** Das tatsächlich erstellte `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` hat nun die direkt am **einzelnen** Secret `lszh-airtable-readonly-staging` gebundene Rolle `roles/secretmanager.secretAccessor`; mittels `get-iam-policy` tatsächlich rückverifiziert, ohne Tokenwert auszulesen. **Nicht** als projektweiter Grant, keine neuen Firestore-/Make-/Gmail-Zugriffe; keine neue Secret-Version. **`--grant-secret-only` NICHT nochmals ausführen.** Das bewies keine allfällig andernorts vererbten Rechte, nur exakt die Secret-IAM-Bindung.
+
+**Nächster Schritt:** Review-Pin/isolierter Cloud-Container-Build für `lszh-airtable-read-probe-staging`, bevorzugt zunächst rein lesenden Build-Preflight; jeder Push, jede Cloud-Run-Job-Anlage und jede Ausführung als getrennte Nutzeraktion. Der bestehende HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`. Noch **kein** tatsächlicher Cloud-Run-zu-Airtable-Aufruf.
+
 ## BESTÄTIGT 17.10.2026 – Secret-spezifischer IAM-Preflight LIVE bestanden; Grant noch NICHT vergeben
 
 Der Geschäftsführer hat in Google Cloud Shell nach einem sauberen `git pull --ff-only` den rein lesenden `staging-airtable-secret-iam.sh` ausgeführt. Die Live-Ausgabe bestätigte:

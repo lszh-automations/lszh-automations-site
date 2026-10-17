@@ -5,7 +5,7 @@ import path from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {SA,MEMBER,ROLE,CONDITION,PERMISSIONS}=createFixture();
+const {SA,MEMBER,ROLE,CONDITION,PERMISSIONS}=createFixture();
 function createFixture() {
  const require=createRequire(import.meta.url);
  return require('./quarantine-iam-plan');

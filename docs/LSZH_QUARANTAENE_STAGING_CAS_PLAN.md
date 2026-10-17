@@ -1,5 +1,32 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
+## Offline-Integration bestehender Onboarding-Review → Quarantäne-CAS (17.10.2026)
+
+Nach der erfolgreichen echten **synthetischen** Firestore-Liveprüfung (ein Create, ein Update; Revision 2; temporäre Service-Account-Berechtigung bestätigt entfernt) hat der Geschäftsführer mit `Vamos` den nächsten nichtproduktiven Entwicklungsschritt gestartet. Dieser ist **keine neue Freigabe** für weitere Cloud-IAM-Bindungen, Firestore-Operationen oder Runtime-/Make-Aktivierung.
+
+**Neue reine Integrationsbibliothek:** `workers/onboarding-notifications/onboarding-quarantine-integration.js` exportiert `reviewOnboardingForQuarantine`. Sie verwendet **nur bestehende geprüfte Module**:
+
+```text
+synthetischer explizit allowlisteter ob_<UUID>-Projektcode
+    + bestehender send-gesperrter Outbox-Entwurf
+    + passende stabile eventId(recordId) aus outbox.js
+    → listCandidateCodes() überprüft Fixture-Allowlist
+    → reviewDraft() liest aktuelle Airtable-Onboarding-/Auftrag-/Kunden-/DSG-Belege
+    → Status INVALID / UNAVAILABLE? BLOCKED bzw. HOLD_NO_PERSISTENCE
+    → nur bei gültigem Review: prepareQuarantineCAS() für bereits zugeliefertes
+       separat authentifiziertes Firestore-GET (404 für neue, 200 für bekannte)
+    → NO_CHANGE / OFFLINE_CAS_REVIEW_REQUIRED / BLOCKED_NO_PERSISTENCE
+    → AUSDRÜCKLICH KEIN Firestore-Write, keine Versandfreigabe
+```
+
+Die Bibliothek hat **keinen Firestore-/IAM-Transport**, keinen API-Endpunkt, keinen `fetch` auf Firestore, keinen eingebauten Scheduler und keine Sendefunktion. Sie gibt insbesondere **keinen ausführbaren CAS-Commit-Request**, keine Airtable-Codes, keine E-Mail-Adresse, keinen Record-ID-Wert, keine Token-Daten und keine Cloud-Dokumentadresse zurück. Ergebniswerte sind nur eingefrorene, nicht ausführbare Zustandsinformationen mit `deliveryAllowed:false`, `networkWriteAllowed:false`, `requiresManualApproval:true`, `retryAllowed:false`. Bei Airtable-Ausfall wird **nicht** allein aufgrund fehlender Information persistiert. Bei alter, ungültiger oder fremder Draft-ID ebenso **keine** CAS-Vorbereitung.
+
+**12 neue vollständige Offline-Simulationen** prüfen reale vorhandene Funktionen `reviewDraft`, `planQuarantine`, `prepareQuarantineCAS` mit rein synthetischen Airtable-Responses und Snapshot-Fixtures, ohne eine echte Airtable- oder Firestore-API aufzurufen. Der Stand nach Einführung der Bibliothek meldete **357/357 GitHub-CI-Offline-Tests bestanden**, beide Workflows erfolgreich.
+
+**Was diese Version ausdrücklich NICHT liefert:** Eine echte Live-Verbindung von `server.js` zur Quarantäne-Datenbank. Der Outbox-Worker bleibt separat deaktiviert. Firestore-`readStatus`/`firestoreDocument` werden derzeit nur als Eingaben für den Offline-Plan übernommen und müssen bei einem späteren genehmigten Lauf von einem eigenen nachweislich authentifizierten, genau auf die Quarantäne-Datenbank begrenzten Leseweg kommen. Dieser Authentifizierungs- und Transportweg ist **vor einer Aktivierung** separat zu planen und zu testen. Den bestehenden Outbox-Service-Account nicht durch pauschale Firestore-Projektrolle erweitern und den Quarantäne-Service-Account nicht auf `lszh-offers-staging` zugreifen lassen. Gültige Entwürfe sind zuerst über die bereits bestehende Offerten-STAGING-Identität ausschliesslich lesend nachzuweisen, bevor eine dedizierte Quarantäne-Prozessoridentität geordnet übergeben wird.
+
+**Unverändert:** Das echte synthetische Testdokument mit ID `314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42` verbleibt bewusst in `lszh-quarantine-staging`, Revision 2. Für eine spätere Entfernung wird eine eigene exakt befristete Freigabe benötigt; keinerlei DELETE, neuer Cloud-Run-Service, Scheduler, Mail oder erneute bereits genutzte Einmal-Tests ausführen.
+
 ## Live-Testnachweis: synthetischer CAS erfolgreich, permanenter Testdatensatz verbleibt (17.10.2026)
 
 Der Geschäftsführer führte den zuvor ausdrücklich freigegebenen, neuen Einmal-Test `staging-quarantine-cas-write-once.sh --run-approved-once` in seiner LSZH Cloud Shell nach `git pull --ff-only` bis Commit `e682f7d` aus. Die wesentlichen Original-Statuszeilen:

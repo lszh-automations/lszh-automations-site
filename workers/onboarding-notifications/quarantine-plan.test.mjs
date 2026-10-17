@@ -33,13 +33,14 @@ function safe(x) {
  assert.ok(!('send' in x) && !('recipient' in x) && !('approvalToken' in x));
 }
 test('complete review creates manual-only audit without any send capability',()=>{
- const x=plan(complete);
+ const x=plan(complete,null,0,{reviewedAt:'2026-10-17T11:00:00.000Z'});
  assert.equal(x.outcome,'created');
  assert.equal(x.expectedRevision,0);
  assert.equal(x.record.revision,1);
  assert.equal(x.record.state,STATES.REVIEW);
  assert.deepEqual(x.record.events,[{
-  seq:1,status:complete.status,reason:complete.reason,resultingState:STATES.REVIEW
+  seq:1,status:complete.status,reason:complete.reason,resultingState:STATES.REVIEW,
+  reviewedAt:'2026-10-17T11:00:00.000Z'
  }]);
  safe(x);
 });
@@ -103,6 +104,7 @@ test('different draft identity, modified audit or delivery flags are rejected',(
   {...original,state:STATES.QUARANTINED},
   {...original,events:[{...original.events[0],seq:42}]},
   {...original,events:[{...original.events[0],reason:'PRIVATE_PII'}]},
+  {...original,events:[{...original.events[0],reviewedAt:'not-a-date'}]},
   {...original,recipient:'someone@example.invalid'}
  ]){
   assert.throws(()=>plan(pending,previous,previous.revision),/invalid_existing_quarantine_case/);
@@ -144,4 +146,19 @@ test('audit limit stops without truncating existing evidence or reducing quarant
  const unchanged=plan(complete,current);
  assert.equal(unchanged.record.revision,32);
  assert.equal(unchanged.record.state,STATES.QUARANTINED);
+});
+
+test('audit timestamps must be strict UTC, chronological and never leak arbitrary metadata',()=>{
+ const start='2026-10-17T10:00:00.000Z';
+ const first=plan(complete,null,0,{reviewedAt:start});
+ assert.equal(first.record.events[0].reviewedAt,start);
+ assert.throws(()=>plan(pending,first.record,1,{reviewedAt:'2026-10-17T09:59:59.999Z'}),
+  /quarantine_time_regression/);
+ for(const reviewedAt of ['2026-10-17T12:00:00+02:00','invalid','2026-13-77T00:00:00.000Z',0]){
+  assert.throws(()=>plan(pending,first.record,1,{reviewedAt}),/invalid_quarantine_review_time/);
+ }
+ const next=plan(pending,first.record,1,{reviewedAt:start});
+ assert.equal(next.record.revision,2);
+ assert.equal(next.record.state,STATES.QUARANTINED);
+ safe(next);
 });

@@ -1,5 +1,11 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Tatsächlicher Live-Postflight PASS; Übergang zur Quelle
+
+Cloud Shell meldete nach `--verify-review-only` **PASS** für: live Revision `00002-ttf` mit originalem `staging-131d67982f83`-Image, alle neun Staging-Werte einschliesslich Secret-Env-Referenz, direkte private Source-Invoker-IAM-Policy und zwei HMAC-Secret-Level-Accessors (Version 1 aktiviert). Ergebnis ausdrücklich **READ ONLY**, keine Secret-Payload-Abfrage, kein Firestore- oder Kundendatenzugriff. Die Empfängerseite ist damit konfiguriert; effektive Quelle→Ziel-Interaktion ist noch ungetestet.
+
+**Nächste sinnvolle Entscheidung zur Quellseite:** Ermitteln, ob das dedizierte Outbox-Quellkonto bereits gezielt zum Lesen des bestehenden `lszh-airtable-readonly-staging`-Secrets autorisiert ist. `gcloud secrets get-iam-policy` ist ein Metadatenaufruf und gibt keinen Secret-Wert zurück. Leere Service-spezifische Bindung beweist **nicht**, dass übergeordnete IAM-Berechtigungen fehlen. Keine vorschnellen IAM-Änderungen oder Quelljobs; vor dem echten E2E-Test sind sicher synthetische Draft-Fixture, ausgegrenzter Projektcode, Firestore-Scopes, genau ein Job (Retries 0), echter Identity-Token und HMAC-Vergleich zu prüfen.
+
 ## 17.10.2026 – Receiver wurde aktiviert; nur read-only Postflight als nächster Schritt
 
 Cloud-Run-Meldung nach freigegebenem `--enable-review-only`: Revision **`lszh-quarantine-handoff-staging-00002-ttf`** erstellt, **100 % Traffic**, URL unverändert. Das Script meldete `PASS: Private review-only receiver configured. No source dispatcher launched.`. Der HMAC-Schlüssel ist als Secret-Env-Referenz konfiguriert, die drei Staging-Review-Schalter wurden auf `true` aktualisiert. Dies ist noch **kein realer synthetischer End-to-End-Test**.

@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Diagnose: Credentials API aktiv, Policy Troubleshooter meldet CANNOT_ACCESS
+
+Vom Geschäftsführer in Cloud Shell ausgeführte Prüfschritte ergaben: `iamcredentials.googleapis.com` ist aktiviert. Der Policy-Troubleshooter-Dienst `policytroubleshooter.googleapis.com` war zunächst deaktiviert und wurde vom Geschäftsführer nach einer interaktiven Rückfrage mit `y` eingeschaltet; die API-Aktivierung wurde erfolgreich bestätigt. Die anschliessende Zugriffsanalyse für `lars@lszh-automations.ch` und `iam.serviceAccounts.getAccessToken` auf der dedizierten Quarantäne-Dienstidentität ergab `CANNOT_ACCESS`.
+
+Google dokumentiert den Zustand `CANNOT_ACCESS` als fehlende Berechtigung in der betrachteten effektiven Richtlinienauswertung; `UNKNOWN_INFO` steht dagegen für unvollständig einsehbare Richtlinien. Der Zustand passt zum unmittelbar zuvor gestoppten lesenden Zugriffstest (`BLOCKED: IMPERSONATION_UNAVAILABLE`). **Es gab keinen Firestore-REST-GET und keinen Dokument-Schreibzugriff.**
+
+Die API-Aktivierung war eine tatsächliche Cloud-Konfigurationsänderung und darf nicht als rein lesende Prüfung beschrieben werden. Eine zusätzliche Berechtigungszuweisung zum Erzeugen kurzlebiger Identitätsnachweise wäre **ein neuer, gesondert genehmigungspflichtiger IAM-Schritt**. Empfohlen wird, zuerst dessen Umfang, zeitliche Befristung und sicheren Rückbau festzulegen; keine Projekt-weite oder unbefristete pauschale Vergabe. Die frühere Lesetestfreigabe erlaubt **keine** IAM-Änderung. Der Schreibtest bleibt gesperrt.
+
 ## 17.10.2026 – Lesender Zugriffstest vor Datenbankabfrage gestoppt
 
 Der Geschäftsführer führte nach der erfolgreichen IAM-Nachkontrolle einen gesondert freigegebenen Zugriffstest aus. Die vorgelagerte IAM-Metadatenprüfung war erfolgreich. Die anschliessende Identitätsübernahme schlug mit `BLOCKED: IMPERSONATION_UNAVAILABLE` fehl. Somit wurden in diesem Lauf **keine Firestore-Dokumentanfragen** gestellt. Die Wirksamkeit der Datenbank-Isolation ist weiterhin nicht nachgewiesen. **Keine IAM-Anpassungen oder Wiederholungen vor Diagnose.** Nächste Aktion: rein lesende Kontrolle der IAM-Credentials-API und der zugewiesenen Rechte an der neuen Service-Identität. Der echte Firestore-Schreibtest und Deployments bleiben gesperrt.

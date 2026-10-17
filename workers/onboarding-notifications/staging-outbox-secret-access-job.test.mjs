@@ -25,6 +25,11 @@ test('probe must run one task, zero retries, source-SA and isolated job name',()
  assert.match(source,/--set-secrets="LSZH_PROBE_SECRET=\$SECRET:1"/);
  assert.match(source,/gcloud run jobs describe/);
 });
+test('Cloud Run gen2 probe uses the minimum supported 512Mi memory rather than 256Mi',()=>{
+ assert.match(source,/--cpu=1 --memory=512Mi --command=\/bin\/sh/);
+ assert.doesNotMatch(source,/--memory=256Mi/);
+});
+
 test('probe uses immutable approved image and never prints the secret',()=>{
  assert.match(source,/sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac/);
  assert.match(source,/PASS_SOURCE_SECRET_ACCESS/);

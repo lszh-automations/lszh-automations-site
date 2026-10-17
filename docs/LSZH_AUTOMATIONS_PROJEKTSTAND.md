@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – V2 Cloud Run Airtable-Lesejob angelegt, null Ausführungen (real bestätigt)
+
+**Tatsächliche Google-Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` bis Commit `65e0809` bestanden sowohl `staging-airtable-job-v2.sh --plan` als auch dessen geschützte Prüfungen vor `--create-only`. `gcloud run jobs create` meldete `Job [lszh-airtable-read-probe-fix-staging] has successfully been created.` Anschliessend meldete das Skript:
+```text
+PASS: Created Job spec pinned to exact digest, service identity, env gate and Secret v1 file.
+PASS: New STAGING Cloud Run Job created and verified, with ZERO executions.
+STOP HERE: Running the V2 job and live Airtable GET require a separate explicit approval.
+```
+**Faktischer Zustand:** Neuer separater Job in `lszh-automations`, Region `europe-west6`, an das geprüfte Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe@sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` gebunden. Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com`; Geheimnisversion 1 als Datei auf `/var/secrets/lszh/airtable-read-pat`; 1 Task, 0 automatische Retries, Outbox aus. **Der neue V2-Job existiert, wurde aber nie ausgeführt.** Das alte gescheiterte Original `lszh-airtable-read-probe-staging` hat weiter exakt eine historische fehlgeschlagene Execution und wurde nicht wiederholt. **Noch kein Live-Airtable-GET-Erfolg und keine funktionierende End-to-End-Verbindung nachgewiesen.** Keine Mails, Make-/CRM-/Firestore-Veränderungen oder IAM-/Secret-Modifikationen erfolgt.
+
+**Ausdrückliche Grenze der Freigabe:** Die Genehmigung galt ausschliesslich dem Anlegen dieses Jobs und ist verbraucht. **Kein `gcloud run jobs execute` ohne neue ausdrückliche Zustimmung.** Nächster Schritt: V2-Lesejob-Ausführung zunächst nur per sicherem read-only Plan (metadata/source checks) vorbereiten, die einmalige synthetische Airtable-GET-Ausführung separat freigeben und erst dann starten.
+
 ## 17.10.2026 – Geschäftsführer erteilt explizite Freigabe für die reine V2-Job-Neuanlage
 
 Der Geschäftsführer hat nach erfolgreichem realen `staging-airtable-job-v2.sh --plan` ausdrücklich zugestimmt: **Nur den separaten Cloud-Run-Job `lszh-airtable-read-probe-fix-staging` erstellen**, **nicht ausführen**. Die freigegebene Aktion ist `bash workers/onboarding-notifications/staging-airtable-job-v2.sh --create-only` nach synchronisiertem Git-Pull und erneuter `--plan`-Kontrolle. Das Image ist SHA-256-gepinnt auf `c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac`; alle bisherigen Identity/Secret/IAM/Source-Pin-Checks bleiben verpflichtend. **Freigabe bedeutet noch keinen Vollzug:** Aus dem Chat besteht kein authentifizierter Zugriff auf die Google Cloud Shell; Job-Erstellung und anschliessende Null-Execution-Verifikation bleiben bis zur echten Shell-Ausgabe **nicht nachgewiesen**. Keine Freigabe für `gcloud run jobs execute`, Airtable-GET, Mailversand, Outbox-Aktivierung, IAM-Änderungen oder kundenseitige Mutationen. Bei einem Fehler von `--create-only` **nicht blind wiederholen**, sondern nur Jobmetadaten prüfen und die Ausgabe auswerten.

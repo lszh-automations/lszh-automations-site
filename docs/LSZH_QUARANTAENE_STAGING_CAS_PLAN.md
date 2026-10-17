@@ -1,6 +1,20 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
-Status: **Nur Entwurf / kein Deployment / kein IAM-Grant / kein Cloud-Lauf**. Stand: 17.10.2026. Für die geplante zusätzliche Quarantäne-Datenbank wurde ein echter Cloud-Shell-`NOT_FOUND` gemeldet; das geplante Ziel ist noch **nicht bereitgestellt**.
+Status: **Quarantäne-Named-Database am 17.10.2026 erfolgreich erstellt, Löschschutz bestätigt; Service-Account, Rolle, IAM-Bindung, Cloud-Run-Runtime und Dokument-Schreibtests noch NICHT eingerichtet/freigegeben.** Ältere nachfolgende Abschnitte dokumentieren den vorherigen Planungsstand.
+
+## Nachweis der genehmigten einmaligen Datenbankerstellung (17.10.2026)
+
+Der Geschäftsführer hat mit `du hast meine genehmigung, vamos` **explizit** die neue kostenpflichtig nutzbare Datenbank genehmigt und den freigegebenen Runner `staging-quarantine-db-provision.sh --create-once` selbst in Cloud Shell auf dem aktuellen Review-Branch ausgeführt. Der Ablauf meldete einen einzigen Firestore-Datenbank-Create-Versuch und anschliessend nach eigenem `describe`:
+```text
+PASS: Exact Zurich Native database and deletion protection verified.
+PASS: Exactly one billable isolated staging database created; no IAM/data changes.
+DO NOT RERUN. Service account, role, IAM and writes need separate approvals.
+```
+`projects/lszh-automations/databases/lszh-quarantine-staging` existiert nun als Standard/Native Named Database in Zürich (`europe-west6`) mit aktivem Löschschutz. Dies wurde anhand der vom Nutzer übermittelten Cloud-Shell-Ausgabe bestätigt, nicht durch einen zusätzlichen Cloud-Zugriff von ChatGPT.
+
+**STOP: Das Einmal-Skript NICHT erneut ausführen.** Der alte Provisioning-Readiness-Check erwartet ausdrücklich, dass die Ziel-Datenbank noch fehlt; er ist deshalb **für weitere Bereitstellungsversuche obsolet**, nicht mehr als Nachweis für diesen bereits erfolgten Schritt geeignet. Nachfolgende Datenbankkontrollen müssen `describe` verwenden, nicht `create`.
+
+**Nächste IAM-Grenze:** Der **separate** Service-Account `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com`, die Custom Role `lszhQuarantineCasStaging` mit ausschliesslich `datastore.entities.get/create/update` und die Bedingung `resource.name=="projects/lszh-automations/databases/lszh-quarantine-staging"` sind noch **nicht** eingerichtet oder genehmigt. Keine automatische Bindung, kein SDK-Schreibzugriff, kein Cloud-Run-Job. Zuerst read-only prüfen/planen; dann gesonderte explizite IAM-Ressourcenfreigabe einholen. Der spätere einmalige synthetische Firestore-Schreibtest verlangt wiederum gesonderte Freigabe.
 
 ## Zweck und bewiesener Stand
 

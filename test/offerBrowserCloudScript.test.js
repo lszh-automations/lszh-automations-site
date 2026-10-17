@@ -9,16 +9,17 @@ const clean='scripts/offer-browser-cloud-cleanup.sh';
 const resume='scripts/offer-browser-cloud-resume.sh';
 const smoke='scripts/offer-browser-cloud-smoke.sh';
 const demo='scripts/offer-browser-static-demo-release.sh';
+const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean,resume,smoke,demo]){
+ for(const file of [boot,clean,resume,smoke,demo,staticSmoke]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  if(file!==smoke && file!==demo)
+  if(file!==smoke && file!==demo && file!==staticSmoke)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
-  else if(file===smoke)
+  else if(file===smoke || file===staticSmoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
   else
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
@@ -96,4 +97,22 @@ test('static demo release targets only existing labelled IAM-protected temporary
  assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
  const cleanup=fs.readFileSync(clean,'utf8');
  assert.match(cleanup,/env\.get\("LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
+});
+
+test('deployed static-demo smoke remains read-only and blocks all offer APIs',()=>{
+ const s=fs.readFileSync(staticSmoke,'utf8');
+ assert.match(s,/EXPECTED_REVISION="lszh-offer-browser-staging-00002-fkq"/);
+ assert.match(s,/gcloud run services proxy "\$TEMP"/);
+ assert.match(s,/get-iam-policy "\$TEMP"/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED"\)=="false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
+ assert.match(s,/connect-src 'none'/);
+ assert.match(s,/form-action 'none'/);
+ assert.match(s,/MUSTER-2026-001/);
+ assert.match(s,/for route in '\/api\/offer\/preview' '\/api\/offer\/document' '\/api\/offer\/accept'/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.doesNotMatch(s,/gcloud (run deploy|builds submit|run services update|run services delete|projects add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
 });

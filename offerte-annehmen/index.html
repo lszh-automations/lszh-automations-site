@@ -210,7 +210,7 @@ request('/api/offer/preview',{code}).then(d=>showOffer(d.offer)).catch(e=>setMes
 }
 form.addEventListener('submit',async e=>{
 e.preventDefault();
-if(!current||demo||!form.reportValidity())return;
+if(!current||demo||current.test_only===true||!form.reportValidity())return;
 button.disabled=true;button.textContent='Annahme wird sicher gespeichert …';
 setMessage('Bitte schliessen Sie die Seite nicht, bis die Annahme bestätigt wurde.','');
 try{

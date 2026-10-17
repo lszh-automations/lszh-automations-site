@@ -2,6 +2,36 @@
 
 Status am 17.10.2026: **Quarantäne-Named-Database erstellt mit Löschschutz; separater Service-Account, Custom Role und bedingte IAM-Bindung laut erfolgreicher vom Geschäftsführer ausgeführter Cloud Shell erstellt und metadatengeprüft.** Cloud-Run-Runtime, impersonierte effektive REST-Prüfung, Firestore-Dokument-Schreibtest und Versand weiterhin NICHT ausgeführt/freigegeben. Ältere Abschnitte dokumentieren den vorherigen Planungsstand.
 
+## Genehmigter temporärer Lesetest mit selbstablaufender SA-IAM-Bindung (17.10.2026)
+
+Der Geschäftsführer genehmigte ausdrücklich eine **einmalige, höchstens einstündige Token-Creator-Berechtigung** auf dem dedizierten Quarantäne-Service-Account, mit anschliessender Entfernung. Vorherige Diagnose: `iamcredentials.googleapis.com` aktiv; Policy Troubleshooter `CANNOT_ACCESS` für den Benutzer und `iam.serviceAccounts.getAccessToken`. Die Policy-Troubleshooter-API wurde zuvor durch den Geschäftsführer interaktiv aktiviert.
+
+**Neu:** `workers/onboarding-notifications/staging-quarantine-timed-read-check.sh`. Zwei Modi: Standard `--plan` (nur Bestandslesen) und `--run-approved-once` mit exaktem Freigabe-Marker `LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST`. Der Runner setzt folgende Sicherheitsgrenzen:
+- überprüft Firmenkonto, unveränderten und synchronisierten Feature-Branch, vorhandene Quarantäne-Datenbank sowie exakt begrenzte CAS-Rolle/IAM-Bindung über den bewährten `staging-quarantine-iam-preflight.sh --plan`; verifiziert aktivierte Credentials-API;
+- prüft vor jeder Mutation die IAM-Policy **auf der Service-Account-Ressource** und stoppt, falls bereits direkte Berechtigungen für den Benutzer bestehen;
+- verwendet nur einmal eine **auf diesen Service-Account beschränkte** `roles/iam.serviceAccountTokenCreator`-Bindung mit Condition `request.time < timestamp(...)` auf **30 Minuten** ab Cloud-Shell-Ausführung. Niemals projektweit und niemals unbegrenzt. Die Policy wird unmittelbar nach dem Grant erneut auf exakte Rolle, einzelnen Benutzer und Condition geprüft; Fehlschlag führt zur Bereinigung;
+- genau ein kurzlebiges impersoniertes Zugriffstoken **nur im Python-Prozessspeicher**, kein JSON-Key, keine Ausgabe/Speicherung des Tokens; eine unvorhersehbare 64-stellige Hex-Testdokument-ID; **maximal zwei HTTP GETs** ohne Weiterleitungen, ohne Antwortinhalt zu lesen: zuerst neue `lszh-quarantine-staging` (erwartet 404), dann bei genau 404 alte `lszh-offers-staging` (erwartet 403);
+- `EXIT`-/Signal-Cleanup versucht **unmittelbar nach Erfolg und Fehler** die **exakte zeitlich bedingte IAM-Bindung** wieder zu löschen und liest die SA-IAM-Policy unabhängig zurück. Bei unsicherem Ergebnis Warnung und **kein Retry**; die bedingte Rolle verliert nach 30 Minuten auch ohne erfolgreichen Cleanup ihre Wirksamkeit. Ein lokaler Einmal-Marker verhindert normale Wiederholungen.
+- kein Firestore-POST/PATCH/DELETE/LIST, keine Cloud-Run-Aktivierung, keine Kundenaktion, keine permanenten Rollen, kein zusätzliches IAM auf `lszh-offers-staging`.
+
+**Synthetisch lokal in GitHub-CI geprüft:** `staging-quarantine-timed-read-check.test.mjs` testet Plan, Freigabesperre, genau einen Grant mit Cleanup, 2-GEP-Probe, existierende SA-Rolle, Token-Verweigerung, negative 404, Grant-/Remove-Fehler, falsche Identität und Syntax. Nach Korrektur des Condition-JSON-Encodings bestanden **300/300** Offline-Tests; keine echte Token-Minting-/Firestore-REST-Ausführung erfolgt durch CI.
+
+**Cloud-Shell-Planmodus:**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --plan
+```
+
+**Freigegebener einmaliger Live-Test (nicht wiederholen, auch bei Teilfehler):**
+```bash
+cd ~/lszh-outbox-review &&
+git pull --ff-only &&
+LSZH_TEMPORARY_IMPERSONATION_APPROVAL=I_APPROVE_TEMPORARY_QUARANTINE_SA_TOKEN_CREATOR_FOR_READ_TEST \
+bash workers/onboarding-notifications/staging-quarantine-timed-read-check.sh --run-approved-once
+```
+Nur kontrollierte `PASS`-/`BLOCKED`-/`WARNING`-Ausgaben im Chat teilen. Falls der abschliessende Cleanup nicht unabhängig bestätigt ist: **keine weitere Mutation**, Zeitablauf der Condition respektieren und die SA-IAM-Policy später read-only überprüfen. Ein Erfolg bestätigt ausschliesslich diese beiden Lese-Resultate, nicht die Abwesenheit jeder denkbaren geerbten IAM-Berechtigung.
+
 ## Nachweis der einmaligen Quarantäne-IAM-Einrichtung (17.10.2026)
 
 Auf Grundlage der ausdrücklich auf Service-Account, Custom Role und DB-konditionierten IAM-Grant begrenzten Freigabe führte der Geschäftsführer nach dem Update des Review-Branches `staging-quarantine-iam-setup.sh --apply-once` aus. Die Terminalausgabe bestätigte nacheinander:

@@ -38,7 +38,7 @@ if os.environ.get("FAKE_AUTOMATIC")=="1":m["replication"]={"automatic":{}}
 print(json.dumps(m))
 PY
   ;;
- secrets:versions:list) [[ "\${FAKE_VERSION:-0}" == 0 ]] || echo 1 ;;
+ secrets:versions:list) [[ "$4" == "lszh-airtable-readonly-staging" ]] || exit 64; [[ "$*" != *"--secret="* ]] || exit 64; [[ "\${FAKE_VERSION:-0}" == 0 ]] || echo 1 ;;
  *) exit 88 ;;
 esac
 `);
@@ -56,6 +56,8 @@ test('numeric Google project number allowed only when independently verified',()
  assert.equal(r.status,0,r.stderr+' '+r.stdout);
  assert.match(r.stdout,/Zurich-only replica: PASS/);
  assert.match(r.stdout,/Exactly zero secret versions/);
+ assert.match(r.audit,/secrets versions list lszh-airtable-readonly-staging --project=lszh-automations/);
+ assert.doesNotMatch(r.audit,/secrets versions list --secret=/);
  assert.doesNotMatch(r.audit,/secrets create|versions add|versions access|policy-binding|run jobs create|run jobs execute/);
 });
 test('named project ID metadata is also acceptable',()=>{

@@ -83,7 +83,8 @@ test('AVV Ja rejects version mismatch before writing',async()=>{
 test('staging acceptance with AVV records complete consent once',async()=>{
  const {portal,data}=await make();
  deepStrictEqual(await portal.accept(token,accepted(),{ip:'192.0.2.20'}),
-  {ok:true,accepted:true,confirmation_pending:true});
+  {ok:true,accepted:true,test_only:true,offer_number:'TEST_ONLY_OFFER_001',
+    confirmation_email_pending:false});
  const {doc,updates}=data.state();equal(updates,1);
  equal(doc.status,'accepted');equal(doc.revision,2);
  deepStrictEqual(doc.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});

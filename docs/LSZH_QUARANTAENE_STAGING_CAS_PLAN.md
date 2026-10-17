@@ -1,5 +1,30 @@
 # LSZH Automations – Quarantäne-CAS: freigabepflichtiger STAGING-Testplan
 
+## Live-Testnachweis: synthetischer CAS erfolgreich, permanenter Testdatensatz verbleibt (17.10.2026)
+
+Der Geschäftsführer führte den zuvor ausdrücklich freigegebenen, neuen Einmal-Test `staging-quarantine-cas-write-once.sh --run-approved-once` in seiner LSZH Cloud Shell nach `git pull --ff-only` bis Commit `e682f7d` aus. Die wesentlichen Original-Statuszeilen:
+
+```text
+PASS: Exact 30-minute-limited SA-scoped IAM condition confirmed.
+WAIT: 600 seconds for IAM propagation before impersonation.
+PASS: Propagation wait completed; starting one gated synthetic CAS run.
+FIXTURE_ID: 314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42
+FIXTURE_DB: lszh-quarantine-staging; FIXTURE_COLLECTION: lszh_onboarding_quarantine_cases_staging
+PASS: Random synthetic document verified absent (404).
+PASS: CREATE committed conditionally (exists:false); revision 1 read back and verified.
+PASS: UPDATE committed with exact old updateTime; revision 2 verified.
+DONE: One synthetic CREATE, one conditional UPDATE, three GETs, no deletes.
+DONE: Case stays quarantined, send-disabled and requires manual approval.
+PASS: Exact temporary Service Account Token Creator binding revoked.
+PASS: Temporary IAM binding absent in fresh readback.
+```
+
+**Verifizierte Live-Wirkung:** Ein einziges synthetisches 64-stelliges Zufallsdokument wurde in `lszh-quarantine-staging` innerhalb `lszh_onboarding_quarantine_cases_staging` von anfänglichem 404 via `exists:false` atomar mit Revision 1 erstellt, separat per Dokument-GET bestätigt, dann mit exakt der gelesenen `updateTime` atomar auf Revision 2 aktualisiert und nochmals unabhängig GET-verifiziert. Finaler Quarantäne-Status hält `deliveryAllowed=false` und `requiresManualApproval=true` aufrecht. Genau **drei GET und zwei POST**; kein DELETE, keine Kundendaten, kein Cloud Run, kein Versand. Die temporäre Token-Creator-IAM-Bindung (nur auf dem dedizierten Service-Account; mit 30-minütiger Bedingung) wurde unmittelbar danach entfernt und nach unabhängigem Policy-Readback als **nicht mehr vorhanden** bestätigt.
+
+**Bewusst verbleibender Testdatensatz:** `projects/lszh-automations/databases/lszh-quarantine-staging/documents/lszh_onboarding_quarantine_cases_staging/314baff3b1d52193fdd9e23dab4e9c39c38fdc5cff8980475cedce0d8b16bf42`. Erwartete Revision 2. Dokument nicht automatisch oder vorsorglich löschen. Die Service-Account-Custom-Role enthält **kein** `datastore.entities.delete`; für eine spätere Version-geprüfte Entfernung oder Archiventscheidung bedarf es einer **neuen ausdrücklichen und auf diesen synthetischen Fixture beschränkten Freigabe**. Prüfen, dass der Testdatensatz vor einem eventuellen zukünftigen Löschvorgang noch genau dem dokumentierten Zustand entspricht; keine blind wiederholten Writes.
+
+**STOP – Einmal-Test vollständig verbraucht:** Den Aufruf `staging-quarantine-cas-write-once.sh --run-approved-once` **nicht erneut ausführen** – ebenso wenig die historischen IAM-/Named-DB-Provisionierer oder V1/V2-Leseproben. Die älteren Abschnitte dieses Runbooks, die den Schreibtest als erst bevorstehend beschreiben, sind historisch. Der Live-Test beweist genau diesen einzelnen atomaren CAS-Pfad, aber keinen produktiven End-to-End-Betrieb oder echten Konkurrenzlauf. Kein zusätzliches IAM, keine Cloud-Run-Aktivierung und kein Versand freigegeben.
+
 ## Einmaliger realer synthetischer CREATE-/UPDATE-CAS-Test – ausdrücklich freigegeben, Ausführung noch offen (17.10.2026)
 
 **Freigabe:** Nach der 324/324 erfolgreich geprüften Offline-CAS-State-Machine und der ausdrücklichen Bitte um Genehmigung für einen ersten echten synthetischen Quarantäne-CAS-Schreibtest hat der Geschäftsführer mit `du hast die freigabe, vamos` zugestimmt. Diese Freigabe gilt **nur** für eine synthetische einmalige CREATE-/UPDATE-Serie im bereits bestehenden `lszh-quarantine-staging`, nicht für produktive Angebote, Notifications oder fremde Datenbanken.

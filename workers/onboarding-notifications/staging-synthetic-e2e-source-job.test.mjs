@@ -41,3 +41,10 @@ test('custom source code hash survives documentation-only commits',()=>{
  assert.match(script,/SOURCE CONTENT FINGERPRINT/);
  assert.match(script,/SHA256/);
 });
+
+test('source OIDC receiver audience is pinned to actual live private Cloud Run URL',()=>{
+ assert.match(script,/gcloud run services describe lszh-quarantine-handoff-staging/);
+ assert.match(script,/--format='value\(status\.url\)'/);
+ assert.match(script,/\[\[ "\$\(cat "\$TMP\/receiver-url"\)" == "\$RECEIVER" \]\]/);
+ assert.match(script,/Live receiver URL differs from pinned OIDC audience/);
+});

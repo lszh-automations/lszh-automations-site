@@ -58,6 +58,71 @@ async function make(mode='Ja',verifyBundle=async()=>true){
   clock:()=>new Date('2026-10-15T10:00:00Z')});
  return {portal,data};
 }
+test('cloud staging accepts only fully marked synthetic records and remains fail-closed',async()=>{
+ const {createOfferPortal}=await import('../cloud-run/offer-portal-staging/portalCore.mjs');
+ const {createFirestoreOfferStore}=await import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs');
+ const data=fakeDB(record('Ja'));
+ let archiveReads=0;
+ const portal=createOfferPortal({
+  store:createFirestoreOfferStore(data.db),
+  verifyBundle:async()=>{archiveReads++;return true;},
+  approvedVersion:'TEST_v1.0_RC1',proofSalt:'test-only-secret-with-enough-entropy',
+  clock:()=>new Date('2026-10-15T10:00:00Z'),syntheticOnly:true
+ });
+ const denied=async()=>{
+  await rejects(()=>portal.preview(token),e=>e.code==='unavailable');
+  await rejects(()=>portal.accept(token,accepted()),e=>e.code==='unavailable');
+  equal(archiveReads,0,'no Google archive reads for non-synthetic records');
+  equal(data.state().updates,0);
+ };
+ await denied();
+ const base=record('Ja');
+ base.offerNumber='TEST_ONLY_IMPORT_20261015_NO_CONTRACT';
+ base.recipientEmail='synthetic@example.invalid';
+ base.source={kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
+  tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'};
+ base.downstream={airtable:'disabled',proofPdf:'disabled',email:'disabled'};
+ data.mutate(()=>structuredClone(base));
+ const preview=await portal.preview(token);
+ equal(preview.test_only,true);
+ equal(preview.number,base.offerNumber);
+ equal(archiveReads,1);
+ for(const badChange of [
+  d=>({...d,source:{...d.source,kind:'CUSTOMER'}}),
+  d=>({...d,recipientEmail:'real@company.example'}),
+  d=>({...d,offerNumber:'REAL_CONTRACT_1001'}),
+  d=>({...d,downstream:{...d.downstream,email:'enabled'}}),
+  d=>({...d,source:{...d.source,baseId:'wrong-base'}})
+ ]){
+  data.mutate(badChange);
+  await rejects(()=>portal.preview(token),e=>e.code==='unavailable');
+  data.mutate(()=>structuredClone(base));
+ }
+ const submission={...accepted('Ja'),email:base.recipientEmail};
+ const acceptedResponse=await portal.accept(token,submission);
+ equal(acceptedResponse.test_only,true);
+ equal(data.state().updates,1);
+ equal(data.state().doc.status,'accepted');
+});
+test('changing synthetic owner/notification flags during archive I/O cancels claim',async()=>{
+ const {createOfferPortal}=await import('../cloud-run/offer-portal-staging/portalCore.mjs');
+ const {createFirestoreOfferStore}=await import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs');
+ const base=record('Ja');
+ base.offerNumber='TEST_ONLY_IMPORT_20261015_NO_CONTRACT';
+ base.recipientEmail='synthetic@example.invalid';
+ base.source={kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
+   tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'};
+ base.downstream={airtable:'disabled',proofPdf:'disabled',email:'disabled'};
+ const data=fakeDB(base);
+ const portal=createOfferPortal({
+  store:createFirestoreOfferStore(data.db),
+  verifyBundle:async()=>{data.mutate(d=>({...d,downstream:{...d.downstream,email:'enabled'}}));return true;},
+  approvedVersion:'TEST_v1.0_RC1',proofSalt:'test-only-secret-with-enough-entropy',
+  clock:()=>new Date('2026-10-15T10:00:00Z'),syntheticOnly:true
+ });
+ await rejects(()=>portal.accept(token,{...accepted('Ja'),email:base.recipientEmail}),e=>e.code==='offer_changed');
+ equal(data.state().updates,0);
+});
 test('preview returns only offer information, never Drive IDs or stored recipient',async()=>{
  const {portal,data}=await make();
  const r=await portal.preview(token);

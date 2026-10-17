@@ -7,7 +7,7 @@
 - Laufzeit-Dienstkonto: `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com` (entspricht erwarteter Identität).
 - `status.traffic`: **100 % auf `lszh-offer-portal-staging-00004-qt7`**. Neuer Portalcode wurde **nicht** in den Live-Traffic geschaltet.
 - Tatsächliche Dienst-URL: `https://lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app`.
-- **Offene Konfigurationsabweichung:** `cloud-run/offer-portal-staging/stagingConfig.mjs` erlaubt aktuell `lszh-offer-portal-staging-470613067122.europe-west6.run.app` oder `portal-staging.lszh-automations.ch`, aber **nicht** die vom Cloud-Dienst gemeldete URL. Vor Cloud-Test klären, ob die Custom-Domain verwendet wird, oder die feste Allowlist kontrolliert an die tatsächliche HTTPS-Origin anpassen und Test ergänzen.
+- **Konfigurationsabweichung im Entwicklungs-Branch behoben:** `cloud-run/offer-portal-staging/stagingConfig.mjs` erlaubt jetzt auch exakt die vom Betreiber bestätigte HTTPS-Origin `https://lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app`. Bestehende zulässige Origins bleiben vorerst unverändert. Negativtests für fremde Origins bleiben bestehen. GitHub Actions [39071601576](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39071601576) vollständig **SUCCESS** (Funktionstests, Browser, Emulator, deaktiviertes Docker-Image). **Kein Deployment** erfolgt.
 - Die vorgelegte Ausgabe belegt **nicht** Ingress- oder IAM-Invoker-Berechtigungen; diese bleiben separat per lesendem `gcloud run services describe` und `gcloud run services get-iam-policy` zu prüfen. Keine Ausgabe mit Credentials, Tokens oder vollständigen Umgebungsvariablen teilen.
 - Unverändert: keine Go-Live-Freigabe, kein Revisionsdeploy, kein Annahme-POST, keine E-Mail, keine Airtable-/Make-Änderung.
 

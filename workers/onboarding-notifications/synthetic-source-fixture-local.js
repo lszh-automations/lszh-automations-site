@@ -6,7 +6,7 @@
 const fs=require('node:fs');
 const os=require('node:os');
 const path=require('node:path');
-const {randomUUID,randomInt}=require('node:crypto');
+const {randomUUID,randomInt,createHash}=require('node:crypto');
 const {makeDraft,eventId}=require('./outbox');
 const {toFirestore,PROJECT,DATABASE,COLLECTION}=require('./firestore-store');
 const {listCandidateCodes}=require('./airtable-candidates');
@@ -76,10 +76,40 @@ function prepare({home=os.homedir(),now=new Date(),uuid=randomUUID,choice=random
   }
  }
 }
+function fingerprint({home=os.homedir()}={}){
+ if(typeof home!=='string'||!path.isAbsolute(home)||!home)
+  throw Error('fixture_home_invalid');
+ const state=path.join(home,'.local','state','lszh-automations');
+ const dir=path.join(state,DIR);
+ const file=path.join(dir,FILE);
+ for(const p of [state,dir,file]){
+  const st=fs.lstatSync(p);
+  if(st.isSymbolicLink() || (st.mode&0o077)!==0 ||
+     (p===file?!st.isFile():!st.isDirectory()))
+   throw Error('fixture_permissions_invalid');
+ }
+ const x=JSON.parse(fs.readFileSync(file,'utf8'));
+ if(!x||x.schemaVersion!==1||x.syntheticOnly!==true||
+    x.airtableAbsenceVerified!==false||x.firestorePersisted!==false||
+    x.project!==PROJECT||x.database!==DATABASE||x.collection!==COLLECTION||
+    typeof x.projectCode!=='string'||
+    !/^ob_[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(x.projectCode)||
+    x.fixtureAllowlist!==x.projectCode||
+    x.airtableExpectedState!=='processing'||
+    !x.draft||!/^rec[A-Za-z0-9]{14}$/.test(x.draft.recordId)||
+    eventId(x.draft.recordId)!==x.documentId||
+    x.draft.testOnly!==true||x.draft.deliveryEnabled!==false||
+    x.draft.emailSent!==false||x.draft.state!=='DRAFT_NOT_SENT'||
+    x.draft.schemaVersion!==1||x.draft.eventType!=='ONBOARDING_INPUT_PROCESSED_V1'||
+    JSON.stringify(x.firestoreBody)!==JSON.stringify(toFirestore(x.draft)))
+  throw Error('fixture_integrity_invalid');
+ return createHash('sha256').update(x.projectCode,'utf8').digest('hex');
+}
+
 if(require.main===module){
  const mode=process.argv[2]??'--plan';
- if(process.argv.length>3 || !['--plan','--prepare-local'].includes(mode)){
-  console.error('STOP: Use --plan or --prepare-local only.');
+ if(process.argv.length>3 || !['--plan','--prepare-local','--fingerprint'].includes(mode)){
+  console.error('STOP: Use --plan, --prepare-local or --fingerprint only.');
   process.exitCode=2;
  }else if(mode==='--plan'){
   console.log('PASS: Offline synthetic fixture strategy: random nonexistent Airtable code + random mock record ID.');
@@ -87,6 +117,14 @@ if(require.main===module){
   console.log('PLAN: Project code is private local state; cannot be printed, committed, or passed on CLI.');
   console.log('PLAN: Absence in real Airtable must be verified later by an authenticated GET before any cloud write.');
   console.log('PLAN ONLY: No file created, no network, IAM, Cloud Run, Airtable or Firestore changes.');
+ }else if(mode==='--fingerprint'){
+  try{
+   console.log('FINGERPRINT_SHA256: '+fingerprint());
+   console.log('PASS: Fingerprint from validated private synthetic fixture; project code not disclosed.');
+  }catch{
+   console.error('STOP: Private synthetic fixture unavailable, malformed, or permissions unsafe.');
+   process.exitCode=2;
+  }
  }else{
   try{
    prepare();
@@ -99,4 +137,4 @@ if(require.main===module){
   }
  }
 }
-module.exports=Object.freeze({generate,prepare});
+module.exports=Object.freeze({generate,prepare,fingerprint});

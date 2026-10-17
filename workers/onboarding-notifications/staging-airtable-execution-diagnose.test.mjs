@@ -86,6 +86,24 @@ test('mismatched execution labels are ignored without leaking unrelated log cont
  assert.match(r.stdout,/Other\/unusable entries ignored: 3/);
  assert.doesNotMatch(r.stdout,/airtable_runtime_probe_disabled|airtable_token_not_authorized|SUPER_SECRET/);
 });
+test('local EACCES for Secret file is classified without revealing mounted path or PAT',()=>{
+ const r=run({FAKE_LOG:"Error: EACCES: permission denied, open '/var/secrets/lszh/airtable-read-pat' value pat_SUPER_SECRET_VALUE"});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Permission evidence classification: .*NODE_SECRET_MOUNT_FILE_DENIED/);
+ assert.doesNotMatch(r.stdout,/\/var\/secrets\/lszh|airtable-read-pat|SUPER_SECRET_VALUE/);
+});
+test('Google Secret Manager API denial is distinguished from local file ownership failure',()=>{
+ const r=run({FAKE_LOG:"Permission 'secretmanager.versions.access' denied for resource, PERMISSION_DENIED 403. PAT=pat_SUPER_SECRET"});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Permission evidence classification: .*SECRET_MANAGER_API_ACCESS_DENIED/);
+ assert.doesNotMatch(r.stdout,/NODE_SECRET_MOUNT_FILE_DENIED|secretmanager\.versions\.access|SUPER_SECRET/);
+});
+test('only generic permission denied evidence avoids falsely claiming Secret access cause',()=>{
+ const r=run({FAKE_LOG:'Permission denied while opening an unspecified resource'});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.match(r.stdout,/Permission evidence classification: GENERIC_PERMISSION_DENIED_ONLY/);
+ assert.doesNotMatch(r.stdout,/NODE_SECRET_MOUNT_FILE_DENIED|SECRET_MANAGER_API_ACCESS_DENIED/);
+});
 test('runtime module-not-found error is categorized without leaking module path',()=>{
  const r=run({FAKE_LOG:"Error: Cannot find module '/app/private/customer_secret' PAT=pat_SUPER_SECRET"});
  assert.equal(r.status,0,r.stdout);

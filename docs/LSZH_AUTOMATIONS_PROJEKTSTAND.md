@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporärer Cloud-Run-Browserdienst erfolgreich deployt, weiterhin deaktiviert
+
+**Operatorbericht aus Google Cloud Shell (verifiziert durch gcloud-Ausgaben des Betreibers):**
+- **SUCCESS:** Separate IAM-Berechtigung `roles/iam.serviceAccountUser` wurde auf **nur** `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com` für `lars@lszh-automations.ch` erteilt. Kein projektweiter Grant.
+- **SUCCESS:** Der temporäre Dienst **`lszh-offer-browser-staging`** wurde in `lszh-automations/europe-west6` erfolgreich angelegt. Revision `lszh-offer-browser-staging-00001-7kx`, **100 % Traffic nur für diesen neuen separaten Dienst**. Sein ursprünglich genehmigtes Image `7f8602e762ce` wurde wiederverwendet, kein zweiter Build.
+- Dienst-URL (vom Betreiber bestätigt): `https://lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app`; Google zeigt ebenfalls `https://lszh-offer-browser-staging-470613067122.europe-west6.run.app`.
+- Label `lszh-purpose=offer-browser-smoke`, `lszh-temporary=true`; dediziertes Dienstkonto, `ingress=all` **nur für den neuen Testdienst**, `--no-allow-unauthenticated` mit aktivem Invoker-IAM-Check; namentlicher Benutzer als direkter Invoker, **keine** direkten öffentlichen Invoker-Bindings. Geerbte Rollen vom Projekt/Organisation nicht in voller Tiefe ausgeschlossen.
+- `LSZH_PORTAL_STAGING_ENABLED=false` bleibt explizit gesetzt. Die Anwendung ist laut Skript **deaktiviert** (HTTP 503 erwartet), noch **kein** Browser-Test mit fiktiven Daten; keine Firestore-/Drive-Rollen vergeben, keine Kundendaten, Vertragsabschlüsse oder E-Mails.
+- Abschliessender Betreiber-Test des Originals: `PASS: preflight revision, ingress and service identity unchanged`, ursprüngliche Revision weiterhin 100 %, `ingress=internal` und unverändertes eigenes Dienstkonto.
+
+**Nächster Test ohne Cloud-Mutation:** `scripts/offer-browser-cloud-smoke.sh` im Featurebranch nutzt den bereits erstellten temporären Dienst über einen IAM-authentifizierten lokalen `gcloud run services proxy` und erwartet `503` sowohl für `GET /offerte-annehmen/?demo=1` als auch für `POST /api/offer/accept`. Vor und nach dem Probeaufruf liest es den Original-Preflight-Zustand, prüft die temporäre IAM-Policy, Label, Dienstkonto und deaktivierte Anwendung, entfernt den Proxy wieder und druckt keine Zugangstokens. CI enthält Shell-Syntax-/Security-Regressionstests; kein neues Docker-/Cloud-Deployment. Der eigentliche Staging-Browser-Test wird erst nach einem weiteren kontrollierten, synthetischen read-only Demo-Release und entsprechender Betriebsfreigabe möglich.
+
+**Offen:** Es gibt für den neuen temporären Dienst **weiterhin kein Firestore/Drive-Recht, keinen Cloud-Test-Seed, keine echten synthetischen PDF-Archivdaten und keine aktive Portal-Demo**. Diese Dinge dürfen nicht implizit aus dem erfolgreichen Deploy abgeleitet werden. Die Rückbauanweisungen `scripts/offer-browser-cloud-cleanup.sh` bleiben für den exakt markierten, **deaktivierten** Testdienst vorgesehen. Nach Aktivierung ist Cleanup absichtlich gesperrt, bis eine kontrollierte Deaktivierung erfolgt. Kein Go-Live.
+
+---
+
+
 ## 18.10.2026 – Genehmigter Cloud-Test: erster Build PASS, Deployment wegen `actAs` blockiert; sichere Wiederaufnahme
 
 **Ist-Ergebnis des vom Betreiber freigegebenen Cloud-Shell-Bootstraps:**

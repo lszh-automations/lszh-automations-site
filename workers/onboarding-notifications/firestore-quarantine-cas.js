@@ -27,7 +27,8 @@ function firestoreTime(x) {
  // original precision for currentDocument.updateTime. Never round it in JS.
  if(typeof x!=='string' ||
     !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3}|\.\d{6}|\.\d{9})?Z$/.test(x) ||
-    !Number.isFinite(Date.parse(x)))return false;
+    !Number.isFinite(Date.parse(x)) ||
+    new Date(Date.parse(x)).toISOString().slice(0,19)!==x.slice(0,19))return false;
  const parts=x.match(/\.(\d{9})Z$/);
  return !parts || parts[1].endsWith('000');
 }

@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Offerten-Staging: echter Chromium-UI-Test + unverbindliche Bestätigungen PASS
+
+**Auftrag `Vamos`:** Den bereits getesteten synthetischen Airtable→PDF→Firestore-Annahmekern nun an die existierende Browseroberfläche koppeln und beide AVV-Fälle ohne produktive Aktivierung testen. Änderungen ausschliesslich auf dem **ungemergten** Staging-Branch `feature/optional-avv-acceptance-staging-20261014`; automatische Render-Deployments bleiben AUS. **Keine** Google-Cloud-/Render-/Make-/Airtable-Schreibaktion, keine echte Kunden-Offerte, kein Vertragsabschluss, keine Mail.
+
+**Korrigierte Datenvertragslücke:** `cloud-run/offer-portal-staging/portalCore.mjs` meldet bei synthetischen Annahmen nun ausdrücklich `test_only:true`, `offer_number`, `confirmation_email_pending:false`; es behauptet keinen Mailversand. `offerte-annehmen/index.html` zeigt für `test_only:true` stattdessen den Hinweis **„Synthetischer Test abgeschlossen – kein Vertrag“** und verbirgt die E-Mail-Zusage. Das normale Nicht-Test-Layout bleibt bestehen und der öffentliche `?demo=1`-Modus lässt weiterhin keinerlei Annahme zu. Assertions in Domain-, Emulator- und UI-Tests angepasst.
+
+**Neue echte Browserprüfung:** `test-browser/offerPortal.browser.spec.cjs`, im bestehenden GitHub-Workflow als separater, ephemerer Chromium-Job. Das **unveränderte echte HTML** wird über einen nur auf `127.0.0.1` gebundenen Testserver geladen. Die persönliche fiktive Offerte ruft den **realen Cloud-Run-Portal-Core und seinen HTTP-Adapter als Code im Testprozess** auf, nicht den Google-Cloud-Run-Dienst. Ein rein synthetischer In-Memory-Store simuliert den Anspruch; die Browser-PDF-Downloadprüfung verwendet ausdrücklich fiktive PDF-Bytes und beweist **keine echte Drive-Archivierung**. Überprüft: Demo-Hinweis und gesperrter Knopf auch nach Refresh, keine Demo-POSTs; AVV Ja/Nein und korrekte Felder, echte Browserformular-Eingaben, Token aus Browser-Verlauf entfernt, synthetische einmalige Annahme, richtiger Belegtext, **keine** Versandankündigung. Kein Secret oder Kunde gelangt in GitHub/Cloud.
+
+**CI:** GitHub Actions [39069543971](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39069543971) vollständig **SUCCESS**. Browser Chromium **3/3 PASS**; normale Unit-Tests **82 insgesamt: 79 PASS, 0 FAIL, 3 SKIP**; benannter Firestore-Emulator **12/12 PASS**, einschliesslich Airtable→PDF-Hash→HTTP→einmaliger Annahme mit/ohne AVV; isolierter Preflight-Rollback-Test PASS.
+
+**Nicht als produktionsreif ausgeben:** Cloud-Run-Service `lszh-offer-portal-staging` läuft gemäss früherer Bestätigung weiter auf privatem, read-only Preflight, **kein neues Deployment, kein echter Cloud-Browser-End-to-End-Test**. Die reale Render-Demoseite ist unverändert. Im aktuellen Cloud-Run-Prototyp fehlt zudem noch das vollständig geprüfte **PDF-Download-Backend**; bisher sind Archiv-Verifikation und Downloadverhalten getrennt getestet. Die idempotente Firestore→Airtable-/Beleg-PDF-/Mail-Outbox ist weiterhin deaktiviert, rechtliche RC1-/AVV-Freigabe fehlt. Nächster sinnvoller Meilenstein: isolierten Cloud-Run-Staging-Zugangsweg und echte Browser-zu-Cloud-API-Anbindung entscheiden, **ohne das interne Archiv-Lese-Ingress öffentlich zu öffnen**; zunächst nur mit synthetischen Daten, ohne Versand oder Vertragswirkung. Erst nach gesonderter operativer Freigabe deployen.
+
+---
+
+
 ## 17.10.2026 – Offerten-MVP: erster kompletter, isolierter Import→Annahme-Test PASS
 
 **Auftrag `Vamos`:** Statt neuer Systeme die bestehende Airtable→Portal→Firestore-Kette mit *synthetischen* Offerten prüfen und Browser-Datenvertrag vereinheitlichen. Alles ausschliesslich auf dem **ungemergten** GitHub-Branch `feature/optional-avv-acceptance-staging-20261014`, Draft-PR #5. **KEIN neuer Render-Deploy**, **KEIN Cloud-Run-Deploy** und **keine** Kunden-, Airtable-, Make-, Mail- oder Vertragsaktionen.

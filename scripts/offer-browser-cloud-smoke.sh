@@ -4,7 +4,7 @@
 set -euo pipefail
 PROJECT=lszh-automations
 REGION=europe-west6
-TEMP=lszh-offer-browser-staging
+TEMP="lszh-offer-browser-staging"
 PORT=18086
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 fatal(){ echo "NO-GO: $*" >&2; exit 1; }

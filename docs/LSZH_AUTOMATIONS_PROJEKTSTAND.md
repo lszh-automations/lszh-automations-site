@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – IAM Troubleshooter: Zulassung GRANTED, Deny UNKNOWN_INFO
+
+**Konkreter echter Troubleshooter-Befund nach gezieltem Secret-Level-Grant:** `ALLOW_ACCESS_STATE_GRANTED`, `DENY_ACCESS_STATE_UNKNOWN_INFO`, `OVERALL_ACCESS_STATE=UNKNOWN_INFO` für Outbox-Servicekonto / `lszh-airtable-readonly-staging` Version 1 / `secretmanager.versions.access`. Damit ist das **Allow-Binding wirksam erkannt**, aber der Prüfende hat laut Google Cloud nicht alle Deny-Policies einsehen können. `UNKNOWN_INFO` ist weder bestätigter Deny noch Nachweis uneingeschränkter Effektivberechtigung. **Keine weiteren IAM-Rechte hinzufügen, kein Job ausführen.** Nächster Schritt: rein lesend project-level IAM-Deny-Policies listen und Projekt-Parent ermitteln; fehlende Visibility von vererbten Deny-Policies ausdrücklich als offen dokumentieren. Ein abschliessender effektiver Lesezugriff wird erst durch einen sicher isolierten authentifizierten Staging-Job ohne Secret-Ausgabe belegt.
+
+
 ## 17.10.2026 – IAM Troubleshooter nach engem Airtable-Secret-Grant: UNKNOWN_INFO
 
 **Echte Cloud-Shell-Ausgabe:** Nach erfolgreichem direkten `roles/secretmanager.secretAccessor`-Grant am einzelnen bestehenden Airtable-Read-only-Secret für das Outbox-Dienstkonto liefert die Abfrage von `secretmanager.versions.access` auf Version 1 jetzt `UNKNOWN_INFO` (vor Grant: `CANNOT_ACCESS`). Gemäss Google IAM Policy Troubleshooter bedeutet `UNKNOWN_INFO`, dass der aufrufende Principal **nicht alle Richtlinieninformationen** zum eindeutigen Beurteilen sehen kann, **nicht** dass der Secret-Zugriff verweigert wird. Der direkte IAM-Binding-Readback bleibt nachgewiesen. **Keine weiteren Berechtigungen vergeben.** Als nächster read-only Diagnosepunkt gezielt `allowPolicyExplanation.allowAccessState` und `denyPolicyExplanation.denyAccessState` abfragen, ohne Secret-Payload oder vollständige Policies auszugeben. Den effektiven Zugriff bei späterem kontrollierten One-Shot-Source-Job gesondert bestätigen; kein Job und keine Kundenaktion bisher gestartet.

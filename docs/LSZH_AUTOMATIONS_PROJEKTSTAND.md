@@ -1,5 +1,9 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Airtable-Read-only-Secret aktiv, Outbox-Secret-IAM noch ungeklärt
+
+**Geschäftsführer-Cloud-Shell-Rückmeldung:** `gcloud secrets versions describe 1 --secret=lszh-airtable-readonly-staging` ergab `ENABLED`. Die gefilterte direkte Secret-IAM-Abfrage nach `lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com` gab **keine Ausgabe** zurück. Dies beweist **nicht**, dass effektiv keine Berechtigung besteht; die vorliegende CLI-Filterausgabe kann auch unvollständig sein, und Projekt-/Ordner-/Organisations-IAM oder Gruppenzugehörigkeiten sind dadurch nicht ausgeschlossen. **Keine IAM-Änderung und kein Quell-Job gestartet.** Nächster Schritt ist eine rein lesende, gezielt auf das Outbox-Servicekonto begrenzte JSON/IAM-Auswertung; keine Secret-Payload ausgeben. Nur bei bestätigtem Bedarf später eine enge Secret-Level-`roles/secretmanager.secretAccessor`-Berechtigung einrichten.
+
 ## 17.10.2026 – Live Review-only-Postflight in Google Cloud bestätigt
 
 **Geschäftsführer-Cloud-Shell-Output:** Nach `git pull --ff-only` bis `596868d26afd` wurde `bash workers/onboarding-notifications/staging-quarantine-handoff-provision.sh --verify-review-only` **erfolgreich rein lesend** ausgeführt. Bestätigt wurden: Die **tatsächlich aktive Cloud-Run-Revision** `lszh-quarantine-handoff-staging-00002-ttf`, das **ursprüngliche geprüfte Image** `staging-131d67982f83`, alle **neun Runtime-Einstellungen** inklusive HMAC-Secret-Referenz, genau die vorgesehene direkte Source-`roles/run.invoker`-Bindung, HMAC-Version 1 `ENABLED` und genau die zwei vorgegebenen Secret-Level-`roles/secretmanager.secretAccessor`-Berechtigten. Weder Secret-Payload noch Firestore-/Kundendaten wurden gelesen oder verändert.

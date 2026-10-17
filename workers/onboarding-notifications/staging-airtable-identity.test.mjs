@@ -27,13 +27,13 @@ esac
  writeFileSync(gcloud,`#!/bin/bash
 echo "$*" >> "$FAKE_AUDIT"
 case "$1:$2:$3" in
- auth:list:*) echo "${FAKE_ACCOUNT:-lars@lszh-automations.ch}" ;;
+ auth:list:*) echo "\${FAKE_ACCOUNT:-lars@lszh-automations.ch}" ;;
  config:get-value:project) echo lszh-automations ;;
- iam:service-accounts:list) [[ "${FAKE_ENUM_FAIL:-0}" == 0 ]] || exit 77; [[ "${FAKE_HAS_SA:-0}" == 0 ]] || echo lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com ;;
+ iam:service-accounts:list) [[ "\${FAKE_ENUM_FAIL:-0}" == 0 ]] || exit 77; [[ "\${FAKE_HAS_SA:-0}" == 0 ]] || echo lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com ;;
  iam:service-accounts:create) exit 0 ;;
  iam:service-accounts:describe) echo lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com ;;
- secrets:list:*) [[ "${FAKE_HAS_SECRET:-0}" == 0 ]] || echo projects/lszh-automations/secrets/lszh-airtable-readonly-staging ;;
- run:jobs:list) [[ "${FAKE_HAS_JOB:-0}" == 0 ]] || echo projects/lszh-automations/locations/europe-west6/jobs/lszh-airtable-read-probe-staging ;;
+ secrets:list:*) [[ "\${FAKE_HAS_SECRET:-0}" == 0 ]] || echo projects/lszh-automations/secrets/lszh-airtable-readonly-staging ;;
+ run:jobs:list) [[ "\${FAKE_HAS_JOB:-0}" == 0 ]] || echo projects/lszh-automations/locations/europe-west6/jobs/lszh-airtable-read-probe-staging ;;
  *) exit 88 ;;
 esac
 `);

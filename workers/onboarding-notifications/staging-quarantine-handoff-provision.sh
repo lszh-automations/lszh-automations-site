@@ -96,7 +96,7 @@ if [[ "$MODE" == '--plan' ]];then
  exit 0
 fi
 if [[ "$MODE" == '--build-only' ]];then
- mkdir -p "$TMP/onboarding" "$TMP/workers/onboarding-notifications"
+ mkdir -p "$TMP/context/onboarding" "$TMP/context/workers/onboarding-notifications"
  FILES=(
  onboarding/confirmation.js
  workers/onboarding-notifications/airtable-candidates.js
@@ -118,12 +118,12 @@ if [[ "$MODE" == '--build-only' ]];then
  )
  for f in "${FILES[@]}";do
   [[ -f "$f" && ! -L "$f" ]] || { echo 'STOP: Bad build source file.';exit 2; }
-  cp "$f" "$TMP/$f"
+  cp "$f" "$TMP/context/$f"
  done
- [[ "$(find "$TMP/onboarding" "$TMP/workers" -type f | wc -l | tr -d ' ')" == "${#FILES[@]}" ]] ||
+ [[ "$(find "$TMP/context/onboarding" "$TMP/context/workers" -type f | wc -l | tr -d ' ')" == "${#FILES[@]}" ]] ||
  { echo 'STOP: Build-context allowlist mismatch.';exit 2; }
- gcloud builds submit "$TMP" --project="$PROJECT" --region="$REGION" \
-  --config="$TMP/workers/onboarding-notifications/cloudbuild.quarantine-handoff.yaml" \
+ gcloud builds submit "$TMP/context" --project="$PROJECT" --region="$REGION" \
+  --config="$TMP/context/workers/onboarding-notifications/cloudbuild.quarantine-handoff.yaml" \
   --substitutions="_IMAGE=$IMAGE"
  echo 'PASS: Image built and pushed. Nothing deployed.'
  exit 0

@@ -1,5 +1,14 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Separater Cloud-Run-Airtable-Lesetest entwickelt, NOCH NICHT DEPLOYED
+
+Nach dem ausdrücklich bestandenen echten Airtable-REST-GET **aus Cloud Shell** (ein erster 401/403-ähnlicher Berechtigungsfehler, zweiter Durchlauf PASS) wurde **nur in GitHub PR #8** ein ausfallsicherer *separater* Job-Baustein vorbereitet:
+- `workers/onboarding-notifications/airtable-runtime-probe.js`: benutzt die unveränderte `onboarding/confirmation.js::verifyOnboardingState` via dem zuvor geprüften `staging-airtable-rest-read.js`, erlaubt genau ein GET nach einem neuen zufälligen Abwesenheitscode und verbietet Nebenabfragen, Tokens in Environment/Logs, Firestore-Konfiguration und Outbox-Aktivierung. Die GCP-Projektidentität, der eigens vorgesehene Jobname `lszh-airtable-read-probe-staging` sowie Index 0/Attempt 0 und zwei streng definierte Betriebsflags sind zwingend. Ein erst später separat freigegebener Secret-Manager-Dateimount unter `/var/secrets/lszh/airtable-read-pat` wäre die einzige Credential-Quelle.
+- `airtable-runtime-probe.test.mjs`: Offline-Tests mit vollständig synthetischen Antworten für fail-closed Flags, Secret-Verfügbarkeit, falschen Job, HTTP 403 und unerwarteten CRM-Datensatz.
+- `Dockerfile.airtable-read-probe`: **nur drei Runtime-JavaScript-Dateien**, ausdrücklich **ohne** Server/Firestore/Make/Email-Code oder eingebettete Zugangsdaten. GitHub Actions überprüft Syntax, Testfälle, containerisierte Default-Sperre und führt lediglich einen lokalen Docker-Build ohne Push/Deployment durch.
+
+Design und unabhängige Freigabegrenze: [LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md](./LSZH_AIRTABLE_CLOUD_RUN_READ_PROBE_20261017.md). Für einen späteren STAGING-Job **separates Dienstkonto ohne Firestore-Zugriff**, neues beschränktes `data.records:read`-Airtable-Token nur auf Website CRM und **auf das einzelne Secret beschränktes** `roles/secretmanager.secretAccessor`; kein projektweites Grant. **Es wurde noch kein neues Dienstkonto, Secret, Google-Cloud-Image oder Cloud-Run-Job erzeugt und kein Zugangstoken in Google Cloud gespeichert.** Bestehender HTTP-Outbox-Dienst bleibt `enabled=false`; reale Kundendaten und Automationen unberührt. Ein späterer Cloud-Run-Lesetest beweist noch kein vollständiges Kunden-Onboarding, keine Mail und keine RC1/AVV-Freigabe.
+
 ## Bestätigt 17.10.2026 – Echte Airtable-REST-Authentifizierung in Cloud Shell: PASS
 
 Der Geschäftsführer führte das zuvor genehmigte, gezielt lesende Skript `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe` **zweimal** aus. Die Git-Branch-/Geschäftskonto- und Projektidentitätsprüfung war jeweils erfolgreich. Beim **ersten** Durchlauf wurde das verdeckt eingegebene Airtable-Token zurückgewiesen: `STOP: airtable_token_not_authorized` (401/403-Klasse; genaue Ursache nicht belegt). Nach einem zweiten verdeckten Eingabeversuch meldete derselbe strikt beschränkte Probe-Code:

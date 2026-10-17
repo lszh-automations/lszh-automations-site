@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Replay-Claim-Plan gegen Manipulation gehärtet (Offline-Änderung)
+
+**Anlass:** Der bereits vorhandene Claim-Plan mit atomarem Firestore-`exists:false` schützte den eigentlichen Write, aber `verifiedReplayClaim` rekonstruierte bislang den vom Aufrufer übergebenen Plan nicht unabhängig. Tiefe Felder (`update.fields.state`, `purpose`, `claimedAt` etc.) waren trotz äusserem `Object.freeze` veränderbar. Eine künstlich dazu passende Readback-/Ack-Kombination hätte so einen gefälschten Plan als verifiziert erscheinen lassen können.
+
+**Behebung:** `quarantine-handoff-replay-cas.js` friert nun den **gesamten generierten Request-Baum rekursiv** ein. Der Verifier erstellt aus `replayKey` und `claimedAt` vor jeder Ack-/Readback-Auswertung einen **neuen kanonischen Plan** und verlangt exakte Struktur- und Wertgleichheit. Manipulierte Felder, fremde Dokumentnamen, zusätzliche Attribute oder geänderte Zeitstempel führen zu `BLOCKED_NO_REPLAY_CLAIM` / `UNREVIEWED_REPLAY_PLAN`, weiterhin ohne Retry, Schreibberechtigung oder Versand.
+
+**Nachweis:** Zwei neue Offline-Regressionstests testen die tiefe Unveränderbarkeit und gefälschte Pläne mit absichtlich übereinstimmenden synthetischen Ack-/Readback-Daten. CI nach dem Code- und Test-Commit separat prüfen; diese Dokumentation behauptet keinen echten Firestore-Write. **Keine** Deployment-, IAM-, Secret-, Firestore-, Airtable- oder E-Mail-Aktion; bestehender Entwurf weiterhin inaktiv, Branch ungemergt. Nächste reale OIDC-/Invoker-/Secret-/Replay-Persistenz-Integration benötigt die schon dokumentierte gesonderte Infrastrukturfreigabe.
+
 ## 17.10.2026 – Firestore-Replay-CAS und privater HTTP-Vertrag offline vorbereitet (411 Tests PASS)
 
 **Auftrag:** Nach dem nur offline simulierten HMAC-signierten Outbox→Quarantäne-Handoff (`394/394` Tests) und `Vamos` wurde die nächste Stufe rein im GitHub-Review-Branch vorbereitet: der **exakte, dauerhaft atomare Replay-Claim-Vertrag** und der **streng begrenzte private HTTP-Empfangsvertrag**. **Keine echten IAM-Bindings, Firestore-Aufrufe, neue Cloud-Run-Services/Deployments, Secrets oder E-Mails.** Die vorherige separat genehmigte einmalige synthetische Quarantäne-CAS-Write-Probe wurde nicht wiederholt.

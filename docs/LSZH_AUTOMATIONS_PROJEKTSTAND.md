@@ -1,5 +1,26 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Offerten-Portal: private PDF-Downloads vollständig offline integriert und geprüft
+
+**Ausgangslage:** Die fiktive End-to-End-Airtable→Firestore→HTTP-Annahme und reale Chromium-Oberfläche waren lokal getestet, aber der neue Cloud-Run-Portalkern hatte noch keinen echten dokumentgebundenen PDF-Endpunkt. Der frühere Render-STAGING-Endpunkt `/api/offer/document` aus dem Airtable-Altweg durfte nicht einfach als produktiver Ersatz gelten.
+
+**Umgesetzt ausschliesslich im ungemergten Entwicklungszweig `feature/optional-avv-acceptance-staging-20261014`:**
+- `cloud-run/archive-reader-staging/archiveBundleVerifier.mjs`: gemeinsame sichere PDF-Byteprüfung, jetzt zusätzlich Export `readVerifiedArchivePdf(bundle,which,...)`. Validiert den im geprüften Angebots-Bündel referenzierten Drive-Eintrag: Dateityp, Elternordner, Content Restriction, Grösse max. 12 MiB, Google-Metadaten-SHA-256 und SHA-256 der **tatsächlich heruntergeladenen Bytes**. Keine vom Browser vorgegebene Google-Drive-Datei-ID.
+- `cloud-run/offer-portal-staging/portalCore.mjs`: `document(code,which)` kontrolliert Einladungstoken, Freigabe, Angebotsstatus, Ablauf und AVV-Notwendigkeit **erneut bei jedem Abruf**; erst danach gewährt es geprüfte PDF-Bytes. Eine Annahme ist nicht notwendig bzw. wird durch den Download nicht ausgelöst.
+- `cloud-run/offer-portal-staging/portalHttp.mjs`: neuer `POST /api/offer/document` auf dem vorhandenen Adapter; nur gleicher HTTPS-Origin, JSON-Body unter 12 KiB, privater gültiger Code, nie per GET / offenem Drive-Link. Gibt ausschliesslich nach vollständiger Prüfung PDF-Bytes mit `no-store`, `no-referrer`, `nosniff`, `noindex` zurück. AVV-PDF bei `AVV erforderlich=Nein` verboten; invalide/abgelaufene Links 404, geänderte Datei 409, nicht verfügbare Drive-Verbindung 503. Bekannte Archiv-Integritätsfehler werden sicher in 409 übersetzt, sonst keine internen Diagnosen an Kunden.
+- `cloud-run/offer-portal-staging/index.mjs`: das Portal-Prototyp-Entrypoint teilt die bestehende schlüssellose Google-Cloud-Dienstidentität / kurzlebige Drive-OAuth-Tokens für Vorprüfung **und** einzelne PDF-Downloads; keine herunterladbaren JSON-Schlüssel.
+- `test/offerPortalDocuments.test.js`: sechs synthetische Tests mit positiven 2/3-PDF-Downloads und negativen Fällen (falscher Parent, Sperre, Hash, manipulierte Bytes, falscher Token/Origin, AVV Nein, abgelaufene/bereits akzeptierte Offerte, Drive 403 und deaktiviertes Portal). Keine Google-API-Aufrufe.
+- `test-browser/offerPortal.browser.spec.cjs`: tatsächliches Browser-HTML in Chromium nutzt jetzt **den echten PDF-HTTP-Adapter und die echte Prüf-Bibliothek** gegen ausschliesslich synthetisch simulierte Drive-Antworten; Offerte, Projektbedingungen und optionale AVV als Download geprüft, ohne Verträge, Mails oder reale Cloud-Zugriffe. Kein zusätzlicher Server in der Kundenarchitektur benötigt.
+
+**Erfolgreiche CI-Abnahme:** [GitHub Actions 39070152355](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39070152355): **SUCCESS**. Normaler Job 88 Tests, davon **85 PASS, 3 SKIP, 0 FAIL**; Firestore-Emulator **12/12 PASS**, realer Chromium-Browser **3/3 PASS**; read-only-Rollback-Offlinecheck PASS. Ein zwischenzeitlicher HTTP-Fehlstatus bei manipulierten PDFs (503 statt 409) wurde vor dieser grünen Abnahme behoben.
+
+**Was bewusst NICHT passiert ist:** Kein Deployment auf Cloud Run oder Render, keine echte Drive-Datei vom Kunden, kein echter externer Browsertest, keine Airtable-Mutation, kein tatsächlicher Vertragsabschluss, kein PDF-Annahmebeleg, keine Mail, kein Make-Szenario, kein PR-Merge. Die aktuelle Live-Render-Designvorschau bleibt unverändert. Das echte Cloud-Run-Staging `lszh-offer-portal-staging` verbleibt bei seinem früher bestätigten, privaten **read-only-Preflight**, nicht beim hier entwickelten Portalkern; Staging-Zugang für echten Browser noch offen.
+
+**Einfachste geplante Zielarchitektur:** Browseroberfläche **und** Portal-API/PDF-Endpunkte künftig auf **derselben dedizierten Portal-HTTPS-Origin** bereitstellen. Kein Browser→private-Cloud-Run-CORS-Trick und kein öffentlicher Zugriff auf das Archiv-Leser-Dienstkonto. Vor einem echten Deploy: statische HTML-Auslieferung, kontrollierte Staging-Isolation/Rate-Limits, Laufzeit-Identität und minimal berechtigte Rechte prüfen; keine alte sichere Revision überschreiben oder automatisch Traffic umlenken. Erst danach isolierte fiktive Google-Cloud-Browserprüfung mit getrennten Freigaben. Vertrag/AVV juristisch freigeben und Outbox idempotent anknüpfen, bevor eine reale Kundenzusage möglich wird.
+
+---
+
+
 ## 17.10.2026 – Offerten-Staging: echter Chromium-UI-Test + unverbindliche Bestätigungen PASS
 
 **Auftrag `Vamos`:** Den bereits getesteten synthetischen Airtable→PDF→Firestore-Annahmekern nun an die existierende Browseroberfläche koppeln und beide AVV-Fälle ohne produktive Aktivierung testen. Änderungen ausschliesslich auf dem **ungemergten** Staging-Branch `feature/optional-avv-acceptance-staging-20261014`; automatische Render-Deployments bleiben AUS. **Keine** Google-Cloud-/Render-/Make-/Airtable-Schreibaktion, keine echte Kunden-Offerte, kein Vertragsabschluss, keine Mail.

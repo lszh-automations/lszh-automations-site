@@ -18,7 +18,8 @@ const fields={
  legal:'fldkiRZao205kv63x',released:'fldM2gGMhQKonLACU',
  accepted:'fldgvIfuHuJ3JHOC0',avvAccepted:'fld8gm2LLGAeHeBSA',
  internalNote:'fldA4WCPe6jXCGkid',once:'fldvtGMbHGeQGBrnl',
- monthly:'fldYboIZUI70VNUlw'
+ monthly:'fldYboIZUI70VNUlw',service:'fldnx2HPMJlyOaPyN',
+ paymentModel:'fld5YaoIeYLE1MZFW'
 };
 const fixture=(mode='Ja')=>{
  const token=randomBytes(36).toString('base64url');
@@ -36,7 +37,9 @@ const fixture=(mode='Ja')=>{
   [fields.termsId]:'1BCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef',
   [fields.termsSha]:'b'.repeat(64),
   [fields.internalNote]:'TEST ONLY – NO CONTRACT; never email a customer',
-  [fields.once]:25,[fields.monthly]:10
+  [fields.once]:25,[fields.monthly]:10,
+  [fields.service]:{name:'Automations-Test'},
+  [fields.paymentModel]:{name:'50 % bei Auftrag / 50 % nach Abnahme'}
  };
  if(mode==='Ja'){
    fieldsMap[fields.avvId]='1CDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefg';
@@ -55,6 +58,8 @@ test('actual Airtable API cellValuesByFieldId maps synthetic AVV yes/no safely',
    assert.equal(item.tokenHash,s.cellValuesByFieldId[fields.tokenHash]);
    assert.equal(item.offerNumber,'TEST_ONLY_IMPORT_20261015_NO_CONTRACT');
    assert.equal(item.status,'sent');
+   assert.equal(item.details.service,'Automations-Test');
+   assert.equal(item.details.paymentModel,'50 % bei Auftrag / 50 % nach Abnahme');
    assert.equal(item.approved,true); // staging synthetic ONLY
    assert.equal(item.bundle.avv_required,mode);
    assert.equal('avv' in item.bundle,mode==='Ja');

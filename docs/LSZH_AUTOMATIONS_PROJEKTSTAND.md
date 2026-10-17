@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Airtable-PAT-Secret sicher vorbereitet (nur leere Ressource; noch nicht angelegt)
+
+Nach der vom Geschäftsführer bestätigten Erstellung von `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` ist der **nächste isolierte Schritt** als plan-first Shell-Skript vorbereitet: `workers/onboarding-notifications/staging-airtable-empty-secret.sh`. Er basiert auf dem Google-Cloud-CLI-Feature `gcloud secrets create --replication-policy=user-managed --locations=europe-west6`; Secret Manager verwaltet die Ressource global, die einzige Nutzdaten-Replikation soll in Zürich liegen.
+
+Der Default `--plan` prüft Geschäftskonto, Projekt und sauberen Review-Git-Branch; er liest die vorhandene dedizierte Dienstkontoidentität und enumeriert die Secret-/Jobnamen. Bei nicht vorhandenen Ressourcen meldet er `Existing secret/job: false/false`, ohne Ressourcen zu erstellen. Ein separater expliziter `--create-empty`-Modus erstellt **ausschliesslich** das globale Metadaten-Secret `lszh-airtable-readonly-staging` ohne Wert, mit **genau einer user-managed Replik `europe-west6`**, und liest die exakte Resource-Identität, Replikationsliste und die erwartete **leere Versionsliste** zurück. Er bricht bei Fehlern und Namenskollisionen ab. Er besitzt **keine** Token-/Secret-Version-Upload-Funktion, IAM-Binding-, Cloud-Run-Job-, Kunden- oder Versandanweisungen. **Achtung:** Bei erfolgreichem Anlegen können geringe Secret-Manager-Grundkosten entstehen, auch wenn noch kein Token gespeichert ist.
+
+**Offline-GitHub-CI:** `staging-airtable-empty-secret.test.mjs` simuliert ohne Cloud-Verbindung Plan, explizite leere Anlage, Zürich-Replikation, Schutz vor Ressourcenkollision, falsche Identität, Listen-Fehler, unerwartete Replikation, unerwartet bestehende Versionen und unerlaubte Modi. Der synthetische Outbox-CI-Lauf bestätigte **119/119 JavaScript-Tests und 8/8 IAM-Tests**; reiner lokaler CI-Test.
+
+**Nächste überprüfbare Ausführung:** In Cloud Shell `cd ~/lszh-outbox-review && git pull --ff-only && bash workers/onboarding-notifications/staging-airtable-empty-secret.sh`. Nur der Default-Planlauf, **kein PAT nötig**. **Weder die Secret-Ressource noch eine Version oder SecretAccess-IAM-Bindung wurde durch diese Programmänderung angelegt.** Danach einzelne Freigabe für `--create-empty` und getrennt für die spätere sichere PAT-Version plus Secret-Level-Zugriffsrolle. Bestehender HTTP-Outbox-Dienst bleibt `enabled=false`; der ursprüngliche Firestore-Write-Job darf nicht wiederholt werden.
+
 ## BESTÄTIGT 17.10.2026 – separates Airtable-STAGING-Dienstkonto tatsächlich erstellt; noch keine Rechte oder Secrets
 
 Direkt vom Geschäftsführer in der Geschäftskonto-Cloud-Shell ausgeführter Befehl `bash workers/onboarding-notifications/staging-airtable-identity.sh --create-identity`, nach erfolgreichem `git pull --ff-only`. Die vorgelagerte Inventarisierung meldete `Existing resources (identity/secret/job): false/false/false`; der Google-Cloud-CLI-Lauf:

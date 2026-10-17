@@ -20,28 +20,28 @@ case "$1:$2" in
  rev-parse:HEAD) echo expected ;;
  rev-parse:refs/remotes/origin/feature/onboarding-notification-outbox-20261016) echo expected ;;
  branch:--show-current) echo feature/onboarding-notification-outbox-20261016 ;;
- status:--porcelain) echo "${FAKE_DIRTY:-}" ;;
- cat-file:-e) [[ "${FAKE_BAD_PIN:-0}" == 0 ]] ;;
- diff:--quiet) [[ "${FAKE_BAD_PIN:-0}" == 0 ]] ;;
+ status:--porcelain) echo "\${FAKE_DIRTY:-}" ;;
+ cat-file:-e) [[ "\${FAKE_BAD_PIN:-0}" == 0 ]] ;;
+ diff:--quiet) [[ "\${FAKE_BAD_PIN:-0}" == 0 ]] ;;
  *) exit 92 ;;
 esac
 `);
  writeFileSync(path.join(bin,'gcloud'),`#!/bin/bash
 echo "$*" >> "$FAKE_AUDIT"
 case "$1:$2:$3" in
- auth:list:*) echo "${FAKE_ACCOUNT:-lars@lszh-automations.ch}" ;;
+ auth:list:*) echo "\${FAKE_ACCOUNT:-lars@lszh-automations.ch}" ;;
  config:get-value:project) echo lszh-automations ;;
  builds:describe:ebcde82f-f39b-42cf-a569-dd0c96180006)
-    if [[ "${FAKE_BUILD_FAILURE:-0}" == 1 ]];then status=FAILURE;else status=SUCCESS;fi
-    echo '{"id":"ebcde82f-f39b-42cf-a569-dd0c96180006","status":"'${status}'","images":["'${FAKE_TAG:-$FAKE_EXPECTED_TAG}'"],"results":{"images":[{"name":"'${FAKE_TAG:-$FAKE_EXPECTED_TAG}'","digest":"'${FAKE_RESULT_DIGEST:-$FAKE_DIGEST}'"}]}}' ;;
+    if [[ "\${FAKE_BUILD_FAILURE:-0}" == 1 ]];then status=FAILURE;else status=SUCCESS;fi
+    echo '{"id":"ebcde82f-f39b-42cf-a569-dd0c96180006","status":"'\${status}'","images":["'\${FAKE_TAG:-$FAKE_EXPECTED_TAG}'"],"results":{"images":[{"name":"'\${FAKE_TAG:-$FAKE_EXPECTED_TAG}'","digest":"'\${FAKE_RESULT_DIGEST:-$FAKE_DIGEST}'"}]}}' ;;
  artifacts:docker:images)
-    echo "${FAKE_REGISTRY_DIGEST:-$FAKE_DIGEST}" ;;
+    echo "\${FAKE_REGISTRY_DIGEST:-$FAKE_DIGEST}" ;;
  run:jobs:list)
-    [[ "${FAKE_OLD_JOB_MISSING:-0}" == 1 ]] || echo lszh-airtable-read-probe-staging
-    [[ "${FAKE_NEW_JOB_EXISTS:-0}" == 1 ]] && echo lszh-airtable-read-probe-fix-staging
+    [[ "\${FAKE_OLD_JOB_MISSING:-0}" == 1 ]] || echo lszh-airtable-read-probe-staging
+    [[ "\${FAKE_NEW_JOB_EXISTS:-0}" == 1 ]] && echo lszh-airtable-read-probe-fix-staging
     : ;;
  run:jobs:executions)
-    if [[ "${FAKE_EXEC_MISMATCH:-0}" == 1 ]];then echo '[{"name":"wrong"}]'
+    if [[ "\${FAKE_EXEC_MISMATCH:-0}" == 1 ]];then echo '[{"name":"wrong"}]'
     else echo '[{"name":"lszh-airtable-read-probe-staging-xglcz"}]';fi ;;
  *) exit 92 ;;
 esac

@@ -1,5 +1,11 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Outbox-Secret-Probe-Erstellung von Cloud Run Gen2 abgewiesen (Speichergrenze)
+
+**Echte Geschäfts-Cloud-Shell-Ausgabe:** `staging-outbox-secret-access-job.sh --create-only` bestand erneut alle Identitäts-, Image-, Secret-IAM- und Job-Inventarprüfungen und versuchte den neuen, vom Bestandsbetrieb unabhängigen Job `lszh-outbox-secret-access-probe-stg` anzulegen. Google Cloud Run meldete jedoch **`Job failed to deploy`** und konkret `spec.template.spec.task_spec.containers[0].limits.memory: Invalid value ... Total memory < 512 Mi is not supported with gen2 execution environment with cpu always allocated (unthrottled)`. Das Skript brach fail-closed ab: `STOP: Cloud Run create failure or ambiguity. DO NOT retry; inspect Job metadata.`. **Kein erfolgreicher Job-Deploy nachgewiesen und keine Job-Ausführung erfolgt.** Ein zurückgebliebenes Job-Objekt kann nicht ohne erneuten Live-Readback ausgeschlossen werden.
+
+**Korrektur nur im GitHub-Feature-Branch:** Job-Spezifikation von `--memory=256Mi` auf **`--memory=512Mi`** geändert; zusätzliche Regressionstest-Assertion verhindert die erneute 256Mi-Konfiguration. **Nächster Schritt: NUR lesen!** Cloud Shell `gcloud run jobs list --project=lszh-automations --region=europe-west6 --format="table(metadata.name)"` erneut ausführen und kontrollieren, ob `lszh-outbox-secret-access-probe-stg` trotz Fehler existiert. Bei Existenz keine Wiederholung von `--create-only` und separate Metadatenprüfung. Bei bestätigter Abwesenheit danach `git pull --ff-only` und neuer `--plan`-Durchlauf; erst bei PASS eine gesonderte Entscheidung über `--create-only`. **Keine weiteren IAM-Berechtigungen, keine Secret-Daten, keine Firestore-Operation oder produktive E-Mail.**
+
 ## 17.10.2026 – Vier vorhandene Jobs unverändert; neue Source-SA-Secret-Probe im Review-Branch
 
 Die tatsächliche Cloud-Shell-Inventarliste enthält vier bestehende Jobs: `lszh-airtable-read-probe-fix-staging`, `lszh-airtable-read-probe-staging`, `lszh-firestore-read-probe-staging`, `lszh-firestore-write-probe-staging`. Ein Ausführen/Überschreiben wäre unnötig und könnte frühere Tests verändern.

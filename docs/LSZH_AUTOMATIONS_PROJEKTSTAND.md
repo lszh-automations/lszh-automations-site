@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## Bestätigt 17.10.2026 – Echte Airtable-REST-Authentifizierung in Cloud Shell: PASS
+
+Der Geschäftsführer führte das zuvor genehmigte, gezielt lesende Skript `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe` **zweimal** aus. Die Git-Branch-/Geschäftskonto- und Projektidentitätsprüfung war jeweils erfolgreich. Beim **ersten** Durchlauf wurde das verdeckt eingegebene Airtable-Token zurückgewiesen: `STOP: airtable_token_not_authorized` (401/403-Klasse; genaue Ursache nicht belegt). Nach einem zweiten verdeckten Eingabeversuch meldete derselbe strikt beschränkte Probe-Code:
+```text
+PASS: Existing verifyOnboardingState() used Airtable REST via exactly one GET.
+PASS: Fresh unprinted synthetic project code absent; processing (not completed).
+PASS: No Airtable writes, Firestore operations, service changes or emails.
+PASS: Isolated Airtable REST verifier finished; no customer record was changed.
+```
+
+**Damit nachgewiesen:** Die unveränderte Node.js-`verifyOnboardingState()`-Funktion konnte **aus Cloud Shell heraus** mit einem vom Nutzer lokal verdeckt eingegebenen, für die LSZH Website-CRM-Basis bestimmten Airtable-REST-PAT genau einen HTTPS-`GET` auf die projektcodegefilterte Kunden-Onboarding-Tabelle ausführen und die Abwesenheit eines zufällig generierten, nicht veröffentlichten `ob_<UUIDv4>`-Fixture-Codes korrekt als `processing` einordnen. Keine Kundensuche ausserhalb der festgelegten Tabelle, kein Anlegen, keine E-Mail, keine Make-Aktion, keine Firestore-Aktion. Die bereits drei zuvor bereinigten CRM-Testdatensätze bleiben bereinigt; der Probe-Code speichert keinen Token und enthält keine Kunden-IDs in den Logs.
+
+**Grenze:** Der erste Abweisungsgrund (ungültiges PAT, Scopes oder Base-Zugriff) wurde nicht diagnostiziert und muss nicht weiter erforscht werden, solange der spätere Zugriff sicher bestätigt ist. Der PAT wurde **nicht** in Google Secret Manager hinterlegt, nicht in Cloud Run exportiert und nicht im Repository gespeichert. Der Cloud-Run-HTTP-Outbox-Dienst `lszh-onboarding-outbox-staging` bleibt explizit `LSZH_OUTBOX_STAGE_ENABLED=false`, ohne Scheduler oder Mailtransport. **Noch NICHT nachgewiesen:** Cloud-Run-zu-Airtable-REST mit minimalem Secret-Zugriff, reale unveränderte Airtable-Onboarding-Fixture als `completed` via Node in Cloud Run, oder ein durchgehender verbunden gestarteter Airtable→Cloud-Run→Firestore-Probelauf. Erfolg eines Absenzchecks bedeutet kein erfolgreich abgewickeltes Kunden-Onboarding.
+
+**Nächste technische Entscheidung:** Für einen sicheren Cloud-Run-STAGING-Read-Probe einen *separaten*, standardmässig nicht ausführbaren und ausschliesslich lesenden Cloud-Run-Job vorbereiten, mit nur einer festgelegten Airtable-REST-GET-Anfrage (neuer zufälliger Abwesenheitscode), ohne Cloud-Run-HTTP-Outbox zu aktivieren. Hierfür nach separater Freigabe den vorhandenen PAT ausschliesslich als geschütztes, eng berechtigtes Staging-Secret bereitstellen, keinen Key in Shell-History/GitHub/Logs. Nicht unbemerkt weiterverwenden oder extern versenden.
+
 ## Bestätigt 17.10.2026 – Airtable-REST-Einmal-Preflight `PLAN ONLY` erfolgreich
 
 Der Geschäftsführer führte nach erfolgreichem `git pull --ff-only` im LSZH-Cloud-Shell-Checkout `bash workers/onboarding-notifications/staging-airtable-rest-read.sh` ohne Parameter aus. Die Ausgabe bestätigte `PASS: Checked business identity, source branch and clean reviewed checkout.` sowie `PLAN ONLY: no Airtable token requested, no external API calls or cloud changes.`. **Es wurde noch kein Airtable-REST-GET mit einem PAT ausgeführt.** Der beschränkte externe REST-Zugriff des vorhandenen Node.js-Statusverifizierers muss erst separat nachgewiesen werden. Keine CRM-Datensätze, Dienstkonfigurationen, Make-Szenarien, IAM-Berechtigungen oder E-Mails geändert.

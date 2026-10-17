@@ -28,6 +28,7 @@ jobs:
           node --check workers/onboarding-notifications/quarantine-plan.js
           node --check workers/onboarding-notifications/firestore-quarantine-cas.js
           node --check workers/onboarding-notifications/quarantine-cas-offline-cycle.js
+          node --check workers/onboarding-notifications/staging-quarantine-cas-write-once.js
           node --check workers/onboarding-notifications/quarantine-iam-plan.js
           node --check workers/onboarding-notifications/quarantine-iam-provisioning.js
           node --check workers/onboarding-notifications/quarantine-provisioning-readiness.js
@@ -71,6 +72,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-quarantine-iam-setup.sh
           bash -n workers/onboarding-notifications/staging-quarantine-timed-read-check.sh
           bash -n workers/onboarding-notifications/staging-quarantine-timed-read-check-v2.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-cas-write-once.sh
           bash -n workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh
           bash -n workers/onboarding-notifications/staging-quarantine-db-provision.sh
       - name: Check synthetically restricted IAM policy

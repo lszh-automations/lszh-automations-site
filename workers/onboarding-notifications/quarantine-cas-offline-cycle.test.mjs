@@ -27,7 +27,7 @@ const response=(time=DONE)=>({writeResults:[{updateTime:time}],commitTime:time})
 function safeOutcome(x){
  assert.equal(x.deliveryAllowed,false);
  assert.equal(x.retryAllowed,false);
- assert.equal(x.writesExecuted,false);
+ assert.equal(x.networkCallsMade,false);
  assert.ok(!('send' in x) && !('token' in x));
 }
 test('only a fixed collection/document GET can be prepared; no headers or transport',()=>{

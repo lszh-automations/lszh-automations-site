@@ -196,7 +196,9 @@ if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR ||
      assert.equal(successes.length,1,'exactly one customer acceptance');
      assert.equal(duplicates.length,11,'all duplicate attempts rejected');
      assert.equal(successes[0].body.accepted,true);
-     assert.equal(successes[0].body.confirmation_pending,true);
+     assert.equal(successes[0].body.test_only,true);
+     assert.equal(successes[0].body.offer_number,initial.offerNumber);
+     assert.equal(successes[0].body.confirmation_email_pending,false);
      const final=(await ref.get()).data();
      assert.equal(final.status,'accepted');
      assert.equal(final.revision,2);

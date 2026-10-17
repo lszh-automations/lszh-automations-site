@@ -28,6 +28,7 @@ jobs:
           node --check workers/onboarding-notifications/quarantine-plan.js
           node --check workers/onboarding-notifications/firestore-quarantine-cas.js
           node --check workers/onboarding-notifications/quarantine-iam-plan.js
+          node --check workers/onboarding-notifications/quarantine-provisioning-readiness.js
           node --check workers/onboarding-notifications/airtable-candidates.js
           node --check workers/onboarding-notifications/firestore-store.js
           node --check workers/onboarding-notifications/firestore-runtime-probe.js
@@ -65,6 +66,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
           bash -n workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh
           bash -n workers/onboarding-notifications/staging-quarantine-iam-preflight.sh
+          bash -n workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

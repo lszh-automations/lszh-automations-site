@@ -8,6 +8,12 @@ const {join}=require('node:path');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const load=()=>import('../scripts/offerSyntheticPdfFixtures.mjs');
 const folder='1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in';
+const GOLDEN_SHA256={
+ quoteJa:'2dd5c5377461c969b9a436f36999150dc53cf159f02e4985e2f2536b683b004c',
+ quoteNein:'c1e44e73700a549214fa1270f624e90fcca7f6c8d6a476de07ca8beea3ec93b9',
+ terms:'fff20f2c906d0e1911f07e7d6a73623f9a4dc96140656233e58e34e825ae4e1d',
+ avv:'2cf47da695083a0d74096eeb66e481e8ecbc4a00a6183772ed9ef76ce88a79a0'
+};
 const ids={
  quoteJa:'1LSZHSyntheticOnlyFile000000000000000001',
  quoteNein:'1LSZHSyntheticOnlyFile000000000000000002',
@@ -56,6 +62,7 @@ test('4 deterministic parseable PDFs and manifest are explicitly nonbinding',asy
  for(const [key,bytes] of Object.entries(files)){
   const props=manifest.files[key];
   assert.equal(sha(bytes),props.sha256);
+  assert.equal(props.sha256,GOLDEN_SHA256[key],'PDF bytes must match independently rendered ZIP fixture');
   assert.equal(bytes.length,props.bytes);
   assert.equal(props.mimeType,'application/pdf');
   assert.equal(props.driveFileId,null,'must not invent Google file IDs');

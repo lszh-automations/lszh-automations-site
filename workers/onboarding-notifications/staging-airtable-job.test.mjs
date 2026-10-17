@@ -81,6 +81,15 @@ d={"spec":{"template":{"spec":{
    "secretName":"lszh-airtable-readonly-staging",
    "items":[{"key":"1","path":"airtable-read-pat"}]}}]
  }}}}}}
+if os.environ.get("FAKE_SCHEMA")=="v2":
+ s=d["spec"]["template"]["spec"]
+ task=s["template"]["spec"]
+ task["serviceAccount"]=task.pop("serviceAccountName")
+ for vol in task["volumes"]:
+  vol["secret"]["secret"]=vol["secret"].pop("secretName")
+  for item in vol["secret"]["items"]:
+   item["version"]=item.pop("key")
+ d={"template":{"taskCount":s["taskCount"],"template":task}}
 print(json.dumps(d))
 PY
  ;;
@@ -115,6 +124,14 @@ test('explicit create-only pins exact digest and secret file and never executes'
  assert.match(r.audit,/run jobs executions list --job=lszh-airtable-read-probe-staging/);
  assert.match(r.stdout,/ZERO executions/);
  assert.doesNotMatch(r.audit,/run jobs execute lszh-|--execute-now|secrets versions access|projects add-iam-policy-binding/);
+});
+test('Cloud Run v2 metadata with version-to-path secret remains strictly verified',()=>{
+ const r=run(['--create-only'],{FAKE_SCHEMA:'v2'});
+ assert.equal(r.status,0,r.stdout+' '+r.stderr);
+ assert.equal(r.created,true);
+ assert.match(r.stdout,/ZERO executions/);
+ assert.equal((r.audit.match(/run jobs create/g)||[]).length,1);
+ assert.doesNotMatch(r.audit,/--execute-now|run jobs execute /);
 });
 test('forbidden identity, untrusted image, dirty branch and source pin block creation',()=>{
  for(const v of [{FAKE_ACCOUNT:'unknown@example.invalid'},{FAKE_DIGEST:'sha256:'+'a'.repeat(64)},{FAKE_DIRTY:' M local-file'},{FAKE_PIN_FAIL:'1'}]){

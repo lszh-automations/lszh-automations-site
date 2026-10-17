@@ -75,14 +75,14 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 <input id="person" type="text" maxlength="120" minlength="4" autocomplete="name" required placeholder="Vor- und Nachname">
 <label class="field" for="email">Geschäftliche E-Mail-Adresse der Offertenempfängerin / des Offertenempfängers</label>
 <input id="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@unternehmen.ch">
-<h2>3. Verbindliche Bestätigung</h2>
+<h2 id="acceptanceHeading">3. Verbindliche Bestätigung</h2>
 <label class="check"><input id="authorized" type="checkbox" required><span>Ich bin berechtigt, für das oben genannte Unternehmen diese Offerte anzunehmen.</span></label>
 <label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Offerte und die Projektbedingungen der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie als Bestandteil des Vertrags.</span></label>
 <div id="avvConsentSection" class="hidden">
 <label class="check"><input id="avvConsent" type="checkbox"><span>Ich habe die zusätzlich angezeigte AVV einschliesslich der Anlagen in der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie ausdrücklich für das Unternehmen.</span></label>
 </div>
 <button id="submit" type="submit">Offerte verbindlich annehmen</button>
-<p class="note">Mit diesem Klick nehmen Sie die oben bezeichnete Offerte für Ihr Unternehmen verbindlich an. Vorher können Sie Ihre Eingaben noch ändern. Die Zustimmung mit Dokumentversion und Zeitpunkt wird protokolliert.</p>
+<p class="note" id="legalNote">Mit diesem Klick nehmen Sie die oben bezeichnete Offerte für Ihr Unternehmen verbindlich an. Vorher können Sie Ihre Eingaben noch ändern. Die Zustimmung mit Dokumentversion und Zeitpunkt wird protokolliert.</p>
 </form>
 </div>
 <div id="completed" class="hidden" role="status" aria-live="polite">
@@ -127,6 +127,13 @@ avvConsent.required=showAvv;
 if(showAvv)txt('avvVersion','AVV-Version '+o.avv_version);
 review.classList.remove('hidden');
 message.classList.add('hidden');
+if(o.test_only===true){
+  txt('acceptanceHeading','3. Testvorschau – keine verbindliche Annahme');
+  document.getElementById('legalNote').classList.add('hidden');
+  button.textContent='Annahme im Staging deaktiviert';
+  button.disabled=true;
+  setMessage('Nur synthetische Testdaten. Hier kann kein Vertrag geschlossen werden.','');
+}
 }
 async function downloadVerifiedPdf(which){
   if(demo){

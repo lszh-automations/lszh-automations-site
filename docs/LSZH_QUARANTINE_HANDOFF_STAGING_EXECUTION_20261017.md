@@ -1,5 +1,10 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Reale E2E-Source-Job-Prüfung erfolgreich (nach URL-Fix)
+
+Cloud Shell: `staging-synthetic-e2e-source-job.sh --plan` erfolgreich, **PASS** für Geschäftskonto, private Review-Only-Receiver-URL, drei Secret v1-Berechtigungen und fünf unveränderte Probe-Jobs. `SOURCE CONTENT FINGERPRINT: 0aa2e20a65e2`, `NEW SOURCE JOB STATUS: ABSENT`, `PLAN ONLY: No images, secret payloads, Cloud Run Jobs, Firestore or Airtable writes or email`. Das Source-Image `staging-0aa2e20a65e2` wurde bereits beim separaten Build mit `SUCCESS` erstellt; `--build-only` **nicht wiederholen**. Nächster Schritt nach `git pull --ff-only`: **genau einmal** `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --create-only`. Das erstellt den einen Quelljob mit null automatischen Retries, startet ihn nicht; bei Fehler nicht erneut ausführen, sondern Live-Zustand prüfen. Nach PASS separat `--verify-only`, erst danach ein kontrollierter synthetischer E2E-Run. Keine Kunden, keine Mails, keine Verträge.
+
+
 ## 17.10.2026 – Tatsächliche private Cloud-Run-Zieladresse geklärt; E2E-URL-Gate gezielt korrigiert
 
 **Vom Geschäftsführer ausdrücklich read-only aus Google Cloud Shell abgefragt:** `gcloud run services describe lszh-quarantine-handoff-staging --project=lszh-automations --region=europe-west6 --format='json(status.url,status.address.url)'` ergibt für **beide** URL-Felder `https://lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app`. **Ursache des Sicherheits-STOP:** Der zuvor im Source-Skript fest eingetragene Projekt-Nummer-Alias `https://lszh-quarantine-handoff-staging-470613067122.europe-west6.run.app` weicht von der aktuell von Cloud Run tatsächlich gemeldeten URL ab. Diese Differenz darf nicht durch Abschalten des Gates kaschiert werden.

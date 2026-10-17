@@ -1,5 +1,10 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Reale Read-only-Source-E2E-Vorprüfung nach URL-Fix erfolgreich
+
+**Geschäftsführer-Cloud-Shell-Ausgabe:** Nach Pull auf `2607e34` bestätigte `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --plan` den **PASS** der exakten Geschäftsidentität, des tatsächlich privaten Review-Only-Receivers mit seiner Live-URL, sämtlicher drei Secret-Manager-Version-1-Zugriffsbindungen sowie der unveränderten fünf vorbestehenden Jobs. Quellcode-Fingerprint erneut **`0aa2e20a65e2`**, d.h. das bereits zuvor erfolgreich gebaute Image kann wiederverwendet werden; Status des neuen Source-Jobs: **ABSENT**. `PLAN ONLY` bestätigt: keinerlei neue Ressourcen, Testschreibvorgänge oder E-Mails. Die pauschale Skript-Anzeige `NEXT: --build-only, then --create-only` ist nur Reihenfolgenhilfe; **Build ist bereits SUCCESS, --build-only nicht wiederholen**. Nächster einzelner kontrollierter Cloud-Shell-Befehl: `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --create-only`, erzeugt den EINEN dedizierten Job ohne Ausführung und versucht danach Konfigurations-Readback. Bei einem STOP kein Wiederholen, erst Bestandsaufnahme. Anschliessend `--verify-only` und danach separat die einzige echte synthetische E2E-Ausführung.
+
+
 ## 17.10.2026 – Live-Empfänger-URL-Korrektur: 468/468 Tests erfolgreich
 
 GitHub-Actions-Readback für Quellcode-/Test-Commit `8cb93d79edb937195610b91ecc6b4df1715db19e` meldet **beide** synthetischen Workflows `success`. Das tatsächliche Outbox-CI-Testlog bestätigt **468 Tests, 468 PASS, 0 FAIL**, einschliesslich exakter Cloud-Run-Canonical-URL `lszh-quarantine-handoff-staging-ozx7mp2bka-oa.a.run.app` und Angreiferhost-/Pfad-/Query-Blockierung. Dokumentationsänderungen danach betreffen keine Image-/Source-Quelldateien. Keine erneuten Cloud-Ressourcen-Änderungen durchgeführt; nächster Schritt bleibt kontrolliertes `--plan` in Cloud Shell.

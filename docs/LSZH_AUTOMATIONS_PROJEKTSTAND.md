@@ -1,5 +1,11 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Projektseitige IAM-Auditkonfiguration lautet null; keine neue Freigabe
+
+Der Geschäftsführer führte nach dem gescheiterten und vollständig bereinigten kurzzeitigen IAM-Impersonierungstest die ausschliesslich lesende Prüfung `gcloud projects get-iam-policy lszh-automations --format="json(auditConfigs)"` aus. **Ergebnis: `null`.** Das belegt, dass das Feld `auditConfigs` in der **abgefragten Projekt-IAM-Policy** nicht vorhanden ist. Es ist deshalb plausibel, dass die unmittelbar vorherige `GenerateAccessToken`-Data-Access-Log-Suche keine Treffer lieferte. Dies beweist weder den fehlenden Token-Aufruf noch das Fehlen **vererbter** Data-Access-Auditeinstellungen auf Ordner-/Organisationsebene; gemäss Google `projects.getIamPolicy` zeigt nur auf Projektebene gesetzte Audit-Konfigurationen.
+
+**Status und Entscheidung:** Vorheriges Einmal-Skript `staging-quarantine-timed-read-check.sh --run-approved-once` hatte den temporären `roles/iam.serviceAccountTokenCreator`-Grant nach fehlgeschlagener Impersonierung sofort entfernt und den Entzug unabhängig nachgeprüft. Keine Firestore-GET- oder WRITE-Anfrage wurde ausgeführt. **Ursache des Token-Fehlers weiterhin unbekannt; IAM-Propagation (Google typisch rund 2 Minuten, teils mindestens 7 Minuten) ist eine plausible Hypothese, keine Gewissheit.** Auditlogging nicht allein zur Fehlersuche aktivieren, keine zweite temporäre IAM-Bindung ohne **neue, ausdrücklich definierte separate Freigabe** und verbesserte Fehlerdiagnose/Wartephase. Firestore-Datenzugriffe, Cloud Run und produktive Aktionen bleiben gesperrt. Bestehende DB/SA/Role/IAM-Metadaten wurden zuvor separat positiv geprüft.
+
 ## 17.10.2026 – Keine Treffer beim lesenden IAMCredentials-Auditlog-Filter
 
 **Live-Ausgabe des Geschäftsführers:** Bei der unmittelbar nach dem gescheiterten Einmal-Impersonierungsversuch ausgeführten `gcloud logging read`-Abfrage nach `protoPayload.serviceName="iamcredentials.googleapis.com"`, `protoPayload.methodName="GenerateAccessToken"`, aktivem Firmenkonto, `--freshness=1d` und `--limit=10` wurden **keine Zeilen** zurückgegeben. Das bestätigt **nicht**, dass der Aufruf unterblieb, und beweist auch nicht die Ursache der verweigerten Impersonierung.

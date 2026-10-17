@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Bestehende Outbox-Drafts gegen Statusrückfälle abgesichert (Review-only)
+
+**Auftrag «Vamos»:** Nach erfolgreichem Cloud Run → Airtable Read-only-Einmaltest und synthetischer Härtung der Onboarding-Statusprüfung die Gefahr absichern, dass ein zuvor korrekt angelegter Outbox-Entwurf nachträglich ungeprüft als Versandfreigabe interpretiert wird. **Kein produktiver Versand und keinerlei Google-Cloud-Mutation freigegeben.**
+
+**Neues separates, read-only Modul `workers/onboarding-notifications/draft-review-gate.js`:** Die Funktion `reviewDraft({draft,documentId,projectCode,readToken,fetchImpl})` validiert exakt das historische `DRAFT_NOT_SENT`-Schema (Version 1, Typ `ONBOARDING_INPUT_PROCESSED_V1`, Testmodus, beide Versandflags `false`, gültige Erstellungzeit, keine Extrafelder/Empfänger/Geheimnisse), sowie die Übereinstimmung der deterministischen Event-Dokument-ID mit der Airtable-Record-ID. Nur bei bestandenem lokalen Gate prüft sie mittels **bestehendem** `verifyOnboardingState` (nur Airtable-GET) den aktuellen Onboarding-Status und die aktuelle `recordId`. Sie gibt ausschliesslich eine knappe eingefrorene Entscheidung zurück – niemals Kundencode, PAT, Empfänger, E-Mail-Payload oder Schreib-/Sende-Capability.
+
+**Mögliche Entscheidungen, alle mit `deliveryAllowed:false` und `requiresManualApproval:true`:**
+- `CURRENTLY_COMPLETE_MANUAL_REVIEW_ONLY`: *aktuell* wieder vollständig und identisch, aber weiterhin **keine** Erlaubnis für Versand; eine alte Prüfung ist keine transaktionale Versandfreigabe.
+- `QUARANTINE_RECOMMENDED`: Status wieder `processing`, doppelt/widersprüchlich oder Record-ID weicht vom historischen Entwurf ab. Dies ist eine **reine Empfehlung**, keine Firestore-Statusänderung.
+- `INVALID_DRAFT_QUARANTINE_RECOMMENDED`: falsches Schema/Flags/Event-ID, manipulierte Felder, fehlende oder fehlerhafte gespeicherte Daten; ohne Airtable-Anfrage.
+- `REVALIDATION_UNAVAILABLE_HOLD`: fehlende Prüfcredentials, unerwartete Antwort oder API-Ausfall; fail-closed ohne Statusbehauptung.
+
+**Synthetische Tests `draft-review-gate.test.mjs`:** Frischer positiver Fall bleibt ohne Sendefreigabe; `completed → processing → duplicate → missing → outage → fremde Record-ID → completed`; falscher/gesendeter/erweiterter Draft, falsche Dokument-ID, ungültiger Projektcode, fehlendes Token; Rückgaben enthalten keinerlei Token/URL/E-Mail/Record-ID. Zusätzlich simuliert der bestehende Integrationstest `onboarding-positive-transition.integration.test.mjs` einen in Firestore **synthetisch persistenten** Draft und prüft daran die erneute Statusvalidierung mit Rückfall, Mehrdeutigkeit und Wiederherstellung; kein weiterer POST oder Firestore-Quarantäne-Write, keine E-Mail, keine echten externen API-Requests. CI kontrolliert die synthetischen Tests und `node --check`; Gesamtergebnis separat festhalten.
+
+**Wichtige Grenze:** Die Funktion ist derzeit ein **isoliertes Prüf-/Planungsmodul**, bewusst **nicht** mit einem echten Transport oder einer produktiven HTTP-Route verbunden. Ein `CURRENTLY_COMPLETE`-Resultat ist **keine** dauerhafte Zustandsgarantie und niemals eine versendbare Freigabe. Später müssen (a) Quarantäne/Storno als eigene auditierte transaktionale Zustandsänderung und (b) eine frische, unmittelbar vor jedem autorisierten Versand ausgeführte Prüfung plus atomarer Claim/Idempotenz-Mechanismus gebaut und separat freigegeben werden. Das alte Cloud-Run-V2-Image `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` bleibt historisch eingefroren und wurde **nicht** erneut ausgeführt oder gebaut. Kein Make-/Airtable-/Firestore-Live-Schreibzugriff, keine produktiven E-Mails, keine externen Einladungen oder Deployments.
+
 ## 17.10.2026 – Onboarding-Linkintegrität & Statusrückfälle offline gehärtet
 
 **Nächste eigenständige Weiterarbeit nach dem erfolgreich verifizierten Cloud Run → Airtable Live-GET:** Bestehende `onboarding/confirmation.js`, `outbox.js` und Firestore-`createOnce`-Persistenz geprüft. Alle Änderungen sind **nur** auf `feature/onboarding-notification-outbox-20261016` erfolgt, ohne Cloud Run Build/Job-Ausführung, Airtable-/Firestore-/Make-Mutation, E-Mail oder Deployment.

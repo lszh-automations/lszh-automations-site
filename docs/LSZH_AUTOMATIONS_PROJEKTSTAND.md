@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Positive Onboarding-Übergänge, Duplikate und Pflichtfelder offline geprüft und gehärtet
+
+**Kontext:** Der echte Cloud Run → Airtable Lesezugriff für einen fehlenden synthetischen Projektcode ist bereits mit genau einem erfolgreichen Live-GET verifiziert (`lszh-airtable-read-probe-fix-staging-7ppq4`); dieser Job wurde **nicht** wiederholt. Nachfolgende Arbeit ist ausschliesslich synthetisch auf dem noch nicht gemergten GitHub-Review-Branch.
+
+**Neue integrative Offline-Simulation** `workers/onboarding-notifications/onboarding-positive-transition.integration.test.mjs`: synthetische Airtable-REST-Antworten und synthetischer Firestore-Metadatentoken/409-Duplikatweg, aber **kein externer API-Aufruf**. Sie prüft `missing → incomplete → completed → replay`, korrekte `DRAFT_NOT_SENT`-Erzeugung genau einmal, unveränderte `deliveryEnabled=false`/`emailSent=false`, den idempotenten Firestore-409-mit-GET-Nachweis, doppelte Onboarding-Datensätze, inkonsistente Auftrag-Token, fehlende bzw. später vorhandene DSG-Aufgabe und abweichende Rechnungsdaten. Die vorhandenen separaten Offline-Tests für Statusprüfung, Outbox, Candidate-Allowlist und Firestore-Store bleiben erhalten.
+
+**Zwei echte Logiklücken durch zunächst fehlgeschlagene Regressionstests festgestellt und auf dem Review-Branch in `onboarding/confirmation.js` behoben:**
+1. Wenn Rechnungsstrasse, PLZ, Ort, Land oder Rechnungs-E-Mail **sowohl im Onboarding als auch beim Kunden leer** waren, galt die bisherige Spiegelung fälschlich als vollständig. Jetzt führt jeder fehlende Pflicht-Rechnungswert zu `processing`, nicht `completed`.
+2. Wenn Make-Kontostatus oder Make-Einladungsstatus beidseitig leer waren, konnte zuvor ebenfalls `completed` entstehen. Jetzt sind beide Statuswerte ausdrücklich nichtleer zu verlangen; `Make-Organisation` darf bei `Noch kein Make-Konto` weiterhin leer sein.
+
+**Sicherheits-/Deploymentgrenzen:** Nur Quelltext und synthetische Tests im Feature-Branch verändert; **keine** Cloud Run Builds oder Job-Ausführungen, Firestore-/Airtable-/Make-Schreibzugriffe, Mails, IAM-Änderungen, Release oder Merge. Der **früher gebaute** V2-Image-Digest `sha256:c8e0b3de0519c8c562df743bb3d7f99fc6b23a2cc94e015f32f9f10d91ca1fac` und seine erfolgreiche einmalige Execution bleiben als historische Evidenz unverändert. **Achtung:** Durch die neue Änderung von `onboarding/confirmation.js` unterscheidet sich der aktuelle Feature-Branch bewusst vom fünf-Dateien-SOURCE_COMMIT-Pin des alten Images. Alte Source-Pin-Build-/Verify-Skripte müssen daher bei künftigem Plan/Build **STOP** liefern; sie dürfen nicht übergangen oder zur erneuten Execution benutzt werden. Für eine spätere neue Imageversion ist eine erneute getrennte Versionierung, Review, Sicherheits-/CI-Prüfung und ausdrückliche Freigabe nötig.
+
+**Noch offen:** Positive synthetische *Live*-Datensatz-Prüfung (falls geschäftlich sinnvoll), echte Statusübergänge in Make/Airtable/Firestore, einmalige verbindliche Benachrichtigungs-Outbox-Logik und ggf. Freigabe der Rechnungsfeld-Pflichtregeln im Geschäftsprozess; bisher keinerlei produktiver Versand. Nächster sicherer Schritt: Ergebnisse der CI kontrollieren, restliche offene Geschäftsfelder inventarisieren, ohne neue Live-Aktion.
+
 ## 17.10.2026 – Cloud Run → Airtable REST live verifiziert: exakt ein erfolgreicher synthetischer GET (V2)
 
 **Abschliessender REALER read-only Diagnosenachweis des Geschäftsführers:** Nach Fast-Forward des Feature-Branches bis `0724c42` wurde `bash workers/onboarding-notifications/staging-airtable-v2-success-diagnose.sh` in der Cloud Shell ausgeführt. Die Diagnose hat *keinen* Job gestartet, keine Secret-Werte oder Rohlogs ausgegeben und bestätigte:

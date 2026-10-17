@@ -123,8 +123,17 @@ if ! (umask 077; set -C; printf 'attempted\n' > "$STATE_DIR/quarantine-read-chec
  echo 'STOP: One-time local guard already exists; do not rerun this privilege grant.';exit 2
 fi
 EXPIRES="$(date -u -d '+30 minutes' '+%Y-%m-%dT%H:%M:%SZ')"
-printf '{"title":"%s","description":"LSZH approved single read-only check; 30 minute maximum","expression":"request.time < timestamp(\"%s\")"}\n' \
- "$TITLE" "$EXPIRES" >"$CONDITION_FILE"
+python3 - "$CONDITION_FILE" "$TITLE" "$EXPIRES" <<'PY'
+import json,sys
+path,title,expires=sys.argv[1:]
+condition={
+ 'title':title,
+ 'description':'LSZH approved single read-only check; 30 minute maximum',
+ 'expression':'request.time < timestamp("'+expires+'")'
+}
+with open(path,'w') as output:
+ json.dump(condition,output)
+PY
 chmod 600 "$CONDITION_FILE"
 echo 'APPROVED: Applying one SA-resource-only IAM lease for up to 30 minutes.'
 GRANT_ATTEMPTED=1

@@ -6,7 +6,7 @@ const {isDeepStrictEqual}=require('node:util');
 const {validCase}=require('./quarantine-plan');
 
 const PROJECT='lszh-automations';
-const DATABASE='lszh-offers-staging';
+const DATABASE='lszh-quarantine-staging';
 const COLLECTION='lszh_onboarding_quarantine_cases_staging';
 const ROOT='projects/'+PROJECT+'/databases/'+DATABASE;
 const COMMIT_URL='https://firestore.googleapis.com/v1/'+ROOT+'/documents:commit';

@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {reconcile,eventId}=require('./outbox');
 const {createFirestoreStore}=require('./firestore-store');
+const {reviewDraft,STATUS}=require('./draft-review-gate');
 const {verifyOnboardingState}=require('../../onboarding/confirmation');
 
 const CODE='ob_12345678-1234-4234-8234-123456789abc';
@@ -180,5 +181,44 @@ test('a completed draft remains disabled if onboarding later regresses or become
  assert.equal(again.alreadyExisting,1);
  assert.equal(again.created,0);
  assert.equal(x.f.docs.size,1);
+ onlyGetAirtable(x.f);
+});
+
+test('stored synthetic Firestore draft gets fresh review after regression; quarantine is recommendation only',async()=>{
+ const x=fixture();x.f.stage='completed';
+ assert.equal((await x.scan()).created,1);
+ const documentId=eventId(ONB);
+ const stored=x.f.docs.get(documentId);
+ assert.equal(stored.name,DOCS+documentId);
+ // Only reconstruct the already persisted documented schema; never persist
+ // a project code, recipient, approval token or review result.
+ const f=stored.fields;
+ const draft={
+  schemaVersion:Number(f.schemaVersion.integerValue),
+  eventType:f.eventType.stringValue,recordId:f.recordId.stringValue,
+  state:f.state.stringValue,testOnly:f.testOnly.booleanValue,
+  deliveryEnabled:f.deliveryEnabled.booleanValue,
+  emailSent:f.emailSent.booleanValue,createdAt:f.createdAt.timestampValue
+ };
+ const writes=x.f.posts;
+ const fresh=()=>reviewDraft({draft,documentId,projectCode:CODE,readToken:TOKEN,fetchImpl:x.fetchImpl});
+ assert.equal((await fresh()).status,STATUS.CURRENTLY_COMPLETE);
+ x.f.stage='partial';
+ const stale=await fresh();
+ assert.equal(stale.status,STATUS.QUARANTINE);
+ assert.equal(stale.quarantineRecommended,true);
+ assert.equal(stale.deliveryAllowed,false);
+ x.f.stage='completed';x.f.duplicate=true;
+ assert.equal((await fresh()).status,STATUS.QUARANTINE);
+ x.f.duplicate=false;
+ const restored=await fresh();
+ assert.equal(restored.status,STATUS.CURRENTLY_COMPLETE);
+ assert.equal(restored.deliveryAllowed,false);
+ assert.equal(restored.requiresManualApproval,true);
+ assert.equal(x.f.posts,writes,'Review never creates/updates another Firestore document');
+ assert.equal(x.f.docs.size,1);
+ assert.equal(x.f.docs.get(documentId),stored,'No silent persistent quarantine state');
+ assert.equal(f.deliveryEnabled.booleanValue,false);
+ assert.equal(f.emailSent.booleanValue,false);
  onlyGetAirtable(x.f);
 });

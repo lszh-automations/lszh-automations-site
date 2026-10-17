@@ -18,7 +18,7 @@ const UNCHANGED='NO_CHANGE';
 const VERIFIED='READBACK_VERIFIED';
 function blocked(reason) {
  return Object.freeze({status:BLOCKED,reason,retryAllowed:false,
-                      writesExecuted:false,deliveryAllowed:false});
+                      networkCallsMade:false,deliveryAllowed:false});
 }
 function buildQuarantineRead(draftId) {
  if(typeof draftId!=='string' || !ID.test(draftId))
@@ -50,11 +50,11 @@ function prepareQuarantineCAS({draftId,review,reviewedAt,readStatus,document=nul
  }catch {return blocked('REVIEW_OR_HISTORY_INVALID');}
  if(proposal.outcome==='unchanged')
   return Object.freeze({status:UNCHANGED,revision:proposal.record.revision,
-                        retryAllowed:false,writesExecuted:false,deliveryAllowed:false});
+                        retryAllowed:false,networkCallsMade:false,deliveryAllowed:false});
  try{
   const request=buildQuarantineCommit({proposal,previousSnapshot:snapshot});
   return Object.freeze({status:READY,proposal,request,
-    retryAllowed:false,writesExecuted:false,deliveryAllowed:false});
+    retryAllowed:false,networkCallsMade:false,deliveryAllowed:false});
  }catch{return blocked('COMMIT_PLAN_INVALID');}
 }
 function canonicalMicrosecond(t) {
@@ -89,7 +89,7 @@ function assessQuarantineCommit({
  if(!ackTime || !actualTime || ackTime!==actualTime)
   return blocked('COMMIT_VERSION_MISMATCH');
  return Object.freeze({status:VERIFIED,revision:checked.revision,
-  retryAllowed:false,writesExecuted:false,persistedVerified:true,
+  retryAllowed:false,networkCallsMade:false,persistedVerified:true,
   deliveryAllowed:false,requiresManualApproval:true});
 }
 module.exports=Object.freeze({

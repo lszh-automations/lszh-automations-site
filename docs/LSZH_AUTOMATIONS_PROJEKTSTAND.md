@@ -1,5 +1,28 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Separates Airtable-READ-Probe-Image in Zürcher Artifact Registry ERFOLGREICH GEBAUT
+
+Der Geschäftsführer führte auf dem sauberen synchronisierten Review-Branch nach `git pull --ff-only` ausdrücklich `bash workers/onboarding-notifications/staging-airtable-image-build.sh --build-only` aus. Echte Cloud-Shell-Rückmeldung:
+```text
+PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.
+PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.
+Isolated image target: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+BUILD ONLY: five reviewed files; pushing separate image, but no Cloud Run Job.
+Creating temporary archive of 5 file(s) totalling 11.5 KiB before compression.
+Created [https://cloudbuild.googleapis.com/v1/projects/lszh-automations/locations/europe-west6/builds/1b909760-deb7-49a9-bfe8-b4e20af68133].
+ID: 1b909760-deb7-49a9-bfe8-b4e20af68133
+CREATE_TIME: 2026-10-17T07:32:20+00:00
+DURATION: 18S
+IMAGES: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+STATUS: SUCCESS
+PASS: Separate STAGING Airtable-read image build returned successfully.
+STOP HERE: No Job was deployed or executed. Build image digest and service config require further review.
+```
+
+**Damit wirklich abgeschlossen:** Der isolierte, geprüfte Fünf-Dateien-Kontext wurde über Google Cloud Build in Zürich erfolgreich zu einem Image gebaut und in die vorhandene Artifact Registry veröffentlicht. **Build-ID** `1b909760-deb7-49a9-bfe8-b4e20af68133`, **Source-Pin** `c7ebdde79b67ca767c3d36f28959a668fecbd458`, **Tag** `stg-c7ebdde79b67`. Die Log-Zeile mit `gs://lszh-automations_cloudbuild/source/...` ist der temporär für Cloud Build bereitgestellte **Quellarchive-Pfad**, nicht ein Cloud-Run-Job und keine gespeicherte PAT-Datei. Das hochgeladene Tarball enthielt laut Skriptprüfung genau fünf allowgelistete Runtime/Build-Dateien.
+
+**NOCH NICHT geprüft:** Artifact Registry `sha256`-Image-Digest und unabhängige Zuordnung zur Build-ID; diese werden als nächster **ausschliesslich lesender** GCP-Preflight geprüft. **NOCH NICHT erstellt:** `lszh-airtable-read-probe-staging` Cloud Run Job; keinerlei Jobausführung oder Cloud-Run→Airtable-REST-GET. Bestehender HTTP-Outbox-Dienst weiterhin `LSZH_OUTBOX_STAGE_ENABLED=false`. Keine neuen IAM-Bindings, Secret-Versionen, Firestore-Änderungen, Make-Aktivierungen, E-Mails oder Kundendaten durch den Build.
+
 ## BESTÄTIGT 17.10.2026 – Separater Airtable-Leseimage-Build PLAN ONLY live bestanden
 
 Der Geschäftsführer hat im Firmen-Cloud-Shell-Checkout `git pull --ff-only` und anschliessend `bash workers/onboarding-notifications/staging-airtable-image-build.sh` **ohne** Schreibmodus ausgeführt. Die tatsächliche Google-Cloud-Ausgabe:

@@ -3,9 +3,9 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const http=require('node:http');
 const ORIGIN='https://portal-staging.lszh-automations.ch';
-async function setup(enabled,portal,pageHtml){
+async function setup(enabled,portal,pageHtml,acceptEnabled=true){
   const {createOfferPortalHttp}=await import('../cloud-run/offer-portal-staging/portalHttp.mjs');
-  const listener=createOfferPortalHttp({enabled,allowedOrigin:ORIGIN,portal,pageHtml});
+  const listener=createOfferPortalHttp({enabled,acceptEnabled,allowedOrigin:ORIGIN,portal,pageHtml});
   const server=http.createServer(listener);
   await new Promise((resolve,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
@@ -47,6 +47,30 @@ test('HTTP adapter rejects invalid JSON, bad content type and excessive body bef
  assert.equal((await call(s.base,'/api/offer/preview',{code:'Z'.repeat(48)},ORIGIN,'POST','text/plain')).status,400);
  assert.equal((await call(s.base,'/api/offer/accept',{padding:'A'.repeat(16000)})).status,400);
  assert.equal(reads,0);
+});
+test('Cloud Run synthetic preview can work while acceptance is hard-disabled',async t=>{
+ let previews=0,accepts=0,documents=0;
+ const p={
+  preview:async()=>{previews++;return {number:'TEST_ONLY_PREVIEW_NO_CONTRACT'};},
+  accept:async()=>{accepts++;return {accepted:true};},
+  document:async()=>{documents++;return {bytes:Buffer.from('%PDF-1.4\\nONLY SYNTHETIC\\n%%EOF\\n'),which:'quote',
+     number:'TEST_ONLY_PREVIEW_NO_CONTRACT',version:'TEST_RC1'};}
+ };
+ const s=await setup(true,p,'<!DOCTYPE html><html>Test-only staging</html>',false);
+ t.after(()=>s.close());
+ const offer=await call(s.base,'/api/offer/preview',{code:'Z'.repeat(48)});
+ assert.equal(offer.status,200);
+ assert.equal(previews,1);
+ const blocked=await call(s.base,'/api/offer/accept',{code:'Z'.repeat(48)});
+ assert.equal(blocked.status,503);
+ assert.equal(blocked.body.error,'not_available');
+ assert.equal(accepts,0,'accept() must never run');
+ const download=await fetch(s.base+'/api/offer/document',{method:'POST',
+  headers:{Origin:ORIGIN,'Content-Type':'application/json'},
+  body:JSON.stringify({code:'Z'.repeat(48),which:'quote'})});
+ assert.equal(download.status,200);
+ assert.match(download.headers.get('content-type'),/application\/pdf/);
+ assert.equal(documents,1);
 });
 test('single-origin browser page is static and disabled by default',async t=>{
  const portal={preview:async()=>{},accept:async()=>{}};

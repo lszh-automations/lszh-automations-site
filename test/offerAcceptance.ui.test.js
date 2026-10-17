@@ -17,12 +17,13 @@ function fakeElement(){
     reportValidity(){return true}
   };
 }
-async function start({avvRequired=false,demo=false}={}){
+async function start({avvRequired=false,demo=false,syntheticPreview=false}={}){
   const nodes=new Map(), calls=[];
   const node=id=>{if(!nodes.has(id))nodes.set(id,fakeElement());return nodes.get(id);};
   const code='A'.repeat(40);
   const location={search:demo?'?demo=1':('?code='+code),pathname:'/offerte-annehmen/'};
-  const offer={number:'TEST-2026',company:'Muster GmbH',service:'Automations-Test',
+  const offer={number:'TEST-2026',test_only:syntheticPreview,
+    company:'Muster GmbH',service:'Automations-Test',
     once:1000,monthly:99,payment_model:'Test',valid_until:'2099-12-31',
     terms_version:'v1.0',quote_sha256:'a'.repeat(64),terms_sha256:'b'.repeat(64),
     avv_required:avvRequired,avv_version:avvRequired?'AVV_v1.0':null,
@@ -50,6 +51,19 @@ test('demo mode reveals optional AVV but cannot accept or download',async()=>{
   assert.equal(s.node('avvConsent').checked,false);
   assert.equal(s.node('submit').disabled,true);
   assert.equal(s.calls.length,0);
+});
+test('synthetic cloud preview clearly disables binding consent and POST even for direct submit',async()=>{
+ const s=await start({avvRequired:true,syntheticPreview:true});
+ assert.equal(s.node('submit').disabled,true);
+ assert.match(s.node('submit').textContent,/deaktiviert/);
+ assert.match(s.node('acceptanceHeading').textContent,/Testvorschau/);
+ assert.match(s.node('message').textContent,/kein Vertrag/);
+ assert.equal(s.node('legalNote').classes.has('hidden'),true);
+ s.node('person').value='Fiktive Person';s.node('email').value='test@example.invalid';
+ s.node('authorized').checked=true;s.node('terms').checked=true;
+ s.node('avvConsent').checked=true;
+ await s.node('acceptForm').listeners.get('submit')({preventDefault(){}});
+ assert.equal(s.calls.length,1,'preview request only, no POST accept');
 });
 test('AVV Ja: third PDF and separate unchecked, required consent',async()=>{
   const s=await start({avvRequired:true});

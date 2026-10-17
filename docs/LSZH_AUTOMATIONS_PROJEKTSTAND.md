@@ -1,5 +1,24 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## AKTUELL – 17.10.2026 07:34 (Zürich): Echte Airtable-REST-Leseprüfung vorbereitet, kein Cloud-Dienst aktiviert
+
+**Erneuter exakter, ausschliesslich lesender Cleanup-Nachweis über den verbundenen Airtable-Zugang:** Die drei früheren ausschliesslich synthetischen Airtable-IDs aus dem ausdrücklich genehmigten CRM-Fixture-Test ergeben weiterhin jeweils **0 Treffer**: `Kunden-Onboarding/recx6PnnpSgpbZbYn`, `Aufträge/recPbqkocPYokgK2n`, `Kunden/rec6Mu0uaBdy4H3K7`. Es wurde kein weiterer Testkunde angelegt.
+
+**Weiteres Sicherheits-Gate implementiert (offline getestet, NICHT live ausgeführt):**
+- `workers/onboarding-notifications/staging-airtable-rest-read.sh`: ausschliesslich `--plan` (kein Netzwerkzugriff) oder bewusst `--probe` (interaktiv). Prüft das LSZH-Google-Geschäftskonto, den Projektkontext sowie den sauberen geprüften Git-Branch. Erfordert ein **nur auf die CRM-Basis eingeschränktes Airtable-PAT mit `data.records:read`**. Das PAT wird am sicheren Cloud-Shell-Prompt **verdeckt** eingegeben, über eine temporäre Standard-Input-Pipe direkt an Node übergeben, nicht als Parameter/Environment/Datei/GitHub/Cloud Run/Logs gespeichert. Token weder hier noch im Chat posten.
+- `staging-airtable-rest-read.js`: verwendet die **unveränderte reale** `onboarding/confirmation.js -> verifyOnboardingState()`-Funktion, erzeugt einen frischen, kryptografisch zufälligen `ob_<UUIDv4>`-Testcode und erlaubt über eine Request-Whitelist **genau ein** `GET` an `https://api.airtable.com/v0/appzJiskpAdaR1HEv/tblWIY4l4VASz8Vse` mit streng geprüftem `{Projektcode}='...'`-Filter. Die Erwartung ist `processing` für die fehlende Fixture, **nicht `completed`**. Bei 401/403/429, unerwarteter Antwort oder zweiter Anforderung: STOP ohne Folgeanfrage; keine Kundendaten-Lektüre, Firestore, Make, E-Mail oder CRM-Schreiboperation. Es werden weder zufälliger Code noch Token oder Antwortbody geloggt.
+- `staging-airtable-rest-read.test.mjs`: acht offline gefälschte REST-Testfälle für exakten GET, Freigabeflag, Token-/Codevalidierung, 401/403, 429, unerwartete Treffer und defekte Antwort. CI im Outbox-Workflow meldete nach Hinzufügung **99/99 JavaScript-Tests und 8/8 IAM-Tests** bestanden.
+
+**Noch OFFEN:** Die externe Airtable-REST-Probe wurde **nicht** ausgeführt, da ein minimales echtes Airtable-PAT eingegeben werden muss. Der verbundene Airtable-App-Zugang wird niemals als Cloud-Run-PAT ausgegeben. Dieser PRE-Integrationstest validiert nur die Node.js-REST-Leseverbindung von Cloud Shell für einen **nicht vorhandenen** Testcode; er belegt **noch keinen** Cloud-Run-zu-Airtable-Lesezugriff und auch keinen vollständigen CRM→Outbox-Produktivzyklus. Kein Secret Manager, neues Cloud-Run-Deployment, neuer Testkunde oder Scheduler eingerichtet.
+
+**Nächster Schritt für den Geschäftsführer (nur read-only zuerst):**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-rest-read.sh
+```
+Erwartet `PLAN ONLY`, ohne Passwortabfrage/API-Aufruf. Anschliessend als **eigene** Aktion und erst mit geeigneten Airtable-Read-only-PAT `bash workers/onboarding-notifications/staging-airtable-rest-read.sh --probe` (ein gezielter GET). Der Cloud-Run-HTTP-Outbox-Dienst bleibt `LSZH_OUTBOX_STAGE_ENABLED=false`; keine realen Kundenveränderungen oder Automationsaktivierungen.
+
 ## AKTUELL – 17.10.2026: Synthetischer Airtable-CRM-Onboarding-Test LIVE bestanden UND VOLLSTÄNDIG bereinigt
 
 Der Geschäftsführer erteilte ausdrücklich die Freigabe für die kontrollierte Erstellung und anschliessende Bereinigung von **genau drei** synthetischen Datensätzen in der real verbundenen Website-CRM-Airtable-Basis `appzJiskpAdaR1HEv`. Vorher wurden live die neun Airtable-Automationen (acht aktiv), zwei aktiven Make-Szenarien (ohne Airtable) und sieben inaktiven Make-Onboarding-Szenarien überprüft. Die aktuellen Feldschema-Optionen und Berechnungsformeln bestätigten den geplanten risikoarmen Datensatztyp. Der einmalig zufällig generierte, nicht veröffentlichte synthetische Onboarding-Code hatte vor Anlage **0** exakte CRM-Treffer. Kein laufendes System wurde deaktiviert oder aktiviert.

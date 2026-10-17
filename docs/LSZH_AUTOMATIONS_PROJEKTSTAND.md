@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Explizite Freigabe für genau eine kostenpflichtig nutzbare Quarantäne-Staging-Datenbank
+
+**Ausdrückliche Aussage des Geschäftsführers im Chat:** Auf den bisherigen separaten Freigabeaufruf für `lszh-quarantine-staging` mit nutzungsabhängigen Google-Cloud-Kosten folgte `du hast meine genehmigung, vamos`. Dies wird als **konkrete Autorisierung ausschliesslich zur einmaligen Erstellung** der zusätzlichen Named Database `lszh-quarantine-staging` im Projekt `lszh-automations`, Standort `europe-west6`, Edition `standard`, Typ `firestore-native`, mit aktiviertem Löschschutz und nach erfolgreichem Sicherheits-Preflight verstanden. Die nutzungsabhängigen Kosten dieser separaten Firestore-Datenbank wurden zuvor erläutert und ausdrücklich genehmigt. Das Budget/der Kostenalarm ist noch nicht eingerichtet; eine Budgetwarnung ist **kein hartes Ausgabenlimit**.
+
+**Technisch bestätigte CLI-Parameter:** Offizielle Google-Cloud-SDK-Referenz `gcloud firestore databases create` unterstützt `--database`, `--location`, `--edition=standard`, `--type=firestore-native`, `--delete-protection`; der bereits veröffentlichte, synthetisch geprüfte Runner `workers/onboarding-notifications/staging-quarantine-db-provision.sh` führt vor der Erstellung nochmal die read-only Billing-/API-/DB-/Rollenfähigkeitsprüfung und eine frische Datenbankinventur durch, erstellt unter separatem expliziten Approval-Gate genau **eine** Datenbank und überprüft die Metadaten nachher. Erfolgs-/Fehlerausgänge verhindern einen stillen Retry. Die vorhandene `lszh-offers-staging` bleibt unberührt.
+
+**Ausführungsstatus:** Bis zu diesem Dokumentationscommit wurde aus dem Chat heraus **keine** Cloud-Shell-Aktion ausgeführt; ChatGPT verfügt hier über keinen direkten Google-Cloud-Zugriff. Die eigentliche Provisionierung muss der Geschäftsführer einmalig im bereits authentifizierten Cloud Shell auslösen und anschliessend die Ausgabe für die unabhängige Verifikation teilen. Eine Zustimmung ist **kein Nachweis**, dass die Datenbank schon existiert.
+
+**Nicht von dieser Freigabe umfasst:** Service-Account-Erstellung, Custom-IAM-Rolle, IAM-Bindung, Firestore-Dokumente/Write-Probe, Cloud Run, Make, Kunden-Einladungen, E-Mails, Produktion oder Wiederholung historischer Cloud-Run-Jobs. Diese benötigen weitere separate Zustimmung.
+
 ## 17.10.2026 – Sichere Firestore-Datenbank-Einmal-Erstellung als gesperrtes Runbook vorbereitet
 
 **Anlass:** Nutzer antwortete auf die vorangehende Frage zur ausdrücklichen Zustimmung für die **kostenpflichtige Erstellung** einer separaten Datenbank nur mit `Vamos`. Da die bisherige verbindliche Projektregel explizit festhält, dass das allgemeine `Vamos` keine Kosten-/Cloud-Provisionierungsfreigabe ersetzt, erfolgte **keine** Datenbankerstellung, IAM-Änderung, Cloud-Run-Aktion oder reale Firestore-Schreiboperation. Der bestehende positive read-only GCP-Preflight bleibt gültig.

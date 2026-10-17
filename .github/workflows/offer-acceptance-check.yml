@@ -21,6 +21,7 @@ on:
       - 'test/firestoreEmulator.integration.test.js'
       - 'test/offerPortalEndToEnd.emulator.test.js'
       - 'test/offerPortalImporter.test.js'
+      - 'test/offerPortalAirtableE2E.emulator.test.js'
       - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
@@ -60,6 +61,7 @@ jobs:
           node --check test/offerPortalEndToEnd.emulator.test.js
           node --check cloud-run/offer-portal-staging/airtableSyntheticImport.mjs
           node --check test/offerPortalImporter.test.js
+          node --check test/offerPortalAirtableE2E.emulator.test.js
           node --check test/offerPortalHttp.test.js
           node --check test/offerPortalStaging.test.js
           node --check scripts/run-tests-safely.js
@@ -127,4 +129,4 @@ jobs:
             --only firestore \
             --project demo-lszh-automations \
             --config cloud-run/offer-portal-staging/firebase.emulator.json \
-            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js"
+            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js"

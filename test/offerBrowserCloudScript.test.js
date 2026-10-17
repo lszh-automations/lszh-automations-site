@@ -8,17 +8,20 @@ const boot='scripts/offer-browser-cloud-bootstrap.sh';
 const clean='scripts/offer-browser-cloud-cleanup.sh';
 const resume='scripts/offer-browser-cloud-resume.sh';
 const smoke='scripts/offer-browser-cloud-smoke.sh';
+const demo='scripts/offer-browser-static-demo-release.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean,resume,smoke]){
+ for(const file of [boot,clean,resume,smoke,demo]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  if(file!==smoke)
+  if(file!==smoke && file!==demo)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
-  else
+  else if(file===smoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
+  else
+   assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   assert.match(s,/offer-cloud-readiness-readonly\.py/);
   assert.doesNotMatch(s,/--allow-unauthenticated\b(?!\s)/,
     'must never allow anonymous access');
@@ -77,4 +80,20 @@ test('network smoke only calls read-only APIs, authenticated proxy and blocked H
  assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
  assert.doesNotMatch(s,/gcloud run services (delete|add-iam-policy-binding)/);
  assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
+});
+
+test('static demo release targets only existing labelled IAM-protected temporary service',()=>{
+ const s=fs.readFileSync(demo,'utf8');
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/--ingress=all --no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false,LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true,GOOGLE_CLOUD_PROJECT=lszh-automations"/);
+ assert.match(s,/--labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true"/);
+ assert.match(s,/gcloud run services get-iam-policy "\$TEMP"/);
+ assert.match(s,/lszh-offer-browser-staging-00001-7kx/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.doesNotMatch(s,/gcloud run (deploy|services update) "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
+ const cleanup=fs.readFileSync(clean,'utf8');
+ assert.match(cleanup,/env\.get\("LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
 });

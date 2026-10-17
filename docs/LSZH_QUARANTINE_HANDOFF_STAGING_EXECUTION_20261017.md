@@ -1,5 +1,10 @@
 # LSZH – Quarantäne-Handoff Staging, kontrollierte Bereitstellung (17.10.2026)
 
+## 17.10.2026 – Quell-SA-Zugriffstest: erfolgreiche erste Ausführung
+
+Echte Cloud-Shell-Rückmeldung: Cloud Run Job `lszh-outbox-secret-access-probe-stg`, einmalige Ausführung `lszh-outbox-secret-access-probe-stg-4kxqb`, **1/1 abgeschlossen, erfolgreich beendet**. Die überprüfte Shell-Only-Laufzeit verwendet die Outbox-Staging-SA und eine Secret-Manager-Referenz auf die Airtable-Secret-Version 1; ihr einziger Erfolgszweig setzt voraus, dass die injizierte Variable nicht leer ist. Das ist ein realer Laufzeitnachweis, aber noch kein Airtable-REST- oder Handoff-End-to-End-Test. Für vollständige Protokollierung fehlt lediglich der rein lesende Abruf des bereits existierenden Ausführungslogs mit dem Erfolgsmarker `PASS_SOURCE_SECRET_ACCESS`. Kein erneutes Starten des Jobs nötig.
+
+
 ## 17.10.2026 – Source-SA-Airtable-Secret-Probe wurde tatsächlich angelegt, null Executions
 
 Cloud-Shell-Geschäftsführer-Ausgabe: `staging-outbox-secret-access-job.sh --create-only` legte `lszh-outbox-secret-access-probe-stg` in Projekt `lszh-automations`, Region `europe-west6` erfolgreich an. Das Skript bestätigte den **tatsächlich rückgelesenen Job**: exakt angeheftetes SHA-256-Image, Shell-Only statt Geschäftslogik, Outbox-Identität, Secret-Version 1, ein Task/keine Retries, **ZERO executions**. Dieser Job verändert keine alten Jobs, führt ohne gezieltes `gcloud run jobs execute` nichts aus. Als nächstes erlaubt ist der einzige kontrollierte Secret-Verfügbarkeitstest mit `gcloud run jobs execute lszh-outbox-secret-access-probe-stg --project=lszh-automations --region=europe-west6 --wait`. Bei unterbrochenem CLI-Wait oder Fehlermeldung nicht ein zweites Mal execute auslösen; vorher die eine Execution samt Exit/konstantem Log-Signal auslesen. Ein erfolgreicher Shell-Probe-Test bestätigt nur, dass Cloud Run die Secret-Version unter der Outbox-SA bereitstellen konnte, **nicht** Airtable-REST-/Firestore-/Receiver-E2E.

@@ -110,6 +110,10 @@ test('quarantine identity reads only separate named database with strict Firesto
  assert.equal(answer.snapshot.record.deliveryAllowed,false);
  assert.equal(answer.snapshot.record.requiresManualApproval,true);
  assert.equal(answer.writesAllowed,false);
+ assert.equal(answer.readStatus,200);
+ assert.ok(Object.isFrozen(answer.document));
+ assert.ok(Object.isFrozen(answer.document.fields.events.arrayValue.values[0].mapValue.fields));
+ assert.equal(answer.document.name,readURL('quarantine').replace('https://firestore.googleapis.com/v1/',''));
  assert.deepEqual(calls.map(x=>x.url),[META+'email',META+'token',readURL('quarantine')]);
  assert.equal(calls.some(x=>x.url.includes('lszh-offers-staging')),false);
  assert.equal(JSON.stringify(answer).includes(TOKEN),false);
@@ -142,6 +146,8 @@ test('missing quarantine case is a normal no-write observation',async()=>{
  const {answer,calls}=await call('quarantine',{dbStatus:404});
  assert.equal(answer.status,'MISSING');
  assert.equal(answer.writesAllowed,false);
+ assert.equal(answer.readStatus,404);
+ assert.equal(answer.document,null);
  assert.equal('draft' in answer,false);
  assert.equal('request' in answer,false);
  assert.equal(calls.length,3);

@@ -118,6 +118,7 @@ test('invalid, altered or sent drafts fail closed with NO external requests',asy
   {...draft,eventType:'WRONG'},
   {...draft,createdAt:'not-date'},
   {...draft,recordId:'bad'},
+  {...draft,recordId:{toString:()=>ONB}},
   {...draft,recipient:'someone@example.invalid'},
   {state:'DRAFT_NOT_SENT'},null,[],{}
  ];

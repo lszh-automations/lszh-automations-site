@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Failed-Execution-Diagnose (STRICT READ ONLY) bereit, LIVE-Lesung ausstehend
+
+Nach dem gescheiterten ersten und einzigen `lszh-airtable-read-probe-staging-xglcz`-Test (Task 0 Exit 1) wurde im GitHub Review-Branch `workers/onboarding-notifications/staging-airtable-execution-diagnose.sh` hinzugefügt. Der Befehl **startet keine weitere Execution** und liest **keinen** Secret Manager Payload aus:
+1. Prüft korrektes aktives LSZH-Geschäftskonto/Projekt und sauberen, synchronisierten Feature-Branch.
+2. Ruft `gcloud run jobs executions list --job=lszh-airtable-read-probe-staging --project=lszh-automations --region=europe-west6 --format=json` auf und verlangt genau die eine erwartete Execution `lszh-airtable-read-probe-staging-xglcz`.
+3. Liest die **Metadaten der exakt identifizierten Execution** via `gcloud run jobs executions describe ... --format=json` (nur kontrollierte Zählwerte).
+4. Fragt Google Cloud Logging **nur für diesen Job und diese Execution** ab, `gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="lszh-airtable-read-probe-staging" AND labels.execution_name="lszh-airtable-read-probe-staging-xglcz"' --project=lszh-automations --limit=100 --format=json`. Der vollständige Roh-Logtext wird nur in lokalen Pipelinevariablen verarbeitet und **NICHT in den Chat oder das Terminal ausgegeben**; ein Python-Filter zeigt lediglich eine vordefinierte Menge sicherer Anwendungs-`STOP`-Codes, allgemeine Laufzeitfehler-Kategorien (z. B. `NODE_MODULE_NOT_FOUND`, `FILE_PERMISSION_DENIED`, `NODE_SYNTAX_ERROR`), Loganzahl und Anzahl Anwendung-`PASS`-Zeilen. Unerwartete Inhalte / etwaige Bearer-Tokens werden nicht übernommen. Bei fehlenden Logs wird der Status nicht als erfolgreich interpretiert.
+
+**Offline CI:** 7 neue rein synthetische Tests stellen fehlgeschlagene Ausführung, exakte Identität, bekannte STOP-Codes, Unterschlagung fingierter PAT-Texte, Leerergebnisse, Account-/Git-Stop und Verbotsprüfung für sämtliche Mutationsbefehle nach. Erfolgreicher GitHub-Actions-Lauf `39021771890`: **176/176 Node-Tests und 8/8 Python-IAM-Tests**, kein Live-Cloud-Aufruf von CI.
+
+**Nächster Benutzerbefehl ist AUSSCHLIESSLICH DIAGNOSE:**
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-execution-diagnose.sh
+```
+Wenn das Skript eine Kategorie statt einer konkreten Ursache ausgibt, anhand des konkreten Status / privaten Cloud-Run-Logs weiter analysieren. Kein automatisches Neustarten und keine IAM-/Secret-/Deployment-Mutation. `--execute-once` ist endgültig verbraucht und darf auf dieser Jobversion nicht wiederholt werden. Offizielle Logs-Feldreferenz: https://docs.cloud.google.com/run/docs/logging .
+
 ## KRITISCH 17.10.2026 – Erster und einziger Cloud Run → Airtable-Lesejob gestartet, EXECUTION FAILED. NICHT wiederholen
 
 Der Geschäftsführer führte ausdrücklich nach `git pull --ff-only` den abgesicherten Befehl `bash workers/onboarding-notifications/staging-airtable-job-run.sh --execute-once` aus. **Echte Cloud Shell-Ausgabe:**

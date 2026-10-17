@@ -80,7 +80,7 @@ d={"spec":{"template":{"spec":{
  "volumes":[{"name":"secret-volume","secret":{
    "secretName":"lszh-airtable-readonly-staging",
    "items":[{"key":"1","path":"airtable-read-pat"}]}}]
- }}}}}
+ }}}}}}
 print(json.dumps(d))
 PY
  ;;

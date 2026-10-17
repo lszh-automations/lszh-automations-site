@@ -163,15 +163,15 @@ for x in selected:
    denied_paths.add("EXPECTED_SECRET_FILE")
   elif "/var/secrets/lszh" in text:
    denied_paths.add("EXPECTED_SECRET_MOUNT_DIR")
-  elif "/app/" in text or "/app'" in text or "/app\"" in text:
+  elif "/app/" in text or "/app" in text:
    denied_paths.add("APP_FILESYSTEM")
   elif "/home/node" in text:
    denied_paths.add("NODE_USER_HOME")
-  elif "/tmp/" in text or "/tmp'" in text:
+  elif "/tmp/" in text or "/tmp" in text:
    denied_paths.add("TEMP_FILESYSTEM")
   elif "/dev/" in text or "/proc/" in text or "/sys/" in text:
    denied_paths.add("SYSTEM_PSEUDOFILESYSTEM")
-  elif re.search(r"(?:^|[\\s\\\"\\\x27])/(?:[^\\s\\\"\\\x27]+)",text):
+  elif re.search(r"/(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+",text):
    denied_paths.add("OTHER_PATH_PRESENT_REDACTED")
   else:
    denied_paths.add("PATH_NOT_IDENTIFIED_IN_ERROR_ENTRY")

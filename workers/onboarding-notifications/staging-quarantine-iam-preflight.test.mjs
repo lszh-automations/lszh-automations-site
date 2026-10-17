@@ -20,7 +20,7 @@ function run(overrides={},args=['--plan']) {
  writeFileSync(path.join(bin,'gcloud'),"#!/usr/bin/env bash\necho \"$*\" >> \"$FAKE_AUDIT\"\ncase \"$1:$2:$3\" in\n auth:list:*) echo \"$FAKE_ACCOUNT\" ;;\n config:get-value:project) echo \"lszh-automations\" ;;\n firestore:databases:describe) cat \"$FAKE_DB\" ;;\n iam:service-accounts:describe)\n   [[ \"$FAKE_MISSING_SA\" == 1 ]] && exit 3\n   cat \"$FAKE_SA\" ;;\n iam:roles:describe)\n   [[ \"$FAKE_MISSING_ROLE\" == 1 ]] && exit 3\n   cat \"$FAKE_ROLE\" ;;\n projects:get-iam-policy:*) cat \"$FAKE_POLICY\" ;;\n *) echo \"unexpected cloud command\" >&2;exit 90 ;;\nesac\n");
  for(const c of ['git','gcloud'])chmodSync(path.join(bin,c),0o755);
  const data={
-  db:{name:'projects/lszh-automations/databases/lszh-offers-staging',locationId:'europe-west6',type:'FIRESTORE_NATIVE'},
+  db:{name:'projects/lszh-automations/databases/lszh-quarantine-staging',locationId:'europe-west6',type:'FIRESTORE_NATIVE'},
   sa:{email:SA,disabled:false},
   role:{name:ROLE,stage:'GA',includedPermissions:PERMISSIONS},
   policy:{bindings:[{members:[MEMBER],role:ROLE,condition:CONDITION}]}

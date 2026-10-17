@@ -1,5 +1,29 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## BESTÄTIGT 17.10.2026 – Separater Airtable-Leseimage-Build PLAN ONLY live bestanden
+
+Der Geschäftsführer hat im Firmen-Cloud-Shell-Checkout `git pull --ff-only` und anschliessend `bash workers/onboarding-notifications/staging-airtable-image-build.sh` **ohne** Schreibmodus ausgeführt. Die tatsächliche Google-Cloud-Ausgabe:
+```text
+Encryption: Google-managed key
+Repository Size: 198.545MB
+PASS: LSZH identity, reviewed immutable five-file source and Zurich registry.
+PASS: Exactly one enabled Secret version 1 and the secret-only IAM grant.
+Isolated image target: europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-airtable-read-probe:stg-c7ebdde79b67
+Separate STAGING Job (NOT created): lszh-airtable-read-probe-staging
+No PAT payload access, CRM/Make/Firestore operations, Cloud Run deployment or emails.
+PLAN ONLY: no Cloud Build submission, image push, Job creation/execution or IAM changes.
+```
+
+**Befund:** Der synchronisierte Review-Branch, unveränderte und an `c7ebdde79b67ca767c3d36f28959a668fecbd458` gepinnte Fünf-Dateien-Buildkontext, die Zürcher Artifact Registry, ein einzelnes `ENABLED`-Secret Version 1 mit ausschliesslich direkter secret-spezifischer IAM-Zugriffsrolle und die Abwesenheit des separaten Cloud-Run-Jobs sind bestätigt. Die Container-Registry war laut CLI bereits vorhanden (`Repository Size: 198.545MB` beschreibt **das gesamte Repository**, nicht das neue Probe-Image). Der reine Planlauf hat **noch kein Probe-Image gebaut oder hochgeladen**.
+
+Nächster ausdrücklich vom Geschäftsführer auszuführender **isolierter Build-only-Schritt**:
+```bash
+cd ~/lszh-outbox-review
+git pull --ff-only
+bash workers/onboarding-notifications/staging-airtable-image-build.sh --build-only
+```
+Dieser Befehl würde einen Cloud Build aus exakt fünf allowgelisteten lokalen Dateien erstellen, das spezifisch gepinnte `lszh-airtable-read-probe:stg-c7ebdde79b67`-Image in die bestehende Zürcher Registry pushen (mögliche Build-/Registry-Kosten), aber **keinen** Job, Service, Scheduler, IAM-Grant, Secret-Wert-Zugriff, Airtable-GET, Firestore- oder Mailvorgang auslösen. Bei fehlgeschlagenem/unklarem Buildstatus **keinen automatischen Repeat**, zunächst Build-/Registry-Metadaten lesen. Nach PASS das Container-Image per Digest identifizieren und die separate Job-Erstellung zunächst nur planen; den bestehenden `lszh-onboarding-outbox-staging`-HTTP-Service nicht verändern.
+
 ## 17.10.2026 – Isolierter Cloud-Run-Airtable-Lese-Container: Build-Gate fertig, KEIN Build durchgeführt
 
 Voraussetzungen **durch echte Geschäftskonto-Cloud-Shell bestätigt**: dediziertes Service Account `lszh-airtable-read-stg@lszh-automations.iam.gserviceaccount.com` angelegt, `lszh-airtable-readonly-staging` mit genau einer Zürcher User-managed Replik `europe-west6`, Secret-Version `1` `ENABLED` nach einmaligem verdeckten Token-Upload. Der einzelne IAM-Grant `roles/secretmanager.secretAccessor` wurde tatsächlich **nur auf diesem einen Secret** für dieses SA eingeräumt und per `get-iam-policy` bestätigt. **Nicht durchgeführt:** Secret-Payload-Read, Cloud Build, Cloud Run Job/Execute oder Make-/Firestore-/E-Mail-Aktion.

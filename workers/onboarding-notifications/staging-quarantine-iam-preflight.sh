@@ -7,7 +7,7 @@ PROJECT='lszh-automations'
 BRANCH='feature/onboarding-notification-outbox-20261016'
 ACCOUNT='lars@lszh-automations.ch'
 REGION='europe-west6'
-DB='lszh-offers-staging'
+DB='lszh-quarantine-staging'
 SA="lszh-quarantine-cas-stg@${PROJECT}.iam.gserviceaccount.com"
 ROLE_ID='lszhQuarantineCasStaging'
 if [[ "$#" -gt 1 || ( "$#" -eq 1 && "$1" != '--plan' ) ]]; then
@@ -33,7 +33,7 @@ WORK="$(mktemp -d)"
 chmod 700 "$WORK"
 trap 'rm -rf "$WORK"' EXIT
 if ! gcloud firestore databases describe --project="$PROJECT" --database="$DB" --format=json > "$WORK/db.json" 2>/dev/null; then
-  echo 'STOP: Named STAGING database metadata inaccessible.';exit 2
+  echo 'BLOCKED: Dedicated quarantine STAGING database absent or inaccessible. No database created.';exit 2
 fi
 if ! gcloud iam service-accounts describe "$SA" --project="$PROJECT" --format=json > "$WORK/sa.json" 2>/dev/null; then
   echo 'BLOCKED: Separate quarantine STAGING service identity absent or inaccessible. No identity created.';exit 2

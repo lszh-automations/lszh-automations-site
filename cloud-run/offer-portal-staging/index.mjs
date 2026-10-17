@@ -6,12 +6,22 @@ import {stagingConfig,STAGING} from './stagingConfig.mjs';
 import {createFirestoreOfferStore} from './firestoreOfferStore.mjs';
 import {createOfferPortal} from './portalCore.mjs';
 import {createOfferPortalHttp} from './portalHttp.mjs';
+import {tempBrowserDemoConfig,createTemporaryBrowserDemoHttp,
+  verifyTemporaryBrowserIdentity} from './temporaryBrowserDemo.mjs';
 import {verifyArchiveBundle,readVerifiedArchivePdf} from '../archive-reader-staging/archiveBundleVerifier.mjs';
 
-// This file has NO real deployment as of 15.10.2026.
+// The full offer API remains NOT DEPLOYED. Only the separately authorized
+// temporary STATIC browser demonstration may be deployed; it must not access
+// Drive, Firestore, personal offer data, or any acceptance API.
 // Service MUST have its own runtime identity. Never reuse archive-reader
 // (that principal has no Firestore write access). Never use JSON keys.
 const config=stagingConfig(process.env);
+const tempConfig=tempBrowserDemoConfig(process.env);
+const tempDemo=tempConfig.enabled?createTemporaryBrowserDemoHttp({
+  enabled:true,
+  pageHtml:readFileSync(new URL('./offerte-annehmen.html',import.meta.url),'utf8')
+}):null;
+let tempIdentityPromise;
 const disabled=createOfferPortalHttp({
   portal:{preview:async()=>{},accept:async()=>{}},enabled:false
 });
@@ -57,6 +67,16 @@ function activeHandler(){
   return handlerPromise;
 }
 http('lszhOfferPortalStaging',async(req,res)=>{
+  if(tempConfig.enabled){
+    try{
+      tempIdentityPromise ??= verifyTemporaryBrowserIdentity();
+      await tempIdentityPromise;
+      return tempDemo(req,res);
+    }catch{
+      // Failed metadata identity validation is always a closed 503.
+      return disabled(req,res);
+    }
+  }
   if(!config.enabled)return disabled(req,res);
   try{
     const handler=await activeHandler();

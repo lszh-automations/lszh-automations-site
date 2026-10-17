@@ -1,5 +1,13 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Echte Quarantäne-IAM-Vorprüfung blockiert an separater Service-Identität (wie geplant, keine Änderung)
+
+**Vom Geschäftsführer ausgeführte reale Google Cloud Shell-Vorprüfung:** Nach `git pull --ff-only` auf GitHub-Feature-Branch `feature/onboarding-notification-outbox-20261016` bis Commit `a92a4f1` wurde `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` ausgeführt. Konsolenausgabe: `BLOCKED: Separate quarantine STAGING service identity absent or inaccessible. No identity created.`
+
+**Einordnung:** Die strikte Cloud-Identitäts- und Git-Prüfung hat die Ausführung bis zum Service-Account-`describe` gebracht. Der bekannte Name `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` ist **nicht verifiziert**; die Ausgabe unterscheidet nicht zwischen **nicht vorhanden**, **fehlender IAM-Leseberechtigung** und einem anderen `describe`-Fehler, da das Skript die Standardfehlerausgabe bewusst unterdrückt. Ein weiterer Rollen-/IAM-Abgleich fand **nicht** statt, da der Preflight beim Service-Account-Check stoppt. Ein Cloud-Provisioning kann daraus nicht als schon erforderlich bzw. genehmigt abgeleitet werden. **Keine** IAM-Änderung, Ressourcenerstellung, Secret-Abfrage, Firestore-Abfrage/-Schreiboperation, Job-Ausführung oder E-Mail erfolgt.
+
+**Nächster ausschliesslich lesender Diagnose-Schritt:** Service-Accounts **listen** und die exakte Service-E-Mail ohne Fehlermeldungen abgleichen; falls `list` selbst fehlschlägt, `UNVERIFIED_PERMISSIONS` statt fälschlich `MISSING` melden. Die separate Custom Role `lszhQuarantineCasStaging` kann unabhängig ebenfalls nur lesend per `gcloud iam roles describe` geprüft werden. Keine `create`-/`grant`-/`add-iam-policy-binding`-Befehle ausführen. Vor Provisionierung bleibt die offene Entscheidung: **separate Quarantäne-Staging-Datenbank bevorzugt**, da die Custom Role mit Datenbank-IAM-Bedingung nicht auf nur eine Collection beschränkt werden kann. Erst nach getrennt dokumentierter Ressourcen-/IAM-Freigabe die Ziel-DB-Pins und Rollen konsistent anpassen und eine neue kontrollierte Bereitstellung planen.
+
 ## 17.10.2026 – Firestore-Quarantäne: IAM-Minimalrolle & STAGING-Schreibprobe nur vorbereitet
 
 **Aktuell nur GitHub-Feature-Branch, kein Cloud-Vollzug.** Auf Grundlage des bereits offline geprüften atomaren `firestore-quarantine-cas.js` (CAS-Precondition `exists:false`/exaktes `updateTime`, synthetischer Readback) wurden neu erstellt:

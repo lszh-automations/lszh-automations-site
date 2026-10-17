@@ -19,7 +19,8 @@ export const SOURCE={
   prod:'fldOe2lL8inXnOWwi',legal:'fldkiRZao205kv63x',
   released:'fldM2gGMhQKonLACU',accepted:'fldgvIfuHuJ3JHOC0',
   avvAccepted:'fld8gm2LLGAeHeBSA',internalNote:'fldA4WCPe6jXCGkid',
-  once:'fldvtGMbHGeQGBrnl',monthly:'fldYboIZUI70VNUlw'
+  once:'fldvtGMbHGeQGBrnl',monthly:'fldYboIZUI70VNUlw',
+  service:'fldnx2HPMJlyOaPyN',paymentModel:'fld5YaoIeYLE1MZFW'
 };
 const SHA=/^[a-f0-9]{64}$/;
 const FILE=/^[a-zA-Z0-9_-]{20,100}$/;
@@ -42,6 +43,12 @@ function pdf(id,hash){
   if(typeof id!=='string'||!FILE.test(id)||typeof hash!=='string'||!SHA.test(hash))
     reject('synthetic_archive_incomplete');
   return {id,sha256:hash};
+}
+function label(v){
+  const text=choice(v);
+  if(text===undefined||text===null)return '';
+  if(typeof text!=='string'||text.length>160)reject('synthetic_display_field_invalid');
+  return text;
 }
 function chf(v){
   if(v===undefined||v===null)return 0;
@@ -97,6 +104,7 @@ export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOU
     termsVersion:'TEST_v1.0_RC1',expiresAt,recipientEmail:email,
     offerNumber:number,
     details:{company:'LSZH Synthetic Offer (not a contract)',
+      service:label(f[SOURCE.service]),paymentModel:label(f[SOURCE.paymentModel]),
       onceCHF:chf(f[SOURCE.once]),monthlyCHF:chf(f[SOURCE.monthly]),
       ...(avv?{avvVersion:f[SOURCE.avvVersion]}:{})},
     bundle:{avv_required:mode,quote,terms,...(avv?{avv}:{})},

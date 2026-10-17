@@ -45,6 +45,7 @@ jobs:
           bash -n workers/onboarding-notifications/staging-firestore-job.sh
           bash -n workers/onboarding-notifications/staging-firestore-write-job.sh
           bash -n workers/onboarding-notifications/staging-airtable-rest-read.sh
+          bash -n workers/onboarding-notifications/staging-airtable-identity.sh
       - name: Check synthetically restricted IAM policy
         run: python3 workers/onboarding-notifications/verify_iam_policy_test.py
       - name: Build isolated STAGING container (no push, no deploy)

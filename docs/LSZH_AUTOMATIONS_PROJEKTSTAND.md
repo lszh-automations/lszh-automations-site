@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Quarantäne-Staging: SA per Liste ohne Treffer, Custom Role sicher nicht vorhanden
+
+**Reale Cloud-Shell-Ausgabe des Geschäftsführers nach vorherigem BLOCKED:**
+- `gcloud iam service-accounts list --project=lszh-automations --filter='email=lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com' --format='value(email)'` ergab **keine Ausgabe und keinen berichteten Fehler**: kein Treffer für die geplante Quarantäne-Service-Identität. Als starke Evidenz für *noch nicht angelegt* werten, aber nicht als Beweis für umfassende effektive IAM-Sichtbarkeit.
+- `gcloud iam roles describe lszhQuarantineCasStaging --project=lszh-automations --format='value(name)'` ergab ausdrücklich `NOT_FOUND: The role named projects/lszh-automations/roles/lszhQuarantineCasStaging was not found.` Authentifizierung: `lars@lszh-automations.ch`. Custom Role **fehlt**.
+- Die bekannte IAM-`--plan`-Prüfung hatte an `service-accounts describe` gestoppt. **Es erfolgte keine Ressourcenerstellung, IAM-Änderung, Firestore-Schreibprobe, Deployment, Cloud-Run-Job-Ausführung oder E-Mail.**
+
+**Empfohlene sichere Umsetzung (noch NICHT autorisiert):** Eine dedizierte, leere Named Database `lszh-quarantine-staging` in `europe-west6` statt Schreibzugriff auf `lszh-offers-staging`. Erst read-only Existenz/Berechtigungen prüfen, dann die noch auf die alte Datenbank zeigenden CAS-, IAM-, Runbook- und Testkonstanten gemeinsam auf das neue Ziel ändern und CI erneut ausführen. Der beabsichtigte SA `lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com` und die nur drei Entitätsrechte enthaltende Custom Role `lszhQuarantineCasStaging` müssen nach **gesonderter, genauer Provisionierungsfreigabe** neu angelegt und ausschliesslich für die Quarantäne-Datenbank gebunden werden. Die Firestore-REST-Dokumentation bestätigt datenbankbezogene bedingte IAM-Bindungen und die erforderlichen Rechte `datastore.entities.get/create/update`. Nicht automatisch Owner-/Editor-/`roles/datastore.user` vergeben; keine Datenbank-/IAM-Mutation durch ein pauschales `Vamos` unterstellen.
+
+**Nächster erlaubter Test:** `gcloud firestore databases describe --database=lszh-quarantine-staging --project=lszh-automations` (nur Metadaten, Ausgabe ggf. NOT_FOUND) und `gcloud iam list-testable-permissions //cloudresourcemanager.googleapis.com/projects/lszh-automations` mit selektivem Filter nach den drei gewünschten Firestore-Entitätsrechten, um Custom-Role-Kompatibilität zu prüfen. Keine `create`, `update`, `grant` oder `add-iam-policy-binding`-Befehle ohne neue explizite Genehmigung.
+
 ## 17.10.2026 – Echte Quarantäne-IAM-Vorprüfung blockiert an separater Service-Identität (wie geplant, keine Änderung)
 
 **Vom Geschäftsführer ausgeführte reale Google Cloud Shell-Vorprüfung:** Nach `git pull --ff-only` auf GitHub-Feature-Branch `feature/onboarding-notification-outbox-20261016` bis Commit `a92a4f1` wurde `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` ausgeführt. Konsolenausgabe: `BLOCKED: Separate quarantine STAGING service identity absent or inaccessible. No identity created.`

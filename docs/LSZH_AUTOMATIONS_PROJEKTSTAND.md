@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Sichere Firestore-Datenbank-Einmal-Erstellung als gesperrtes Runbook vorbereitet
+
+**Anlass:** Nutzer antwortete auf die vorangehende Frage zur ausdrücklichen Zustimmung für die **kostenpflichtige Erstellung** einer separaten Datenbank nur mit `Vamos`. Da die bisherige verbindliche Projektregel explizit festhält, dass das allgemeine `Vamos` keine Kosten-/Cloud-Provisionierungsfreigabe ersetzt, erfolgte **keine** Datenbankerstellung, IAM-Änderung, Cloud-Run-Aktion oder reale Firestore-Schreiboperation. Der bestehende positive read-only GCP-Preflight bleibt gültig.
+
+**Technisch neu im Feature-Branch:** `workers/onboarding-notifications/staging-quarantine-db-provision.sh` und `.test.mjs`, Integration in den synthetischen GitHub-CI-Syntax-Check. Default `--plan` führt ausschliesslich bestehende read-only Prerequisite-Checks aus und beschreibt exakt das freizugebende Ziel: `lszh-quarantine-staging`, Projekt `lszh-automations`, Region `europe-west6`, Standard Edition, Firestore Native, **Löschschutz aktiviert**. Das Skript besitzt einen gesondert mit expliziter Approval-Umgebungsvariable zu entsperrenden `--create-once`-Modus; er wäre **erst nach einer eindeutigen Kosten-/Ressourcenfreigabe** zulässig. Vor dem genau einen `gcloud firestore databases create` erfolgt nochmalige frische Inventarprüfung; bei bereits existierender DB, falscher Identität, Git-Divergenz, Prerequisite-Fehler oder fehlendem Approval wird sicher gestoppt. Nach dem Erstellungsversuch würde ein separater Metadaten-Readback die Identität/Region/Edition/Löschschutz prüfen. Bei mehrdeutigem Ergebnis **kein** automatischer Retry. Kein Service-Account-/Rollen-/IAM-Grant, keine Dokumente, keine E-Mail.
+
+**Offline-Nachweis:** 8 neue synthetische Runner-Tests (Planmodus, fehlende Approval-Freigabe, genau ein gepinnter Create-Aufruf, bestehende DB, fehlgeschlagener Create ohne Retry, falscher Löschschutz, falsche Identität/Git und Shell-Syntax). GitHub Actions bestätigte **279/279 Tests bestanden** auf dem Review-Branch. Eine echte Firestore-Datenbank wurde **nicht** erstellt.
+
+**Nächster Schritt:** Separate ausdrückliche Zustimmung des Geschäftsführers für `lszh-quarantine-staging` samt möglicher nutzungsabhängiger Kosten einholen. Bis dahin nur `bash workers/onboarding-notifications/staging-quarantine-db-provision.sh --plan` zulässig. Anschliessend getrennte Freigaben für SA, minimalen IAM-Grant und die spätere synthetische Firestore-Write-Probe. Vorhandenes `lszh-offers-staging` und der historisch einmal ausgeführte erfolgreiche Airtable-Test bleiben unangetastet.
+
 ## 17.10.2026 – Reale, read-only Quarantäne-Provisionierungs-Vorprüfung vollständig PASS
 
 **Neue tatsächlich vom Geschäftsführer ausgeführte Cloud-Shell-Ausgabe** nach `git pull --ff-only` bis GitHub-Commit `9047b98`: `bash workers/onboarding-notifications/staging-quarantine-provisioning-readiness.sh --plan` lieferte exakt:

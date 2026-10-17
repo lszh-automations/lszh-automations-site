@@ -111,15 +111,22 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
   async function preview(code){
     const {offer}=await offerFor(code);
     if(await verifyBundle(offer.bundle)!==true)throw bad('archive_changed');
-    // Never expose email, archive file IDs, internal datastore IDs or token hash.
-    // Keep the established browser form contract: flat, display-only fields.
-    // Existing domain/API consumers may still use details and expires_at.
-    return {number:offer.offerNumber,test_only:syntheticOnly,
-      details:offer.details,
+    // Explicit response projection. Never expose arbitrary datastore fields,
+    // emails, archive IDs, free-form notes, or secrets accidentally put in details.
+    const visible={
       company:String(offer.details.company||''),
       service:String(offer.details.service||''),
-      once:offer.details.onceCHF??0,monthly:offer.details.monthlyCHF??0,
-      payment_model:String(offer.details.paymentModel||''),
+      onceCHF:offer.details.onceCHF??0,
+      monthlyCHF:offer.details.monthlyCHF??0,
+      paymentModel:String(offer.details.paymentModel||''),
+      ...(offer.bundle.avv_required==='Ja'?
+        {avvVersion:String(offer.details.avvVersion||'')}:{})
+    };
+    return {number:offer.offerNumber,test_only:syntheticOnly,
+      details:visible,
+      company:visible.company,service:visible.service,
+      once:visible.onceCHF,monthly:visible.monthlyCHF,
+      payment_model:visible.paymentModel,
       valid_until:offer.expiresAt.slice(0,10),
       terms_version:offer.termsVersion,expires_at:offer.expiresAt,
       quote_sha256:offer.bundle.quote.sha256,

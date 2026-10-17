@@ -7,6 +7,8 @@ const {eventId,makeDraft}=require('./outbox');
 const {STATUS}=require('./draft-review-gate');
 const {planQuarantine,STATES}=require('./quarantine-plan');
 const {buildQuarantineCommit}=require('./firestore-quarantine-cas');
+const {createScopedReader,ENABLE_FLAG}=require('./firestore-scoped-readers');
+const {toFirestore}=require('./firestore-store');
 
 const CODE='ob_12345678-1234-4234-8234-123456789abc';
 const OTHER_CODE='ob_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -238,4 +240,88 @@ test('integration module exports only the planner, not credential or send method
  assert.deepEqual(Object.keys(m),['reviewOnboardingForQuarantine']);
  for(const name of ['send','claim','persist','commit','createServer','run','deploy','auth'])
   assert.equal(name in m,false);
+});
+
+function scopedMock(scope,document,dbStatus=200) {
+ const details=scope==='outbox'?
+  {database:'lszh-offers-staging',collection:'lszh_onboarding_notification_drafts_staging',
+   email:'lszh-onboarding-outbox-staging@lszh-automations.iam.gserviceaccount.com'}:
+  {database:'lszh-quarantine-staging',collection:'lszh_onboarding_quarantine_cases_staging',
+   email:'lszh-quarantine-cas-stg@lszh-automations.iam.gserviceaccount.com'};
+ const metadata='http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/';
+ const url='https://firestore.googleapis.com/v1/projects/lszh-automations/databases/'+
+  details.database+'/documents/'+details.collection+'/'+ID;
+ const visits=[];
+ const fetchImpl=async(target,options)=>{
+  visits.push({url:target,method:options.method});
+  assert.equal(options.method,'GET');
+  const reply=(status,body)=>({status,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
+  if(target===metadata+'email')return reply(200,details.email);
+  if(target===metadata+'token')return reply(200,{
+   access_token:'long-synthetic-only-token-nonproduction-123456789abcdef',
+   token_type:'Bearer',expires_in:1800
+  });
+  if(target===url)return reply(dbStatus,document);
+  throw Error('cross_database_or_metadata_violation');
+ };
+ const reader=createScopedReader({scope,fetchImpl,env:{
+  [ENABLE_FLAG]:'true',LSZH_OUTBOX_STAGE_ENABLED:'false',
+  LSZH_SCOPED_READER_SCOPE:scope,FIRESTORE_PROJECT_ID:'lszh-automations',
+  FIRESTORE_DATABASE_ID:details.database
+ }});
+ return {reader,visits};
+}
+function outboxDocument() {
+ return {name:'projects/lszh-automations/databases/lszh-offers-staging/documents/'+
+  'lszh_onboarding_notification_drafts_staging/'+ID,
+  fields:toFirestore(DRAFT).fields,updateTime:'2026-10-17T15:39:00.123456Z'};
+}
+test('offline end-to-end: two independent STAGING identities read their own DBs before draft review and CAS summary',async()=>{
+ const source=scopedMock('outbox',outboxDocument());
+ const destination=scopedMock('quarantine',null,404);
+ const sourceRead=await source.reader.read(ID);
+ const destRead=await destination.reader.read(ID);
+ assert.equal(sourceRead.status,'VERIFIED_DRAFT');
+ assert.equal(destRead.status,'MISSING');
+ const f=fakeAirtable('processing');
+ const summary=await reviewOnboardingForQuarantine(input(f,{
+  draft:sourceRead.draft,firestoreReadStatus:destRead.readStatus,
+  firestoreDocument:destRead.document
+ }));
+ assert.equal(summary.status,'OFFLINE_CAS_REVIEW_REQUIRED');
+ assert.equal(summary.operation,'created');
+ assert.equal(summary.quarantineState,STATES.QUARANTINED);
+ protectedResult(summary);
+ assert.equal(source.visits.length,3);
+ assert.equal(destination.visits.length,3);
+ assert.ok(source.visits.every(v=>!v.url.includes('lszh-quarantine-staging')));
+ assert.ok(destination.visits.every(v=>!v.url.includes('lszh-offers-staging')));
+ assert.equal(source.visits.some(v=>v.method!=='GET'),false);
+ assert.equal(destination.visits.some(v=>v.method!=='GET'),false);
+});
+test('offline end-to-end: independent verified quarantine snapshot drives safe conditional update summary',async()=>{
+ const initial=snap({
+  status:STATUS.CURRENTLY_COMPLETE,reason:'FRESH_COMPLETE_EVIDENCE',
+  quarantineRecommended:false,deliveryAllowed:false,requiresManualApproval:true
+ });
+ const source=scopedMock('outbox',outboxDocument());
+ const destination=scopedMock('quarantine',initial);
+ const sourceRead=await source.reader.read(ID);
+ const destRead=await destination.reader.read(ID);
+ assert.equal(destRead.status,'VERIFIED_QUARANTINE_SNAPSHOT');
+ const f=fakeAirtable('processing');
+ const result=await reviewOnboardingForQuarantine(input(f,{
+  draft:sourceRead.draft,
+  firestoreReadStatus:destRead.readStatus,
+  firestoreDocument:destRead.document,
+  reviewedAt:'2026-10-17T15:40:05.000Z'
+ }));
+ assert.equal(result.status,'OFFLINE_CAS_REVIEW_REQUIRED');
+ assert.equal(result.operation,'updated');
+ assert.equal(result.expectedRevision,1);
+ assert.equal(result.proposedRevision,2);
+ protectedResult(result);
+ assert.ok(Object.isFrozen(destRead.document));
+ assert.equal(source.visits.length,3);
+ assert.equal(destination.visits.length,3);
 });

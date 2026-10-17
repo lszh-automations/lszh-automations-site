@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – V2-Ausführungsplan real erfolgreich geprüft, noch null Runs
+
+Der Geschäftsführer hat nach Git-Fast-Forward bis `ed55cb2` den strikt lesenden Befehl `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --plan` erfolgreich in Google Cloud Shell ausgeführt. **Echte Ausgabe:**
+```text
+PASS: Existing Job has immutable image, dedicated identity, safe env and file-mounted Secret v1.
+PASS: One task, parallelism one, retries zero, no overridden commands or args.
+PASS: Original failed job preserved with exactly its historic execution.
+PASS: Zero Cloud Run executions registered for this exact Job.
+PASS: Reviewed successful V2 Cloud Build and matching immutable registry digest.
+PASS: Company identity, Zurich-only secret v1 and secret-level SecretAccessor IAM.
+PASS: Cloud Run one-shot job configuration independently verified.
+PLAN ONLY: No live Airtable GET, Job execution, secret payload read or other writes.
+```
+**Freigabestatus:** Der V2-Job `lszh-airtable-read-probe-fix-staging` ist erstellt, aber bisher nie ausgeführt. Die ursprüngliche ausdrücklich erteilte Genehmigung galt nur der Job-Erstellung, **nicht** der Ausführung. Nächster Schritt ist nach separater ausdrücklicher Genehmigung genau einmal `bash workers/onboarding-notifications/staging-airtable-job-run-v2.sh --execute-once` über die authentifizierte Cloud Shell. Vor und unmittelbar vor Ausführung werden null vorhandene V2-Executions verlangt; bei jedem Fehler oder mehrdeutigem Resultat **nicht wiederholen**. Der Job soll einen einzigen Airtable-REST-GET mit frischem synthetischen fehlenden Projektcode ausführen; keine Mail, Make-Aktivierung, CRM-/Firestore-Schreibaktion. Nach dem Lauf die Ausführungs-Metadaten und datensparsame Logs prüfen; bis dahin kein Airtable-Live-Erfolg behaupten.
+
 ## 17.10.2026 – Erster V2-Airtable-GET: einmalige Ausführung nur vorbereitet, noch NICHT autorisiert
 
 **Getrenntes Skript im nur unmerged Review-Branch:** `workers/onboarding-notifications/staging-airtable-job-run-v2.sh` (abgeleitet von altem One-Shot-Runner, dessen ursprüngliche gescheiterte Jobversion ausdrücklich unangetastet bleibt). Standardmodus `--plan` liest allein Build-/Image-Metadaten, gepinnte fünf Quell-Dateien, aktives Cloud-Konto, Service Account, Zürich-Secret-Version-1-IAM, die originale einzelne fehlgeschlagene Execution sowie **exakte V2-Job-Konfiguration und V2-Execution-Zahl 0**. Bei vorhandener Execution, falschem Digest/SA/Umgebungs-Flag, unerwarteter Job-Konfiguration oder geändertem Original wird **kein Lauf ausgelöst**. Nur der explizite Modus `--execute-once` würde nach doppelter Prüfung auf null V2-Executions den bestehenden `lszh-airtable-read-probe-fix-staging` genau einmal mit `--wait` starten, ohne Build/Update/Deploy, keine automatische oder blinde Wiederholung. Die Runtime ist auf **genau einen synthetischen Airtable-REST-GET** gegen abwesenden Projektcode begrenzt; Outbox bleibt deaktiviert. Mock-Tests für Plan, exakt einen Run, historischen Originalzustand, v1/v2-Cloud-Run-Metadaten, fehlerhafte Secret-/IAM-/Image-/Environment-Konfiguration und keine Wiederholung ergänzt; Workflow-Syntaxprüfung hinzugefügt. **Bisher kein V2-Job ausgeführt.**

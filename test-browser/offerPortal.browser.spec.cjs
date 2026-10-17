@@ -227,12 +227,13 @@ test('TEMP CLOUD-ONLY STATIC DEMO: real Chromium displays existing demo and neve
   await expect(page.locator('#submit')).toBeDisabled();
   await page.locator('#quotePdf').click();
   await expect(page.locator('#message')).toContainText('keine echten Vertragsdokumente');
-  const apiResult=await page.evaluate(async()=>{
-    const res=await fetch('/api/offer/accept',{method:'POST',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify({code:'NOT_REAL'})});
-    return {status:res.status,body:await res.json()};
-  });
-  expect(apiResult).toEqual({status:503,body:{error:'not_available'}});
+  // The demo CSP has connect-src 'none', so normal browser fetches are
+  // correctly blocked before reaching the server. A test-driver HTTP call
+  // separately verifies the server-side contract endpoint is also hard-off.
+  const apiResult=await page.request.post(base+'/api/offer/accept',{
+    data:{code:'NOT_REAL'}});
+  expect(apiResult.status()).toBe(503);
+  expect(await apiResult.json()).toEqual({error:'not_available'});
   const preview=await page.request.get(base+'/offerte-annehmen/?code=NOT_REAL');
   expect(preview.status()).toBe(503);
   await page.reload();

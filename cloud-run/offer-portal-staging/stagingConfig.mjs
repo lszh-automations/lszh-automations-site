@@ -31,6 +31,7 @@ export function stagingConfig(env={}){
   if(url.username||url.password||url.pathname!=='/'||url.search||url.hash ||
      (url.hostname!=='lszh-offer-portal-staging-'+
        '470613067122.europe-west6.run.app' &&
+      url.hostname!=='lszh-offer-portal-staging-ozx7mp2bka-oa.a.run.app' &&
       url.hostname!=='portal-staging.lszh-automations.ch'))
     throw Error('staging_origin_invalid');
   // Explicit single secret, never check into GitHub.

@@ -86,9 +86,9 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 </form>
 </div>
 <div id="completed" class="hidden" role="status" aria-live="polite">
-<h2>Vielen Dank – Ihre Annahme wurde gespeichert.</h2>
+<h2 id="completedTitle">Vielen Dank – Ihre Annahme wurde gespeichert.</h2>
 <p id="receipt"></p>
-<p>Sie erhalten eine elektronische Bestätigung an die angegebene Geschäftsadresse. Falls sie ausbleibt, wenden Sie sich bitte an <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a>.</p>
+<p id="emailFollowup">Sie erhalten eine elektronische Bestätigung an die angegebene Geschäftsadresse. Falls sie ausbleibt, wenden Sie sich bitte an <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a>.</p>
 </div>
 </section>
 <footer>LSZH Automations · Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8, 5610 Wohlen AG · <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></footer>
@@ -219,8 +219,16 @@ avv_version:current.avv_required===true?current.avv_version:null
 });
 review.classList.add('hidden');message.classList.add('hidden');
 completed.classList.remove('hidden');
-txt('receipt','Offerte '+result.offer_number+' wurde verbindlich angenommen und protokolliert.'+
-(result.confirmation_email_pending?' Der Versand der E-Mail-Bestätigung wird noch verarbeitet.':''));
+if(result.test_only===true){
+  // A synthetic result is not a legally binding agreement or email promise.
+  txt('completedTitle','Synthetischer Test abgeschlossen – kein Vertrag');
+  txt('receipt','Die Testofferte '+String(result.offer_number||'')+
+    ' wurde nur in der isolierten Testumgebung verarbeitet.');
+  document.getElementById('emailFollowup').classList.add('hidden');
+}else{
+  txt('receipt','Offerte '+result.offer_number+' wurde verbindlich angenommen und protokolliert.'+
+  (result.confirmation_email_pending?' Der Versand der E-Mail-Bestätigung wird noch verarbeitet.':''));
+}
 }catch(err){
 setMessage(errors[err.message]||errors.temporarily_unavailable,'error');
 button.disabled=false;button.textContent='Offerte verbindlich annehmen';

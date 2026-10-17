@@ -1,5 +1,14 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Einziger echter synthetischer Source→Quarantäne-E2E-Run gestartet (Status offen)
+
+**Geschäftsführer hat in Cloud Shell genau einmal manuell ausgeführt:** `gcloud run jobs execute lszh-quarantine-source-e2e-staging --project=lszh-automations --region=europe-west6 --async`. Google Cloud quittierte **`Execution [lszh-quarantine-source-e2e-staging-slhkc] is being started asynchronously.`** und lieferte den Link zur Ausführungsübersicht: `https://console.cloud.google.com/run/jobs/executions/details/europe-west6/lszh-quarantine-source-e2e-staging-slhkc?project=470613067122`.
+
+**Ab jetzt STRICT NO RETRY:** Die Ausführung `lszh-quarantine-source-e2e-staging-slhkc` ist definitiv registriert. Nicht noch einmal `jobs execute` aufrufen, weder manuell noch automatisch, unabhängig von Erfolg/Fehler der laufenden Execution. Das reine Start-Acknowledgment ist **noch kein E2E-Erfolg**. Staging-Draft könnte bereits im Firestore gespeichert sein; Replay-Claim könnte bereits geschrieben sein; jeden partiellen Erfolg als potenziell committed behandeln. Zu prüfen sind 1) Cloud Run Execution-Endstatus, 2) gefiltertes Quelljob-Log ohne Secret/Fixture-Exposition, 3) read-only Firestore-Draft-Readback und ggf. private Receiver-Quarantäne-Replay-Claim-Nachweis. Keine produktiven Kunden, keine E-Mails, keine Annahmen.
+
+**Nächste ausschliesslich lesende Cloud-Shell-Prüfung:** `gcloud run jobs executions describe lszh-quarantine-source-e2e-staging-slhkc --project=lszh-automations --region=europe-west6 --format='yaml(status.conditions,status.startTime,status.completionTime,status.succeededCount,status.failedCount)'`. Bei STATUS/PASS oder Fehlstatus gezielt Logs auslesen; niemals denselben Job erneut starten. Keine weitere Bereitstellung/Secrets/Build nötig, solange keine neue Diagnose dies begründet.
+
+
 ## 17.10.2026 – Unabhängige Live-E2E-Job-Verifikation vollständig PASS (keine Ausführungen)
 
 **Echte Cloud-Shell-Ausgabe des Geschäftsführers:** Nach `git pull --ff-only` auf Commit `2206c30` wurde `bash workers/onboarding-notifications/staging-synthetic-e2e-source-job.sh --verify-only` rein lesend erfolgreich ausgeführt. PASS für Geschäftsidentität, korrekt privaten Quarantäne-Receiver, drei auf Version 1 festgelegte Secret-Zugriffe, unveränderte fünf Altjobs und lokale Fixture. `SOURCE CONTENT FINGERPRINT: 0aa2e20a65e2`; `NEW SOURCE JOB STATUS: EXISTS`; `PASS: New synthetic source E2E Job pinned to built SHA256, exact outbox SA, 3 secret version 1 references, 512Mi, one task, no retries`; `PASS: ZERO executions`. **Damit ist die technische Ausführungsvorbereitung real bestätigt und abgeschlossen.**

@@ -1,5 +1,9 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 17.10.2026 – Lesender Zugriffstest vor Datenbankabfrage gestoppt
+
+Der Geschäftsführer führte nach der erfolgreichen IAM-Nachkontrolle einen gesondert freigegebenen Zugriffstest aus. Die vorgelagerte IAM-Metadatenprüfung war erfolgreich. Die anschliessende Identitätsübernahme schlug mit `BLOCKED: IMPERSONATION_UNAVAILABLE` fehl. Somit wurden in diesem Lauf **keine Firestore-Dokumentanfragen** gestellt. Die Wirksamkeit der Datenbank-Isolation ist weiterhin nicht nachgewiesen. **Keine IAM-Anpassungen oder Wiederholungen vor Diagnose.** Nächste Aktion: rein lesende Kontrolle der IAM-Credentials-API und der zugewiesenen Rechte an der neuen Service-Identität. Der echte Firestore-Schreibtest und Deployments bleiben gesperrt.
+
 ## 17.10.2026 – Zweite unabhängige IAM-Metadatenprüfung der Quarantäne-Staging-Konfiguration PASS
 
 **Tatsächlich vom Geschäftsführer ausgeführt:** `git pull --ff-only` auf `feature/onboarding-notification-outbox-20261016` bis `116cf02`, anschliessend `bash workers/onboarding-notifications/staging-quarantine-iam-preflight.sh --plan` im geschäftlichen Google-Cloud-Kontext. Die von ihm bereitgestellte Terminalausgabe:

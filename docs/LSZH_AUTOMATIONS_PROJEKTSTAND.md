@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Vollständig fiktives PDF-Testpaket AVV Ja/Nein mit echten SHA-256-Abnahmen PASS
+
+**Umgesetzt (noch ausschliesslich offline):**
+- Vier valide, unabhängige, einseitige, ausdrücklich **nicht bindende PDFs** (zwei fiktive Offerten AVV Ja/Nein, eine synthetische Projektbedingungen-PDF `TEST_v1.0_RC1`, eine synthetische AVV `TEST_ONLY_AVV_v1.0_RC1`) plus `manifest.json`. ZIP für Betreiber **`LSZH_Synthetic_PDF_Testpaket_20261018.zip`** als Chat-Artefakt erstellt. Kein Upload in einen Google-Drive-Ordner.
+- Versionierter, rein lokaler Node.js-Generator `scripts/offerSyntheticPdfFixtures.mjs`: vier deterministische PDF-Bytes mit Golden SHA-256, Write-Once-Dateien, `synthetic@example.invalid`, explizit `TEST...NO_CONTRACT`. Manifest flags `cloudUploaded/legallyApproved/acceptanceEnabled/deliveryEnabled/archiveVerified/tokenConfigured=false`, `driveFileId=null`. Nutzer-ZIP wurde gerendert, mittels PDF-Tools ausgelesen und SHA-geprüft; golden SHA-Tests bestätigen bytegenaue Übereinstimmung mit GitHub-Code.
+- Regression `test/offerSyntheticPdfFixtures.test.js`: Originalarchivprüfer aus `archiveBundleVerifier.mjs` prüft **echte lokale PDF-Bytes** gegen simulierte Drive-Metadaten einschliesslich Dateigrösse, Ordner-Parent, SHA-256, MIME und `contentRestrictions.readOnly=true`. AVV `Ja` enthält genau drei Dokumente, AVV `Nein` genau zwei und verweigert den dritten Download. Manipulierte Bytes, falscher Ordner und entsperrtes PDF werden zurückgewiesen. Der synthetische Portal-Preview lässt keine Claim-/Mail-Aktion zu.
+- **CI-Abnahme:** GitHub Actions [39077734136](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39077734136) vollständig **SUCCESS**: **107/110 Funktionstests PASS, 3 planmässige SKIP**, **6/6 Chromium**, **12/12 Firestore-Emulator**, Docker-Offlinebuild PASS.
+
+**Wichtiger neuer Live-Google-Drive-Befund (read-only):** Der in `STAGING.archiveFolderId` hinterlegte Ordner war für die aktuell verbundene Drive-Identität **nicht zugänglich (404)**. Ein über Drive-Suche auffindbarer Ordner **«LSZH Vertragsarchiv – STAGING (nicht produktiv)»** ist im *privaten* Google-Konto und laut Metadaten `shared=false`. Er ist **nicht** mit der im Code hinterlegten Archiv-ID identisch. Ein 404 ist **kein** Beleg dafür, dass der bisher konfigurierte Ordner unter einer anderen Identität nicht existiert. Das bestehende private Archiv wird **nicht** freigegeben und die konfigurierte ID wird **nicht** blind geändert. Keine Besitzer-E-Mail-/private ID in das öffentliche Projektprotokoll aufnehmen.
+
+**Go/No-Go-Plan:** `docs/LSZH_SYNTHETIC_PDF_DRIVE_GATE_20261018.md`. Vor realer Cloud-/Drive-PDF-E2E: einen gesonderten, leeren, nur synthetischen Testordner bestimmen, seine korrekte Eigentümerschaft und minimale Rechte für die temporäre Google-Cloud-Dienstidentität sichern, dann die vier PDFs einzeln hochladen und tatsächliche IDs/Parent/Hashes/ReadOnly-Status **nach** Upload verifizieren. Lokaler Airtable-Importer bleibt emulator-only. Cloud Run Hauptservice `lszh-offer-portal-staging`, IAM, Traffic, Render, Make, Kunden, Vertragsannahme, E-Mails und echte RC1-Dokumente **unverändert**.
+
+---
+
+
 ## 18.10.2026 – Sichtprüfung im Cloud-Shell-Browser: statische Offertenvorschau PASS
 
 **Direkter Nachweis des Betreibers:** Screenshot aus Google Cloud Shell Web Preview auf dem IAM-authentifizierten lokalen Cloud-Run-Proxy. Aufgerufen wurde der Pfad `/offerte-annehmen/?demo=1`; im Browser wurde die vorhandene LSZH-HTML-Offertenoberfläche mit Logo, Test-Offerte `MUSTER-2026-001`, `Muster KMU AG`, Leistung `Automatisierter Anfrageprozess`, `CHF 1'490` Einmalumsetzung, `CHF 149 / Monat`, Zahlungsmodell, Gültigkeit `30.11.2026` und Abschnitt für die PDF-Dokumente sichtbar korrekt gerendert. Sichtbarer Banner: `Dies ist eine Designvorschau. Es gibt keine echten Vertragsdokumente.` Der Screenshot ist ein **visueller Browser-Render-Nachweis**, aber kein separater Beleg für echte PDF-Downloads oder Vertragsannahmen.

@@ -1,6 +1,6 @@
 # LSZH Automations – aktueller Projektstand
 
-Stand: 19.10.2026 (Europe/Zurich). Dokumentationsabgleich auf Basis der Nachweise bis 18.10.2026; keine neue Live-Systemprüfung.
+Stand: 19.10.2026 (Europe/Zurich). Cloud-Run-Servicekonfiguration am 19.10.2026 vom Betreiber per read-only Cloud-Shell-Ausgabe bestätigt; übrige Nachweise bis 18.10.2026.
 
 ## Verbindliche Übergabe – hier weiterarbeiten
 
@@ -8,9 +8,9 @@ Stand: 19.10.2026 (Europe/Zurich). Dokumentationsabgleich auf Basis der Nachweis
 
 **Letztes abgeschlossenes Ergebnis:** Der Betreiber hat die synthetische Cloud-Testofferte samt Quellenindex genau einmal in Firestore angelegt. Readback und Exit-Code 0 bestätigt. Anschliessend wurde der Browser-Testpfad korrigiert; [CI 39170177538](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39170177538) laut dokumentiertem Nachweis erfolgreich.
 
-**Nächste Arbeit:** Vorhandene Cloud-Run-Konfiguration, Test-Erreichbarkeit, Laufzeit-Secret und Build-/Registry-Voraussetzungen lesen; danach den bereits freigegebenen privaten synthetischen Cloud-Test im genehmigten Umfang durchführen. Keine neue Annahme-Testrevision ist bisher als deployed bestätigt.
+**Nächste Arbeit:** Verfügbare Secret-Namen sowie IAM-Invoker-Prüfung des bestehenden Browserdienstes lesen, dann den privaten Testweg konkret vorbereiten. Kandidat ist die Wiederverwendung des vorhandenen Browserdienstes; dessen aktuelle reine Demo-Konfiguration lässt sich nicht unverändert als vollständiges Portal betreiben. Noch kein Deployment-Auftrag und kein vollständiger Live-Annahmetest.
 
-**Konkreter Blocker:** `lszh-offer-portal-staging` hat zuletzt dokumentiert `ingress=internal`. Ein IAM-Token und eine 0%-Traffic-Revision mit Tag allein schaffen keinen externen Browserzugang. Der temporäre Browserdienst hat nicht automatisch die erforderlichen Firestore-Rechte. Den passenden Testzugang anhand der vorhandenen Ressourcen festlegen.
+**Konkreter Blocker:** Betreiber-Ausgabe vom 19.10.: Portal `lszh-offer-portal-staging`, `ingress=internal`, Runtime `lszh-offer-portal-staging@lszh-automations.iam.gserviceaccount.com`, 100 % auf `00004-qt7`, keine Container-Env-Einträge. Browserdienst `lszh-offer-browser-staging`, `ingress=all`, Runtime `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`, 100 % auf `00006-h5w`; Demo-/Drive-Probe-Env-Namen vorhanden, keine Secret-Verweise in diesen Einträgen. Env-Werte wurden nicht ausgegeben. Das beweist weder das Fehlen von Secrets im Projekt noch aktuelle IAM-Privatheit. Quellcode bindet vollständiges Portal an ursprünglichen Servicenamen, Origin und Portal-Dienstkonto; der Browserdienst benötigt daher einen gezielt vorbereiteten Testpfad, keine blinde Deployment-Kopie.
 
 **Nicht wiederholen:** Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 

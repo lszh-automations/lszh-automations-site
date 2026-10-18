@@ -19,13 +19,13 @@ function doc(){
  return {tokenHash:hash,status:'sent',approved:true,revision:1,
   termsVersion:'TEST_v1.0_RC1',expiresAt:'2099-12-31T23:59:59.000Z',
   recipientEmail:'synthetic@example.invalid',offerNumber:'TEST_ONLY_'+suffix,
-  details:{company:'Example Synthetic AG'},
+  details:{company:'Example Synthetic AG',avvVersion:'TEST_ONLY_AVV_v1.0'},
   bundle:{avv_required:'Ja',quote:refs.quote,terms:refs.terms,avv:refs.avv}};
 }
 function body(){
  return {name:'Synthetischer Empfaenger',email:'synthetic@example.invalid',
   authorized:true,accept_quote:true,accept_terms:true,accept_avv:true,
-  quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,avv_sha256:refs.avv.sha256};
+  quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,avv_sha256:refs.avv.sha256,avv_version:'TEST_ONLY_AVV_v1.0'};
 }
 if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR || process.env.GCLOUD_PROJECT!==PROJECT){
  test('emulator must be explicitly enabled; no real Firestore fallback', {skip:true},()=>{});
@@ -52,6 +52,7 @@ if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR || process.env.GCLOUD_PROJECT!
   assert.equal(current.status,'accepted');
   assert.equal(current.revision,2);
   assert.equal(current.evidence.avv_required,true);
+  assert.equal(current.evidence.avv_version,'TEST_ONLY_AVV_v1.0');
   assert.deepEqual(current.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
   await assert.rejects(()=>portal.accept(token,body()));
  });

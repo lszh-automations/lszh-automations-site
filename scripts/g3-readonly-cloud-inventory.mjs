@@ -22,7 +22,8 @@ const allowedCommandHeads=new Set([
   'pubsub subscriptions list','iam service-accounts list',
   'projects get-iam-policy','pubsub topics get-iam-policy',
   'pubsub subscriptions get-iam-policy','iam service-accounts get-iam-policy',
-  'run services list','run services get-iam-policy'
+  'run services list','run services get-iam-policy',
+  'iam roles describe'
 ]);
 const safeError=()=>({ok:false,error:'UNAVAILABLE_OR_PERMISSION_DENIED'});
 const isObject=v=>v && typeof v==='object'&&!Array.isArray(v);
@@ -33,6 +34,7 @@ export function validateCommand(args){
   const head=args.slice(0,args.indexOf('--project='+PROJECT)).join(' ');
   const legal=[...allowedCommandHeads].some(s=>head===s||
     (s==='projects describe'&&head==='projects describe '+PROJECT)||
+    (s==='iam roles describe'&&head==='iam roles describe roles/pubsub.serviceAgent')||
     (s==='projects get-iam-policy'&&head==='projects get-iam-policy '+PROJECT)||
     (s==='pubsub topics get-iam-policy'&&head==='pubsub topics get-iam-policy '+TOPIC)||
     (s==='pubsub subscriptions get-iam-policy'&&head==='pubsub subscriptions get-iam-policy '+SUB)||

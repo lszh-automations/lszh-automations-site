@@ -26,6 +26,8 @@ on:
       - 'test/offerReceiptArchiveReconciliation.test.js'
       - 'test/offerReceiptUploadContract.test.js'
       - 'test/offerReceiptDocumentHandoff.test.js'
+      - 'test/offerCloudSyntheticSeedOnce.test.js'
+      - 'scripts/offer-cloud-synthetic-seed-once.mjs'
       - 'test/offerReceiptProcessingLock.test.js'
       - 'test/offerReceiptMakeReservationContract.test.js'
       - 'test/offerSyntheticSourceIndex.test.js'
@@ -143,6 +145,8 @@ jobs:
           node --check test/temporaryDriveProbe.test.js
           node --check test/temporaryBrowserDemo.test.js
           node --check scripts/offerSyntheticPdfFixtures.mjs
+          node --check scripts/offer-cloud-synthetic-seed-once.mjs
+          node --check test/offerCloudSyntheticSeedOnce.test.js
           node --check test/offerSyntheticPdfFixtures.test.js
           node --check cloud-run/offer-portal-preflight/index.js
           node --check cloud-run/offer-portal-transaction-smoke/index.js

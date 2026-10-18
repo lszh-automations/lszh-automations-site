@@ -75,6 +75,8 @@ test('Firestore broad permissions, quarantine read and presumed service-agent gr
     x=>{x.runtime.database='lszh-quarantine-staging';},
     x=>{x.runtime.serviceAccount=x.push.serviceAccount;},
     x=>{x.runtime.permissions.push('datastore.entities.delete');},
+    x=>{x.runtime.permissions=x.runtime.permissions.filter(
+      permission=>permission!=='datastore.databases.get');},
     x=>{x.runtime.effectiveIamVerified=true;},
     x=>{x.runtime.quarantineAccess=true;},
     x=>{x.serviceAgent.tokenPermissionState='GRANTED_AUTOMATICALLY';},

@@ -77,3 +77,9 @@ dass exakt und unbedingt ausschliesslich das G3-Push-SA den Invoker
 besitzt. Fehler => `PARTIAL_APPLY_HALTED`, keine Subscription.
 Das ist **keine** vollständige Effective-IAM-Prüfung. Keine Änderung
 in Google Cloud ausgeführt; alle bestehenden NO-GO-Bedingungen gelten.
+
+## Aktueller Image-Stand, 18.10.2026 (ersetzt die frühere Aussage «Image noch nicht gebaut»)
+
+Das synthetische Canary-Image wurde inzwischen **ausschliesslich als lokaler CI-Kandidat** gebaut, zweimal reproduzierbar auf identischen OCI-Manifest-Digest geprüft, im isolierten Container gestartet und mit Trivy/CycloneDX gescannt. Es befindet sich **nicht** in Artifact Registry, wurde **nicht** gepusht, nicht deployed und nicht signiert. Die jüngste bereinigte Kandidatenversion besitzt den lokalen OCI-Manifest-Digest sha256:83e32f0966e511168af5c65e4179fb94f415388aaedf47a960e28f804412097c; dieser Wert darf **nicht** als GCP-Registry-Image-Digest ausgegeben werden.
+
+Der npm-freie Runtimebuild hat im unabhängigen Nachscan 0 HIGH/CRITICAL, 1 MEDIUM (zlib CVE-2026-85091, Fix-Version laut Trivy 1.3.2-r1). Ein nachgelagerter CI-Gate verweigert HIGH/CRITICAL. Provenance bleibt unsigniert und der Bootstrap-`--apply`-Pfad ungeprüft für einen echten Change, deshalb **NO_GO**. Vor jedem GCP-Upload oder G3-Apply weiterhin die separate Betreiberfreigabe einholen. Siehe docs/LSZH_G3_IMAGE_RELEASE_GATES_20261018.md.

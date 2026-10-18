@@ -160,6 +160,8 @@ test('preview returns only offer information, never Drive IDs or stored recipien
 });
 test('AVV Ja rejects version mismatch before writing',async()=>{
  const {portal,data}=await make('Ja');
+ await rejects(()=>portal.accept(token,{...accepted('Ja'),avv_version:null}),
+   /document_changed/);
  await rejects(()=>portal.accept(token,{...accepted('Ja'),avv_version:'wrong-version'}),
    e=>e.code==='document_changed');
  equal(data.state().updates,0);

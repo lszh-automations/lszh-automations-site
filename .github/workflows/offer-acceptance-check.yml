@@ -28,6 +28,7 @@ on:
       - 'test/offerReceiptProcessingLock.test.js'
       - 'test/offerReceiptMakeReservationContract.test.js'
       - 'test/offerSyntheticSourceIndex.test.js'
+      - 'test/offerSyntheticMakeCallerAuth.test.js'
       - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
@@ -114,6 +115,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
           node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
           node --check cloud-run/offer-portal-staging/syntheticSourceIndex.mjs
+          node --check cloud-run/offer-portal-staging/syntheticMakeCallerAuth.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -138,6 +140,7 @@ jobs:
           node --check test/offerReceiptProcessingLock.test.js
           node --check test/offerReceiptMakeReservationContract.test.js
           node --check test/offerSyntheticSourceIndex.test.js
+          node --check test/offerSyntheticMakeCallerAuth.test.js
           node --check test/offerSyntheticSourceIndex.emulator.test.js
           node --check test/offerReceiptProcessingLock.emulator.test.js
           node --check test/offerPortalDocuments.test.js

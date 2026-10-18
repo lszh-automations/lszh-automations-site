@@ -1,5 +1,13 @@
 # LSZH Automations – MVP-Fokus und nächster Pilot
 
+## 18.10.2026 – Kundenfassung der Projektbedingungen im Geschäfts-Drive vorbereitet
+
+Der Betreiber hat die Geschäftsbedingungen intern bereits angenommen. Im verbundenen **geschäftlichen** Google Drive wurde ein neues Google Doc im vorhandenen Ordner `Projektbedingungen` erstellt: [LSZH Projektbedingungen v1.0 RC1 – Endkontrolle, NICHT VERSENDEN](https://docs.google.com/document/d/1gXc0H0d9KnV0mYFI35W7GmA03L38IUuNtvjwkfXntTI). Quelle war die vollständige 4-seitige Originalfassung der ChatGPT-Dateibibliothek; 16/16 Abschnitte im Google-Docs-Readback und exportiertem 5-seitigem A4-PDF geprüft. Alte RC1-Entwurfs-Kopf-/Fusszeilen, der alte Freigabehinweis und die ausdrücklichen Formulierungen «Regelvorschlag», «noch zu prüfender Vertragsvorschlag» wurden entfernt, **ohne Care-/Abnahme-/Haftungsparameter materiell zu ändern**. Dies ist eine **neue redaktionell bearbeitete Version** und darf trotz interner geschäftlicher Zustimmung nicht automatisch als rechtlich final und versandbereit ausgegeben werden.
+
+PDF wurde aus dem geschäftlichen Google Doc erzeugt und lokal auf Seitenzahl, vollständige Abschnitte und offensichtliche Entwurfsmarker geprüft. **Ein eigenständiger PDF-Upload in denselben Drive-Ordner war wegen eines Dateiübergabe-Schemafehlers des Google-Drive-Connectors nicht möglich.** Deshalb ist bisher nur das native Google Doc nachweislich im Geschäftsordner, nicht die PDF. Keine Dokument-ID/SHA in Airtable oder Make umgestellt, keine E-Mails, keine Kundenaktion. Nächster praktische Schritt: PDF-Export im Geschäftskonto als eigenständige Datei im Ordner ablegen oder über ein unterstütztes connector-natives Verfahren hochladen, letzten Textabgleich/AVV-Anlagen für konkrete Offerte klären und erst dann den vorhandenen Online-Kundenprozess anbinden. Das bestehende synthetische Browser-/Backend-Modell unterstützt Offerte, Bedingungen und optionale AVV bereits.
+
+---
+
 ## Verbindliches MVP-Ziel – Kundin oder Kunde akzeptiert alles online
 
 **Korrektur durch Betreiber am 18.10.2026:** Die Geschäftsbedingungen sind **geschäftlich bereits akzeptiert**. Die drei ursprünglichen Verhandlungspunkte (Care, Abnahme, Haftungsregel) werden **nicht erneut zur unternehmerischen Abstimmung vorgelegt**. AVV RC1 bleibt die früher intern provisorisch akzeptierte Arbeitsversion; ihre Anlagen müssen pro Kunde ausgefüllt werden. Dies ist **keine behauptete anwaltliche Prüfung** und keine automatische Freigabe für reale Online-Vertragsabschlüsse.

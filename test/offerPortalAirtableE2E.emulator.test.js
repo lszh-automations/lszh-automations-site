@@ -89,14 +89,16 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    {timeout:90000},async t=>{
    const [{Firestore},{SOURCE,mapSyntheticAirtableOffer,seedOnlyLocalEmulator},
     {createOfferPortal},{createOfferPortalHttp},{createFirestoreOfferStore},
-    {verifyArchiveBundle},{prepareSyntheticReceiptDocument}]=await Promise.all([
+    {verifyArchiveBundle},{prepareSyntheticReceiptDocument},
+    {prepareSyntheticAirtableAcceptanceHandoff}]=await Promise.all([
     Promise.resolve(loadSDK('@google-cloud/firestore')),
     import('../cloud-run/offer-portal-staging/airtableSyntheticImport.mjs'),
     import('../cloud-run/offer-portal-staging/portalCore.mjs'),
     import('../cloud-run/offer-portal-staging/portalHttp.mjs'),
     import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs'),
     import('../cloud-run/archive-reader-staging/archiveBundleVerifier.mjs'),
-    import('../cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs')
+    import('../cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs'),
+    import('../cloud-run/offer-portal-staging/receiptAirtableHandoff.mjs')
    ]);
    const db=new Firestore({projectId:PROJECT,databaseId:DATABASE});
    const token=randomBytes(36).toString('base64url');
@@ -205,6 +207,36 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal(documentPlan.mapper.content.includes('AVV-Version:'),mode==='Ja');
    assert.equal(documentPlan.canExportPdf,false);
    assert.equal(documentPlan.canSendEmail,false);
+   // Connect the same accepted Firestore document to the EXISTING Airtable
+   // Offerten field contract used by inactive Make confirmation scenarios.
+   // Pure handoff only: no HTTP PATCH, no customer status change.
+   const airtablePlan=prepareSyntheticAirtableAcceptanceHandoff(end);
+   assert.equal(airtablePlan.action,'DO_NOT_PATCH');
+   assert.equal(airtablePlan.baseId,SOURCE.base);
+   assert.equal(airtablePlan.tableId,SOURCE.table);
+   assert.equal(airtablePlan.recordId,source.id);
+   assert.equal(airtablePlan.fields.Status,'Angenommen');
+   assert.equal(airtablePlan.fields['Vertragsunterlagen akzeptiert'],true);
+   assert.equal(airtablePlan.fields['Online-Annahme Zeitstempel'],end.acceptedAt);
+   assert.equal(airtablePlan.fields['Online-Annahme Vertragsversion'],VERSION);
+   assert.equal(airtablePlan.fields['Online-Annahme E-Mail'],end.recipientEmail);
+   assert.equal(airtablePlan.fields['Online-Annahme Offerten-SHA256'],docs.quote.sha256);
+   assert.equal(airtablePlan.fields['Online-Annahme Bedingungen-SHA256'],docs.terms.sha256);
+   assert.equal(airtablePlan.fields['AVV erforderlich'],mode);
+   assert.equal(airtablePlan.fields['Online-Annahme AVV ausdrücklich akzeptiert'],mode==='Ja');
+   assert.equal(airtablePlan.fields['Online-Annahme AVV-Version'],
+     mode==='Ja'?'TEST_ONLY_AVV_v1.0_RC1':undefined);
+   assert.equal('Online-Annahme rechtlich freigegeben' in airtablePlan.fields,false);
+   assert.equal('Online-Annahme Offerten-Archivstatus' in airtablePlan.fields,false);
+   assert.equal('Online-Annahme Beleg Drive ID' in airtablePlan.fields,false);
+   assert.equal('Online-Annahme Bestätigung gesendet am' in airtablePlan.fields,false);
+   assert.equal(airtablePlan.canWriteAirtable,false);
+   const altered=structuredClone(end);
+   altered.evidence.email='different@example.invalid';
+   assert.throws(()=>prepareSyntheticAirtableAcceptanceHandoff(altered),
+     /synthetic_airtable_handoff_unavailable/);
+   // Confirm that test execution leaves the original Airtable record untouched.
+   assert.equal((await ref.get()).data().status,'accepted');
   });
  }
 }

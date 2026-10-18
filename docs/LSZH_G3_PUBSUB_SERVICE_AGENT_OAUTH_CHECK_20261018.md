@@ -1,5 +1,28 @@
 # LSZH Automations – G3: Service-Agent-IAM und Make-OAuth, nächste sichere Prüfung
 
+## Dritter echter Live-Read – 18.10.2026: Definition und direkte Rolle BEIDE bestätigt
+
+**Betreiberergebnis:** Der unveränderte, nur lesende Geschäfts-Cloud-Shell-Aufruf auf dem korrigierten Draft-Branch lieferte exakt:
+
+| Kontrollwert | Bestätigtes Ergebnis | Tragweite |
+| --- | --- | --- |
+| `result` | `READ_ONLY_ROLE_DEFINITION_CHECK` | Nur Leseprüfung |
+| `projectIdentityVerified` | `true` | Projekt `lszh-automations` bestätigt |
+| `roleDefinitionPermission` | **`PRESENT_IN_PREDEFINED_ROLE`** | Googles tatsächlich ausgelesene vordefinierte Rolle `roles/pubsub.serviceAgent` enthält `iam.serviceAccounts.getOpenIdToken` |
+| `roleReadVariant` | **`PREDEFINED_UNSCOPED_FALLBACK`** | Der dokumentierte Aufruf **ohne `--project`** lieferte die prüfbare Rollendefinition |
+| `serviceAgentProjectBinding` | **`DIRECT_UNCONDITIONAL_BINDING_FOUND`** | Die Rolle ist direkt und ohne IAM-Condition für den Pub/Sub-Service-Agent im GCP-Projekt gebunden |
+| `plannedPushSa` | `ABSENT_IN_THIS_LIST` | Das neue Push-Invoker-Dienstkonto ist noch nicht erstellt |
+| `serviceAgentEffectiveOidc`, `groupDenyPab` | Je **`NOT_EVALUATED`** | Effektive Rechte und Deny/PAB-Vererbung nicht abgenommen |
+| `publishAndPushTransport` | `NOT_TESTED` | Keine reale Pub/Sub-Zustellung |
+| `tokenCreatorAdditionalGrant` | **`NOT_RECOMMENDED_WITHOUT_EFFECTIVE_CHECK`** | Weder zusätzlicher noch projektweiter TokenCreator-Grant gerechtfertigt |
+| `releaseStatus` | **`NO_GO`** | Weiter keine Aktivierung |
+
+**Ergebnis:** Der frühere `UNKNOWN_ROLE_DEFINITION`-Befund ist in einem **neuen Live-Read aufgelöst**. Er war durch den alten Leseweg bedingt: Der exakte `--project`-freie vordefinierte Rollen-Read war erfolgreich, während der alte Versuch die erforderliche Definition nicht lieferte. Ob `--project` selbst die einzige Ursache war, wurde nicht durch separate stderr-Diagnose isoliert; **der korrigierte Leseweg ist aber tatsächlich erfolgreich**. Dieser Read liefert keinen Beweis, dass die Berechtigung auf einen noch nicht existierenden Push-SA später effektiv ausgeübt werden kann. **Kein neuer Berechtigungsgrant.**
+
+**Keine weitere Wiederholung dieses Rollen-Reads nötig.** Als nächstes eine eng begrenzte, separat freizugebende G3-Staging-Ressourcenentscheidung auf Basis von `docs/LSZH_G3_PUBSUB_CHANGE_ROLLBACK_PLAN_20261018.md`. Vor Go müssen eigene Push-/Runtime-SAs, ein Topic, Subscription, privater Receiver und der Business-Make-OAuth-Principal einzeln genehmigt werden; zunächst nur synthetische Review-Only-Daten. Keine Veränderung an bestehendem Make-Szenario `7940220`, an `0=1`-Sperren oder produktiver Vertrags-/PDF-/Mail-Verarbeitung.
+
+---
+
 ## Live-Rückmeldung aus geschäftlicher Cloud Shell – 18.10.2026
 
 **Betreiber hat den Original-Runner bereits sicher gestartet.** Die redigierte JSON-Ausgabe zeigt:

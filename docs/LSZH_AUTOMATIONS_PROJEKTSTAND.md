@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporäre Folder-Shape-Diagnoserevision 00005-grx erfolgreich deployed; echter Probe-Nachweis offen
+
+**Live-Ausgabe des Betreibers:**
+- `scripts/offer-temp-drive-folder-shape-release.sh --apply 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` gegen unveränderte temporäre Revision `00004-nk6` in Google Cloud Shell erfolgreich durchgeführt.
+- Vor dem Build wurden unveränderter interner Preflight/Ingress/Dienstidentität, namentlicher IAM-Invoker, die vorhandene Reader-Freigabe ausschliesslich auf den geschäftlichen synthetischen Unterordner und exakt vier Test-PDFs erfolgreich read-only verifiziert.
+- Cloud Build `8540f950-cadd-40af-bb14-5d5a41f90b18` **SUCCESS**. Neues Container-Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:baf9ca133b0a`, Digest `sha256:527763c89bca6c83f9294dee792aaebdce8110abf4d3a7163a7bca0f3d48e91b`.
+- **Nur** Dienst `lszh-offer-browser-staging` auf Revision **`lszh-offer-browser-staging-00005-grx`** aktualisiert; 100 % Traffic des temporären Testdienstes. Der ursprüngliche interne Portal-/Preflight-Dienst blieb laut nachgelagertem Guard unverändert. Keine neuen IAM- oder Drive-Rechte, keine Cloud-Run-Produktion, keine Firestore-Datenwrites oder E-Mails, Vertragsannahme weiter OFF.
+- **Einschränkung:** Guard weist weiterhin ausdrücklich `NOTE: inherited IAM not evaluated; deployment is NOT authorised` aus. Dieses temporäre Test-Deployment ist **keine** umfassende IAM-/Produktionsfreigabe.
+
+**Nächster Schritt – noch nicht erfolgt:** Den IAM-authentifizierten lokalen `gcloud run services proxy` starten, zunächst statische Designvorschau auf HTTP 200 prüfen und **genau einen** GET an `/_lszh/synthetic-drive-check` ausführen. Danach ausschliesslich aus Logs der **Revision `lszh-offer-browser-staging-00005-grx`** den festen Eintrag `LSZH_TEMP_DRIVE_DIAG:FOLDER_*` oder anderen festen Diagnosecode auslesen. Der bislang bewiesene Befund war `FOLDER_VALIDATE` unter Revision `00004-nk6`; die konkrete Sichtbarkeit der `parents`-/`owners`-Metadaten ist **noch nicht** bewiesen. Falls HTTP 503 und keinerlei Diagnosezeile, nicht als Erfolg werten. Keine weiteren Berechtigungen oder erneute Deployments auf Verdacht.
+
+---
+
+
 ## 18.10.2026 – Präzise Drive-Ordnerdiagnose: echter Cloud-Shell-Check PASS, Deploy noch offen
 
 **Vom Betreiber real ausgeführter, fehlerfreier read-only Vorabtest** `scripts/offer-temp-drive-folder-shape-release.sh --check 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` meldete:

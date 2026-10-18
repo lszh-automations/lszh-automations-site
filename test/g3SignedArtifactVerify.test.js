@@ -4,7 +4,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {spawnSync}=require('node:child_process');
 const path=require('node:path');
 const script=path.resolve(__dirname,'../scripts/g3-signed-artifact-verify-readonly.sh');
-const goodSha='a'.repeat(64),commit='b'.repeat(40);
+const goodSha='a'.repeat(64),commit='b'.repeat(40),manifest='sha256:'+'c'.repeat(64);
 function invoke(args){
   const r=spawnSync('bash',[script,...args],{
     cwd:path.resolve(__dirname,'..'),encoding:'utf8',timeout:10000,
@@ -17,11 +17,12 @@ function invoke(args){
 }
 test('a known shell approval phrase or unsigned OCI reference is never sufficient',()=>{
   invoke([]);
-  invoke(['/tmp/absent.oci.tar',goodSha,commit,commit]);
-  invoke(['ghcr.io/lszh/example@sha256:'+goodSha,goodSha,commit,commit]);
-  invoke(['/tmp/absent.oci.tar','NOT_SHA',commit,commit]);
-  invoke(['/tmp/absent.oci.tar',goodSha,'bad',commit]);
-  invoke(['/tmp/absent.oci.tar',goodSha,commit,'bad']);
+  invoke(['/tmp/absent.oci.tar',goodSha,commit,commit,manifest]);
+  invoke(['ghcr.io/lszh/example@sha256:'+goodSha,goodSha,commit,commit,manifest]);
+  invoke(['/tmp/absent.oci.tar','NOT_SHA',commit,commit,manifest]);
+  invoke(['/tmp/absent.oci.tar',goodSha,'bad',commit,manifest]);
+  invoke(['/tmp/absent.oci.tar',goodSha,commit,'bad',manifest]);
+  invoke(['/tmp/absent.oci.tar',goodSha,commit,commit,'sha256:wrong']);
 });
 test('signed verifier is read-only, scoped to protected main and never prints GO',()=>{
   const fs=require('node:fs');

@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – FOLDER_PARENT_HIDDEN LIVE bewiesen; synthetischer Restricted-Parent-Fix vorbereitet, nicht deployed
+
+**Echter Live-Nachweis des Betreibers:** Die Cloud-Run-Revision `lszh-offer-browser-staging-00005-grx` wurde im geschäftlichen Konto read-only per IAM-Proxy mit genau einem `GET /_lszh/synthetic-drive-check` geprüft. Designvorschau HTTP 200; Drive-Probe **HTTP 503**. Der **exakte** feste Log-Code aus dieser Revision um **2026-10-18T09:00:33.467712Z** lautet `LSZH_TEMP_DRIVE_DIAG:FOLDER_PARENT_HIDDEN`. Der erste Drive-v3-Ordner-GET ist somit gelungen, die freigegebene synthetische Testordner-ID und die vorherigen Strukturprüfungen wurden bestätigt; nur das erwartete Parent-Feld wird dieser eng berechtigten Cloud-Run-Identität nicht angezeigt. Noch **kein** erfolgreiches Lesen/Verifizieren aller vier PDFs durch dieses Dienstkonto. Bei einem Parent-Feld, das vorhanden, aber falsch ist, würde der bestehende Validator mit `FOLDER_PARENT_MISMATCH` stoppen. Geerbte IAM-Rechte weiterhin ausdrücklich nicht vollständig evaluiert.
+
+**Technisch begründete minimale Lösung – nur synthetische Testprobe, NICHT Produktions-Archivlogik:**
+- In `cloud-run/offer-portal-staging/temporaryDriveProbe.mjs` wird ein **fehlendes** `parents`- und bei Bedarf auch ein fehlendes `owners`-Metadatenfeld ausschliesslich dann toleriert, wenn der Betreiber den exakten Geschäfts-Testordner und vier PDFs mit einem GET-only **Geschäftsbenutzer-Gate** verifiziert hat und die temporäre Dienstkonfiguration `LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT=true` ausdrücklich gesetzt wurde. Dieser neue Opt-in benötigt zugleich `LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED=true`, `LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED=true`, die temporäre Designvorschau und deaktiviertes Full Portal. Fehlende Metadatenfelder sind **kein** Freipass: vorhandene, falsche/leer-/null-Werte bleiben harter NO-GO; gültige Testordner-ID, Name, Typ, exact hash array, vier Dateinamen, SHA-256-Providerwert, readOnly-Sperre, unmittelbarer PDF-Parent und tatsächliche PDF-Bytes bleiben strikt.
+- `cloud-run/archive-reader-staging/archiveBundleVerifier.mjs`, produktives Annahmeportal, Verträge, Firestore, Make und Airtable bleiben **unverändert**. Damit wird **nicht** behauptet, dass die Runtime selbst die Root-Parent-/Owner-Eigenschaften unabhängig beweist; hierfür gilt im isolierten Test das zeitlich begrenzte Geschäftsbenutzer-Preflight und später der erneute GET-Check vor Deployment. Für spätere **Produktionsreife** ist ein eigenständiges dauerhaftes Authentizitäts-/Eigentumsmodell zu erarbeiten; diese Test-Ausnahme darf nicht ungeprüft übernommen werden.
+- Neues `scripts/offer-temp-drive-restricted-parent-release.sh --check|--apply FOLDER_ID` exakt auf die **bisherige** TEMP-Revision `00005-grx` und Container-Image `baf9ca133b0a` gepinnt. Prüft Original-Preflight, die alleinstehende isolierte Dienstidentität und namentliches IAM, die bestehende enge Testordner-Freigabe und die exakt vier Geschäfts-PDFs mit **zwei** unabhängigen read-only Geschäftsbenutzer-Gates (vor Build und unmittelbar vor eventuellem Deploy). **Keine** Freigabe des Root-Archives, neuen IAM-Rollen, Serviceaccount-Keys oder Änderungen an Main/Original-Cloud-Run.
+- Regressionsfälle verifizieren fehlende Parent-/Owner-Felder im engen Testmodus, verweigern dieselben Fälle ohne Opt-in, und blockieren unter jedem Modus falsche Eltern, falsche Besitzer, geänderte Bytes, zusätzliche PDFs, entsperrte Dateien und unpassende SHA256s.
+
+**Offline-Teststand:** GitHub Actions [39114035614](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39114035614) vollständig **SUCCESS**. **123** Funktionstests bestanden, **3** planmässig übersprungen, zusätzlich Chromium, Firestore-Emulator und Docker-Image erfolgreich. Kein echter neuer Cloud-Deploy erfolgt.
+
+**Nächster Schritt:** Betreibergestütztes `--check` auf frisch geklontem Feature-Branch gegen die synthetische Unterordner-ID. Erst nach erneuter, vollständig grüner Vorabprüfung den ebenfalls temporären, beschränkten `--apply` ausführen. Danach einmalige echte Cloud-Run→Drive-Vier-PDF-Leseprobe und separate gesperrte Offer-/Accept-API-Gates nachprüfen. Wenn weitere `NO-GO`-Phasen auftreten: diagnostizieren, **keine** Rechte erweitern und **keinen** produktiven Workflow aktivieren.
+
+---
+
+
 ## 18.10.2026 – Temporäre Folder-Shape-Diagnoserevision 00005-grx erfolgreich deployed; echter Probe-Nachweis offen
 
 **Live-Ausgabe des Betreibers:**

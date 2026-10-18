@@ -36,7 +36,11 @@ function fixture(overrides={}){
   const read=args=>{
     calls.push(args);
     const key=args.filter(x=>!x.startsWith('--')).join(' ');
-    if(overrides.fail===key)return {ok:false,error:'permission_denied'};
+    if(overrides.fail===key ||
+       (overrides.failScopedRole &&
+        key==='iam roles describe roles/pubsub.serviceAgent' &&
+        args.includes('--project='+PROJECT)))
+      return {ok:false,error:'permission_denied'};
     if(!Object.hasOwn(docs,key))throw Error('Unexpected command '+key);
     return {ok:true,data:docs[key]};
   };
@@ -55,6 +59,7 @@ test('role, direct IAM binding, target absence must NOT become effective TokenCr
   const out=auditPubsubAgentRole(read);
   assert.equal(out.result,'READ_ONLY_ROLE_DEFINITION_CHECK');
   assert.equal(out.roleDefinitionPermission,'PRESENT_IN_PREDEFINED_ROLE');
+  assert.equal(out.roleReadVariant,'PROJECT_SCOPED');
   assert.equal(out.serviceAgentProjectBinding,'DIRECT_UNCONDITIONAL_BINDING_FOUND');
   assert.equal(out.plannedPushSa,'ABSENT_IN_THIS_LIST');
   assert.equal(out.serviceAgentEffectiveOidc,'NOT_EVALUATED');
@@ -64,6 +69,22 @@ test('role, direct IAM binding, target absence must NOT become effective TokenCr
   assert.ok(!JSON.stringify(out).includes(NUM));
   assert.ok(!JSON.stringify(out).includes('@gcp-sa-pubsub'));
   assert.ok(calls.every(x=>x.includes('--project='+PROJECT)));
+  denied(out);
+});
+test('Google predefined role falls back to exact unscoped READ when --project version is unavailable',async()=>{
+  const {auditPubsubAgentRole}=await load();
+  const {validateCommand}=await allow();
+  const {calls,read}=fixture({failScopedRole:true});
+  const out=auditPubsubAgentRole(args=>{validateCommand(args);return read(args);});
+  assert.equal(out.roleReadVariant,'PREDEFINED_UNSCOPED_FALLBACK');
+  assert.equal(out.roleDefinitionPermission,'PRESENT_IN_PREDEFINED_ROLE');
+  assert.equal(out.serviceAgentProjectBinding,'DIRECT_UNCONDITIONAL_BINDING_FOUND');
+  assert.equal(out.serviceAgentEffectiveOidc,'NOT_EVALUATED');
+  assert.equal(out.releaseStatus,'NO_GO');
+  const unscoped=calls.filter(args=>!args.includes('--project='+PROJECT));
+  assert.deepEqual(unscoped,[[
+    'iam','roles','describe','roles/pubsub.serviceAgent','--format=json','--quiet'
+  ]]);
   denied(out);
 });
 test('conditional role stays uncertain; missing IAM role permission never becomes GO',async()=>{
@@ -98,6 +119,7 @@ test('missing role description or project IAM policy remains UNKNOWN, no secrets
     fail:'iam roles describe roles/pubsub.serviceAgent'
   }).read);
   assert.equal(noRole.roleDefinitionPermission,'UNKNOWN_ROLE_DEFINITION');
+  assert.equal(noRole.roleReadVariant,'UNVERIFIED');
   denied(noRole);
   const noPolicy=auditPubsubAgentRole(fixture({
     fail:'projects get-iam-policy '+PROJECT
@@ -110,8 +132,15 @@ test('gcloud read allowlist permits only exact PubSub role and rejects impersona
   assert.doesNotThrow(()=>validateCommand([
     'iam','roles','describe','roles/pubsub.serviceAgent',...BASE
   ]));
+  assert.doesNotThrow(()=>validateCommand([
+    'iam','roles','describe','roles/pubsub.serviceAgent','--format=json','--quiet'
+  ]));
   for(const args of [
     ['iam','roles','describe','roles/owner',...BASE],
+    ['iam','roles','describe','roles/owner','--format=json','--quiet'],
+    ['iam','roles','describe','roles/pubsub.serviceAgent','--quiet','--format=json'],
+    ['iam','roles','describe','roles/pubsub.serviceAgent',
+      '--format=json','--quiet','--log-http'],
     ['iam','roles','create','newrole',...BASE],
     ['iam','roles','describe','roles/pubsub.serviceAgent',...BASE,
       '--impersonate-service-account=admin@example.invalid'],

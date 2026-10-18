@@ -150,3 +150,18 @@ test('IAM readback must confirm exactly the intended single unconditioned push i
     {}
   ])assert.equal(verifyScopedInvoker(invalid),false,JSON.stringify(invalid));
 });
+
+test('even syntactically valid approval and SHA cannot run --apply before signed provenance exists',()=>{
+  const {spawnSync}=require('node:child_process');
+  const result=spawnSync(process.execPath,['scripts/g3-staging-bootstrap.mjs',
+    '--apply','--approval=LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY',
+    '--image='+digest],{
+    cwd:require('node:path').resolve(__dirname,'..'),encoding:'utf8',
+    timeout:10000,env:{PATH:'/nonexistent',HOME:'/nonexistent'}});
+  assert.equal(result.status,2);
+  const report=JSON.parse(result.stdout);
+  assert.equal(report.status,'BLOCKED_G3_SIGNED_PROVENANCE_GATE');
+  assert.equal(report.releaseStatus,'NO_GO');
+  assert.equal(report.canWriteFirestore,false);
+  assert.equal(report.canSendMail,false);
+});

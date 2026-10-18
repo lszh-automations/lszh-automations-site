@@ -1,18 +1,18 @@
 # LSZH Automations – aktueller Projektstand
 
-Stand: 19.10.2026 (Europe/Zurich). Fix-Deployment und echter Portal-Leseweg vom Betreiber per Cloud-Shell-Ausgabe bestätigt; Annahme noch nicht ausgeführt.
+Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusive unabhängigem Firestore-/Airtable-Readback vom Betreiber per Cloud-Shell-Ausgabe bestätigt.
 
 ## Verbindliche Übergabe – hier weiterarbeiten
 
 **Ziel:** Einen vollständigen Offertenprozess für einen KMU fertigstellen: Offerte → private PDFs → getrennte Online-Zustimmungen → Annahmenachweis → Airtable → Make-Beleg und Bestätigung. Beide Varianten AVV Ja/Nein müssen funktionieren.
 
-**Letztes abgeschlossenes Ergebnis:** JSON-Body-Fix aus Source `d913bcf98f8a324a19a89581a6416dd91dafaba2` als `lszh-offer-browser-staging-00008-json` bereitgestellt, Tag `cloud-e2e`, 0 % regulärer Traffic. Originalportal unverändert und alte Demo weiterhin 100 %. Betreiber bestätigt live: private Portal-Seite, exakt vorhandene synthetische Offerte (AVV Nein), Firestore-Lesen sowie Download und SHA-256 beider Drive-PDFs PASS. Keine Annahme, kein Airtable-PATCH, kein Make-Lauf, keine E-Mail. [CI 39172547393](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39172547393) zum bereitgestellten Fix: alle vier Jobs SUCCESS, einschliesslich echtem Functions Framework.
+**Letztes abgeschlossenes Ergebnis:** Einmalige synthetische Annahme der bestehenden Offerte `TEST_CLOUD_E2E_20261018_NO_CONTRACT` (AVV Nein) über Revision `lszh-offer-browser-staging-00008-json` erfolgreich. Betreiber führte `offer-browser-synthetic-accept-once.py --accept-once` aus Commit `7f9cafabb3b5e365e6b9926c4b7fb60baa444709` aus. HTTP-Annahme bestätigt, `airtable_sync_status=synced`. Unabhängiger Readback bestätigt Firestore-Annahme, Person, Zustimmungen und Dokumenthashes sowie übereinstimmenden Airtable-Status, Person, Zeitpunkt und PDF-Referenzen. Damit ist **Cloud Run → Firestore → Airtable live bestanden**. Zuvor bestanden private Vorschau und beide PDF-Downloads samt SHA-256. Kein Make-Lauf, keine E-Mail, kein echter Vertrag. Beim Deployment blieben Originalportal und 100 % Demo-Traffic erhalten.
 
-**Nächste Arbeit:** `scripts/offer-browser-synthetic-accept-once.py --accept-once` für exakt den vorhandenen synthetischen Testrecord ausführen. Das vorbereitete Skript prüft den Ausgangszustand, sendet höchstens einen Annahme-POST und liest anschliessend Firestore und Airtable unabhängig zurück. Bei bereits gespeicherter Annahme oder unklarer POST-Antwort keine automatische POST-Wiederholung. Fünf lokale simulierte Ablaufprüfungen bestanden; die echte Cloud-Annahme steht noch aus. Kein erneutes Deployment und kein erneuter Seed erforderlich.
+**Nächste Arbeit:** Bestehendes Make-Szenario `7940220` (Annahmebeleg ohne AVV) und dessen Handoff für genau diesen bereits angenommenen Testrecord prüfen; synthetischen Beleglauf konkret vorbereiten. Keine allgemeine Aktivierung und kein Mailversand. Die Cloud-Annahme nicht nochmals ausführen. Anschliessend die vollständige AVV-Ja-Variante nachweisen.
 
-**Konkreter offener Nachweis:** Echte Speicherung der Annahme und automatischer Airtable-Callback. Danach synthetischen Make-Beleg und die vollständige AVV-Ja-Variante nachweisen. Der bestandene Leseweg belegt noch keinen Annahme- oder Schreibdurchlauf.
+**Konkreter offener Nachweis:** Beleg-PDF aus dieser Cloud-Annahme, Bestätigungsweg und vollständiger AVV-Ja-Durchlauf. Testrevisionen und temporäre Secret-Rechte sind noch nicht bereinigt; dafür bestehenden Cleanup-Abschnitt beachten.
 
-**Nicht wiederholen:** Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
+**Nicht wiederholen:** Erfolgreiche Testannahme, Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 
 Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https://github.com/lszh-automations/lszh-automations-site/pull/5) ist offen, Draft und ungemergt. Der Stand hier beschreibt Entwicklungsarbeit, keinen veröffentlichten Kundenbetrieb.
 
@@ -33,8 +33,8 @@ Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https
 | Website und Onboarding | Website, persönliches Onboarding, Make-Konto-/Einladungsfelder und `/make-start/` vorhanden | Vollständige Kundenübergabe, tatsächliche Einladung/Rollen und Mailweg nicht aus dem Offerten-Test ableiten |
 | Online-Annahme | Getrennte Zustimmung zu Offerte, Bedingungen und optional AVV; Browser-, HTTP-, Emulator- und Paralleltests vorhanden | Keine rechtswirksame Kundenannahme aktiviert |
 | Drive-Dokumente | Echter Portal-Download von Offerte und Bedingungen samt SHA-256-Prüfung live bestanden (AVV Nein); frühere temporäre Leseprobe 4/4 | Vollständiger AVV-Ja-Durchlauf noch offen |
-| Firestore | Echte Transaktionstests früher bestanden; einmaliger Cloud-Seed und Lesen über die echte Portal-API bestanden | Noch kein echter HTTP-Annahmelauf der neuen Portal-Testrevision |
-| Airtable | Separater realer synthetischer Schreibtest mit Readback bestanden; automatischer Callback im Portalcode integriert | Cloud Run → Firestore → Airtable noch nicht live durchgängig nachgewiesen; Emulator nutzt simuliertes CRM |
+| Firestore | Echte Cloud-Annahme inklusive Person, Zustimmungen und Dokumenthashes unabhängig zurückgelesen | Vollständiger AVV-Ja-Durchlauf noch offen |
+| Airtable | Automatischer Callback der echten Cloud-Annahme erfolgreich; Status, Person, Zeitpunkt und PDF-Referenzen stimmen mit Firestore überein | Nachfolgender Make-Beleg und Bestätigungsweg noch offen |
 | Make-Beleg | Bestehende Ja/Nein-Szenarien, Beleg-Handoff und korrigierte AVV-Belegvorlage vorhanden | Durchgängige Belegerstellung aus der neuen Cloud-Testannahme und Bestätigungsweg fehlen |
 | Kundenunterlagen | Projektbedingungen als PDF/Google Doc und synthetische AVV samt Anlagen im Geschäfts-Drive vorhanden | Endkontroll-/TEST_ONLY-Dateien sind keine final freigegebenen Kundenverträge |
 | Secure Transfer | Dummy-Schlüssel funktional getestet | Keine Produktivfreigabe für reale Kundensecrets; kein zusätzlicher MVP-Pflichtschritt bei OAuth |
@@ -42,7 +42,7 @@ Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https
 
 Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementierte Callback `manual_review_required`. Firestore-Annahme bleibt bestehen; keine blinde Wiederholung. Airtable GET/PATCH ist keine atomare CAS-Operation: einzige Schreibverantwortung und Umgang mit unklaren Ergebnissen im Pilot beachten.
 
-## Aktueller Cloud-Testfall – bereits angelegt
+## Aktueller Cloud-Testfall – erfolgreich synthetisch angenommen
 
 | Referenz | Wert |
 | --- | --- |
@@ -55,7 +55,7 @@ Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementier
 | AVV / Dokumentversion | Nein / `TEST_v1.0_RC1` |
 | Direkter Geschäfts-Testordner | `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` |
 
-Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `lszh_synthetic_cloud_test_20261018_token.txt`, nicht in Chat, GitHub oder Airtable. Datei-Verfügbarkeit vor Nutzung prüfen; hier ist kein Token enthalten. Der ältere separate Airtable-Test `rec4lc9AV5TxRQlcd` ist bereits simuliert angenommen und **nicht** der aktuelle Cloud-Testentwurf. Auch das Dokument-/Demo-Paket `OFF-TEST-AVV-20261018-001` ist ein anderer Testfall.
+Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `lszh_synthetic_cloud_test_20261018_token.txt`, nicht in Chat, GitHub oder Airtable. Datei-Verfügbarkeit vor Nutzung prüfen; hier ist kein Token enthalten. Der ältere separate Airtable-Test `rec4lc9AV5TxRQlcd` ist bereits simuliert angenommen und **nicht** der aktuelle Cloud-Testrecord. Auch das Dokument-/Demo-Paket `OFF-TEST-AVV-20261018-001` ist ein anderer Testfall.
 
 ## Bestehende Make-Strecken
 
@@ -71,7 +71,7 @@ Zuletzt dokumentierter Live-Stand vom 18.10.2026, bei tatsächlicher Ausführung
 
 ## Nächste Schritte und Grenzen
 
-1. **Privaten Cloud-Test fertigstellen:** Bereitstellung und Leseweg bestanden. Bestehende einmalige Betreiberfreigabe berücksichtigen; exakt vorhandenen Testrecord mit dem vorbereiteten Skript einmal annehmen und Firestore/Airtable zurücklesen. Bestehenden Traffic erhalten; Testrevision danach kontrolliert ausser Betrieb nehmen.
+1. **Privater Cloud-Test bestanden (AVV Nein):** Bereitstellung, Leseweg, einmalige Annahme und unabhängiger Firestore-/Airtable-Readback erfolgreich. Nicht wiederholen. Temporäre Testrevisionen und Secret-Rechte noch kontrolliert bereinigen; bestehenden Traffic erhalten.
 2. **Belegstrecke vervollständigen:** Bestehende Make-Module mit dem synthetischen Ergebnis verbinden und realen Testbeleg prüfen. Fehlende Freigaben für konkrete externe Aktionen erst am ausführbaren Schritt klären. AVV Ja ebenfalls vollständig nachweisen. Vor Annahme 2/3 Vertrags-PDFs, danach 3/4 Dokumente inklusive Beleg.
 3. **Begrenzten Kundenpilot vorbereiten:** Endgültige PDF-Versionen, konkrete AVV-Anlagen, Kundenroute, Verantwortlichkeiten und Betrieb klären; danach ausdrückliches Pilot-GO.
 

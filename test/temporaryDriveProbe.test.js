@@ -144,6 +144,35 @@ test('optional probe returns only non-sensitive PASS and is never available to P
    '/_lszh/synthetic-drive-check')).status,503);
 });
 
+test('folder metadata classifier is exact, secret-free and never relaxes missing parent or owner',async()=>{
+ const {classifySyntheticFolderMetadata}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
+ const clean={id:FOLDER,name:'LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT',
+  mimeType:'application/vnd.google-apps.folder',trashed:false,parents:[ROOT],
+  owners:[{emailAddress:OWNER}]};
+ assert.equal(classifySyntheticFolderMetadata(clean,FOLDER),null);
+ const cases=[
+  [null,'FOLDER_STRUCTURE'],
+  [{...clean,id:'SYNTHETIC_WRONG'},'FOLDER_ID'],
+  [{...clean,name:'OTHER'},'FOLDER_NAME'],
+  [{...clean,mimeType:'text/plain'},'FOLDER_MIME'],
+  [{...clean,trashed:true},'FOLDER_TRASHED'],
+  [Object.fromEntries(Object.entries(clean).filter(([key])=>key!=='parents')),
+   'FOLDER_PARENT_HIDDEN'],
+  [{...clean,parents:[]},'FOLDER_PARENT_MISMATCH'],
+  [{...clean,parents:['1WRONG_ROOT_00000000000000000']},'FOLDER_PARENT_MISMATCH'],
+  [Object.fromEntries(Object.entries(clean).filter(([key])=>key!=='owners')),
+   'FOLDER_OWNER_HIDDEN'],
+  [{...clean,owners:[]},'FOLDER_OWNER_MISMATCH'],
+  [{...clean,owners:[{emailAddress:'private@example.invalid'}]},'FOLDER_OWNER_MISMATCH']
+ ];
+ for(const [meta,expected] of cases){
+  assert.equal(classifySyntheticFolderMetadata(meta,FOLDER),expected);
+  assert.match(expected,/^FOLDER_[A-Z_]+$/);
+  assert.ok(!expected.includes(FOLDER));
+  assert.ok(!expected.includes(OWNER));
+ }
+});
+
 test('diagnostic logging must be opted in only with isolated temporary probe',async()=>{
  const {temporaryDriveProbeConfig}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
  assert.throws(()=>temporaryDriveProbeConfig({
@@ -158,8 +187,8 @@ test('diagnostic logging must be opted in only with isolated temporary probe',as
 test('fixed Drive failure stages classify owner, files and checksum without echoing secrets',async()=>{
  const {verifySyntheticDriveReadOnly}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
  const cases=[
-  [{wrongOwner:true},'FOLDER_VALIDATE'],
-  [{wrongParent:true},'FOLDER_VALIDATE'],
+  [{wrongOwner:true},'FOLDER_OWNER_MISMATCH'],
+  [{wrongParent:true},'FOLDER_PARENT_MISMATCH'],
   [{extra:true},'LIST_VALIDATE'],
   [{changedBytes:true},'PDF_YES_INTEGRITY'],
   [{unlocked:true},'PDF_YES_INTEGRITY'],

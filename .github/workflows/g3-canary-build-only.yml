@@ -99,6 +99,15 @@ jobs:
             --network none --no-cache --provenance=false --sbom=false \
             --load -t lszh-g3-canary:offline-review cloud-run/g3-review-staging
           test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-canary:offline-review)" = node
+          docker run --rm --network none --entrypoint node lszh-g3-canary:offline-review -e '
+            const fs=require("node:fs");
+            for(const p of ["/usr/local/lib/node_modules/npm",
+              "/usr/local/lib/node_modules/corepack",
+              "/usr/local/bin/npm","/usr/local/bin/npx","/usr/local/bin/corepack"]){
+              if(fs.existsSync(p))throw Error("unused_node_package_manager_remains");
+            }
+            console.log("PASS: runtime has Node, but no npm or corepack toolchain");
+          '
           cid="$(docker run --detach --network none --read-only \
             --cap-drop ALL --security-opt no-new-privileges \
             -e PORT=8080 lszh-g3-canary:offline-review)"

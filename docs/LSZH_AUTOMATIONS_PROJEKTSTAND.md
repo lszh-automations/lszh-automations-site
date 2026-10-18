@@ -8,7 +8,7 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Letztes abgeschlossenes Ergebnis:** Einmalige synthetische Annahme der bestehenden Offerte `TEST_CLOUD_E2E_20261018_NO_CONTRACT` (AVV Nein) über Revision `lszh-offer-browser-staging-00008-json` erfolgreich. Betreiber führte `offer-browser-synthetic-accept-once.py --accept-once` aus Commit `7f9cafabb3b5e365e6b9926c4b7fb60baa444709` aus. HTTP-Annahme bestätigt, `airtable_sync_status=synced`. Unabhängiger Readback bestätigt Firestore-Annahme, Person, Zustimmungen und Dokumenthashes sowie übereinstimmenden Airtable-Status, Person, Zeitpunkt und PDF-Referenzen. Damit ist **Cloud Run → Firestore → Airtable live bestanden**. Zuvor bestanden private Vorschau und beide PDF-Downloads samt SHA-256. Kein Make-Lauf, keine E-Mail, kein echter Vertrag. Beim Deployment blieben Originalportal und 100 % Demo-Traffic erhalten.
 
-**Nächste Arbeit:** Bestehendes Make-Szenario `7940220` (Annahmebeleg ohne AVV) und dessen Handoff für genau diesen bereits angenommenen Testrecord prüfen; synthetischen Beleglauf konkret vorbereiten. Keine allgemeine Aktivierung und kein Mailversand. Die Cloud-Annahme nicht nochmals ausführen. Anschliessend die vollständige AVV-Ja-Variante nachweisen.
+**Nächste Arbeit:** Make-Szenario `7940220` ist für genau den bereits angenommenen Testrecord vorbereitet und weiter **inaktiv**. Verbindungen live geprüft: alle OK. Filter begrenzt auf Record-ID, Testoffertennummer, synthetische E-Mail, Version und beide exakten PDF-IDs/Hashes; maximal ein Treffer. Dokument und PDF landen im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`, mit TEST_ONLY-Kennzeichnung. Claim prüft Quell-PDF-Hashes und direkten Parent; für synthetische Quelldateien wird kein Schreibschutz verlangt. Beleg-ID wird erst nach Prüfung des archivierten Belegs gespeichert; Bearbeitungsflag danach zurückgesetzt. Gmail und Versanddatums-Modul deaktiviert, Mailfilter weiterhin `0=1`. Konfiguration gespeichert und zurückgelesen, noch kein Beleglauf. Vor einmaliger temporärer Aktivierung die ausdrücklich vorbehaltene Aktivierungsfreigabe einholen; danach Lauf prüfen und Szenario wieder deaktivieren. Bestehender 15-Minuten-Zeitplan ist wegen Inaktivität aus. Ausgangskonfiguration: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json). Cloud-Annahme nicht wiederholen.
 
 **Konkreter offener Nachweis:** Beleg-PDF aus dieser Cloud-Annahme, Bestätigungsweg und vollständiger AVV-Ja-Durchlauf. Testrevisionen und temporäre Secret-Rechte sind noch nicht bereinigt; dafür bestehenden Cleanup-Abschnitt beachten.
 
@@ -59,13 +59,13 @@ Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `
 
 ## Bestehende Make-Strecken
 
-Zuletzt dokumentierter Live-Stand vom 18.10.2026, bei tatsächlicher Ausführung gezielt erneut lesen:
+Szenario `7940220` am 19.10.2026 live geprüft und vorbereitet; übrige Angaben zuletzt vom 18.10.2026:
 
 | Aufgabe | Szenario-ID | Stand |
 | --- | --- | --- |
 | Offerten-PDF, Archiv, Versand | `7835460` | Inaktiv; Trigger/Gmail gesperrt, Gmail zusätzlich deaktiviert |
 | Annahmelink ohne AVV | `7940261` | Inaktiv; Token-/Mailpfad gesperrt |
-| Annahmebeleg ohne AVV | `7940220` | Inaktiv; Claim/Gmail mit `0=1` gesperrt |
+| Annahmebeleg ohne AVV | `7940220` | Am 19.10. für exakt einen synthetischen Record vorbereitet; inaktiv; Mail und Versanddatums-Modul deaktiviert, Mail zusätzlich `0=1` |
 | Annahmelink mit AVV | `7965215` | Inaktiv; Token-/Mailpfad gesperrt |
 | Annahmebeleg mit AVV | `7965223` | Inaktiv; Claim/Gmail mit `0=1` gesperrt |
 

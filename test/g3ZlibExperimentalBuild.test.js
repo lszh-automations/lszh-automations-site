@@ -13,7 +13,7 @@ const allowed=[
  'apk -v info | grep -Fx "zlib-1.3.2-r1" && \\',
  'test -d /usr/local/lib/node_modules/npm && \\',
  'rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack && \\',
- 'rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack',
+ 'rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /var/log/apk.log',
  'COPY --chown=node:node index.mjs /srv/index.mjs','ENV NODE_ENV=production',
  'USER node','EXPOSE 8080','CMD ["node","/srv/index.mjs"]'
 ];

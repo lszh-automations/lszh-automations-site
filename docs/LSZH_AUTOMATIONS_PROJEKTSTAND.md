@@ -1,5 +1,7 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+> **KORREKTUR / KUNDENZIEL (18.10.2026):** Der Betreiber hat die Geschäftsbedingungen geschäftlich **bereits akzeptiert**; ihre ursprünglichen Kündigungs-, Abnahme- und Haftungsentscheidungen NICHT erneut zur Entscheidung vorlegen. Unser MVP-Ziel: Kunde kann Offerte und Projektbedingungen online **separat bestätigen** sowie bei `AVV erforderlich = Ja` zusätzlich AVV samt Anhängen, mit nachvollziehbarem versions-/SHA-gebundenem Annahmebeleg. Im bestehenden Draft PR #5 sind Browser- und beide Backend-Annahmepfade samt Testfällen entsprechend aktualisiert. Live-Annahme/Make-Versand bleiben mangels separater Aktivierung inaktiv. Juristische Dokumentenprüfung und konkrete AVV-Anlagen sind technische/vertragliche Endschritte, **keine** erneute interne Geschäftsentscheidung. Details: [MVP-Fokus](LSZH_MVP_FOKUS_20261018.md). Keine neue G3-/Security-Arbeit für dieses Ziel.
+
 > **AKTUELLE ARBEITSPRIORITÄT – 18.10.2026:** Kundenfähiges Offerten-MVP fertigstellen und einen einzigen Pilot vorbereiten. Keine neue G3-Sicherheitsentwicklung ohne konkreten Pilot-Blocker. Der kurze, verbindliche Arbeitsplan steht in [LSZH_MVP_FOKUS_20261018.md](LSZH_MVP_FOKUS_20261018.md). Die untenstehenden G3-Abschnitte sind historische technische Nachweise, nicht die aktuelle To-do-Reihenfolge. Bestehende Betriebs-/Produktivsperren gelten weiter.
 
 ## 18.10.2026 – G3-zlib-Fix erstmals signaturgeprüft, lokal reproduzierbar und CVE-frei getestet

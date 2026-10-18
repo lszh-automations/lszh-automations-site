@@ -17,8 +17,7 @@ const PUSH_ID='lszh-g3-push-stg',RUNTIME_ID='lszh-g3-reserve-stg';
 const PUSH=PUSH_ID+'@'+PROJECT+'.iam.gserviceaccount.com';
 const RUNTIME=RUNTIME_ID+'@'+PROJECT+'.iam.gserviceaccount.com';
 const APPROVAL='LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY';
-const IMAGE_RE=new RegExp('^'+REGION+'-docker\\.pkg\\.dev/'+PROJECT+
-  '/lszh-g3-review-staging/receiver@sha256:[0-9a-f]{64}
+const IMAGE_RE=/^europe-west6-docker\.pkg\.dev\/lszh-automations\/lszh-g3-review-staging\/receiver@sha256:[0-9a-f]{64}$/;
 const IAM_MEMBER='serviceAccount:'+PUSH;
 const COMMON=['--project='+PROJECT,'--quiet'];
 const list=(x)=>Array.isArray(x)?x:null;

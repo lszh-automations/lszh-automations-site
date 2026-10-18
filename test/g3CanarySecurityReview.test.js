@@ -18,7 +18,7 @@ const sample={
 function run(review,obj){
   return review({scanText:JSON.stringify(obj.scan),sbomText:JSON.stringify(obj.sbom),
     ociText:JSON.stringify(obj.oci),inputsText:JSON.stringify(obj.inputs),
-    sourceCommit:a,runId:'39146520972'});
+    sourceCommit:'d'.repeat(40),runId:'39146520972'});
 }
 test('high/critical scanner findings are explicitly review blockers, never authorization',async()=>{
   const {review}=await load();
@@ -60,6 +60,6 @@ test('missing or falsified independent inputs are always blocked',async()=>{
     const d=structuredClone(sample);change(d);
     assert.equal(run(review,d).status,'BLOCKED_UNVERIFIED_SECURITY_EVIDENCE');
   }
-  const r=review({scanText:'{}',sbomText:'{}',ociText:'{}',inputsText:'{}',sourceCommit:a,runId:'123'});
+  const r=review({scanText:'{}',sbomText:'{}',ociText:'{}',inputsText:'{}',sourceCommit:'d'.repeat(40),runId:'123'});
   assert.equal(r.status,'BLOCKED_UNVERIFIED_SECURITY_EVIDENCE');
 });

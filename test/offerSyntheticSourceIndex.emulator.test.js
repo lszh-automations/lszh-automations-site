@@ -3,7 +3,7 @@
 // Never connect to live Cloud project, Make, Airtable, Google Drive or Gmail.
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {randomBytes,createHash}=require('node:crypto');
+const {randomBytes,createHash,generateKeyPairSync,sign}=require('node:crypto');
 const {createRequire}=require('node:module');
 const sdk=createRequire(require('node:path').resolve(
   'cloud-run/offer-portal-staging/package.json'));
@@ -50,6 +50,24 @@ const b='TEST_ATTEMPT_56789FGHIJ56789FGHIJ';
 if(!LOCAL){
   test('source index requires isolated local Firestore emulator',{skip:true},()=>{});
 }else{
+  // Completely ephemeral offline-only signing key, never a real Google token.
+  const demoKeys=generateKeyPairSync('rsa',{modulusLength:2048,publicExponent:65537});
+  const trustedPublicJwk=demoKeys.publicKey.export({format:'jwk'});
+  const trustedKid='LOCAL_DEMO_RSA_20261018';
+  const secs=Math.floor(NOW.getTime()/1000);
+  const authHeader={alg:'RS256',kid:trustedKid,typ:'JWT'};
+  const authClaims={
+    iss:'https://accounts.google.com',
+    aud:'https://lszh-reservation.demo.invalid',
+    sub:'123456789012345678901',
+    email:'make-caller@demo-lszh-automations.iam.gserviceaccount.com',
+    email_verified:true,iat:secs-60,exp:secs+300
+  };
+  const enc=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
+  const signingInput=enc(authHeader)+'.'+enc(authClaims);
+  const identityToken=sign('RSA-SHA256',Buffer.from(signingInput),
+    demoKeys.privateKey).toString('base64url');
+  const jwt=signingInput+'.'+identityToken;
   const load=()=>import('../cloud-run/offer-portal-staging/syntheticSourceIndex.mjs');
   for(const mode of ['Ja','Nein']){
     test('indexed source resolves atomically into one Make review reservation: '+mode,
@@ -95,9 +113,18 @@ if(!LOCAL){
       assert.equal(await store.claim(item.tokenHash,offerFingerprint(item),
         proof(item),new Date(AT)),'accepted');
       const accepted=(await offerRef.get()).data();
+      const {authenticatedSyntheticMakeReviewLocalEmulator}=await import(
+        '../cloud-run/offer-portal-staging/syntheticMakeCallerAuth.mjs');
+      const authenticate=(attemptId,jwtOverride=jwt)=>
+        authenticatedSyntheticMakeReviewLocalEmulator(db,{
+          identityToken:jwtOverride,trustedPublicJwk,trustedKid,
+          payload:request(accepted,attemptId),now:NOW
+        });
+      const unauthenticated=await authenticate(a,'UNTRUSTED_NOT_A_TOKEN');
+      assert.equal(unauthenticated.status,'NO_GO');
+      assert.equal((await offerRef.get()).data().receiptReviewLock,undefined);
       const [first,second]=await Promise.all([
-        resolveAndReserveSyntheticMakeLocalEmulator(db,request(accepted,a),NOW),
-        resolveAndReserveSyntheticMakeLocalEmulator(db,request(accepted,b),NOW)
+        authenticate(a),authenticate(b)
       ]);
       assert.equal([first,second].filter(r=>r.reservationResult==='RESERVED_REVIEW_ONLY').length,1);
       assert.equal([first,second].filter(r=>r.reservationResult==='LOCKED_BY_OTHER_ATTEMPT').length,1);
@@ -112,8 +139,7 @@ if(!LOCAL){
       }
       const lock=(await offerRef.get()).data().receiptReviewLock;
       assert.equal(lock.state,'HELD_FOR_REVIEW');
-      const same=await resolveAndReserveSyntheticMakeLocalEmulator(
-        db,request(accepted,lock.attemptId),NOW);
+      const same=await authenticate(lock.attemptId);
       assert.equal(same.reservationResult,'ALREADY_RESERVED_REVIEW_ONLY');
       assert.equal((await offerRef.get()).data().receiptReviewLock.attemptId,lock.attemptId);
     });

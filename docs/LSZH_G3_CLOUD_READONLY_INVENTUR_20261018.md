@@ -64,7 +64,7 @@ Wenn `STOP_PROJECT_NOT_VERIFIED` oder `STOP_ENABLED_API_INVENTORY_UNAVAILABLE` e
 
 ## Auswertung für den nächsten Schritt
 
-- Pub/Sub-API **ENABLED** oder `NOT_IN_ENABLED_LIST`; noch nicht live geprüft.
+- Pub/Sub-API ist laut Live-Bestandsaufnahme **ENABLED**; ein nächster Re-Check darf den Zustand erneut bestätigen oder als unbekannt kennzeichnen.
 - Topic-/Subscription-Liste nur als Zahl und Präsenz des geplanten G3-Namens; `UNKNOWN` nicht als `ABSENT` werten.
 - Projekt-IAM-Snapshot und vorhandene Topic-/Push-/Service-Account-Policy als **direkte Ressourcen-Teilansicht**, keine effektive IAM-/Deny-/PAB-/Gruppen-Auswertung.
 - `serviceAgentTokenMintingEffective` bleibt `NOT_EVALUATED`. Keinen TokenCreator-Grant ohne gesonderten Rollen-/Troubleshooter-Nachweis.

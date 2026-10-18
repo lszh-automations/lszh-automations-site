@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Eingeschränkter Drive-Parent-Fix auf temporärem Cloud Run erfolgreich deployed; Live-E2E weiterhin offen
+
+**Echte Cloud-Shell-Ausgabe des Betreibers nach `scripts/offer-temp-drive-restricted-parent-release.sh --apply`:**
+- Die Vorabgates bestätigten Original-Preflight/Ingress/Identität unverändert, namentliche IAM-Invoker-Bindung und genau vier synthetische PDFs aus geschäftlichem Drive-Unterordner sowie alleinigen `reader`-Zugriff der temporären Dienstidentität. `NOTE: inherited IAM not evaluated; deployment is NOT authorised.` gilt weiterhin.
+- Cloud Build **`3a2b6cf7-cddc-4246-94e7-28656233148b` SUCCESS**, Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:61af8faecbef`, Image-Digest `sha256:860920236b8ba50c20159277a9e84bf4295aa6764f38267b4edcde407c7c8a3d`.
+- Vor dem Deployment erfolgte **erneut** `PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks`, damit die Geschäftskonto-Gates zweimal bestanden.
+- Nur der temporäre Dienst `lszh-offer-browser-staging` wurde nach **`lszh-offer-browser-staging-00006-h5w`** ausgerollt; **100 % des Traffics dieses temporären Dienstes**, nicht des Produktivportals. Original-Preflight nach Deployment bestanden, keine direkten öffentlichen Service-IAM-Bindings. Es wurden Cloud-Build-Artefakte und eine Cloud-Run-Revision geschrieben, aber **keine** Kundendaten, Vertragsannahme, Drive-Dokumente, Firestore-Datensätze, E-Mails, Root-Drive- oder IAM-Rechte mutiert.
+- `LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT=true` gilt ausschliesslich für die synthetische TEMP-Drive-Leseprobe; fehlende `parents`/`owners` auf temporärer SA-Seite dürfen hier nur nach den vorgelagerten Geschäftsbenutzerprüfungen toleriert werden. Vorhandene, aber falsche Felder, fehlende vier PDFs und Hash-/readOnly-/PDF-Integritätsfehler bleiben fail-closed. Der allgemeine Archivprüfer wurde nicht geändert.
+- GitHub Actions für den vorherigen Dokumentations-Commit `61af8faecbef`: [39114467245](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39114467245) **SUCCESS**.
+
+**Wichtiger weiterhin offener Realtest:** Der Betreiber muss mit Geschäftskonto und lokalem IAM-authentifiziertem `gcloud run services proxy` die Revision `00006-h5w` gegen den einen read-only GET `/_lszh/synthetic-drive-check` prüfen. Erwartet HTTP 200 mit exakt `{"status":"PASS_SYNTHETIC_ARCHIVE_READ_ONLY","verifiedFiles":4}` oder HTTP 503; bei 503 ausschliesslich die festen `LSZH_TEMP_DRIVE_DIAG:*`-Logphasen dieser Revision auslesen. Danach gesondert alle gesperrten PDF-/Contract-/POST-Routen verifizieren. Vor **E2E-PASS** und vollständig evaluierten Berechtigungen keinesfalls Produktions-GO, keine zusätzlichen IAM-/Drive-Rollen oder weitere Deployments auf Verdacht.
+
+---
+
+
 ## 18.10.2026 – Geschäftlicher restricted-parent-fallback: korrigierter Operator-Check vollständig PASS, Deploy offen
 
 Der Betreiber hat `scripts/offer-temp-drive-restricted-parent-release.sh --check 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` aus frischem Feature-Branch in Cloud Shell erfolgreich ausgeführt. Echtes Ergebnis:

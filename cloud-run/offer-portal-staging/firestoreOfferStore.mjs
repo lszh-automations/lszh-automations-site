@@ -1,4 +1,5 @@
 import {offerFingerprint} from './portalCore.mjs';
+import {buildSyntheticReceiptReview} from './receiptRecoveryReview.mjs';
 
 // Purposefully isolated staging collection. Firestore server SDK uses the
 // Cloud Run service identity (ADC) — never JSON private keys in the app.
@@ -38,9 +39,13 @@ export function createFirestoreOfferStore(db){
          !Number.isSafeInteger(latest.revision) ||
          Date.parse(latest.expiresAt)<now.getTime() ||
          offerFingerprint(latest)!==expectedFingerprint)return 'offer_changed';
+      // For explicitly synthetic staging offers, persist a non-dispatchable
+      // recovery marker ATOMICALLY with acceptance. No external side effects.
+      const receiptReview=buildSyntheticReceiptReview(latest,evidence,now.toISOString());
       transaction.update(ref,{
         status:'accepted',revision:latest.revision+1,acceptedAt:now.toISOString(),
         evidence,
+        ...(receiptReview?{receiptReview}:{}),
         // Persist decision only: no automatic Airtable, Make or email actions.
         downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}
       });

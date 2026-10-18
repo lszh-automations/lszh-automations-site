@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporäre Cloud-Run→Drive-Read-only-Prüfrevision real deployed, Live-Smoke ausstehend
+
+**Vom Betreiber bestätigtes echtes Deployment:**
+- Cloud Build `6f120cbf-3823-42c3-8169-8d8c970ca8de`: **SUCCESS**, nur synthetisches Temp-Browser-Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:c19d8bb0f514`, Digest `sha256:3747022c092b074f27997838436a34ce1eeb52a7838fa11c36313bd2e73b3755`.
+- **Einzige** aktualisierte Cloud-Run-Instanz: `lszh-offer-browser-staging`, neue Revision **`lszh-offer-browser-staging-00003-j2p`**, 100 % Traffic ausschliesslich auf diesem TEMP-Testservice, Dienstkonto `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`. Einmaliger rein lesender Probe-Endpunkt `GET /_lszh/synthetic-drive-check` zusätzlich zur weiterhin statischen Designvorschau; keine kundenspezifischen Offer-/PDF-/Accept-Endpoints.
+- Deploy-Sicherheitsgates erfolgreich: Original-Preflight-Revision, Ingress und Dienstidentität **vor und nach** unverändert; kein direkter öffentlicher IAM-Binding nachgewiesen (geerbte IAM-Rollen nicht abschliessend geprüft); die individuelle Geschäfts-Drive-Reader-Berechtigung war bereits vorhanden, keine zweite Erteilung. Keine Firestore-, Vertrags-, E-Mail- oder Kundendatenänderungen.
+
+**Technischer Stand:** Ein erfolgreicher Cloud Build/Deploy ist **noch kein Nachweis**, dass der temporäre Cloud-Run-Dienst unter seiner eigenen Identität tatsächlich die vier `readOnly=true`-PDFs aus dem Geschäftskonto lesen und mit SHA256 verifizieren kann. Diese Live-Prüfung ist der einzige nächste Schritt.
+
+**Neu, ausschliesslich READ-ONLY:** `scripts/offer-temp-drive-probe-smoke.sh` für den Betreiber in Google Cloud Shell: prüft vor und nach dem Test das alte interne Cloud-Run-Sicherheitsbaseline, die ganz bestimmte neue temporäre Revision `00003-j2p`, Image, Dienstkonto, Flags `LSZH_PORTAL_STAGING_ENABLED=false`, `LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true`, `LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED=true`, Testordner, namentlich authentifizierten IAM-Invoker und keine direkten anonymen Bindings. Über `gcloud run services proxy` (keine Tokens in der Konsole) erwartet es statische Demo `GET /offerte-annehmen/?demo=1` -> 200 mit strikter CSP; Google Drive aus dem Cloud-Run-Dienstkonto `GET /_lszh/synthetic-drive-check` -> 200 mit ausschliesslich `{"status":"PASS_SYNTHETIC_ARCHIVE_READ_ONLY","verifiedFiles":4}`; alle Token-/Offer-/PDF-/Accept-GETs und alle relevanten POSTs müssen weiterhin 503 ergeben. Bei fehlendem Drive-Zugriff bricht das Skript mit NO-GO ab, ohne Rollen auszuweiten oder wiederholt zu deployen. Aktualisierte CI überprüft die schreibfreie Shell-Datei und Negativkontrollen.
+- Insbesondere `scripts/offer-browser-static-demo-smoke.sh` ist **nicht** für die neue Revision geeignet, weil es auf die ältere `00002-fkq` gepinnt ist. Nur das neue Script verwenden.
+
+**Ausstehend nach Live-Smoke:** Falls Live PASS: Dienstkonto→Geschäfts-Drive-Integration als **rein synthetischer, read-only** Meilenstein abgeschlossen; weitere Staging-Firestore-Datensatzprüfung, Annahme-Freigabe und Kundenbetrieb gesondert, keine automatische Aktivierung. Falls NO-GO: Nur Diagnose, keine IAM- oder Staging-Freigaben ohne engere Prüfung. Main nicht gemergt, Originalservice unverändert.
+
+---
+
+
 ## 18.10.2026 – Temporäre Drive-Reader-Freigabe LIVE bestätigt; Cloud-Run-Leseprobe vorbereitet
 
 **Live-Ergebnis vom Betreiber:**

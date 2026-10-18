@@ -23,6 +23,7 @@ on:
       - 'test/offerPortalImporter.test.js'
       - 'test/offerPortalAirtableE2E.emulator.test.js'
       - 'test/offerReceiptRecoveryReview.test.js'
+      - 'test/offerReceiptArchiveReconciliation.test.js'
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
       - 'cloud-run/Dockerfile.offer-portal-staging'
@@ -102,6 +103,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/portalCore.mjs
           node --check cloud-run/offer-portal-staging/firestoreOfferStore.mjs
           node --check cloud-run/offer-portal-staging/receiptRecoveryReview.mjs
+          node --check cloud-run/offer-portal-staging/receiptArchiveReconciliation.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -121,6 +123,7 @@ jobs:
           node --check test/offerPortalImporter.test.js
           node --check test/offerPortalAirtableE2E.emulator.test.js
           node --check test/offerReceiptRecoveryReview.test.js
+          node --check test/offerReceiptArchiveReconciliation.test.js
           node --check test/offerPortalDocuments.test.js
           node --check test/offerPortalHttp.test.js
           node --check test/offerPortalStaging.test.js

@@ -135,11 +135,35 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal((await seedOnlyLocalEmulator(db,source)).result,'created');created=true;
    assert.equal((await seedOnlyLocalEmulator(db,source)).result,'already_identical');
    const drive=fakeDrive(docs);
+   // The HTTP acceptance itself triggers one post-commit Airtable handoff.
+   // All REST behavior remains a local fixture: NO external provider traffic.
+   const crm={id:source.id,fields:{
+     Offertennummer:mapped.offerNumber,Status:'Entwurf',
+     'Online-Annahme Token-Hash':mapped.tokenHash,
+     'AVV erforderlich':mode,
+     'Online-Annahme rechtlich freigegeben':false,
+     'Keep existing CRM info':'UNCHANGED'
+   }};
+   let patchCount=0;
+   const fakeClient={
+     readRecord:async({recordId})=>{
+       assert.equal(recordId,source.id);
+       return structuredClone(crm);
+     },
+     patchRecord:async({recordId},patch)=>{
+       assert.equal(recordId,source.id);
+       patchCount++;
+       Object.assign(crm.fields,patch.fields);
+       return structuredClone(crm);
+     }
+   };
    const portal=createOfferPortal({
     store:createFirestoreOfferStore(db),
     verifyBundle:bundle=>verifyArchiveBundle(bundle,{
      fetcher:drive.fetcher,accessToken:'SYNTHETIC_ONLY_OAUTH',archiveFolderId:FOLDER
     }),
+    syntheticOnly:true,
+    onAccepted:accepted=>executeSyntheticAirtableAcceptanceWriteback(accepted,fakeClient),
     approvedVersion:VERSION,proofSalt:'SYNTHETIC_ONLY_NOT_A_REAL_SECRET_123',
     clock:()=>new Date('2026-10-17T12:00:00.000Z')
    });
@@ -176,6 +200,8 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal(receipt.test_only,true);
    assert.equal(receipt.offer_number,mapped.offerNumber);
    assert.equal(receipt.confirmation_email_pending,false);
+   assert.equal(receipt.airtable_sync_status,'synced');
+   assert.equal(patchCount,1,'one post-commit Airtable PATCH for eight accept attempts');
    assert.equal(attempts.filter(x=>[404,409].includes(x.status)).length,7);
    const end=(await ref.get()).data();
    assert.equal(end.status,'accepted');assert.equal(end.revision,2);
@@ -233,29 +259,9 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal('Online-Annahme Beleg Drive ID' in airtablePlan.fields,false);
    assert.equal('Online-Annahme Bestätigung gesendet am' in airtablePlan.fields,false);
    assert.equal(airtablePlan.canWriteAirtable,false);
-   // Executable handoff tested with an in-memory Airtable API, no network.
-   const crm={id:source.id,fields:{
-     Offertennummer:end.offerNumber,Status:'Entwurf',
-     'Online-Annahme Token-Hash':end.tokenHash,
-     'AVV erforderlich':mode,
-     'Online-Annahme rechtlich freigegeben':false,
-     'Keep existing CRM info':'UNCHANGED'
-   }};
-   let patchCount=0;
-   const fakeClient={
-     readRecord:async({recordId})=>{
-       assert.equal(recordId,source.id);
-       return structuredClone(crm);
-     },
-     patchRecord:async({recordId},patch)=>{
-       assert.equal(recordId,source.id);
-       patchCount++;
-       Object.assign(crm.fields,patch.fields);
-       return structuredClone(crm);
-     }
-   };
-   const written=await executeSyntheticAirtableAcceptanceWriteback(end,fakeClient);
-   assert.equal(written.result,'synthetic_fields_patched');
+   // The HTTP acceptance already ran the writeback; verify the resulting
+   // synthetic CRM row and the harmless no-op resumption below.
+
    assert.equal(patchCount,1);
    assert.equal(crm.fields.Status,'Angenommen');
    assert.equal(crm.fields['Keep existing CRM info'],'UNCHANGED');

@@ -83,7 +83,7 @@ function consent(offer,b){
   if(expected.avv_required==='Ja'){
     if(b.accept_avv!==true)throw bad('avv_consent_required');
     if(b.avv_sha256!==expected.avv.sha256 ||
-       (b.avv_version!=null && b.avv_version!==offer.details.avvVersion))
+       b.avv_version!==offer.details.avvVersion)
       throw bad('document_changed');
   }else if(b.accept_avv===true || b.avv_sha256!=null || b.avv_version!=null)
     // The browser explicitly sends null for unused AVV fields.

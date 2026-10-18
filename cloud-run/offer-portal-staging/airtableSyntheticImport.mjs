@@ -1,8 +1,7 @@
 // Airtable -> isolated Firestore offer seed, STRICTLY synthetic.
 // An explicit LOCAL emulator gate prevents this module writing to Google Cloud.
 // No Airtable access, mail sending, PDF generation or production Go-Live.
-import {STAGING_COLLECTION} from './firestoreOfferStore.mjs';
-import {offerFingerprint} from './portalCore.mjs';
+import {registerSyntheticSourceLocalEmulator} from './syntheticSourceIndex.mjs';
 
 // Pinned to the audited Airtable "Offerten" schema on 15.10.2026.
 // Do not infer potentially ambiguous human-readable keys.
@@ -124,20 +123,7 @@ export async function seedOnlyLocalEmulator(db,record){
      db.databaseId!=='lszh-offers-staging'||db.projectId!=='demo-lszh-automations')
     reject('local_emulator_required');
   const item=mapSyntheticAirtableOffer(record);
-  const ref=db.collection(STAGING_COLLECTION).doc(item.tokenHash);
-  try {
-    await ref.create(item);
-    return {result:'created',sourceRecordId:record.id};
-  } catch(err) {
-    if(err?.code!==6 && err?.code!=='already-exists')throw err;
-    const snap=await ref.get();
-    if(!snap.exists)reject('seed_conflict');
-    const previous=snap.data();
-    // Fingerprint comparison ignores extra metadata, so also verify ownership.
-    if(previous?.source?.kind==='LSZH_SYNTHETIC_ONLY' &&
-       previous.source.recordId===record.id && previous.status==='sent' &&
-       offerFingerprint(previous)===offerFingerprint(item))
-      return {result:'already_identical',sourceRecordId:record.id};
-    reject('seed_conflict');
-  }
+  // Both records are inserted atomically. A second token for the same
+  // Airtable source record is a hard conflict, never a new offer.
+  return registerSyntheticSourceLocalEmulator(db,item);
 }

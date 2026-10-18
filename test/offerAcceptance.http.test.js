@@ -66,7 +66,7 @@ async function childApp(){
 }
 const payload=(sha,mode='Ja')=>({
   code,name:'Synthetische Testperson',email:'user@example.invalid',
-  authorized:true,accept_terms:true,
+  authorized:true,accept_quote:true,accept_terms:true,
   quote_sha256:sha.offer,terms_sha256:sha.terms,
   ...(mode==='Ja'?{accept_avv:true,avv_sha256:sha.avv,avv_version:'TEST_ONLY_AVV_AB_C'}:{accept_avv:false})
 });

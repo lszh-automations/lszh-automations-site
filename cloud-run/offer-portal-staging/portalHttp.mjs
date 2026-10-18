@@ -22,14 +22,23 @@ async function json(req){
   const contentLength=req.headers['content-length'];
   if(contentLength && (!/^\d+$/.test(contentLength)||Number(contentLength)>LIMIT))
     throw Error('oversized');
-  const chunks=[];let size=0;
-  for await(const part of req){
-    size+=part.length;
-    if(size>LIMIT)throw Error('oversized');
-    chunks.push(part);
+  let bytes;
+  if(Buffer.isBuffer(req.rawBody)){
+    // Functions Framework has already consumed the stream. Use its original
+    // bytes, retaining the same size/JSON/object checks as the raw HTTP path.
+    bytes=req.rawBody;
+    if(bytes.length>LIMIT)throw Error('oversized');
+  }else{
+    const chunks=[];let size=0;
+    for await(const part of req){
+      size+=part.length;
+      if(size>LIMIT)throw Error('oversized');
+      chunks.push(part);
+    }
+    bytes=Buffer.concat(chunks,size);
   }
-  if(!size)throw Error('empty');
-  const obj=JSON.parse(Buffer.concat(chunks,size).toString('utf8'));
+  if(!bytes.length)throw Error('empty');
+  const obj=JSON.parse(bytes.toString('utf8'));
   if(!obj || typeof obj!=='object'||Array.isArray(obj))throw Error('invalid_body');
   return obj;
 }

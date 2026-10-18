@@ -138,3 +138,17 @@ gesperrt. **Nur Geschäftskonto/geschäftliches Drive**, nicht privat.
   erlaubt, die einzelne Subscription anzulegen.
 - Weder das Prüfen noch diese Codeänderung haben IAM oder Cloud verändert.
   Geerbte Effective-IAM- und GCP-Deny/PAB-Gates bleiben ausdrücklich offen.
+
+## Abschliessende Regression auf dem fixierten Branch, 18.10.2026
+
+- [G3 Build-only Workflow 39146520972](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39146520972): **SUCCESS**. Der in `base-image.candidate.json`
+  fixierte Base-Digest wurde vom Registry-Manifest read-only auflösbar bestätigt.
+  Erneut **8 validierte Blobs**, exakt derselbe
+  OCI-Manifest-Digest `sha256:1ee2b30f6ba250e1f2ccc229edca2b3d0e60c1cbab196f8b3634fe182b2fd5dd`
+  und Container-Smoke **PASS**.
+- [Regressions-CI 39146521016](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39146521016):
+  **alle 4 Jobs SUCCESS**; regulär **190 PASS / 0 FAIL / 5 SKIP**,
+  Firestore-Emulator **19 PASS / 0 FAIL**, Chromium/Portal-Image PASS.
+- **Release bleibt ausdrücklich NO_GO.** Diese erfolgreiche CI beweist
+  nur Code- und isolierten Kandidatenbuild-Test, nicht Scan/Provenance,
+  wirksame Cloud-IAM-Rechte, Cloud Deployment oder Kundenprozess.

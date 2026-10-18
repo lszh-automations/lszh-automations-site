@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – G3 Berechtigungs-/Rollback-Phasenplan, Firestore-Transaktionsrecht korrigiert
+
+**Auftrag `Vamos`:** Nach tatsächlich erfolgreicher Geschäfts-Cloud-Shell-Inventur vom 18.10. (5 benötigte APIs `ENABLED`, 0 Pub/Sub-Topics/Subscriptions, 8 Serviceaccounts, 6 Cloud-Run-Dienste, neue G3-Ressourcen fehlen, direkte Pub/Sub-Service-Agent-`roles/pubsub.serviceAgent`-Projektbindung gefunden) wurde **kein** IAM-/OAuth-/Cloud-Deployment gestartet. Stattdessen liegt die konkrete, noch **nicht freigegebene** Umsetzung in `docs/LSZH_G3_PUBSUB_CHANGE_ROLLBACK_PLAN_20261018.md` vor: getrennte Minimalrechte für geschäftlichen Make-Topic-Publisher, Pub/Sub-Push-Invoker-SA, Google-Pub/Sub-Service-Agent, G3-Cloud-Run-Runtime-SA und ausführenden Operator; ein Topic/eine Subscription/ein privater IAM-geschützter Receiver, getrennte Phasenfreigaben, Monitoring und reversibler Notstopp/Rückbau. **Keine Konfiguration darf wegen des Startsignals `Vamos` aktiviert werden.**
+
+**IAM-Korrektur:** Die Google-Firestore-Server-IAM-Dokumentation nennt `datastore.databases.get` zur Einleitung/zum Rollback von Transaktionen. Der frühere synthetische Offline-Preflight `syntheticPubsubIamPreflight.mjs` hatte nur `datastore.entities.get/create/update`. Das *vorgesehene* Berechtigungsset wurde um **`datastore.databases.get`** ergänzt, inklusive Negativtest, der den fehlenden Wert ablehnt. Die tatsächliche SDK-Ausführbarkeit, passende `lszh-offers-staging`-Datenbank-Condition und mögliche nur-lesen-Metadatenrechte bleiben **separat nachzuweisen**. **Keine IAM-Bindung wurde verändert.** Die Quarantäne-CAS-Identität und -Datenbank bleiben strikt unberührt.
+
+**Google-Pub/Sub-Service-Agent:** Die vorhandene direkte Standardrolle `roles/pubsub.serviceAgent` enthält laut aktueller Google-Rollendokumentation `iam.serviceAccounts.getOpenIdToken`. Das ist **kein abschliessender effektiver Berechtigungsnachweis** bei Gruppen, Deny/PAB und Organisationsregeln; der geplante Push-SA existiert noch nicht. Zusätzliche `roles/iam.serviceAccountTokenCreator`-Zuweisung nur bei erwiesener Notwendigkeit und dann als **eigenständiger, möglichst eng begrenzter Berechtigungsantrag**, niemals vorsorglich oder projektweit.
+
+**Make-Grenze:** `google-cloud-pubsub:publishMessage` ist im verbundenen Make-Team real verfügbar, aber Verbindungstyp `account:google-custom` meldet weiter `existing: []`. Der native `messages[].data`-Encodingmodus ist unbestätigt; REST-Wire-Base64 darf nicht ungeprüft ins Make-Modul kopiert werden. Kein OAuth-Konto, Topic, Push-Audience, Rückkanal oder Pub/Sub-Zustellprotokoll eingerichtet. Make-Szenario `7940220` inaktiv, Modul 2/8 `0=1`.
+
+**Tests und Dokumente:** Änderung des synthetischen, nicht ausführbaren Preflight-Codes inkl. zusätzlichem Negativtest; [GitHub Actions 39141818159](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39141818159) **SUCCESS**: 170 reguläre PASS/0 FAIL/5 SKIP, 19 lokale Firestore-Emulator-PASS, Browser/Container-PASS. `docs/LSZH_G3_PUBSUB_IAM_PREFLIGHT_20261018.md` entsprechend aktualisiert. Echte Ressourcenbereitstellung bleibt **G3-NO-GO**, alle Beleg-/Vertrags-/E-Mail-Aktionen gesperrt. PR #5 weiterhin Draft/unmerged.
+
+---
+
 ## 18.10.2026 – G3 ECHTE geschäftliche Cloud-Shell-Inventur erfolgreich, Ressourcen-Iststand jetzt bekannt
 
 **Verifiziert durch den Betreiber:** Die geschäftliche Google Cloud Shell hat den aus dem LSZH-GitHub-Featurebranch geklonten, auf Leseoperationen beschränkten Runner `scripts/g3-readonly-cloud-inventory.mjs` tatsächlich ausgeführt. Der Betreiber hat die **redigierte JSON-Ausgabe** in den Projektchat übertragen. **Kein Mock, kein manueller Rückschluss auf angenommene Cloud-Ressourcen.** Ergebnis: `READ_ONLY_INVENTORY_WITH_UNVERIFIED_EFFECTIVE_IAM`, `projectIdentityVerified=true`, Projekt `lszh-automations`, Region `europe-west6`, `releaseStatus=NO_GO`.

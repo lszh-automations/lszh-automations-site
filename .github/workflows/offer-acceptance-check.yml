@@ -31,6 +31,8 @@ on:
       - 'test/offerSyntheticMakeCallerAuth.test.js'
       - 'test/offerSyntheticPubsubReviewTransport.test.js'
       - 'test/offerSyntheticPubsubIamPreflight.test.js'
+      - 'test/g3ReadonlyCloudInventory.test.js'
+      - 'scripts/g3-readonly-cloud-inventory.mjs'
       - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
@@ -120,6 +122,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/syntheticMakeCallerAuth.mjs
           node --check cloud-run/offer-portal-staging/syntheticPubsubReviewTransport.mjs
           node --check cloud-run/offer-portal-staging/syntheticPubsubIamPreflight.mjs
+          node --check scripts/g3-readonly-cloud-inventory.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -147,6 +150,7 @@ jobs:
           node --check test/offerSyntheticMakeCallerAuth.test.js
           node --check test/offerSyntheticPubsubReviewTransport.test.js
           node --check test/offerSyntheticPubsubIamPreflight.test.js
+          node --check test/g3ReadonlyCloudInventory.test.js
           node --check test/offerSyntheticSourceIndex.emulator.test.js
           node --check test/offerReceiptProcessingLock.emulator.test.js
           node --check test/offerPortalDocuments.test.js

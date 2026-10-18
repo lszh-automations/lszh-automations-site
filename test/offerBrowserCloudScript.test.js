@@ -13,19 +13,20 @@ const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
 const driveProbeRelease='scripts/offer-temp-drive-probe-release.sh';
 const drivePhaseRelease='scripts/offer-temp-drive-phase-release.sh';
 const driveShapeRelease='scripts/offer-temp-drive-folder-shape-release.sh';
+const driveParentRelease='scripts/offer-temp-drive-restricted-parent-release.sh';
 const driveProbeSmoke='scripts/offer-temp-drive-probe-smoke.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveShapeRelease,driveProbeSmoke]){
+ for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveShapeRelease,driveParentRelease,driveProbeSmoke]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveShapeRelease && file!==driveProbeSmoke)
+  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveShapeRelease && file!==driveParentRelease && file!==driveProbeSmoke)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else if(file===smoke || file===staticSmoke || file===driveProbeSmoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
-  else if(file===driveProbeRelease || file===drivePhaseRelease || file===driveShapeRelease || file===driveShapeRelease)
+  else if(file===driveProbeRelease || file===drivePhaseRelease || file===driveShapeRelease || file===driveParentRelease || file===driveShapeRelease)
    assert.match(s,/SA="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
@@ -232,4 +233,24 @@ test('folder-shape diagnostic release pinned to 00004 is strictly temporary and 
  assert.doesNotMatch(src,/lszh-offer-browser-staging-00003-j2p/);
  assert.doesNotMatch(src,/<<'PY' \|\|/);
  assert.doesNotMatch(src,/gcloud firestore|gcloud run jobs/);
+});
+
+test('temporary restricted parent fix release stays fail closed and never grants main archive IAM',()=>{
+ const src=fs.readFileSync(driveParentRelease,'utf8');
+ assert.match(src,/BEFORE_REV="lszh-offer-browser-staging-00005-grx"/);
+ assert.match(src,/BEFORE_IMAGE="[^"]+:baf9ca133b0a"/);
+ assert.match(src,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT: "true"/);
+ assert.match(src,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(src,/offer-temp-drive-child-readonly-check\.py/);
+ const checks=src.match(/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py"/g)||[];
+ assert.equal(checks.length,2,'must reverify business owner/root before build AND deployment');
+ assert.match(src,/gcloud run deploy "\$TEMP"/);
+ assert.doesNotMatch(src,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(src,/gcloud projects add-iam-policy-binding|gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(src,/gcloud iam service-accounts add-iam-policy-binding/);
+ assert.doesNotMatch(src,/--allow-unauthenticated(?!-)/);
+ assert.doesNotMatch(src,/lszh-offer-browser-staging-00004-nk6/);
 });

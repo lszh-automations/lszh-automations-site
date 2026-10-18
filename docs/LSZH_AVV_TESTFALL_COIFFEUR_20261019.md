@@ -1,6 +1,6 @@
 # Synthetischer AVV-Arbeitsfall – Coiffeur-Terminautomation
 
-Stand: 19.10.2026. Interne Arbeitsgrundlage für die AVV-Anlagen und den Online-Annahme-Test. Keine Rechtsberatung, keine echte Offerte oder AVV, keine Kundendaten, keine Freigabe für Produktivbetrieb.
+Stand: 19.10.2026. Strukturierte Arbeitsnotiz zum bereits vorhandenen Coiffeur-TEST_ONLY-Beispiel im geschäftlichen Drive. Keine zweite Testannahme. Keine Rechtsberatung, keine echte Offerte oder AVV, keine Kundendaten, keine Freigabe für Produktivbetrieb.
 
 ## Erfundenes Szenario
 
@@ -20,7 +20,7 @@ Stand: 19.10.2026. Interne Arbeitsgrundlage für die AVV-Anlagen und den Online-
 
 ## Ausdrücklich erfundene Testannahmen
 
-- Testdaten werden 30 Tage nach Abschluss des Tests manuell gelöscht. Das ist nur ein frei gewählter Testwert und keine Kunden- oder Provider-Löschzusage.
+- Das vorhandene TEST_ONLY-Beispiel nennt eine geplante Testdatenbereinigung spätestens nach 90 Tagen. Diese Frist und Provider-Backups sind nicht verifiziert; es ist keine Kunden- oder Provider-Löschzusage.
 - Airtable, Make und Google-Kalender laufen in getrennten Testkonten. Kontoinhaber, Vertragspartner, Datenregionen, Backupfristen und tatsächliche Löschfristen sind im Test nicht verifiziert.
 - Der Kunde bestimmt im Test die Geschäftsregeln; LSZH richtet das Szenario ein. Die rechtliche Rollenverteilung muss für einen realen Auftrag separat anhand des konkreten Datenflusses beurteilt werden.
 - Ein synthetischer Kontaktweg für Datenschutz- oder Sicherheitsvorfälle ist im Test nicht eingerichtet.

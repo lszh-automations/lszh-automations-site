@@ -39,6 +39,7 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
     const counts=Object.fromEntries(severities.map(x=>[x,0]));
     let fixedHighCritical=0,unfixedHighCritical=0;
     const highCriticalFindings=[];
+    const mediumFindings=[];
     for(const item of scan.Results){
       if(!str(item.Target)||!str(item.Class)||!str(item.Type)||
          (item.Vulnerabilities!==undefined&&!Array.isArray(item.Vulnerabilities)))
@@ -48,6 +49,13 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
         if(!severities.includes(level)||!str(vuln?.VulnerabilityID)||
            !str(vuln?.PkgName))throw Error('malformed_vulnerability');
         counts[level]++;
+        if(level==='MEDIUM'&&mediumFindings.length<100)
+          mediumFindings.push({
+            id:vuln.VulnerabilityID,package:vuln.PkgName,
+            installedVersion:typeof vuln.InstalledVersion==='string'?vuln.InstalledVersion:'',
+            fixedVersion:typeof vuln.FixedVersion==='string'?vuln.FixedVersion:'',
+            target:item.Target
+          });
         if(level==='HIGH'||level==='CRITICAL'){
           if(str(vuln.FixedVersion))fixedHighCritical++;
           else unfixedHighCritical++;
@@ -76,6 +84,8 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
       sbomSha256:sha(Buffer.from(sbomText)),
       counts,fixedHighCritical,unfixedHighCritical,
       highCriticalFindings:highCriticalFindings.sort((a,b)=>
+        (a.package+'/'+a.id).localeCompare(b.package+'/'+b.id)),
+      mediumFindings:mediumFindings.sort((a,b)=>
         (a.package+'/'+a.id).localeCompare(b.package+'/'+b.id)),
       sbomComponentCount:sbom.components.length,
       registryImageDigest:'NOT_CREATED',signature:'NOT_SIGNED',

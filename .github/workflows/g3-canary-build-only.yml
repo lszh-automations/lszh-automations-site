@@ -1,0 +1,126 @@
+name: G3 canary candidate image (build-only, NO deployment)
+
+on:
+  pull_request:
+    paths:
+      - 'cloud-run/g3-review-staging/**'
+      - 'scripts/g3-canary-image-plan.mjs'
+      - 'scripts/g3-canary-oci-verify.py'
+      - 'test/g3CanaryImageBuild.test.js'
+      - '.github/workflows/g3-canary-build-only.yml'
+  workflow_dispatch:
+
+# This job has no Google Cloud, packages, tokens, write API, or Docker push steps.
+permissions:
+  contents: read
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Offline source-policy and deny tests (before Docker)
+        run: |
+          set -euo pipefail
+          node --check scripts/g3-canary-image-plan.mjs
+          node --check cloud-run/g3-review-staging/index.mjs
+          python3 -m py_compile scripts/g3-canary-oci-verify.py
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js
+          node scripts/g3-canary-image-plan.mjs
+
+      - name: Resolve candidate base SHA from official Docker Hub (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="$(docker buildx imagetools inspect docker.io/library/node:22-alpine --format '{{.Manifest.Digest}}')"
+          [[ "$base_sha" =~ ^sha256:[a-f0-9]{64}$ ]]
+          base="docker.io/library/node:22-alpine@$base_sha"
+          node scripts/g3-canary-image-plan.mjs "--base-image=$base" > g3-image-inputs.json
+          echo "G3_CANARY_BASE_IMAGE=$base" >> "$GITHUB_ENV"
+          echo "Candidate base pinned for THIS run: $base"
+          echo "Not security-reviewed, not deploy-approved"
+
+      - name: Two isolated, network-disabled build steps produce OCI candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g3-canary-candidate
+          for i in 1 2; do
+            docker buildx build \
+              --file cloud-run/g3-review-staging/Dockerfile \
+              --platform linux/amd64 \
+              --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+              --build-arg SOURCE_DATE_EPOCH=0 \
+              --network none --no-cache \
+              --provenance=false --sbom=false \
+              --output "type=oci,dest=g3-canary-candidate/image-${i}.oci.tar,oci-mediatypes=true,rewrite-timestamp=true" \
+              cloud-run/g3-review-staging
+          done
+
+      - name: Independently SHA-verify OCI layers and compare both builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/g3-canary-oci-verify.py \
+            g3-canary-candidate/image-1.oci.tar \
+            g3-canary-candidate/image-2.oci.tar | tee g3-image-oci-report.json
+          sha256sum g3-canary-candidate/image-1.oci.tar g3-canary-candidate/image-2.oci.tar \
+            > g3-candidate-tar-sha256.txt
+          echo "These hashes are LOCAL OCI artifacts; they are NOT Artifact Registry image digests."
+          echo "NO_GO: container scan, independent source/base review and approved registry digest are still missing."
+
+      - name: Build-only container smoke, network disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --file cloud-run/g3-review-staging/Dockerfile \
+            --platform linux/amd64 \
+            --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --network none --no-cache --provenance=false --sbom=false \
+            --load -t lszh-g3-canary:offline-review cloud-run/g3-review-staging
+          test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-canary:offline-review)" = node
+          cid="$(docker run --detach --network none --read-only \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e PORT=8080 lszh-g3-canary:offline-review)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 20); do
+            if docker exec "$cid" node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(r.status!==200)process.exit(1)}).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec "$cid" node --input-type=module -e '
+            import assert from "node:assert/strict";
+            const base="http://127.0.0.1:8080";
+            const fixture={schemaVersion:1,syntheticOnly:true,fixtureId:"LSZH_G3_CANARY_NO_CONTRACT_20261018"};
+            const message={data:Buffer.from(JSON.stringify(fixture)).toString("base64"),
+              messageId:"123456789001",publishTime:"2026-10-18T15:00:00Z",
+              attributes:{kind:"LSZH_G3_PRIVATE_PUSH_CANARY_V1",schema:"1"}};
+            const body={subscription:"projects/lszh-automations/subscriptions/lszh-g3-review-staging",message};
+            const post=async b=>fetch(base+"/g3-review",{method:"POST",
+              headers:{"content-type":"application/json"},body:JSON.stringify(b)});
+            assert.equal((await post(body)).status,204);
+            assert.equal((await post({...body,customerEmail:"not-an-email"})).status,503);
+            assert.equal((await fetch(base+"/offerte-annehmen/")).status,404);
+            console.log("PASS: network-isolated real container, canary-only ACK");
+          '
+
+      - name: Upload small audit reports only (no container, no secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g3-image-candidate-offline-audit
+          path: |
+            g3-image-inputs.json
+            g3-image-oci-report.json
+            g3-candidate-tar-sha256.txt
+          if-no-files-found: ignore
+          retention-days: 7

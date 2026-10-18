@@ -43,7 +43,10 @@ function verifiedSource(item,recordId){
     item.source?.kind==='LSZH_SYNTHETIC_ONLY' &&
     item.source.baseId===BASE && item.source.tableId===TABLE &&
     item.source.recordId===recordId &&
-    SHA.test(item.tokenHash||'') &&
+    RECORD.test(recordId||'') && SHA.test(item.tokenHash||'') &&
+    /^TEST[-_][A-Z0-9_-]{8,90}[-_]NO[-_]CONTRACT$/.test(item.offerNumber||'') &&
+    /^[a-z0-9._%+-]+@(?:[a-z0-9-]+\\.)*example\\.invalid$/.test(item.recipientEmail||'') &&
+    item.termsVersion==='TEST_v1.0_RC1' &&
     item.downstream?.airtable==='disabled' &&
     item.downstream?.proofPdf==='disabled' &&
     item.downstream?.email==='disabled';
@@ -68,8 +71,8 @@ function matchesOffer(item,expect){
     item.tokenHash===expect.tokenHash &&
     item.status==='sent' && item.revision===1 && item.approved===true &&
     offerFingerprint(item)===offerFingerprint(expect) &&
-    JSON.stringify(item.source)===JSON.stringify(expect.source) &&
-    JSON.stringify(item.downstream)===JSON.stringify(expect.downstream);
+    exact(item.source,['kind','baseId','tableId','recordId']) &&
+    exact(item.downstream,['airtable','proofPdf','email']);
 }
 const noGo=reason=>({
   schemaVersion:1,channel:'LSZH_MAKE_RECEIPT_REVIEW_STAGING_V1',

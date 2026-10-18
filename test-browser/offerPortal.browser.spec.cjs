@@ -112,7 +112,9 @@ test('public synthetic design demo: clearly marked, no contract or backend POST'
  const fixture=await localFixture('Ja');
  try{
   await page.goto(fixture.base+'/offerte-annehmen/?demo=1');
-  await expect(page.locator('#number')).toHaveText('MUSTER-2026-001');
+  await expect(page.locator('#number')).toHaveText('OFF-TEST-AVV-20261018-001');
+   await expect(page.locator('#company')).toHaveText('Mustercoiffeur TEST GmbH');
+   await expect(page.locator('#avvVersion')).toContainText('TEST_ONLY_AVV_v0.9_RC1');
   await expect(page.locator('#message')).toContainText('unverbindliche Designvorschau');
   await expect(page.locator('#submit')).toBeDisabled();
   await page.locator('#quotePdf').click();

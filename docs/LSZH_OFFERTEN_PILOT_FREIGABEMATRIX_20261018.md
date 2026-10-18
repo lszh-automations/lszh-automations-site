@@ -1,37 +1,30 @@
 # LSZH Automations – Freigabegrenzen für den Offerten-Pilot
 
-Stand: 19.10.2026. Abgleich der dokumentierten Nachweise bis 18.10.2026; keine neue Live-Prüfung.
-Verbindliche technische Übergabe: [Projektstand](LSZH_AUTOMATIONS_PROJEKTSTAND.md).
-Diese Matrix ersetzt die frühere G1–G7-Arbeitsreihenfolge.
+Stand: 19.10.2026. Technischer Status und letzte Cloud-Nachweise: [Projektstand](LSZH_AUTOMATIONS_PROJEKTSTAND.md).
 
-## Vorhandene Freigaben
+## Erledigt
 
-| Umfang | Stand |
+| Bereich | Nachweis |
 | --- | --- |
-| Separater synthetischer Airtable-Schreibtest | Ausdrücklich freigegeben und abgeschlossen; kein Wiederholungsauftrag |
-| Einmaliger privater synthetischer Cloud-Run-Staging-Test | Ausdrücklich freigegeben; Firestore-Seed erledigt, eigentliche Portal-Testrevision/HTTP-Annahme noch offen |
-| Geschäftsregeln der Projektbedingungen | Intern bereits akzeptiert; nicht erneut abstimmen |
+| Online-Annahme | Synthetische AVV-Nein- und AVV-Ja-Fälle live über Cloud Run angenommen; Firestore- und Airtable-Readback stimmten überein. |
+| Dokumente und Beleg | AVV-Nein- und AVV-Ja-PDFs geprüft; Make-Belege im Geschäfts-Drive erzeugt und referenziert. Keine Kundenverträge. |
+| Bestätigungsweg | Empfängerzuordnung und Anlagen statisch geprüft: 3 PDFs ohne AVV, 4 mit AVV. Versandmodule deaktiviert, Filter `0=1`; kein Mailversand ausgeführt. |
+| Temporärer Cloud-Zugriff | Tag entfernt; Revisionen `00007-e2e` und `00008-json` gelöscht; beide temporären Secret-Berechtigungen entfernt. Revision `00009-avv` bleibt als neueste Revision retired, ungetaggt und ohne Traffic bestehen. Browser-Demo weiterhin 100 %. |
 
-Der Cloud-Test ist auf den vorhandenen Testfall und die isolierte Staging-Prüfung begrenzt. Er erlaubt keine echten Kunden, produktiven Mails/Verträge, Main-Merge oder allgemeinen öffentlichen Go-Live. Benötigt der konkrete Testplan weitergehende Änderungen an Ingress/IAM, diese gesondert begründen und innerhalb der tatsächlichen Autorisierung behandeln.
+## Vor einem echten Kundenpilot
 
-## Noch zu erfüllende Schritte
+| Bereich | Noch erforderliches Ergebnis |
+| --- | --- |
+| Kundenunterlagen | Finale Kunden-PDFs und konkrete AVV-Anlagen festlegen; Projektbedingungen sind geschäftlich bereits akzeptiert. TEST_ONLY-Dateien bleiben ausschliesslich Testunterlagen. |
+| Kundenablauf | Kundenroute, Make-Organisation, erforderliche Rollen/Verbindungen, Zuständigkeit und Support-/Fehlerweg für einen benannten Pilotfall festlegen. |
+| Bestätigungsmail | Statische Prüfung ist bestanden. Vor einem echten Versand Absender, Empfänger, endgültige Anlagen und Versandfreigabe für den konkreten Kundenfall festlegen. |
+| Pilotstart | Benannten Kunden und Leistungsumfang bestimmen; Aktivierung und produktive Kundenkommunikation nur im dafür freigegebenen Umfang ausführen. |
 
-| Bereich | Erforderliches Ergebnis | Einordnung |
-| --- | --- | --- |
-| Testzugang | Erreichbarer privater Testpfad, passende Runtime-Identität/Secrets, bestehender Traffic erhalten | Unmittelbarer nächster Schritt; internen Ingress und fehlende Firestore-Rechte des temporären Browserdienstes berücksichtigen |
-| Durchgängige Annahme | Cloud-HTTP-Annahme → Firestore → Airtable mit Readback für synthetischen Testfall | Freigabe vorhanden, vollständiger Live-Nachweis fehlt |
-| Beleg und Bestätigung | Bestehende Make-Strecke, richtige PDFs, Beleg und eindeutig nachvollziehbarer Versandstatus | Nicht durch bisherigen Emulator-/Airtable-Test belegt; konkrete Schreib-/Versandfreigabe beachten |
-| Dokumente | Endgültige Kunden-PDFs und Versionen, rechtliche Endprüfung und konkrete AVV-Anlagen | Geschäftsbedingungen nicht erneut verhandeln; TEST_ONLY nicht in Echtverträge umdeuten |
-| Kundenbetrieb | Tatsächlicher Kundenweg, passende Rechte/Verbindungen, Support, Fehlerbehandlung und Rückabwicklung | Vor begrenztem Kundenpilot konkret abschliessen |
-| Pilotstart | Benannter Kunde, Leistungsumfang und ausdrückliches Aktivierungs-/Versand-GO | Noch nicht freigegeben |
+## Grenzen
 
-## Fortgeltende Grenzen
+- Synthetische Tests autorisieren keine echten Verträge, produktiven E-Mails, externen Einladungen, allgemeine Make-Aktivierung, Main-Merge oder öffentlichen Go-Live.
+- Bestehende Make-Szenarien bleiben inaktiv; Mail- und Versanddatums-Module bleiben gesperrt.
+- Airtable und Firestore bilden keine gemeinsame atomare Transaktion. Unklare Folgeergebnisse kontrolliert prüfen, nicht blind wiederholen.
+- Nur das geschäftliche Google Drive verwenden.
+- G3/Pub/Sub/Canary und Cockpit V2 bleiben zurückgestellt, solange sie keinen konkreten Pilot-Blocker beheben.
 
-- Bestehende Make-Szenarien bleiben laut letztem Nachweis inaktiv und ihre Sperren erhalten, bis die jeweilige konkrete Aktion autorisiert ist.
-- Keine echten Verträge, produktiven E-Mails, externen Kundeneinladungen, allgemeine Aktivierung oder Main-Merge aus einem technischen PASS ableiten.
-- Google Drive ausschliesslich geschäftlich. Drive-Schreibschutz nicht als WORM-Archiv darstellen.
-- Frühere IAM-/CAS-Tests belegen ihren konkreten Prüfbereich, keine allgemeine Produktionsfreigabe.
-- Firestore-Transaktion und Airtable-Update sind keine gemeinsame atomare Transaktion; unklare Folgeergebnisse kontrolliert nachbearbeiten.
-- G3 bleibt zurückgestellt und technisch gesperrt. Kein neues G3-/Registry-/Pub/Sub-Programm als Voraussetzung für diesen Pilot.
-
-Die alte detaillierte G1–G7-Matrix ist über den Historienlink im Projektstand erhalten. Ihre überholten Schritte sind keine aktuelle Arbeitsanweisung.

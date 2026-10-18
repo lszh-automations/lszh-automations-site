@@ -72,7 +72,7 @@ test('only the synthetic offer demo GET is public on private staging', {timeout:
  assert.equal(response.headers.get('referrer-policy'),'no-referrer');
  assert.equal(response.headers.get('set-cookie'),null,'public demo must never grant privileged session');
  const html=await response.text();
- assert.match(html,/MUSTER-2026-001/,'fake offer only');
+ assert.match(html,/OFF-TEST-AVV-20261018-001/,'fake offer only');
  assert.match(html,/if\(!current\|\|demo\|\|current\.test_only===true\|\|!form\.reportValidity\(\)\)return/,'demo and synthetic previews have no submit path');
 
  // ChatGPT and other link providers append tracking to opened URLs.
@@ -84,7 +84,7 @@ test('only the synthetic offer demo GET is public on private staging', {timeout:
  ]) {
   const tracked=await fetch(origin+route,{redirect:'manual',signal:AbortSignal.timeout(4000)});
   assert.equal(tracked.status,200,'tracked synthetic GET '+route);
-  assert.match(await tracked.text(),/MUSTER-2026-001/);
+  assert.match(await tracked.text(),/OFF-TEST-AVV-20261018-001/);
   assert.equal(tracked.headers.get('set-cookie'),null);
  }
 

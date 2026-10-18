@@ -68,11 +68,43 @@ def audit_policy_hierarchy(document):
     return counts
 
 
+def classify_gcloud_failure(stderr):
+    """Return fixed, non-sensitive categories; NEVER surface raw stderr."""
+    message = (stderr or "").lower()
+    if any(x in message for x in (
+            "permission_denied", "permission denied", "does not have permission",
+            "not authorized", "403", "insufficient authentication scopes")):
+        return "IAM_READ_PERMISSION_DENIED"
+    if any(x in message for x in (
+            "invalid choice", "unrecognized arguments", "unknown command",
+            "command not found", "not a valid choice")):
+        return "GCLOUD_COMMAND_OR_FLAG_UNAVAILABLE"
+    if any(x in message for x in (
+            "please run", "login required", "invalid_grant",
+            "unauthenticated", "no active account", "401")):
+        return "CLOUD_LOGIN_REQUIRED"
+    if any(x in message for x in (
+            "api has not been used", "api is disabled", "service disabled")):
+        return "RESOURCE_MANAGER_API_UNAVAILABLE"
+    if any(x in message for x in (
+            "not found", "notfound", "404")):
+        return "PROJECT_NOT_VISIBLE"
+    return "GOOGLE_CLOUD_QUERY_FAILED"
+
+
 def run_gcloud(command):
     result = subprocess.run(["gcloud", *command, "--format=json"],
-                            check=True, capture_output=True, text=True,
+                            check=False, capture_output=True, text=True,
                             timeout=90)
-    return json.loads(result.stdout)
+    if result.returncode != 0:
+        raise GateError(classify_gcloud_failure(result.stderr))
+    try:
+        data = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        raise GateError("GCLOUD_RESULT_NOT_JSON") from None
+    if not isinstance(data, (list, dict)):
+        raise GateError("GCLOUD_RESULT_UNEXPECTED_SHAPE")
+    return data
 
 
 def run():
@@ -105,6 +137,36 @@ def run():
 
 
 class Tests(unittest.TestCase):
+    def test_gcloud_diagnostic_only_fixed_codes_never_echo_identity(self):
+        cases = [
+            ("PERMISSION_DENIED: roles/iam.securityReviewer needed for "
+             "user:private@example.invalid", "IAM_READ_PERMISSION_DENIED"),
+            ("unrecognized arguments: --include-deny",
+             "GCLOUD_COMMAND_OR_FLAG_UNAVAILABLE"),
+            ("Please run gcloud auth login", "CLOUD_LOGIN_REQUIRED"),
+            ("API has not been used in project", "RESOURCE_MANAGER_API_UNAVAILABLE"),
+            ("Resource not found: organizations/999", "PROJECT_NOT_VISIBLE"),
+            ("Unexpected provider text: token=FAKE_NOT_A_TOKEN",
+             "GOOGLE_CLOUD_QUERY_FAILED")
+        ]
+        for raw, expected in cases:
+            result = classify_gcloud_failure(raw)
+            self.assertEqual(result, expected)
+            self.assertNotIn("private@", result)
+            self.assertNotIn("organizations/", result)
+            self.assertNotIn("token=", result)
+
+    def test_invalid_json_and_unreadable_ancestry_is_no_go(self):
+        from unittest.mock import patch
+        good = subprocess.CompletedProcess([], 0, stdout="not JSON", stderr="")
+        failed = subprocess.CompletedProcess([], 1, stdout="", stderr="PERMISSION_DENIED")
+        with patch("subprocess.run", return_value=good):
+            with self.assertRaisesRegex(GateError, "GCLOUD_RESULT_NOT_JSON"):
+                run_gcloud(["projects", "get-ancestors-iam-policy", PROJECT])
+        with patch("subprocess.run", return_value=failed):
+            with self.assertRaisesRegex(GateError, "IAM_READ_PERMISSION_DENIED"):
+                run_gcloud(["projects", "get-ancestors-iam-policy", PROJECT])
+
     def test_project_and_ancestors(self):
         policies = [{"resource": "organizations/123", "policy": {
             "bindings": [{"role": "roles/viewer", "members": ["user:synthetic@example.invalid"]}]}},
@@ -148,8 +210,20 @@ if __name__ == "__main__":
     elif not sys.argv[1:]:
         try:
             raise SystemExit(run())
-        except GateError:
-            print("NO-GO: business IAM ancestry audit incomplete or unsafe.")
+        except GateError as error:
+            # Only GateError-coded known reasons; never print gcloud stderr.
+            reason = str(error)
+            reasons = {
+                "business_cloud_account_required",
+                "unrecognized_or_empty_hierarchy", "hierarchy_too_deep",
+                "bindings_format_invalid", "binding_not_object",
+                "no_parseable_allow_policy_sections",
+                "IAM_READ_PERMISSION_DENIED", "GCLOUD_COMMAND_OR_FLAG_UNAVAILABLE",
+                "CLOUD_LOGIN_REQUIRED", "RESOURCE_MANAGER_API_UNAVAILABLE",
+                "PROJECT_NOT_VISIBLE", "GOOGLE_CLOUD_QUERY_FAILED",
+                "GCLOUD_RESULT_NOT_JSON", "GCLOUD_RESULT_UNEXPECTED_SHAPE"
+            }
+            print("NO-GO: IAM hierarchy diagnosis:", reason if reason in reasons else "UNKNOWN_VALIDATION_ERROR")
             raise SystemExit(2)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
                 OSError, json.JSONDecodeError, ValueError, TypeError):

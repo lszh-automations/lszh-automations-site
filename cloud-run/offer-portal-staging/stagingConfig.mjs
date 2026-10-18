@@ -38,5 +38,15 @@ export function stagingConfig(env={}){
   const salt=String(env.LSZH_PORTAL_PROOF_SALT||'');
   if(salt.length<32 || salt.length>256 || /test|fake|example|placeholder/i.test(salt))
     throw Error('staging_salt_invalid');
-  return {enabled:true,origin:u,proofSalt:salt};
+  // Single-offer staging pilot is opt-in; default and static demo stay off.
+  const acceptEnabled=env.LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED==='true';
+  let sourceRecordId;
+  if(acceptEnabled){
+    sourceRecordId=String(env.LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID||'');
+    if(!/^rec[A-Za-z0-9]{14}$/.test(sourceRecordId) ||
+       env.LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED!=='true')
+      throw Error('staging_synthetic_accept_config_invalid');
+  }
+  return {enabled:true,origin:u,proofSalt:salt,
+    acceptEnabled, ...(acceptEnabled?{sourceRecordId}:{})};
 }

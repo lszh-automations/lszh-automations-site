@@ -1,59 +1,37 @@
-# LSZH Automations – Freigabematrix für einen kontrollierten Offerten-Pilot
+# LSZH Automations – Freigabegrenzen für den Offerten-Pilot
 
-**Stand: 18.10.2026.** Technische Bestandsaufnahme aus verbundenen GitHub-, Make- und Airtable-Konten sowie aus den vom Betreiber protokollierten Cloud-Shell-Livetests. **Dieses Dokument ist keine juristische Prüfung, keine Vertragsfreigabe und keine Aktivierungsanweisung.** Es wurden dafür keine produktiven Daten geschrieben oder E-Mails/Einladungen verschickt.
+Stand: 19.10.2026. Abgleich der dokumentierten Nachweise bis 18.10.2026; keine neue Live-Prüfung.
+Verbindliche technische Übergabe: [Projektstand](LSZH_AUTOMATIONS_PROJEKTSTAND.md).
+Diese Matrix ersetzt die frühere G1–G7-Arbeitsreihenfolge.
 
-## Abnahmegrenzen
+## Vorhandene Freigaben
 
-- **GETESTET** = konkret belegter Test, mit genauer Reichweite.
-- **VORBEREITET** = Code, Schema oder Make-Modul vorhanden, aber die vollständige reale Strecke ist nicht abgenommen.
-- **NO-GO** = harte Sperre bleibt bestehen; auch bei technisch verfügbarem Modul kein Produktivbetrieb.
-- Zentrale technische Datenführung: Airtable `Offerten` (Geschäftsprozess), getrennte Firestore-Portal-/Transaktionsdaten, überprüfte Geschäfts-Drive-Dokumente und idempotente Folgeaktionen. Zuständigkeiten und endgültige Rechte müssen vor Go-Live verbindlich beschlossen sein.
-- Kunden besitzen ihre eigenen Make-Organisationen; der Geschäftsaccount von LSZH Automations ist nicht als allgemeines Kunden-Credential-Lager einzusetzen.
-- Bis zur separat dokumentierten Freigabe: kein Merge nach `main`, keine echten Kundenverträge, keine produktiven E-Mails oder Einladungen, kein öffentliches Vertragsportal, keine Freigabe/Übernahme von Testdaten in den Echtbetrieb.
+| Umfang | Stand |
+| --- | --- |
+| Separater synthetischer Airtable-Schreibtest | Ausdrücklich freigegeben und abgeschlossen; kein Wiederholungsauftrag |
+| Einmaliger privater synthetischer Cloud-Run-Staging-Test | Ausdrücklich freigegeben; Firestore-Seed erledigt, eigentliche Portal-Testrevision/HTTP-Annahme noch offen |
+| Geschäftsregeln der Projektbedingungen | Intern bereits akzeptiert; nicht erneut abstimmen |
 
-## A. Heute bestätigte Tatsachen
+Der Cloud-Test ist auf den vorhandenen Testfall und die isolierte Staging-Prüfung begrenzt. Er erlaubt keine echten Kunden, produktiven Mails/Verträge, Main-Merge oder allgemeinen öffentlichen Go-Live. Benötigt der konkrete Testplan weitergehende Änderungen an Ingress/IAM, diese gesondert begründen und innerhalb der tatsächlichen Autorisierung behandeln.
 
-| Bereich | Live-Evidenz | Status / Grenze |
+## Noch zu erfüllende Schritte
+
+| Bereich | Erforderliches Ergebnis | Einordnung |
 | --- | --- | --- |
-| Temporäre Cloud-Run-Identität und Drive-Lesezugriff | `lszh-offer-browser-staging-00006-h5w`; IAM-authentifizierter GET `/_lszh/synthetic-drive-check` mit HTTP 200 und `verifiedFiles:4`; gespeicherte vier synthetische PDFs samt SHA-256/Schreibschutz geprüft | **GETESTET**, ausschliesslich isolierte synthetische Dateien; keine Kundenangebote |
-| Temporäre Web-/API-Sperren | Operativer HTTP-Smoketest an derselben Revision: GET-Offerte/Document/Accept gesperrt, POST-Offerte/Document/Accept gesperrt (jeweils 503); statische Testvorschau 200 und CSP `form-action 'none'`, `connect-src 'none'` | **GETESTET**. Beweist ausdrücklich *keine* aktive Annahme |
-| Cloud-Run-IAM | IAM-Ancestor-Abfrage inklusive Deny inzwischen lesbar: zwei Policy-Abschnitte, 19 Bindungen, 0 öffentlich, 4 Bedingungen, 1 Custom Role; direkte Dienst-IAM-Policies von sechs Cloud-Run-Diensten ohne `allUsers`/`allAuthenticatedUsers`; drei anonym aufgerufene `Ingress: all`-Dienste antworteten HTTP 403 | **Teilprüfung GETESTET**; Portalkundenweg, Google Groups/PAB, Conditions/Deny-Wirkung aller Identitäten und produktive Authentisierung bleiben G1-NO-GO |
-| Quarantäne-CAS (getrennte Datenbank) | Exakte Custom Role `GA`, nur `datastore.entities.create/get/update`; eine auf `lszh-quarantine-staging` konditionierte Projektbindung; benutzerverwaltete Schlüssel 0; direktes SA-Token-Creator-Grant 0; IAM-Troubleshooter 5/5 erwartete Entscheidungen. Bereits am 17.10. ausgeführter V2-REST-Live-Test: Quarantäne-GET 404, Offerten-GET 403, exakt 2 GET, anschliessende IAM-Revoke/Readback-PASS. Einmal-Marker seit 17.10. vorhanden; heutiger erneuter Versuch wurde vor IAM-Änderung blockiert. | **GETESTET für genau diese CAS-Identität und diesen lesenden Datenbank-Isolationsfall**; kein neuer Test, keine allgemeine Cloud-/Portal-Produktionsfreigabe |
-| Google Drive Herkunft | `lars@lszh-automations.ch` hat Geschäftsordner, Parent, vier PDFs und temporäre Reader-Berechtigung per GET-only Vorprüfung bestätigt | **GETESTET**, aber spätere echte Archiv-/Ownership-Beweiskette muss ohne synthetischen Sonderfall auskommen; `contentRestrictions.readOnly` ist kein WORM |
-| GitHub | Entwurf PR [#5](https://github.com/lszh-automations/lszh-automations-site/pull/5) `feature/optional-avv-acceptance-staging-20261014`, **offen, Draft, nicht gemergt**; GitHub Actions [39116921917](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39116921917) erfolgreich | **GETESTET für Offline-CI**, keine Deployment-/Echtvertragsfreigabe |
-| Make – Offerten-PDF erzeugen `7835460` | Live-Szenario-Inventar: inaktiv; PDF-/Archivschritte vorhanden; Gmail-Modul 5 zusätzlich deaktiviert und per `0=1` blockiert | **VORBEREITET**, Versand **NO-GO** |
-| Make – persönlicher Annahmelink `7940261` | Inaktiv, nur AVV=Nein vorbereitet, Token- und E-Mail-Pfade hart `0=1` gesperrt | **VORBEREITET**, E-Mail **NO-GO** |
-| Make – Annahmebeleg `7940220` | Inaktiv; Claim und Gmail-Mail mit `0=1` gesperrt; Archiv vor Beleg-ID-Persistierung im Szenariodesign dokumentiert | **VORBEREITET**, rechtswirksame Annahme **NO-GO** |
-| Make – optionale AVV=Ja `7965215` und `7965223` | Beide inaktiv; 3-PDF-Link-Versand bzw. 4-PDF-Bestätigung als Module vorgesehen, Token/Claim/Gmail zusätzlich `0=1` gesperrt | **VORBEREITET**, kein echter Versand oder Annahmenachweis |
-| Make-Verbindungen | Von der Make-API bei genannten Szenarien als `ok` gemeldet (Airtable, Geschäfts-Drive, Google Docs, Gmail) | **Nur Verbindungsstatus**; beweist nicht, welches Konto/Rechte jede Verbindung im Kundenbetrieb besitzt |
-| Airtable | Base `LSZH Automations – Website CRM` `appzJiskpAdaR1HEv`, Tabelle `Offerten` `tbljeIUoD7wwKuSmS` vorhanden; Felder für AVV, Drive-IDs, Hashes, Annahmebeleg, Freigabe/Status und Follow-up; dazu Kunden, Aufträge, Rechnungen, Kunden-Onboarding | **SCHEMA bestätigt**; konkrete produktive Records wurden in dieser Prüfung nicht ausgelesen oder verändert |
+| Testzugang | Erreichbarer privater Testpfad, passende Runtime-Identität/Secrets, bestehender Traffic erhalten | Unmittelbarer nächster Schritt; internen Ingress und fehlende Firestore-Rechte des temporären Browserdienstes berücksichtigen |
+| Durchgängige Annahme | Cloud-HTTP-Annahme → Firestore → Airtable mit Readback für synthetischen Testfall | Freigabe vorhanden, vollständiger Live-Nachweis fehlt |
+| Beleg und Bestätigung | Bestehende Make-Strecke, richtige PDFs, Beleg und eindeutig nachvollziehbarer Versandstatus | Nicht durch bisherigen Emulator-/Airtable-Test belegt; konkrete Schreib-/Versandfreigabe beachten |
+| Dokumente | Endgültige Kunden-PDFs und Versionen, rechtliche Endprüfung und konkrete AVV-Anlagen | Geschäftsbedingungen nicht erneut verhandeln; TEST_ONLY nicht in Echtverträge umdeuten |
+| Kundenbetrieb | Tatsächlicher Kundenweg, passende Rechte/Verbindungen, Support, Fehlerbehandlung und Rückabwicklung | Vor begrenztem Kundenpilot konkret abschliessen |
+| Pilotstart | Benannter Kunde, Leistungsumfang und ausdrückliches Aktivierungs-/Versand-GO | Noch nicht freigegeben |
 
-## B. Offene technische Freigabegates (Reihenfolge)
+## Fortgeltende Grenzen
 
-| Gate | Noch ausstehender Nachweis / Aufgabe | Freigabekriterium | Jetzt |
-| --- | --- | --- | --- |
-| **G1 – IAM und Architektur** | Abgeschlossen: IAM-Ancestor-Lesbarkeit/Deny, direkte öffentliche Service-IAM-Kontrolle, drei anonyme HTTP-403-Checks, CAS-Custom-Role/Zuweisung, 5 IAM-Simulationen sowie V2-REST-GET-Isolation vom 17.10. Offen: effektiver Portal-Kundenzugriff inkl. Gruppen/Conditions/Deny/PAB und verbindliche Kundenroute versus interner Reader | Dokumentierte Least-Privilege-Matrix für *alle* Portalidentitäten, keine unkontrollierte Archivberechtigung, Schlüssellosigkeit, sichere erreichbare Kundenroute | **CAS-Teilnachweis PASS; Gesamt-G1 NO-GO** |
-| **G2 – Recht und Beweiskette** | Projektbedingungen v1.0 RC1 und AVV RC1 anhand der *Originalunterlagen* juristisch/geschäftlich prüfen; kundenspezifische AVV-Anlagen, Gültigkeitsversion, Signaturform, Zustimmungsnachweis und Aufbewahrungs-/Löschkonzept abschliessen | Rechtsprüfung dokumentiert, endgültige PDF-Bytes und SHA-256 im Geschäftsarchiv geprüft, explizite Freigabe durch Betreiber; Drive-Sperre nicht als WORM ausgeben | **NO-GO** |
-| **G3 – Datenführerschaft und Race-Sicherheit** | **Neues, vollständig synthetisches Bootstrap-Paket:** `scripts/g3-staging-bootstrap.mjs` standardmässig `--plan` read-only, `--apply` explizit approval-/pinned-SHA-Image-/Geschäftskonto-/Ressourcen-Existenz-/Service-Agent-Status-gated. Plan für 2 getrennte neue Dienstkonten, 1 CH-Pub/Sub-Topic, 1 Cloud Run nur `ingress=internal` und IAM-pflichtig, 1 service-scoped `roles/run.invoker`, 1 OIDC-Subscription. **Nur ein geprüftes SHA-Image aus dem festgenannten G3-Repository; keine anderen Project-/Repository-Images akzeptiert. KEINE Firestore-Runtime-Rechte, Make-Publisher-Rechte, OAuth, TokenCreator, produktiven Mail-/PDF-/Verträge.** Dazu `cloud-run/g3-review-staging/` mit unabhängigem künstlichem HTTP-Canary ohne Cloud-SDK. **Image noch nicht gebaut/geladen/geprüft; Artifact-Registry-API-Status zusätzlich zu bestätigen; kein Cloud-Deploy.** [CI 39145145301](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39145145301) vollständig SUCCESS: **185 Unit PASS, 19 Emulator PASS, Chromium und build-only PASS**. Der zuvor echte Service-Agent-Read bestätigt `getOpenIdToken` in vordefinierter Rolle und unbedingte Projektbindung; **effektiver G3-Push weiter nicht getestet**. | **Erst** reproduzierbares geprüftes SHA-Image, Cloud-Build/Artifact-Registry-Provenance, Kostenlimit und Rollen-`actAs` prüfen. **Dann separate ausdrückliche Betreiberfreigabe** für isolierte G3-Ressourcen; kein automatischer Projekt-/IAM-/OAuth-GO durch `Vamos`. Plan/Code in `docs/LSZH_G3_STAGING_BOOTSTRAP_20261018.md`. Nachher gesonderte Freigabe für einzigen Canary-Push, Make-Business-OAuth und spätere Firestore-Review-Verarbeitung | **Synthetischer Ein-Skript-Bootstrap und Canary offline PASS; reales G3-Deployment/Push/Firestore/Make/Pilot NO-GO** |
-| **G4 – Dokumentstrecke** | Genau 2 (AVV=Nein) oder 3 (AVV=Ja) Vertrags-PDFs anbieten; nach Annahme 3 bzw. 4 Dokumente inklusive Nachweis; Originalbytes und Hashes prüfen | Getestete Kunden-/Server-Dokumentauslieferung für beide Fälle, negative Checks (anderer Kunde, abgelaufen, geänderte PDF, aufgehobene Sperre, falscher Ordner); kein universelles Drive-Sharing | **VORBEREITET, Testfiles nur** |
-| **G5 – Make und Benachrichtigung** | Vorhandene inaktive Szenarien/Verbindungen auf kundeneigene Organisationsrollen überprüfen; 2/3 bzw. 3/4 PDF-Anhang-Zuordnung und persistierte Zustell-ID auf synthetischen Empfänger prüfen | Genau eine intern autorisierte Testzustellung nach expliziter Einzelgenehmigung; keine echten Kunden; weder `0=1`-Sperre noch Inaktivstatus vorher lösen | **NO-GO für Live-Versand** |
-| **G6 – Durchgehender synthetischer Cloud-Test** | Airtable-Entwurf → enges Firestore-Testangebot → Token/privater Browser → Drive-Dokumente → Annahme-Simulation → Beleg → Status-/Outbox-Wiederanlauf; danach kontrolliertes Cleanup | Protokollierter echter Test nur mit erfundenem `TEST_ONLY_NO_CONTRACT`-Fall, keine echten E-Mails/Verträge; Testdatensatz eindeutig und entfernt/gesperrt | **VORBEREITET, noch nicht live bewiesen** |
-| **G7 – Betrieb und Pilot-GO** | Monitoring, Rollback, Kosten, Backups, Datenresidenz/AVV-Dienstleister, Kundenanleitung und Incident-/Support-Prozess abnehmen | Schriftliche Einzelentscheidung zur Pilotaktivierung; genau benannter Kunde, Umfang, Verantwortlicher, Grenzwerte und Rollback | **NO-GO** |
+- Bestehende Make-Szenarien bleiben laut letztem Nachweis inaktiv und ihre Sperren erhalten, bis die jeweilige konkrete Aktion autorisiert ist.
+- Keine echten Verträge, produktiven E-Mails, externen Kundeneinladungen, allgemeine Aktivierung oder Main-Merge aus einem technischen PASS ableiten.
+- Google Drive ausschliesslich geschäftlich. Drive-Schreibschutz nicht als WORM-Archiv darstellen.
+- Frühere IAM-/CAS-Tests belegen ihren konkreten Prüfbereich, keine allgemeine Produktionsfreigabe.
+- Firestore-Transaktion und Airtable-Update sind keine gemeinsame atomare Transaktion; unklare Folgeergebnisse kontrolliert nachbearbeiten.
+- G3 bleibt zurückgestellt und technisch gesperrt. Kein neues G3-/Registry-/Pub/Sub-Programm als Voraussetzung für diesen Pilot.
 
-## C. Was wir als Nächstes sicher umsetzen
-
-1. **Kein weiteres Cloud-Run-Drive-Diagnose-Deployment:** Die temporäre Lese- und Sperrstrecke ist bestanden.
-2. **IAM-Vererbungsinventar inzwischen erfolgreich – G1 bleibt begrenzt.** Der ursprüngliche NO-GO wurde auf fehlende Leserechte für organisationsweite Deny-Richtlinien eingegrenzt. Der Betreiber vergab gezielt `roles/iam.denyReviewer` auf Organisationsebene, worauf `--include-deny` lesbar wurde. Originalskript **7/7 Offline-Tests**, echte Inventur **2 Abschnitte, 19 Bindungen, 0 öffentlich, 4 Conditions, 1 Custom Role, 0 unvollständige**. Drei anonyme Cloud-Run-URLs (`offer-browser`, `onboarding-outbox`, `quarantine-handoff`) antworteten **403**. Custom CAS Rolle/Zuweisung und 5 Policy-Troubleshooter-Fälle bestanden; V2-Live-GET-Isolation vom 17.10. ist dokumentiert, nicht wiederholen. Weiterhin kein vollständiger effektiver Portal-Kundenzugriffs-Nachweis, keine Produktionsfreigabe.
-3. **G3 Aufbau technisch vorbereitet, aber nicht freigegeben:** Das neue `scripts/g3-staging-bootstrap.mjs` beschreibt und prüft standardmässig nur die Konfiguration. Ein späteres `--apply` setzt einen gesonderten ausdrücklichen Betreiberentscheid, Geschäftsidentität, nachweislich fehlende Zielressourcen und ein unabhängig geprüftes SHA-256-gepinntes Container-Image voraus. **Dieses Image ist noch nicht gebaut; ohne Image und Freigabe kann das Skript keine Cloud-Ressourcen anlegen.** Keine Cloud-Build-/Artifact-Registry-Aktivierung vorwegnehmen. Canary `cloud-run/g3-review-staging` kann niemals echte Angebote/PDFs/Mails bearbeiten. Vor jedem phasenweisen Weitergehen effektive IAM-, Kosten-, Pub/Sub-OIDC- und Retry/ACK-Prüfung. Bestehende Make-`0=1`-Gates unverändert.
-4. **Original RC1/AVV-Richtlinien beschaffen und Entscheidungen protokollieren**, aber nicht als rechtsgültig markieren; Dokument- oder Signaturerstellung erst nach expliziter Geschäftswahl.
-5. Erst danach konkrete Entscheidung des Betreibers über **einen einzigen weiteren synthetischen Schreibtest** oder eine intern adressierte E-Mail – niemals implizit aus dem Startsignal `Vamos` ableiten.
-
-## D. Explizit nicht durch diese Bestandsaufnahme bestätigt
-
-- IAM-Ancestor-Allow-/Deny-Inventar ist lesbar, aber **keine vollständige effektive IAM-Auswertung aller Google Groups, Deny/PAB, Token-Principals oder Portal-Kundenwege**.
-- Keine aktuelle juristische Freigabe, kein fertiges beweissicheres WORM-Langzeitarchiv.
-- Kein echter rechtswirksamer Vertragsschluss, keine Live-Versandbestätigung und kein vollständiger Firestore↔Airtable-Writeback mit wiederholbarem Cloud-Betrieb.
-- Kein Nachweis, dass sämtliche Make-Verbindungen ausschliesslich der gewünschten Geschäftsidentität bzw. dem künftigen Kunden gehören; nur der technische Verbindungszustand wurde abgefragt.
-- Keine Durchführung von Kunden-Migrationen, Kundeneinladungen, Szenario-Aktivierung oder Rechnungserstellung.
-
-**Arbeitsregel:** Bei einem einzigen NO-GO bleiben Produktivbetrieb, Mail, Verträge und Annahme vollständig deaktiviert. Keine der obigen Prüfungen ändert diese Sperre automatisch.
+Die alte detaillierte G1–G7-Matrix ist über den Historienlink im Projektstand erhalten. Ihre überholten Schritte sind keine aktuelle Arbeitsanweisung.

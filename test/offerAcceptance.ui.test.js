@@ -60,7 +60,7 @@ test('synthetic cloud preview clearly disables binding consent and POST even for
  assert.match(s.node('message').textContent,/kein Vertrag/);
  assert.equal(s.node('legalNote').classes.has('hidden'),true);
  s.node('person').value='Fiktive Person';s.node('email').value='test@example.invalid';
- s.node('authorized').checked=true;s.node('terms').checked=true;
+ s.node('authorized').checked=true;s.node('quoteConsent').checked=true;s.node('terms').checked=true;
  s.node('avvConsent').checked=true;
  await s.node('acceptForm').listeners.get('submit')({preventDefault(){}});
  assert.equal(s.calls.length,1,'preview request only, no POST accept');
@@ -74,10 +74,12 @@ test('AVV Ja: third PDF and separate unchecked, required consent',async()=>{
   assert.equal(s.node('avvConsent').checked,false);
   assert.match(s.node('avvVersion').textContent,/AVV_v1.0/);
   s.node('person').value='Fiktive Person';s.node('email').value='test@example.invalid';
-  s.node('authorized').checked=true;s.node('terms').checked=true;s.node('avvConsent').checked=true;
+  s.node('authorized').checked=true;s.node('quoteConsent').checked=true;s.node('terms').checked=true;s.node('avvConsent').checked=true;
   await s.node('acceptForm').listeners.get('submit')({preventDefault(){}});
   const submitted=s.calls.at(-1);
   assert.equal(submitted.path,'/api/offer/accept');
+  assert.equal(submitted.payload.accept_quote,true);
+  assert.equal(submitted.payload.accept_terms,true);
   assert.equal(submitted.payload.accept_avv,true);
   assert.equal(submitted.payload.avv_sha256,'c'.repeat(64));
   assert.equal(submitted.payload.avv_version,'AVV_v1.0');
@@ -88,9 +90,11 @@ test('AVV Nein: third PDF hidden; consent optional and payload unasserted',async
   assert.equal(s.node('avvConsentSection').classes.has('hidden'),true);
   assert.equal(s.node('avvConsent').required,false);
   s.node('person').value='Fiktive Person';s.node('email').value='test@example.invalid';
-  s.node('authorized').checked=true;s.node('terms').checked=true;
+  s.node('authorized').checked=true;s.node('quoteConsent').checked=true;s.node('terms').checked=true;
   await s.node('acceptForm').listeners.get('submit')({preventDefault(){}});
   const submitted=s.calls.at(-1);
+  assert.equal(submitted.payload.accept_quote,true);
+  assert.equal(submitted.payload.accept_terms,true);
   assert.equal(submitted.payload.accept_avv,false);
   assert.equal(submitted.payload.avv_sha256,null);
   assert.equal(submitted.payload.avv_version,null);

@@ -138,7 +138,8 @@ test('existing or conflicting Airtable data are never overwritten',async()=>{
   ];
   for(const change of changes){
     const fake=fakeApi(s,{mutateRead:r=>change(r.fields)});
-    await assert.rejects(()=>apply(s,await api(fake)),
+    const client=await api(fake);
+    await assert.rejects(()=>apply(s,client),
       /synthetic_airtable_writeback_/);
     assert.deepEqual(fake.calls,['GET']);
   }
@@ -147,12 +148,14 @@ test('existing or conflicting Airtable data are never overwritten',async()=>{
 test('accepted-but-incomplete record and wrong provider acknowledgement halt',async()=>{
   const s=await accepted('Nein');
   const acceptedRecord=fakeApi(s,{mutateRead:r=>r.fields.Status='Angenommen'});
-  await assert.rejects(()=>apply(s,await api(acceptedRecord)),
+  const priorClient=await api(acceptedRecord);
+  await assert.rejects(()=>apply(s,priorClient),
     /synthetic_airtable_writeback_already_accepted_mismatch/);
   assert.deepEqual(acceptedRecord.calls,['GET']);
 
   const corrupted=fakeApi(s,{mutatePatch:r=>r.fields['Online-Annahme Zeitstempel']='WRONG'});
-  await assert.rejects(()=>apply(s,await api(corrupted)),
+  const corruptedClient=await api(corrupted);
+  await assert.rejects(()=>apply(s,corruptedClient),
     /synthetic_airtable_writeback_patch_unconfirmed/);
   assert.deepEqual(corrupted.calls,['GET','PATCH']);
 });
@@ -169,7 +172,8 @@ test('no real customer or malformed acceptance ever reaches provider',async()=>{
     x=>{x.downstream.email='enabled';}
   ]){
     const x=structuredClone(s);change(x);
-    await assert.rejects(()=>apply(x,await api(fake)),/unavailable/);
+    const client=await api(fake);
+    await assert.rejects(()=>apply(x,client),/unavailable/);
   }
   assert.deepEqual(fake.calls,[]);
 });

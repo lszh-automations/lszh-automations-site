@@ -56,6 +56,8 @@ test('Make Publish Messages plan is inert and a matched PubSub push still STOP f
     const offer=await source(mode),request=payload(offer);
     const p=plan(request);
     assert.equal(p.status,'PLAN_ONLY_DO_NOT_PUBLISH');
+    assert.equal(p.dataFormat,'PUBSUB_REST_BASE64_WIRE_ONLY');
+    assert.equal(p.makeNativeDataEncodingVerified,false);
     assert.equal(p.topic,'projects/demo-lszh-automations/topics/lszh-g3-review-demo');
     assert.equal(p.requiresIndependentCloudRunIamVerification,true);
     blocked(p);

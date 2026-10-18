@@ -158,6 +158,7 @@ for(const mode of ['Ja','Nein']){
    await page.locator('#person').fill('Synthetische Testperson');
    await page.locator('#email').fill('synthetic@example.invalid');
    await page.locator('#authorized').check();
+   await page.locator('#quoteConsent').check();
    await page.locator('#terms').check();
    if(mode==='Ja')await page.locator('#avvConsent').check();
    await page.locator('#submit').click();

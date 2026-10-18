@@ -64,6 +64,7 @@ def run(folder,arguments):
    "fields":"id,name,mimeType,size,parents,contentRestrictions(readOnly),sha256Checksum",
    "supportsAllDrives":"true"})
   req=request.Request(url,headers={"Authorization":"Bearer "+token,
+   "X-Goog-User-Project":"lszh-automations",
    "Accept":"application/json"},method="GET")
   with request.urlopen(req,timeout=25) as res:
    raw=res.read(64*1024+1)
@@ -101,7 +102,9 @@ def selftest():
  wrong={**meta,"parents":["1WRONG_FOLDER_12345678901234"]}
  assert evaluate(wrong,fid,100,expected,folder)=="PARENT_OR_MIME_MISMATCH"
  assert spec(fid+",100,"+expected)==(fid,100,expected)
- print("PASS: local read-only Drive SHA metadata diagnostic self-test")
+ import inspect
+ assert '"X-Goog-User-Project":"lszh-automations"' in inspect.getsource(run)
+ print("PASS: local read-only Drive SHA metadata diagnostic self-test (quota project set)")
 
 if __name__=="__main__":
  if sys.argv[1:]==["--self-test"]:

@@ -142,7 +142,7 @@ module.exports = function createOfferAcceptance(deps) {
       if (!TOKEN_RE.test(code)) return reply(res,404,{error:'invalid_or_expired'});
       if(name.length < 4 || name.length > 120 || email.length>254 || !EMAIL_RE.test(email))
         return reply(res,400,{error:'invalid_identity'});
-      if(b.authorized !== true || b.accept_terms !== true)
+      if(b.authorized !== true || b.accept_quote !== true || b.accept_terms !== true)
         return reply(res,400,{error:'consent_required'});
       hash=sha(code);
       if(inFlight.has(hash)) return reply(res,409,{error:'already_processing'});
@@ -177,7 +177,7 @@ module.exports = function createOfferAcceptance(deps) {
         avv_version:offer.avv_required?offer.avv_version:null,
         avv_pdf_sha256:offer.avv_required?offer.avv_sha256:null,
         avv_explicitly_confirmed:offer.avv_required ? true : false,
-        authorized_confirmed:true, terms_confirmed:true,
+        authorized_confirmed:true, quote_confirmed:true, terms_confirmed:true,
         ip_pseudonym:sha(process.env.OFFER_PROOF_SALT + ':' + clientIp(req)),
         user_agent:String(req.headers['user-agent']||'').slice(0,200)
       };

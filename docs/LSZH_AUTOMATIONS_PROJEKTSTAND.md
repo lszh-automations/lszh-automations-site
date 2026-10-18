@@ -1,6 +1,6 @@
 # LSZH Automations – aktueller Projektstand
 
-Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusive unabhängigem Firestore-/Airtable-Readback vom Betreiber per Cloud-Shell-Ausgabe bestätigt.
+Stand: 19.10.2026 (Europe/Zurich). Beide synthetischen Cloud-Annahmen inklusive unabhängigem Firestore-/Airtable-Readback bestätigt; temporärer Cloud-Zugriff bereinigt, neueste Testrevision bleibt retired und ohne Traffic bestehen.
 
 ## Verbindliche Übergabe – hier weiterarbeiten
 
@@ -8,7 +8,7 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Letztes abgeschlossenes Ergebnis:** Beide Varianten des vollständigen synthetischen Annahmewegs live bestanden. AVV Nein: Cloud Run → Firestore → Airtable → Make-Beleg (Execution `6f4a6b7254454e9688a7dd2fa98d8437`, 13 Module). AVV Ja: drei PDFs per Portal geprüft, ausdrückliche AVV-Zustimmung über Cloud Run gespeichert und in Firestore/Airtable zurückgelesen; Make-Beleg erstellt (Executions `a3fafc87f61743f6936ce7a07ef5626a` und `41ac7867306a471fbac9c10992b6ac90`, je 15 Module, keine Modulfehler). Das aktive Polling startete beim kurzzeitigen Aktivieren zwei Läufe parallel. Airtable verweist auf `1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t`; beide Beleg-PDFs und Google Docs waren identisch. Redundantes TEST_ONLY-PDF `1Ey83ZB7YcVUtEcbPATYDMN63KmQSxtaM` und zugehöriges Doc `1c283fm15cFFY0Zttpams6CcXXXFYnJifP7XhnB47dHo` gelöscht. Behaltener [AVV-TEST-Beleg](https://drive.google.com/file/d/1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t/view) liegt im Geschäfts-Testordner. Inhalt und beide Hashes der Offerte/Bedingungen sowie Hash und Version `TEST_ONLY_AVV_v1.0_RC1` unabhängig geprüft. Beide Make-Szenarien danach inaktiv; Gmail und Versanddatums-Module aus. Keine E-Mail, kein echter Vertrag.
 
-**Nächste Arbeit:** Kernziel technisch erreicht: AVV Nein und Ja funktionieren bis zum archivierten Beleg. Bestätigungsweg statisch geprüft: 3 PDFs ohne AVV, 4 PDFs mit AVV, Empfänger ist im Testfall `example.invalid`; Versandmodul und Versanddatums-Modul in beiden Szenarien deaktiviert, zusätzlich Mailfilter `0=1`. Kein Versandlauf ausgeführt. Cloud-Cleanup-Skript `scripts/offer-cloud-synthetic-cleanup.py` bereit: verifiziert Konto/Projekt, Portal- und Demo-Traffic (je 100 %), exakten Tag, drei Testrevisionen und beide Secret-Grants; entfernt nur Tag `cloud-e2e`, Revisionen `00007-e2e`, `00008-json`, `00009-avv` und die beiden Test-Secret-Grants. Keine Testsecrets, Belege, Airtable-Records, Demo- oder Portalrevision werden gelöscht. Zwei lokale Drift-Guard-Tests bestanden; Cleanup noch nicht live ausgeführt. Danach verblieben nur Pilotunterlagen, Kundenprozess und explizites Pilot-GO.
+**Nächste Arbeit:** Kernziel technisch erreicht: AVV Nein und Ja funktionieren bis zum archivierten Beleg. Bestätigungsweg statisch geprüft: 3 PDFs ohne AVV, 4 PDFs mit AVV, Empfänger ist im Testfall `example.invalid`; Versandmodul und Versanddatums-Modul in beiden Szenarien deaktiviert, zusätzlich Mailfilter `0=1`. Kein Versandlauf ausgeführt. Cloud-Cleanup am 19.10. abgeschlossen: Tag `cloud-e2e` entfernt; Revisionen `00007-e2e` und `00008-json` gelöscht; beide temporären Secret-Accessor-Bindungen entfernt und per IAM-Readback als leer bestätigt. Die neueste Revision `00009-avv` bleibt retired, ungetaggt und ohne Traffic bestehen, da Cloud Run das Löschen der neuesten Revision nicht zulässt. Demo-Traffic blieb 100 %. Testsecrets, Belege, Airtable-Records, Demo- und Portalrevisionen blieben erhalten. Nächster sinnvoller Schritt: Pilotunterlagen und Kundenprozess fertigstellen; produktiver Pilot bleibt separat.
 
 **Nicht wiederholen:** Erfolgreiche Testannahme, Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 
@@ -78,7 +78,7 @@ Szenario `7940220` am 19.10.2026 live erfolgreich ausgeführt und wieder deaktiv
 
 ## Nächste Schritte und Grenzen
 
-1. **Privater Cloud-Test bestanden (AVV Nein):** Bereitstellung, Leseweg, einmalige Annahme und unabhängiger Firestore-/Airtable-Readback erfolgreich. Nicht wiederholen. Temporäre Testrevisionen und Secret-Rechte noch kontrolliert bereinigen; bestehenden Traffic erhalten.
+1. **Cloud-Tests und Cleanup abgeschlossen:** AVV Nein/Ja synthetisch end-to-end bestanden. Tag entfernt, `00007-e2e`/`00008-json` gelöscht, beide temporären Secret-Grants entfernt. Neueste Revision `00009-avv` bleibt retired, ohne Tag und Traffic bestehen; Browser-Demo weiterhin 100 %. Tests nicht wiederholen.
 2. **Belegstrecke bestanden:** AVV-Nein und AVV-Ja haben beide TEST_ONLY-Belege erzeugt. Bestätigungs-Mailweg noch ohne Versand technisch prüfen.
 3. **Begrenzten Kundenpilot vorbereiten:** Endgültige PDF-Versionen, konkrete AVV-Anlagen, Kundenroute, Verantwortlichkeiten und Betrieb klären; danach ausdrückliches Pilot-GO.
 
@@ -94,9 +94,9 @@ Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale un
 - Detailnachweise nur bei Bedarf öffnen. Historische NO-GOs und frühere nächste Schritte gelten nicht als aktuelle Arbeitsanweisung.
 - [MVP-Fokus](LSZH_MVP_FOKUS_20261018.md) beschreibt Ziel/Abschlusskriterien; [Pilot-Freigabematrix](LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md) beschreibt verbleibende Freigabegrenzen. Status nicht mehrfach ausformulieren.
 
-## Testrevision wieder ausser Betrieb nehmen
+## Cloud-Testressourcen – Cleanup abgeschlossen
 
-Nach beiden Tests: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` sowie (nach Bereitstellung) `lszh-offer-browser-staging-00009-avv` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Cleanup-Skript vorbereitet und lokal getestet (2 Drift-Guard-Tests); noch nicht live ausgeführt. Bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
+Am 19.10.2026 wurde der Tag `cloud-e2e` entfernt, Revisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` gelöscht sowie die beiden temporären Secret-Accessor-Bindungen des Portal-Dienstkontos entfernt. Cloud-Shell-Readback bestätigte 100 % Browser-Demo-Traffic auf `lszh-offer-browser-staging-00006-h5w` und leere IAM-Bindings für beide Test-Secrets. `lszh-offer-browser-staging-00009-avv` bleibt als neueste Revision retired, ungetaggt und ohne Traffic bestehen; Cloud Run erlaubt das Löschen der neuesten Revision nicht. Testsecrets, synthetische Daten und Belege blieben erhalten.
 
 ## Historische Nachweise
 

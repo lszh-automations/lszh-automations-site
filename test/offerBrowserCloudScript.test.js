@@ -179,10 +179,36 @@ test('diagnostic-only temp deployment pins previous revision and never widens IA
  assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
  assert.match(s,/gcloud run deploy "\$TEMP"/);
  assert.match(s,/offer-cloud-readiness-readonly\.py/);
- assert.match(s,/offer-temp-drive-folder-reader\.py/);
+ assert.match(s,/offer-temp-drive-child-readonly-check\.py/);
+ assert.match(s,/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" /);
+ assert.match(s,/fatal "Business Drive synthetic subfolder verification failed"/);
+ assert.doesNotMatch(s,/<<'PY' \|\|/);
  assert.match(s,/--min-instances=0 --max-instances=1/);
  assert.doesNotMatch(s,/lszh-offer-browser-staging-00002-fkq/);
  assert.doesNotMatch(s,/gcloud run deploy "lszh-offer-portal-staging"/);
  assert.doesNotMatch(s,/gcloud projects add-iam-policy-binding|gcloud run services add-iam-policy-binding/);
  assert.doesNotMatch(s,/gcloud firestore|gcloud run jobs/);
+});
+
+
+test('phase release child-folder security gate MUST fail closed on Python errors',()=>{
+ const full=fs.readFileSync(drivePhaseRelease,'utf8');
+ const match=full.match(/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" \\\n   --folder "\$FOLDER"; then\n fatal "Business Drive synthetic subfolder verification failed"\nfi/);
+ assert.ok(match,'exact fail-closed if/then/fi around the folder checker');
+ const guard=match[0];
+ const shell=(pythonResult)=>'set -euo pipefail\n'+
+  'ROOT=/test/repo; FOLDER=1SYNTHETIC_FAKE_FOLDER_12345678\n'+
+  'python3(){ return '+pythonResult+'; }\n'+
+  'fatal(){ printf "BLOCKED_BY_GUARD\\n"; exit 1; }\n'+
+  guard+'\n'+
+  'echo UNSAFE_CHECK_PASS\n';
+ for(const failCode of [1,2,127]){
+  const blocked=cp.spawnSync('bash',['-c',shell(failCode)],{encoding:'utf8',timeout:2000});
+  assert.equal(blocked.status,1,'unexpected shell exit for failure='+failCode);
+  assert.match(blocked.stdout,/BLOCKED_BY_GUARD/);
+  assert.doesNotMatch(blocked.stdout,/UNSAFE_CHECK_PASS/);
+ }
+ const success=cp.spawnSync('bash',['-c',shell(0)],{encoding:'utf8',timeout:2000});
+ assert.equal(success.status,0);
+ assert.match(success.stdout,/UNSAFE_CHECK_PASS/);
 });

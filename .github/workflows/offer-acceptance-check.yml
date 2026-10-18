@@ -32,6 +32,7 @@ on:
       - 'scripts/offer-temp-drive-probe-release.sh'
       - 'scripts/offer-temp-drive-phase-release.sh'
       - 'scripts/offer-temp-drive-folder-shape-release.sh'
+      - 'scripts/offer-temp-drive-restricted-parent-release.sh'
       - 'scripts/offer-temp-drive-child-readonly-check.py'
       - 'scripts/offer-temp-drive-probe-smoke.sh'
       - 'test/temporaryDriveProbe.test.js'
@@ -79,6 +80,7 @@ jobs:
           bash -n scripts/offer-temp-drive-probe-release.sh
           bash -n scripts/offer-temp-drive-phase-release.sh
           bash -n scripts/offer-temp-drive-folder-shape-release.sh
+          bash -n scripts/offer-temp-drive-restricted-parent-release.sh
           bash -n scripts/offer-temp-drive-probe-smoke.sh
       - name: Syntax checks
         run: |

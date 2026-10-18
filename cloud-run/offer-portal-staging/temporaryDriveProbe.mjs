@@ -40,44 +40,57 @@ async function readJson(url,fetcher,token){
 }
 
 export async function verifySyntheticDriveReadOnly({
- folder,hashes,accessToken,fetcher=fetch}){
+ folder,hashes,accessToken,fetcher=fetch,onDiagnostic}){
+ // Strict, fixed codes only. Never pass provider messages, URLs or tokens.
+ // This callback is ONLY invoked after a failed check.
+ let alreadyReported=false;
+ const note=code=>{
+   if(alreadyReported)return;
+   alreadyReported=true;
+   if(typeof onDiagnostic==='function')onDiagnostic(code);
+ };
+ const stage=async(code,job)=>{
+   try{return await job();}
+   catch{note(code);throw Error('probe_failed');}
+ };
  if(!ID.test(String(folder||''))||!Array.isArray(hashes)||
    hashes.length!==4||!hashes.every(s=>typeof s==='string'&&SHA.test(s))||
    typeof accessToken!=='string'||accessToken.length<8)
   throw Error('probe_inputs_invalid');
- const meta=await readJson(DRIVE+encodeURIComponent(folder)+'?'+new URLSearchParams({
+ const meta=await stage('FOLDER_API',()=>readJson(DRIVE+encodeURIComponent(folder)+'?'+new URLSearchParams({
   fields:'id,name,mimeType,parents,owners(emailAddress),trashed',
-  supportsAllDrives:'true'}),fetcher,accessToken);
+  supportsAllDrives:'true'}),fetcher,accessToken));
  if(meta.id!==folder||meta.name!==FOLDER_NAME||
     meta.mimeType!=='application/vnd.google-apps.folder'||
     meta.trashed===true||JSON.stringify(meta.parents)!==JSON.stringify([ROOT])||
     !Array.isArray(meta.owners)||meta.owners.length!==1||
     meta.owners[0].emailAddress!==OWNER)
-   throw Error('probe_folder_invalid');
+   {note('FOLDER_VALIDATE');throw Error('probe_folder_invalid');}
  const query="'"+folder+"' in parents and trashed = false";
- const list=await readJson('https://www.googleapis.com/drive/v3/files?'+
+ const list=await stage('LIST_API',()=>readJson('https://www.googleapis.com/drive/v3/files?'+
    new URLSearchParams({q:query,fields:'nextPageToken,files(id,name,mimeType,parents,trashed)',
      pageSize:'10',supportsAllDrives:'true',includeItemsFromAllDrives:'true'}),
-    fetcher,accessToken);
+    fetcher,accessToken));
  if(list.nextPageToken||!Array.isArray(list.files)||list.files.length!==4)
-   throw Error('probe_wrong_file_count');
+   {note('LIST_VALIDATE');throw Error('probe_wrong_file_count');}
  const found=new Map();
  for(const f of list.files){
    if(!NAMES.includes(f.name)||!ID.test(String(f.id||''))||
       f.mimeType!=='application/pdf'||f.trashed===true||
       JSON.stringify(f.parents)!==JSON.stringify([folder])||found.has(f.name))
-     throw Error('probe_unexpected_file');
+     {note('LIST_VALIDATE');throw Error('probe_unexpected_file');}
    found.set(f.name,f.id);
  }
- if(NAMES.some(name=>!found.has(name)))throw Error('probe_files_missing');
+ if(NAMES.some(name=>!found.has(name))){note('LIST_VALIDATE');throw Error('probe_files_missing');}
  const part=i=>({id:found.get(NAMES[i]),sha256:hashes[i]});
  // Reuse the production-shaped verifier: it checks metadata lock, immediate
  // parent, source SHA256 and the SHA256 of actual downloaded PDF bytes.
  const options={fetcher,accessToken,archiveFolderId:folder};
  const yes={avv_required:'Ja',quote:part(0),terms:part(2),avv:part(3)};
  const no={avv_required:'Nein',quote:part(1),terms:part(2)};
- if(!await verifyArchiveBundle(yes,options)||
-    !await verifyArchiveBundle(no,options))
-   throw Error('probe_archive_integrity_failed');
+ const yesVerified=await stage('PDF_YES_API',()=>verifyArchiveBundle(yes,options));
+ if(!yesVerified){note('PDF_YES_INTEGRITY');throw Error('probe_archive_integrity_failed');}
+ const noVerified=await stage('PDF_NO_API',()=>verifyArchiveBundle(no,options));
+ if(!noVerified){note('PDF_NO_INTEGRITY');throw Error('probe_archive_integrity_failed');}
  return {status:'PASS_SYNTHETIC_ARCHIVE_READ_ONLY',verifiedFiles:4};
 }

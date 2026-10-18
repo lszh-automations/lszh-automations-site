@@ -10,7 +10,9 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Belegnachweis:** [TEST_ONLY-PDF im Geschäfts-Drive](https://drive.google.com/file/d/1Cdf0_5_80zB867lDP4AooNn1IKiB5Hzv/view), direkt im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`. PDF-Text unabhängig gelesen: Testkennzeichnung, Offertennummer, Person, E-Mail, Annahmezeit `2026-10-18T23:03:30.355Z`, Version und beide Quell-PDF-Hashes stimmen. Airtable unabhängig gelesen: Status Angenommen und exakt diese Beleg-ID; kein Versandzeitpunkt, Bearbeitungsflag leer/false. Make-Detailein-/ausgaben waren über das Plugin nicht verfügbar; Nachweis deshalb durch Laufstruktur plus direkte Drive-/Airtable-Abfrage. Keine visuelle PDF-Layoutprüfung durchgeführt.
 
-**Nächste Arbeit:** AVV-Ja-Fall vorbereitet: neuer synthetischer Airtable-Entwurf `recktLXj5wUxLmHFQ`, Nummer `TEST_CLOUD_AVV_JA_20261019_NO_CONTRACT`, vorhandener fiktiver Lead `recv49NbSCmc5nEu3`, E-Mail `fake-lszh-e2e@example.invalid`. Drei vorhandene Geschäfts-Test-PDFs zugeordnet; AVV-Version `TEST_ONLY_AVV_v1.0_RC1`. `scripts/offer-cloud-synthetic-avv-seed-once.mjs --apply /absoluter/pfad/token.txt` in Betreiber-Cloud-Shell ausführen: erzeugt Token lokal mit Modus 0600, speichert nur Hash in genau diesem Airtable-Draft, erstellt atomar genau ein neues Firestore-Angebot plus Quellindex und liest Werte zurück. Bestehendes Secret wird verwendet, keine Token-Eingabe nötig. **Noch kein AVV-Ja-Seed, Deployment oder Accept ausgeführt.** Danach neue 0%-Traffic-Testrevision für AVV-Ja bauen/bereitstellen, Vorschau/3 PDFs prüfen, einmal annehmen, Firestore/Airtable zurücklesen und bestehenden Make-Beleg `7965223` ausführen. Source-Konfiguration erlaubt nun die zwei exakten synthetischen Record-IDs; jede Revision wählt weiterhin genau einen Record. Lokale Tests 3/3 PASS, CI zum neuen Source noch prüfen. Alter AVV-Nein-Test bleibt unverändert.
+**Nächste Arbeit:** AVV-Ja-Seed vom Betreiber am 19.10. bestätigt: exakt ein Firestore-Testangebot plus Quellindex atomar erstellt und zurückgelesen, Token nur lokal. Seed **nicht wiederholen**. Bereit stehen `offer-browser-synthetic-avv-release.py --apply`, `offer-browser-synthetic-avv-preview.py` und `offer-browser-synthetic-avv-accept-once.py --accept-once` für einen Shell-Block mit Fehlerabbruch. Release baut Source `e09a5b27ff105e0d3e1c2b6a9e3aa677bf05c4c0`, ersetzt Tag `cloud-e2e` von `00008-json` auf `00009-avv` mit 0 % regulärem Traffic und verwendet bestehende Identität/Secrets. Demo bleibt bei 100 %, Originalportal unverändert. Preview prüft AVV Ja, exakte Version und alle drei PDF-Hashes; Accept sendet höchstens einen POST mit ausdrücklicher AVV-Zustimmung und liest Firestore/Airtable unabhängig zurück. Bei unklarer Antwort kein POST-Retry. Noch kein AVV-Ja-Deployment, Preview oder Accept live ausgeführt. Danach vorhandenen Make-Beleg `7965223` für diesen Record vorbereiten/ausführen.
+
+**Prüfnachweis:** [CI 39175755576](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39175755576) zum gepinnten Source: alle vier Jobs SUCCESS (Validierung, Image, echte Functions-Framework-/Firestore-Emulatortests, Chromium). Neue Operator-Skripte zusätzlich lokal: 12 Python-Tests PASS, einschliesslich AVV-Zustimmung/Hash/Version, kein POST-Retry und kein regulärer Trafficwechsel.
 
 **Konkreter offener Nachweis:** Vollständiger AVV-Ja-Durchlauf, Bestätigungsweg und endgültige Kundenunterlagen. Temporäre Cloud-Testrevisionen/Secret-Rechte noch bereinigen. Ausgangskonfiguration von Make: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json).
 
@@ -61,7 +63,7 @@ Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `
 
 ## Vorbereiteter AVV-Ja-Testfall
 
-- Airtable: `recktLXj5wUxLmHFQ`, noch Entwurf, noch kein Token-Hash/Cloud-Seed zum Dokumentationszeitpunkt.
+- Airtable: `recktLXj5wUxLmHFQ`, Entwurf mit Token-Hash; Firestore-Angebot und Quellindex vom Betreiber erfolgreich angelegt/zurückgelesen.
 - Offerte: `1-GQyj0cKC4aAJD_9wrxanckCJisEy0nB`, SHA-256 `2dd5c5377461c969b9a436f36999150dc53cf159f02e4985e2f2536b683b004c`.
 - Bedingungen: identische synthetische Bedingungen wie im AVV-Nein-Test.
 - AVV: `1p2ZRrPuSuaICH9W4N0afK5xt8xeOeKZI`, SHA-256 `53f9deda2000e219f79e0496b33f1e74df8ac00eac09f221b2436c3fd848d060`.
@@ -100,7 +102,7 @@ Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale un
 
 ## Testrevision wieder ausser Betrieb nehmen
 
-Nach dem einmaligen Test: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
+Nach dem einmaligen Test: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` sowie (nach Bereitstellung) `lszh-offer-browser-staging-00009-avv` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
 
 ## Historische Nachweise
 

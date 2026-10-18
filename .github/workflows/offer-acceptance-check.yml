@@ -26,6 +26,7 @@ on:
       - 'test/offerReceiptArchiveReconciliation.test.js'
       - 'test/offerReceiptUploadContract.test.js'
       - 'test/offerReceiptProcessingLock.test.js'
+      - 'test/offerReceiptMakeReservationContract.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
@@ -109,6 +110,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptArchiveReconciliation.mjs
           node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
+          node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -131,6 +133,7 @@ jobs:
           node --check test/offerReceiptArchiveReconciliation.test.js
           node --check test/offerReceiptUploadContract.test.js
           node --check test/offerReceiptProcessingLock.test.js
+          node --check test/offerReceiptMakeReservationContract.test.js
           node --check test/offerReceiptProcessingLock.emulator.test.js
           node --check test/offerPortalDocuments.test.js
           node --check test/offerPortalHttp.test.js

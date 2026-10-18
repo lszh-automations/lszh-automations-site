@@ -1,6 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
-## 18.10.2026 – G3 echtes Google-Cloud-Pub/Sub-/IAM-Inventar: sicherer Read-only-Runner bereit, LIVE noch ausstehend
+## 18.10.2026 – G3 ECHTE geschäftliche Cloud-Shell-Inventur erfolgreich, Ressourcen-Iststand jetzt bekannt
+
+**Verifiziert durch den Betreiber:** Die geschäftliche Google Cloud Shell hat den aus dem LSZH-GitHub-Featurebranch geklonten, auf Leseoperationen beschränkten Runner `scripts/g3-readonly-cloud-inventory.mjs` tatsächlich ausgeführt. Der Betreiber hat die **redigierte JSON-Ausgabe** in den Projektchat übertragen. **Kein Mock, kein manueller Rückschluss auf angenommene Cloud-Ressourcen.** Ergebnis: `READ_ONLY_INVENTORY_WITH_UNVERIFIED_EFFECTIVE_IAM`, `projectIdentityVerified=true`, Projekt `lszh-automations`, Region `europe-west6`, `releaseStatus=NO_GO`.
+
+**Echte Beobachtungen:** Alle fünf für den Workflow geprüften APIs **`pubsub.googleapis.com`, `run.googleapis.com`, `iam.googleapis.com`, `firestore.googleapis.com`, `serviceusage.googleapis.com` = ENABLED**. **0 Pub/Sub-Topics, 0 Pub/Sub-Subscriptions** im Projekt; die geplanten G3-Topic-/Subscription-Namen sind in den erfolgreich lesbaren Listen **nicht vorhanden**. **8 Service Accounts** im Projekt, jedoch fehlen die beiden spezifisch vorgesehenen `lszh-g3-push-stg`- und `lszh-g3-reserve-stg`-Dienstkonten. **6 Cloud-Run-Dienste** in `europe-west6`, darunter **kein** `lszh-g3-review-staging`. Der Pub/Sub-Service-Agent besitzt laut Projekt-Policy-Snapshot eine **direkte `roles/pubsub.serviceAgent`-Bindung** (`DIRECT_POLICY_BINDING_FOUND`).
+
+**Nicht nachgewiesen und nicht mit GO verwechseln:** `serviceAgentTokenMintingEffective=NOT_EVALUATED`, `pushDeliveryCapability=NOT_TESTED`, `inheritedIamGroupDenyPab=NOT_EVALUATED`, `effectiveIngress=NOT_EVALUATED`. Keine Ziel-Ressourcen-IAM-Policies, weil deren G3-Ressourcen noch nicht existieren. **Keine TokenCreator-Rolle allein aufgrund der gefundenen Pub/Sub-Service-Agent-Projektrolle vergeben.** Make hatte beim vorherigen Read **keine** `account:google-custom`-Pub/Sub-OAuth-Connection, natives `messages[].data`-Encoding bleibt **NOT_VERIFIED**. Diese Werte sind Teil des sicheren Iststands, keine Fehler, die ohne Freigabe durch Erstellen oder Freischalten zu „beheben“ wären.
+
+**Technischer Schluss:** API-Aktivierung nicht nötig. Der neue G3-Transport ist **noch nicht installiert**, benötigt einen explizit bewilligten, isolierten Plan für Topic, Subscription, getrennte Push-/Runtime-Dienstkonten, private IAM-geschützte Cloud-Run-Revision, Business-OAuth-Publisher, Retry/ACK- und Rückbaukonzept. Nächste Arbeiten: nur offline IAM-/Rollen-/Rollback-Matrix fertigstellen, effektive Berechtigungen read-only verifizieren, danach **eine separate Betreiberentscheidung** vor jeder neuen Cloud-/Make-Ressource. Produktive Offertenannahme, Google Docs Modul 5, Beleg-/E-Mail-Pfade bleiben weiterhin gesperrt. **Kein Cloud-GO.**
+
+**Nachweis:** `docs/LSZH_G3_CLOUD_READONLY_INVENTUR_20261018.md` wurde mit den echten Beobachtungen aktualisiert; bisherige GitHub-Offline-Testbasis [39131041678](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39131041678) mit **170 regulären PASS + 19 Emulator PASS** war der Test des Runners **vor dem jetzt erfolgreich erfolgten echten Leseabruf**. Das Cloud-Leseergebnis ersetzt keinen End-to-End-Push-Test.
+
+---
+
+## 18.10.2026 – G3 Read-only-Runner vorbereitet (historischer Zwischenstand vor späterer Live-Inventur)
 
 **Auftrag `Vamos`:** Nächster Projektstand nach G3 Pub/Sub-Offline-Rollenprüfung: bestehende Cloud-Ressourcen, Service-Agent-IAM, Topic-/Subscription-Verfügbarkeit und Cloud-Run-Privatmodus **ohne Änderungen** aufnehmen. Durch verbundene Apps in dieser Sitzung **kein direktes Google-Cloud-IAM-/Pub/Sub-Verwaltungs-API verfügbar** (Google Drive, Make, GitHub, Render reichen dafür nicht; Firebase-Plugin-Inventur hier nicht als GCP-Zugriff verfügbar). Lokale Arbeitscontainer besitzen kein `gcloud` und keine geschäftliche Cloud-Shell-Autorisierung. Deshalb ausdrücklich **keine Live-Inventur behauptet oder API eingeschaltet**.
 

@@ -15,11 +15,13 @@ REGION = "europe-west6"
 USER = "lars@lszh-automations.ch"
 SERVICE = "lszh-offer-browser-staging"
 BASELINE = SERVICE + "-00006-h5w"
-REVISION = SERVICE + "-00007-e2e"
+PREVIOUS = SERVICE + "-00007-e2e"
+PREVIOUS_IMAGE = "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging@sha256:441835530c517c3a42e90980edd3445e08a1ed2901a28cdfa00acce9d0bac630"
+REVISION = SERVICE + "-00008-json"
 TAG = "cloud-e2e"
 ORIGIN = "https://cloud-e2e---lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app"
 SA = "lszh-offer-portal-staging@" + PROJECT + ".iam.gserviceaccount.com"
-SOURCE = "f19e73362b63380460f3c552bf5dd8ebaa9f11ce"
+SOURCE = "d913bcf98f8a324a19a89581a6416dd91dafaba2"
 IMAGE = REGION + "-docker.pkg.dev/" + PROJECT + "/cloud-run-source-deploy/lszh-offer-browser-staging:e2e-" + SOURCE[:12]
 SECRETS = {
     "LSZH_AIRTABLE_ACCESS_TOKEN": "lszh-offer-cloud-e2e-airtable",
@@ -89,11 +91,14 @@ def check():
     s = service(SERVICE)
     private_service(s)
     require(traffic(s) == {BASELINE: 100}, "browser_traffic_changed")
-    require(not any(t.get("tag") == TAG for t in s["status"].get("traffic", [])),
-            "test_tag_already_exists_do_not_repeat")
-    require(s["spec"]["template"]["spec"].get("serviceAccountName") ==
-            "lszh-offer-browser-tmp@" + PROJECT + ".iam.gserviceaccount.com",
-            "browser_template_changed")
+    tags = [t for t in s["status"].get("traffic", []) if t.get("tag") == TAG]
+    require(len(tags) == 1 and tags[0].get("revisionName") == PREVIOUS
+            and tags[0].get("url") == ORIGIN and tags[0].get("percent", 0) == 0,
+            "previous_test_tag_changed")
+    spec = s["spec"]["template"]["spec"]
+    require(spec.get("serviceAccountName") == SA, "browser_template_changed")
+    require(spec["containers"][0].get("image") == PREVIOUS_IMAGE,
+            "previous_test_image_changed")
     revisions = cloud(["run", "revisions", "list", "--service=" + SERVICE,
                        "--region=" + REGION])
     require(not any(r.get("metadata", {}).get("name") == REVISION for r in revisions),
@@ -101,6 +106,11 @@ def check():
     for secret in SECRETS.values():
         version = cloud(["secrets", "versions", "describe", "1", "--secret=" + secret])
         require(version.get("state") == "ENABLED", "secret_version_not_enabled")
+        policy = cloud(["secrets", "get-iam-policy", secret])
+        require(any(b.get("role") == "roles/secretmanager.secretAccessor"
+                    and not b.get("condition")
+                    and "serviceAccount:" + SA in b.get("members", [])
+                    for b in policy.get("bindings", [])), "existing_secret_access_missing")
     cloud(["artifacts", "repositories", "describe", "cloud-run-source-deploy",
            "--location=" + REGION])
     p = cloud(["projects", "get-iam-policy", PROJECT])
@@ -110,7 +120,7 @@ def check():
                     for b in p.get("bindings", [])), "project_public_run_binding")
     print("PASS: baseline, direct/project public-Run checks, secrets metadata and registry.")
     print("PLAN: build tested source " + SOURCE)
-    print("PLAN: two secret-scoped access grants to existing portal identity.")
+    print("PLAN: retain existing identity and secret grants; replace only failed test tag.")
     print("PLAN: tagged private browser revision; old demo retains 100% normal traffic.")
     print("PLAN: no source seed, acceptance POST, Make execution or email.")
 
@@ -156,10 +166,6 @@ def apply(resume_build=None):
     image = IMAGE.split(":")[0] + "@" + images[0]["digest"]
     # Recheck before mutating anything after a potentially lengthy build.
     check()
-    for secret in SECRETS.values():
-        cloud(["secrets", "add-iam-policy-binding", secret,
-               "--member=serviceAccount:" + SA,
-               "--role=roles/secretmanager.secretAccessor", "--condition=None"])
     env = {
         "GOOGLE_CLOUD_PROJECT": PROJECT,
         "LSZH_PORTAL_STAGING_ENABLED": "true",
@@ -179,7 +185,7 @@ def apply(resume_build=None):
     print("DEPLOY: " + REVISION + ", tag " + TAG + ", no normal traffic.", flush=True)
     cloud(["run", "deploy", SERVICE, "--region=" + REGION,
            "--image=" + image, "--service-account=" + SA,
-           "--revision-suffix=00007-e2e", "--no-traffic", "--tag=" + TAG,
+           "--revision-suffix=00008-json", "--no-traffic", "--tag=" + TAG,
            "--invoker-iam-check",
            "--set-env-vars=" + ",".join(k + "=" + v for k, v in env.items()),
            "--set-secrets=" + ",".join(k + "=" + v + ":1" for k, v in SECRETS.items()),

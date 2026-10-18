@@ -1,5 +1,22 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Korrigierte Live-Vorabprüfung der Phasendiagnose vollständig PASS
+
+**Echte Geschäfts-Cloud-Shell-Ausgabe des Betreibers:**
+- `PASS: preflight revision, ingress and service identity unchanged`
+- `PASS: no direct public IAM binding on the service` (geerbte IAM-Rechte wurden ausdrücklich **nicht** vollständig evaluiert).
+- `PASS: current synthetic-only read probe unchanged and named IAM Invoker only`
+- **`PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks.`**
+- `PASS: existing temporary static demo and four synthetic business Drive PDFs verified.`
+- **`READ-ONLY CHECK PASS`** ohne Python-/Shell-Fehler.
+
+Der vorangehende fehlerhafte `IndentationError`- und Falsch-PASS-Lauf ist damit **durch einen neuen vollständig ausgeführten und korrekt geprüften read-only Durchlauf ersetzt**. Das neue separate `scripts/offer-temp-drive-child-readonly-check.py`-Skript bestätigt die geschäftliche Ablage, genau vier synthetische PDFs sowie die bereits vorhandene einzelne Reader-Berechtigung für `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`. **Bislang kein neues Diagnose-Deployment, kein weiteres IAM/Drive-Grant, keine Firestore-/Mail-/Vertragsaktionen.**
+
+**Nächster kontrollierter operativer Schritt:** `scripts/offer-temp-drive-phase-release.sh --apply 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` würde nach nochmaligen Schutzgates ausschliesslich den bereits bestehenden temporären Browser-Stagingdienst auf eine zusätzliche, auf feste Log-Fehlerphasen beschränkte Testrevision aktualisieren. Das ursprüngliche interne Offertenportal bleibt deaktiviert, ebenso Vertragsabschluss, Offerten-API und alle Kundendatenfolgen. Der erfolgreiche reine Vorabcheck ist **keine produktive Sicherheitsfreigabe**; insbesondere muss der Hinweis auf nicht geprüfte geerbte IAM-Berechtigungen berücksichtigt werden. Kein `--apply` wurde durch die Assistenz ausgeführt.
+
+---
+
+
 ## 18.10.2026 – Sicherheitsfehler im Phasendiagnose-Release-Check abgefangen und behoben
 
 **Operativer Cloud-Shell-Befund vom Betreiber:** `scripts/offer-temp-drive-phase-release.sh --check` hat zunächst den originalen Preflight, die temporäre Revision `00003-j2p` und die namentliche IAM-Invoker-Rolle erfolgreich read-only geprüft. Der eingebettete Python-Drive-Check ist jedoch wegen einer fehlerhaft konstruierten Bash-Heredoc-Zeile mit `IndentationError: unexpected indent` gescheitert. **Trotzdem** folgte `READ-ONLY CHECK PASS`. Diese konkrete Erfolgsmeldung ist **ungültig**; geschäftlicher Parent, genau vier PDF-Dateien und temporärer Reader wurden in diesem Lauf nicht korrekt geprüft. **Kein `--apply`**, kein Deployment, keine Berechtigungsveränderung.

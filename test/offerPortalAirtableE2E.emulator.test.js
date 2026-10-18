@@ -185,6 +185,8 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    });
    assert.equal(end.evidence.avv_required,mode==='Ja');
    assert.equal(end.evidence.avv_confirmed,mode==='Ja');
+   assert.equal(end.evidence.avv_version,
+    mode==='Ja'?'TEST_ONLY_AVV_v1.0_RC1':null);
    assert.deepEqual(end.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
    assert.ok(!JSON.stringify(end).includes(token),'raw token must not be persisted');
    if(mode==='Nein')assert.ok(!drive.requests.includes(docs.avv.id),'no AVV PDF accessed');

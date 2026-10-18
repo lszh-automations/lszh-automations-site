@@ -1,16 +1,16 @@
 # LSZH Automations – aktueller Projektstand
 
-Stand: 19.10.2026 (Europe/Zurich). Cloud-Run-Servicekonfiguration am 19.10.2026 vom Betreiber per read-only Cloud-Shell-Ausgabe bestätigt; übrige Nachweise bis 18.10.2026.
+Stand: 19.10.2026 (Europe/Zurich). Fix-Deployment und echter Portal-Leseweg vom Betreiber per Cloud-Shell-Ausgabe bestätigt; Annahme noch nicht ausgeführt.
 
 ## Verbindliche Übergabe – hier weiterarbeiten
 
 **Ziel:** Einen vollständigen Offertenprozess für einen KMU fertigstellen: Offerte → private PDFs → getrennte Online-Zustimmungen → Annahmenachweis → Airtable → Make-Beleg und Bestätigung. Beide Varianten AVV Ja/Nein müssen funktionieren.
 
-**Letztes abgeschlossenes Ergebnis:** Echter Preview-Lauf auf `lszh-offer-browser-staging-00007-e2e`: private HTML-Seite PASS, `/api/offer/preview` HTTP 400 `invalid_request`, keine Annahme. Ursache lokal reproduziert: Functions Framework konsumiert JSON vor dem Handler; Adapter las den leeren Stream erneut. Fix nutzt `req.rawBody` mit unveränderten Typ-/Grössen-/JSON-Prüfungen. Acht lokale HTTP-Tests PASS (vor Fix reproduzierbares 400). [CI 39172547393](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39172547393) alle vier Jobs SUCCESS, einschliesslich neuem Test gegen das **echte Functions Framework** für Preview/PDF/simulierten Accept. Geprüfter Fix-Source `d913bcf98f8a324a19a89581a6416dd91dafaba2`. Release-Runner für gezielten Austausch vorbereitet und sechs lokale Ablaufprüfungen PASS.
+**Letztes abgeschlossenes Ergebnis:** JSON-Body-Fix aus Source `d913bcf98f8a324a19a89581a6416dd91dafaba2` als `lszh-offer-browser-staging-00008-json` bereitgestellt, Tag `cloud-e2e`, 0 % regulärer Traffic. Originalportal unverändert und alte Demo weiterhin 100 %. Betreiber bestätigt live: private Portal-Seite, exakt vorhandene synthetische Offerte (AVV Nein), Firestore-Lesen sowie Download und SHA-256 beider Drive-PDFs PASS. Keine Annahme, kein Airtable-PATCH, kein Make-Lauf, keine E-Mail. [CI 39172547393](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39172547393) zum bereitgestellten Fix: alle vier Jobs SUCCESS, einschliesslich echtem Functions Framework.
 
-**Nächste Arbeit:** Aktualisierten `scripts/offer-browser-synthetic-release.py --apply` ausführen: prüft exakt vorhandene fehlerhafte Revision `00007-e2e`/Image-Digest, baut den CI-geprüften JSON-Fix und setzt Tag `cloud-e2e` auf neue Revision `00008-json` mit 0 % regulärem Traffic. Bestehende Demo bleibt bei 100 %; bestehende Secret-Rechte und Identität werden nur geprüft, nicht neu vergeben. Danach im selben Shell-Block `scripts/offer-browser-synthetic-preview.py` erneut ausführen. Beide Schritte noch nicht live ausgeführt. Bei erneutem Fehler stoppen; keine Annahme oder Seed-Wiederholung.
+**Nächste Arbeit:** `scripts/offer-browser-synthetic-accept-once.py --accept-once` für exakt den vorhandenen synthetischen Testrecord ausführen. Das vorbereitete Skript prüft den Ausgangszustand, sendet höchstens einen Annahme-POST und liest anschliessend Firestore und Airtable unabhängig zurück. Bei bereits gespeicherter Annahme oder unklarer POST-Antwort keine automatische POST-Wiederholung. Fünf lokale simulierte Ablaufprüfungen bestanden; die echte Cloud-Annahme steht noch aus. Kein erneutes Deployment und kein erneuter Seed erforderlich.
 
-**Konkreter offener Nachweis:** JSON-Fix muss als neue Testrevision bereitgestellt werden und die echte Vorschau/PDF-Prüfung bestehen. Noch kein Live-Nachweis für Drive-/Firestore-Leseweg über die vollständige Portal-API, keinen Airtable-Schreibzugriff und keine Annahme ableiten. Die bisherige Revision `00007-e2e` bleibt bis zum erfolgreichen Austausch unter dem Tag erreichbar.
+**Konkreter offener Nachweis:** Echte Speicherung der Annahme und automatischer Airtable-Callback. Danach synthetischen Make-Beleg und die vollständige AVV-Ja-Variante nachweisen. Der bestandene Leseweg belegt noch keinen Annahme- oder Schreibdurchlauf.
 
 **Nicht wiederholen:** Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 
@@ -32,8 +32,8 @@ Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https
 | --- | --- | --- |
 | Website und Onboarding | Website, persönliches Onboarding, Make-Konto-/Einladungsfelder und `/make-start/` vorhanden | Vollständige Kundenübergabe, tatsächliche Einladung/Rollen und Mailweg nicht aus dem Offerten-Test ableiten |
 | Online-Annahme | Getrennte Zustimmung zu Offerte, Bedingungen und optional AVV; Browser-, HTTP-, Emulator- und Paralleltests vorhanden | Keine rechtswirksame Kundenannahme aktiviert |
-| Drive-Dokumente | Vier synthetische PDFs im Geschäfts-Testordner; temporärer Cloud-Run-Lesetest 4/4 erfolgreich; direkter Parent im Portalcode korrigiert | Temporäre Leseprobe ist kein vollständiger Portal-Annahmetest |
-| Firestore | Echte Transaktionstests früher bestanden; aktueller einmaliger Cloud-Seed mit Readback erfolgreich | Noch kein echter HTTP-Annahmelauf der neuen Portal-Testrevision |
+| Drive-Dokumente | Echter Portal-Download von Offerte und Bedingungen samt SHA-256-Prüfung live bestanden (AVV Nein); frühere temporäre Leseprobe 4/4 | Vollständiger AVV-Ja-Durchlauf noch offen |
+| Firestore | Echte Transaktionstests früher bestanden; einmaliger Cloud-Seed und Lesen über die echte Portal-API bestanden | Noch kein echter HTTP-Annahmelauf der neuen Portal-Testrevision |
 | Airtable | Separater realer synthetischer Schreibtest mit Readback bestanden; automatischer Callback im Portalcode integriert | Cloud Run → Firestore → Airtable noch nicht live durchgängig nachgewiesen; Emulator nutzt simuliertes CRM |
 | Make-Beleg | Bestehende Ja/Nein-Szenarien, Beleg-Handoff und korrigierte AVV-Belegvorlage vorhanden | Durchgängige Belegerstellung aus der neuen Cloud-Testannahme und Bestätigungsweg fehlen |
 | Kundenunterlagen | Projektbedingungen als PDF/Google Doc und synthetische AVV samt Anlagen im Geschäfts-Drive vorhanden | Endkontroll-/TEST_ONLY-Dateien sind keine final freigegebenen Kundenverträge |
@@ -71,7 +71,7 @@ Zuletzt dokumentierter Live-Stand vom 18.10.2026, bei tatsächlicher Ausführung
 
 ## Nächste Schritte und Grenzen
 
-1. **Privaten Cloud-Test fertigstellen:** Konfiguration und erreichbaren Testpfad bestimmen; bestehende einmalige Betreiberfreigabe berücksichtigen. Neue isolierte 0%-Traffic-Testrevision im genehmigten Umfang, exakt vorhandenen Testrecord verwenden, Annahme einmal ausführen und Firestore/Airtable zurücklesen. Bestehenden Traffic erhalten; Testrevision danach kontrolliert ausser Betrieb nehmen.
+1. **Privaten Cloud-Test fertigstellen:** Bereitstellung und Leseweg bestanden. Bestehende einmalige Betreiberfreigabe berücksichtigen; exakt vorhandenen Testrecord mit dem vorbereiteten Skript einmal annehmen und Firestore/Airtable zurücklesen. Bestehenden Traffic erhalten; Testrevision danach kontrolliert ausser Betrieb nehmen.
 2. **Belegstrecke vervollständigen:** Bestehende Make-Module mit dem synthetischen Ergebnis verbinden und realen Testbeleg prüfen. Fehlende Freigaben für konkrete externe Aktionen erst am ausführbaren Schritt klären. AVV Ja ebenfalls vollständig nachweisen. Vor Annahme 2/3 Vertrags-PDFs, danach 3/4 Dokumente inklusive Beleg.
 3. **Begrenzten Kundenpilot vorbereiten:** Endgültige PDF-Versionen, konkrete AVV-Anlagen, Kundenroute, Verantwortlichkeiten und Betrieb klären; danach ausdrückliches Pilot-GO.
 
@@ -89,7 +89,7 @@ Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale un
 
 ## Testrevision wieder ausser Betrieb nehmen
 
-Nach dem einmaligen Test: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und (nach tatsächlich erfolgtem Fix-Deployment) `lszh-offer-browser-staging-00008-json` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
+Nach dem einmaligen Test: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
 
 ## Historische Nachweise
 

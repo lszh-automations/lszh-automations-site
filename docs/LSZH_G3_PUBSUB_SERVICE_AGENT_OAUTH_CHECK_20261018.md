@@ -1,5 +1,34 @@
 # LSZH Automations – G3: Service-Agent-IAM und Make-OAuth, nächste sichere Prüfung
 
+## Live-Rückmeldung aus geschäftlicher Cloud Shell – 18.10.2026
+
+**Betreiber hat den Original-Runner bereits sicher gestartet.** Die redigierte JSON-Ausgabe zeigt:
+
+| Feld | Live-Ergebnis | Interpretation |
+| --- | --- | --- |
+| `result` | `READ_ONLY_ROLE_DEFINITION_CHECK` | Nur Lesecheck; kein GO |
+| `projectIdentityVerified` | `true` | `lszh-automations` bestätigt |
+| `serviceAgentProjectBinding` | **`DIRECT_UNCONDITIONAL_BINDING_FOUND`** | Vordefinierte Agent-Rolle ohne Bedingung **direkt am Projekt** |
+| `roleDefinitionPermission` | **`UNKNOWN_ROLE_DEFINITION`** | Die verwendete `gcloud iam roles describe`-Abfrage lieferte kein im Skript prüfbares Rollenobjekt. **Das sagt nicht aus, dass die OIDC-Berechtigung fehlt.** |
+| `plannedPushSa` | `ABSENT_IN_THIS_LIST` | Vorgesehener G3-Push-SA wurde nicht vorgefunden |
+| `serviceAgentEffectiveOidc` | `NOT_EVALUATED` | Kein effektiver Berechtigungsnachweis auf dem noch nicht vorhandenen Push-SA |
+| `groupDenyPab` | `NOT_EVALUATED` | Geerbte/organisationsweite Grenzen fehlen |
+| `tokenCreatorAdditionalGrant` | `NOT_RECOMMENDED_WITHOUT_EFFECTIVE_CHECK` | **Keinen zusätzlichen TokenCreator-Grant** ohne unabhängigen Nachweis |
+| `releaseStatus` | `NO_GO` | Keine IAM-/Pub/Sub-/Make-Aktivierung |
+
+**Diagnose:** Google dokumentiert für *vordefinierte* IAM-Rollen den Aufruf `gcloud iam roles describe roles/pubsub.serviceAgent` **ohne** `--project`. Der bisherige Runner versuchte die Definition mit `--project=lszh-automations`. Ob das den konkreten `UNKNOWN_ROLE_DEFINITION`-Befund verursacht hat, ist **noch nicht nachgewiesen**; es könnte auch an Leserechten, CLI-Version oder Datenformat liegen. Die offizielle Google-Pub/Sub-IAM-Rollenübersicht listet `iam.serviceAccounts.getOpenIdToken` ausdrücklich in `roles/pubsub.serviceAgent`. Ein offizieller Dokumentationsbefund ersetzt nicht den effektiven Projekt-/Deny-/PAB-/Push-SA-Check.
+
+**Sichere Codekorrektur:** Der aktualisierte Runner versucht die frühere Projekt-form zuerst. Nur wenn diese kein gültiges vordefiniertes Rollenobjekt liefert, liest er **genau die eine Rolle** nochmals in Googles offizieller, `--project`-freier Form. Die gemeinsam genutzte gcloud-Whitelist erlaubt dafür ausschliesslich `iam roles describe roles/pubsub.serviceAgent --format=json --quiet`. Neue Ergebnisangabe `roleReadVariant` = `PROJECT_SCOPED`, `PREDEFINED_UNSCOPED_FALLBACK` oder `UNVERIFIED`; `releaseStatus=NO_GO` bleibt unabhängig davon. Kein Token, IAM-Schreibrecht oder persönlicher Principal wird ausgegeben.
+
+**Nächster sicherer Einzeltest:** Den aktualisierten Runner mit geschäftlichem Google Cloud Shell-Konto erneut **nur lesend** ausführen; die redigierte JSON-Antwort teilen. Falls weiterhin `UNKNOWN_ROLE_DEFINITION`, die CLI-Abfrage nicht durch Berechtigungsgrant oder Service-Agent-Neuanlage „reparieren“, sondern den fehlgeschlagenen Read gesondert prüfen. **Kein** neuer Cloud-G3-Ressourcen-/OAuth-GO.
+
+Quellen:
+- https://docs.cloud.google.com/sdk/gcloud/reference/iam/roles/describe
+- https://docs.cloud.google.com/iam/docs/creating-custom-roles
+- https://docs.cloud.google.com/pubsub/docs/access-control
+
+---
+
 **Stand:** 18.10.2026 – **nur Lese- und Planungsphase, kein Cloud-Go**.
 
 ## Ergebnis der verbundenen Make-Abfrage

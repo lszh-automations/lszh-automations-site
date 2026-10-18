@@ -254,3 +254,49 @@ test('FireStore offers are not accepted twice even on ambiguous retries',async()
  await rejects(()=>portal.accept(token,accepted()),/unavailable/);
  equal(data.state().updates,1);
 });
+
+test('post-commit Airtable failure cannot trigger a second acceptance',async()=>{
+ const {createOfferPortal}=await import('../cloud-run/offer-portal-staging/portalCore.mjs');
+ const {createFirestoreOfferStore}=await import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs');
+ const base=record('Ja');
+ base.offerNumber='TEST_ONLY_IMPORT_20261015_NO_CONTRACT';
+ base.recipientEmail='synthetic@example.invalid';
+ base.source={kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
+   tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'};
+ base.downstream={airtable:'disabled',proofPdf:'disabled',email:'disabled'};
+ const data=fakeDB(base);
+ const opts={
+   store:createFirestoreOfferStore(data.db),
+   verifyBundle:async()=>true,
+   approvedVersion:'TEST_v1.0_RC1',
+   proofSalt:'test-only-secret-with-enough-entropy',
+   clock:()=>new Date('2026-10-15T10:00:00Z')
+ };
+ let callbacks=0;
+ const onAccepted=async committed=>{
+   callbacks++;
+   equal(committed.status,'accepted');
+   equal(committed.revision,2);
+   equal(committed.acceptedAt,'2026-10-15T10:00:00.000Z');
+   equal(data.state().updates,1,'Firestore committed BEFORE external I/O');
+   throw Error('simulated Airtable timeout after uncertain request');
+ };
+ assert.throws(()=>createOfferPortal({...opts,onAccepted}),
+   /portal_not_configured/,'Airtable callback cannot be enabled for a non-synthetic portal');
+ const portal=createOfferPortal({...opts,syntheticOnly:true,onAccepted});
+ const response=await portal.accept(token,{
+   ...accepted('Ja'),email:base.recipientEmail
+ });
+ equal(response.accepted,true);
+ equal(response.test_only,true);
+ equal(response.airtable_sync_status,'manual_review_required');
+ equal(response.confirmation_email_pending,false);
+ equal(callbacks,1);
+ equal(data.state().updates,1);
+ equal(data.state().doc.status,'accepted');
+ await rejects(()=>portal.accept(token,{
+   ...accepted('Ja'),email:base.recipientEmail
+ }),/unavailable/);
+ equal(data.state().updates,1,'no duplicate Firestore claim');
+ equal(callbacks,1,'no automatic replay of uncertain Airtable PATCH');
+});

@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Drive-Metadaten-Diagnose mit HTTP 403; fehlender Quota-Project-Header korrigiert
+
+**Echte Cloud-Shell-Ausgabe:** Der erste reine Geschäftsbenutzer-Drive-Metadatenaufruf aus `scripts/offer-business-drive-provider-sha-diagnose.py` lieferte `NO-GO: Google Drive metadata HTTP 403` und brach **vor einer inhaltlichen SHA-256-Aussage** ab. Diese Antwort beweist weder einen fehlenden Hash noch veränderte PDFs noch den Grund für das separate Cloud-Run-HTTP-503.
+
+**Konkreter Quellcode-Unterschied gefunden:** Der zuvor erfolgreiche Geschäftsbenutzer-Drive-v3-Prüfer `scripts/offer-business-drive-readonly-verify.py` hatte in jedem Google-API-Aufruf `X-Goog-User-Project: lszh-automations` gesetzt. Der neue `offer-business-drive-provider-sha-diagnose.py` hatte diesen Quota-Project-Header bei `files.get` **ausgelassen**. Dies ist eine plausible Erklärung für den 403, aber noch **nicht** als wahre Serverfehlerursache erwiesen. Ausschliesslich im read-only-Diagnose-Skript wurde dieser Header ergänzt; der Selbsttest prüft seine Beibehaltung. Keine erneute Benutzeranmeldung, keine zusätzlichen IAM-/Drive-Rechte, kein Cloud-Run-Deployment.
+
+**Nächster Test:** Vorhandenen Diagnoselauf mit unveränderten vier echten Test-PDF-Datei-IDs, Dateigrössen und *post-upload*-SHA-256 erneut durchführen und auf `PROVIDER_SHA256_MATCH` oder `...MISSING/DIFFERS` prüfen. Falls weiter 403: vor weiteren Aktionen den **anonymisierten Google-API-Fehlergrund** untersuchen und erst dann die Autorisierung abklären. Die frühere Archiv-Sperren-/Byte-Integritätsprüfung (4/4 PASS) und die zeitgleich unveränderte ursprüngliche interne Cloud-Run-Revision bleiben bestehen. Temporärer Cloud-Run→Drive-Livesmoketest bleibt bis jetzt **NO-GO**.
+
+---
+
+
 ## 18.10.2026 – Cloud Run→Google Drive Live-Lesetest NO-GO (HTTP 503); keinerlei weitere IAM-/Deploy-Änderung
 
 **Echte Cloud-Shell-Betreiber-Ausgabe** nach Test `scripts/offer-temp-drive-probe-smoke.sh` gegen temporären Dienst Revision `lszh-offer-browser-staging-00003-j2p`:

@@ -43,6 +43,8 @@ test('approve is fail closed without separate future scope and pinned image SHA'
     {mode:'apply',approval:'LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY',
       image:'us-central1-docker.pkg.dev/lszh-automations/a/b@sha256:'+'a'.repeat(64)},
     {mode:'apply',approval:'LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY',
+      image:'europe-west6-docker.pkg.dev/lszh-automations/other-repo/receiver@sha256:'+'a'.repeat(64)},
+    {mode:'apply',approval:'LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY',
       image:'europe-west6-docker.pkg.dev/another-project/a/b@sha256:'+'a'.repeat(64)}
   ])assert.equal(validateOperatorIntent(a).status,'BLOCKED',JSON.stringify(a));
   assert.equal(auditImageReference(digest),true);

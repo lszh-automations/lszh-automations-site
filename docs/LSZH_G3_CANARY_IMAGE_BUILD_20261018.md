@@ -26,7 +26,7 @@ Artifact-Registry-Digest.
 - `cloud-run/g3-review-staging/Dockerfile`: `ARG BASE_IMAGE`, `FROM ${BASE_IMAGE}`.
   Ohne explizit übergebenen festgepinnten Basisimage-Digest ist das Image
   nicht baubar. Nur `index.mjs` wird hineinkopiert, `USER node`,
-  keine `RUN`-Befehle und keine zusätzlichen Pakete.
+  keine zusätzlichen Pakete. Ein einziger strikt whitelisteter, netzloser RUN-Befehl entfernt seit dem Trivy-Review die im Canary nicht benötigten npm-/Corepack-Bibliotheken und Launcher. Alle anderen RUN-Anweisungen bleiben untersagt.
 - `scripts/g3-canary-image-plan.mjs`: offline, read-only.
   Verweigert überraschende Dockerfile-Anweisungen, fremde Basis-Registries,
   Floating Tags und unsichere Importänderungen. SHA-256 für Dockerfile,
@@ -152,3 +152,15 @@ gesperrt. **Nur Geschäftskonto/geschäftliches Drive**, nicht privat.
 - **Release bleibt ausdrücklich NO_GO.** Diese erfolgreiche CI beweist
   nur Code- und isolierten Kandidatenbuild-Test, nicht Scan/Provenance,
   wirksame Cloud-IAM-Rechte, Cloud Deployment oder Kundenprozess.
+
+## G3 Container-Scan und npm-freie Behebung, 18.10.2026
+
+[Initialer GitHub-Scan 39147203165](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147203165): 0 CRITICAL, 11 HIGH, 10 MEDIUM, 1 LOW, 217 SBOM-Komponenten. Die hohen Findings lagen in npm-/Package-Manager-Abhängigkeiten aus dem Node-Basisimage, nicht im Canary-Quellcode. Genannte Pakete sind brace-expansion, http-cache-semantics, ip-address, pacote, picomatch und sigstore.
+
+**Sichere Codeänderung:** Das synthetische Node-Programm braucht den npm-Paketmanager nicht. Der isolierte Docker-Build entfernt genau diesen unnötigen npm/Corepack-Bestand; ein Whitelist-Quelltest sperrt weitere RUN-Kommandos. Der echte isolierte Container-Smoke bestätigt die Entfernung und die fortbestehende HTTP-Canary-Funktion.
+
+[Nachkontrolle 39147504659](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147504659): CI SUCCESS. **0 CRITICAL, 0 HIGH, 1 MEDIUM, 0 LOW, 20 SBOM-Komponenten.** Neue identische lokale OCI-Manifest-Digests aus zwei Builds: sha256:83e32f0966e511168af5c65e4179fb94f415388aaedf47a960e28f804412097c. Der alte OCI-Digest ist nur historische Evidenz; das neue Image wurde weiterhin weder in Artifact Registry veröffentlicht noch signiert.
+
+Die zusätzliche neue CI-Regel blockiert künftig ausdrücklich HIGH/CRITICAL > 0. Der einzelne verbleibende MEDIUM-Befund muss gesondert geprüft werden. Die Nachweise bleiben **unsigned CI evidence** und kein formelles Release oder effektiver IAM- bzw. Provenance-Nachweis. Im PR-Kontext kann die aufgezeichnete Source-Commit-ID ein GitHub-generierter Merge-Commit sein und nicht der reine Branch-Head. Vor einem tatsächlichen Upload sind zusätzlich ein getrenntes Betreiber-GO und anschliessender Registry-/Digest-Readback erforderlich.
+
+Vollständige Freigabegrenzen: docs/LSZH_G3_IMAGE_RELEASE_GATES_20261018.md.

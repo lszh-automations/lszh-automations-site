@@ -111,8 +111,13 @@ test('private Cloud Run metadata with any public IAM member or insecure ingress 
   const good={metadata:{name:'lszh-g3-review-staging',annotations:{
     'run.googleapis.com/ingress':'internal'}},status:{url},
     spec:{template:{spec:{serviceAccountName:'lszh-g3-reserve-stg@lszh-automations.iam.gserviceaccount.com'}}}};
-  const policy={bindings:[{role:'roles/run.invoker',members:['serviceAccount:fake@demo.invalid']}]};
+  const policy={bindings:[]};
   assert.equal(validatePrivateReceiver(good,policy),url);
+  assert.equal(validatePrivateReceiver(good,{bindings:[{role:'roles/run.invoker',
+    members:['serviceAccount:fake@demo.invalid']}]}),null);
+  const iamDisabled=structuredClone(good);
+  iamDisabled.metadata.annotations['run.googleapis.com/invoker-iam-disabled']='true';
+  assert.equal(validatePrivateReceiver(iamDisabled,policy),null);
   for(const mod of [
     x=>{x.metadata.annotations['run.googleapis.com/ingress']='all';},
     x=>{x.status.url='https://evil.example.invalid';},
@@ -125,4 +130,23 @@ test('private Cloud Run metadata with any public IAM member or insecure ingress 
   assert.equal(validatePrivateReceiver(good,{bindings:[{role:'roles/run.invoker',
     members:['allUsers']}]}),null);
   assert.equal(validatePrivateReceiver(good,{}),null);
+});
+
+test('IAM readback must confirm exactly the intended single unconditioned push invoker',async()=>{
+  const {verifyScopedInvoker}=await load();
+  const member='serviceAccount:lszh-g3-push-stg@lszh-automations.iam.gserviceaccount.com';
+  assert.equal(verifyScopedInvoker({bindings:[{role:'roles/run.invoker',
+    members:[member]}]}),true);
+  for(const invalid of [
+    {bindings:[]},
+    {bindings:[{role:'roles/run.invoker',members:['serviceAccount:fake@demo.invalid']}]},
+    {bindings:[{role:'roles/run.invoker',members:[member,'allUsers']}]},
+    {bindings:[{role:'roles/run.invoker',members:[member],
+      condition:{title:'unknown',expression:'request.time < timestamp("2030-01-01T00:00:00Z")'}}]},
+    {bindings:[{role:'roles/run.invoker',members:[member]},
+      {role:'roles/run.invoker',members:['serviceAccount:other@demo.invalid']}]},
+    {bindings:[{role:'roles/run.invoker',members:[member]},
+      {role:'roles/viewer',members:['allAuthenticatedUsers']}]},
+    {}
+  ])assert.equal(verifyScopedInvoker(invalid),false,JSON.stringify(invalid));
 });

@@ -101,17 +101,8 @@ jobs:
             --build-arg SOURCE_DATE_EPOCH=0 \
             --network none --no-cache --provenance=false --sbom=false \
             --load -t lszh-g3-canary:offline-review cloud-run/g3-review-staging
-          # Bind the separately loaded scan target to the verified OCI build config.
-          # Docker's image ID is the SHA-256 of the image configuration JSON.
-          expected_config="$(node -e 'const r=require("./g3-image-oci-report.json");
-            if(r.status!=="CANDIDATE_OCI_DOUBLE_BUILD_VERIFIED")process.exit(2);
-            process.stdout.write(r.candidate.ociConfigDigest)')"
-          loaded_config="$(docker image inspect --format '{{.Id}}' lszh-g3-canary:offline-review)"
-          test "$loaded_config" = "$expected_config" || {
-            echo "BLOCKED_SCANNED_IMAGE_CONFIG_DIFFERS_FROM_OCI"
-            exit 2
-          }
-          echo "PASS: scanner local image configuration matches verified OCI candidate"
+          # Runtime smoke checks the same build recipe; scanning is bound to
+          # the SHA-verified OCI archive below rather than this separate load.
           test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-canary:offline-review)" = node
           docker run --rm --network none --entrypoint node lszh-g3-canary:offline-review -e '
             const fs=require("node:fs");
@@ -148,11 +139,21 @@ jobs:
             console.log("PASS: network-isolated real container, canary-only ACK");
           '
 
+      - name: Extract ONLY the SHA-verified OCI archive for exact-byte scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g3-canary-candidate/verified-oci
+          tar -xf g3-canary-candidate/image-1.oci.tar -C g3-canary-candidate/verified-oci
+          test -f g3-canary-candidate/verified-oci/index.json
+          test -f g3-canary-candidate/verified-oci/oci-layout
+          echo "PASS: Trivy input is OCI layout extracted from independently SHA-verified candidate"
+
       - name: Trivy local image vulnerability scan (no registry push or Cloud auth)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: 'lszh-g3-canary:offline-review'
+          input: g3-canary-candidate/verified-oci
           scanners: vuln
           vuln-type: 'os,library'
           format: json
@@ -167,7 +168,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: 'lszh-g3-canary:offline-review'
+          input: g3-canary-candidate/verified-oci
           scanners: vuln
           format: cyclonedx
           output: g3-sbom.cdx.json

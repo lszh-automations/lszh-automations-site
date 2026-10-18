@@ -143,6 +143,66 @@ test('optional probe returns only non-sensitive PASS and is never available to P
  assert.equal((await fetch('http://127.0.0.1:'+disabled.address().port+
    '/_lszh/synthetic-drive-check')).status,503);
 });
+
+test('diagnostic logging must be opted in only with isolated temporary probe',async()=>{
+ const {temporaryDriveProbeConfig}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
+ assert.throws(()=>temporaryDriveProbeConfig({
+  ...base,LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED:'false',
+  LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED:'true'
+ },{enabled:true}),/temporary_drive_diagnostics_requires_probe/);
+ assert.deepEqual(temporaryDriveProbeConfig({...base,
+  LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED:'true'},{enabled:true}),{
+  enabled:true,folder:FOLDER,hashes
+ });
+});
+test('fixed Drive failure stages classify owner, files and checksum without echoing secrets',async()=>{
+ const {verifySyntheticDriveReadOnly}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
+ const cases=[
+  [{wrongOwner:true},'FOLDER_VALIDATE'],
+  [{wrongParent:true},'FOLDER_VALIDATE'],
+  [{extra:true},'LIST_VALIDATE'],
+  [{changedBytes:true},'PDF_YES_INTEGRITY'],
+  [{unlocked:true},'PDF_YES_INTEGRITY'],
+  [{metadataShaMismatch:true},'PDF_YES_INTEGRITY']
+ ];
+ for(const [flags,expected] of cases){
+  const collected=[];
+  const mock=mockDrive(flags);
+  await assert.rejects(()=>verifySyntheticDriveReadOnly({
+   folder:FOLDER,hashes,accessToken:token,fetcher:mock.fetcher,
+   onDiagnostic:code=>collected.push(code)
+  }),{name:'Error'});
+  assert.deepEqual(collected,[expected]);
+  assert.ok(!JSON.stringify(collected).includes(token));
+  assert.ok(!JSON.stringify(collected).includes(FOLDER));
+  assert.ok(!JSON.stringify(collected).includes(ids[0]));
+ }
+ let reported=[];
+ const good=mockDrive();
+ await verifySyntheticDriveReadOnly({folder:FOLDER,hashes,accessToken:token,
+  fetcher:good.fetcher,onDiagnostic:s=>reported.push(s)});
+ assert.deepEqual(reported,[]);
+});
+test('fixed phases distinguish first Drive metadata/list API failure without provider error exposure',async()=>{
+ const {verifySyntheticDriveReadOnly}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
+ for(const [target,expected] of [['folder','FOLDER_API'],['list','LIST_API'],['pdf','PDF_YES_API']]){
+  const mock=mockDrive();
+  const events=[];
+  const fetcher=async(url,opts)=>{
+   const u=new URL(url);
+   const match=(target==='folder'&&u.pathname.endsWith('/'+FOLDER))||
+    (target==='list'&&u.pathname==='/drive/v3/files')||
+    (target==='pdf'&&u.pathname.endsWith('/'+ids[0]));
+   if(match)throw Error('SECRET_PROVIDER_DETAILS_'+token);
+   return mock.fetcher(url,opts);
+  };
+  await assert.rejects(()=>verifySyntheticDriveReadOnly({
+   folder:FOLDER,hashes,accessToken:token,fetcher,onDiagnostic:c=>events.push(c)
+  }),{name:'Error'});
+  assert.deepEqual(events,[expected]);
+ }
+});
+
 test('wrong results and rejected Drive reads never leak Drive errors, IDs or tokens',async t=>{
  const {createTemporaryBrowserDemoHttp}=await import('../cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs');
  const html=fs.readFileSync('offerte-annehmen/index.html','utf8');

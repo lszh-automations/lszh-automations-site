@@ -91,13 +91,14 @@ function consent(offer,b){
   return {name,email,avv:expected.avv_required==='Ja'};
 }
 export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
-  proofSalt,syntheticOnly=false}={}){
+  proofSalt,syntheticOnly=false,onAccepted}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
     typeof verifyBundle!=='function'||
     (readPdf!==undefined && typeof readPdf!=='function') ||
     typeof approvedVersion!=='string'||
     !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16 ||
-    typeof syntheticOnly!=='boolean')
+    typeof syntheticOnly!=='boolean' ||
+    (onAccepted!==undefined && (syntheticOnly!==true || typeof onAccepted!=='function')))
     throw Error('portal_not_configured');
   async function offerFor(code){
     if(typeof code!=='string'||!TOKEN.test(code))throw bad('unavailable');
@@ -157,10 +158,32 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     const result=await store.claim(tokenHash,fingerprint,evidence,now);
     if(result==='already_accepted')throw bad('already_accepted');
     if(result!=='accepted')throw bad('offer_changed');
-    // This prototype has NO live delivery or legal approval. Match the
-    // existing browser response contract without promising an email.
+    // A single synthetic-only callback may forward the COMMITTED acceptance
+    // to the existing Airtable writeback adapter. NEVER inside transaction:
+    // Firestore retries callbacks and a partial Airtable write is ambiguous.
+    // A failed handoff cannot undo the acceptance or authorize another claim.
+    let airtableSyncStatus;
+    if(onAccepted){
+      airtableSyncStatus='manual_review_required';
+      try{
+        const committed=await store.get(tokenHash);
+        if(committed?.status==='accepted' &&
+           committed.tokenHash===tokenHash &&
+           committed.acceptedAt===now.toISOString() &&
+           committed.evidence?.offer_number===offer.offerNumber &&
+           isSyntheticOnly(committed)){
+          const handoff=await onAccepted(committed);
+          if(['synthetic_fields_patched','already_identical'].includes(handoff?.result))
+            airtableSyncStatus='synced';
+        }
+      }catch{
+        // An uncertain write must be inspected, never silently replayed.
+      }
+    }
+    // Still no proof PDF, mail, legal approval or Make activation.
     return {ok:true,accepted:true,test_only:true,offer_number:offer.offerNumber,
-      confirmation_email_pending:false};
+      confirmation_email_pending:false,
+      ...(onAccepted?{airtable_sync_status:airtableSyncStatus}:{})};
   }
   // Documents are never looked up from a caller-supplied Drive ID.
   // Offer eligibility, expiry, approval and invitation token are checked again

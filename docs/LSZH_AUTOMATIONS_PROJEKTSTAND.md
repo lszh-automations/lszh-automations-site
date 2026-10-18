@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Geschäftlicher restricted-parent-fallback: korrigierter Operator-Check vollständig PASS, Deploy offen
+
+Der Betreiber hat `scripts/offer-temp-drive-restricted-parent-release.sh --check 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` aus frischem Feature-Branch in Cloud Shell erfolgreich ausgeführt. Echtes Ergebnis:
+- `PASS: preflight revision, ingress and service identity unchanged.`
+- `PASS: no direct public IAM binding on the service.`, zugleich **`NOTE: inherited IAM not evaluated; deployment is NOT authorised.`** Das stellt keine allgemeine oder produktive IAM-Freigabe dar.
+- `PASS: current synthetic-only read probe unchanged and named IAM Invoker only.`
+- `PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks.`
+- `PASS: existing temporary static demo and four synthetic business Drive PDFs verified.`
+- `READ-ONLY CHECK PASS`. Kein Deployment, keine IAM-Rechteänderung, kein Drive-Write im Lauf.
+
+Die bisherige temporäre Revision bleibt `lszh-offer-browser-staging-00005-grx` mit Image `baf9ca133b0a`. Das Skript für ein **separat vom Betreiber auszulösendes** `--apply` ist genau auf diese Revision gepinnt, behält das volle Offertenportal deaktiviert, prüft vor Build sowie nochmals vor Deploy den geschäftlichen Testordner und ergänzt nur die *synthetische* Fallback-Validierung für fehlende Parent-/Owner-Felder. Es darf keinen Root-Drive-Grant, keine Verträge/Mails/Firestore-Writes und kein Original-Portal-Deployment auslösen. GitHub Actions [39114163330](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39114163330) vollständig SUCCESS. **Noch kein Live-Cloud-Run→vier PDFs-PASS**; nach eventuellem temporärem Deployment muss dieser mit einem IAM-authentifizierten GET separat nachgewiesen werden. Auch die Unzugänglichkeit aller Offer-/Accept-Routen bleibt für die neue Revision erneut zu testen. Kein Produktions-GO.
+
+---
+
+
 ## 18.10.2026 – FOLDER_PARENT_HIDDEN LIVE bewiesen; synthetischer Restricted-Parent-Fix vorbereitet, nicht deployed
 
 **Echter Live-Nachweis des Betreibers:** Die Cloud-Run-Revision `lszh-offer-browser-staging-00005-grx` wurde im geschäftlichen Konto read-only per IAM-Proxy mit genau einem `GET /_lszh/synthetic-drive-check` geprüft. Designvorschau HTTP 200; Drive-Probe **HTTP 503**. Der **exakte** feste Log-Code aus dieser Revision um **2026-10-18T09:00:33.467712Z** lautet `LSZH_TEMP_DRIVE_DIAG:FOLDER_PARENT_HIDDEN`. Der erste Drive-v3-Ordner-GET ist somit gelungen, die freigegebene synthetische Testordner-ID und die vorherigen Strukturprüfungen wurden bestätigt; nur das erwartete Parent-Feld wird dieser eng berechtigten Cloud-Run-Identität nicht angezeigt. Noch **kein** erfolgreiches Lesen/Verifizieren aller vier PDFs durch dieses Dienstkonto. Bei einem Parent-Feld, das vorhanden, aber falsch ist, würde der bestehende Validator mit `FOLDER_PARENT_MISMATCH` stoppen. Geerbte IAM-Rechte weiterhin ausdrücklich nicht vollständig evaluiert.

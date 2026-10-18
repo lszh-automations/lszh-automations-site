@@ -61,7 +61,7 @@ export function validateOperatorIntent({mode='plan',approval,image}={}){
     return {status:'BLOCKED',reason:'operator_approval_missing'};
   if(typeof image!=='string'||!IMAGE_RE.test(image))
     return {status:'BLOCKED',reason:'approved_pinned_image_digest_missing'};
-  return {status:'APPLY_ALLOWED_ONLY_AFTER_REAL_OPERATOR_APPROVAL',
+  return {status:'APPLY_INPUT_VALID_BUT_RELEASE_BLOCKED',
     releaseStatus:'NO_GO',imageApprovedForScope:false};
 }
 export function buildCommands(image,url){

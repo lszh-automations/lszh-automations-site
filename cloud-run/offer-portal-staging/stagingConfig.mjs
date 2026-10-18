@@ -7,7 +7,9 @@ export const STAGING={
   databaseId:'lszh-offers-staging',
   region:'europe-west6',
   firestoreHost:'firestore.europe-west6.rep.googleapis.com',
-  archiveFolderId:'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in',
+  // The four verified TEST_ONLY PDFs are direct children of this business subfolder.
+  // Do not point the staging verifier at their parent archive folder.
+  archiveFolderId:'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko',
   termsVersion:'TEST_v1.0_RC1'
 };
 const IS_URL=/^https:\/\/([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)(?::443)?$/;

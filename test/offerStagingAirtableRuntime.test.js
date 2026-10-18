@@ -62,6 +62,10 @@ test('Cloud staging opt-in callback executes one fake Airtable GET/PATCH after a
  const row={id:rec,fields:{
    Offertennummer:s.offerNumber,Status:'Entwurf',
    'Online-Annahme Token-Hash':s.tokenHash,'AVV erforderlich':'Nein',
+   'Online-Annahme Offerten Drive ID':s.bundle.quote.id,
+   'Online-Annahme Bedingungen Drive ID':s.bundle.terms.id,
+   'Online-Annahme Offerten-SHA256':s.bundle.quote.sha256,
+   'Online-Annahme Bedingungen-SHA256':s.bundle.terms.sha256,
    'Online-Annahme rechtlich freigegeben':false,
    'CRM untouched':'unchanged'
  }};

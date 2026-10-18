@@ -300,3 +300,48 @@ test('post-commit Airtable failure cannot trigger a second acceptance',async()=>
  equal(data.state().updates,1,'no duplicate Firestore claim');
  equal(callbacks,1,'no automatic replay of uncertain Airtable PATCH');
 });
+
+test('one-record synthetic Cloud staging pilot cannot accept another source',async()=>{
+ const {createOfferPortal}=await import('../cloud-run/offer-portal-staging/portalCore.mjs');
+ const {createFirestoreOfferStore}=await import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs');
+ const item=record('Ja');
+ item.offerNumber='TEST_ONLY_IMPORT_20261015_NO_CONTRACT';
+ item.recipientEmail='synthetic@example.invalid';
+ item.source={kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
+   tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'};
+ item.downstream={airtable:'disabled',proofPdf:'disabled',email:'disabled'};
+ const data=fakeDB(item);
+ const options={
+   store:createFirestoreOfferStore(data.db),
+   verifyBundle:async()=>true,
+   approvedVersion:'TEST_v1.0_RC1',
+   proofSalt:'test-only-secret-with-enough-entropy',
+   syntheticOnly:true,
+   clock:()=>new Date('2026-10-15T10:00:00Z')
+ };
+ let sends=0;
+ const onAccepted=async()=>{sends++;return {result:'synthetic_fields_patched'};};
+ assert.throws(()=>createOfferPortal({...options,syntheticAcceptRecordId:'not-rec'}),
+   /portal_not_configured/);
+ assert.throws(()=>createOfferPortal({...options,syntheticOnly:false,
+    syntheticAcceptRecordId:item.source.recordId}),
+   /portal_not_configured/);
+ const wrong=createOfferPortal({...options,
+   syntheticAcceptRecordId:'rec22222222222222',onAccepted});
+ await rejects(()=>wrong.preview(token),e=>e.code==='unavailable');
+ await rejects(()=>wrong.accept(token,{...accepted(),email:item.recipientEmail}),
+   e=>e.code==='unavailable');
+ equal(data.state().updates,0);
+ equal(sends,0);
+ const selected=createOfferPortal({...options,
+   syntheticAcceptRecordId:item.source.recordId,onAccepted});
+ const view=await selected.preview(token);
+ equal(view.number,item.offerNumber);
+ const response=await selected.accept(token,{
+   ...accepted(),email:item.recipientEmail
+ });
+ equal(response.airtable_sync_status,'synced');
+ equal(data.state().doc.status,'accepted');
+ equal(data.state().updates,1);
+ equal(sends,1);
+});

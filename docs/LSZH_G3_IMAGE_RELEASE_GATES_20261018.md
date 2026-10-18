@@ -96,3 +96,32 @@ Folgelauf als bestätigt.
 ausnutzbare Cloud-Run-Schwachstellen. Umgekehrt beweist ein späterer
 Scan mit weniger Treffern keine vollständige Sicherheit, signierte
 Provenance oder Deployberechtigung. `NO_GO` gilt unabhängig vom Ergebnis.
+
+## Nachkontrolle der Bereinigung und verbleibende Einzel-CVE
+
+- [Build-only und Scan 39147504659](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147504659):
+  **SUCCESS**, 0 HIGH/CRITICAL, 1 MEDIUM, 0 LOW, 20 Komponenten.
+- [Harter HIGH/CRITICAL-CI-Gate 39147660909](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147660909):
+  **SUCCESS**. Das Analyseprogramm zählt alle Scanner-Funde, und ein zusätzlicher
+  Workflow-Schritt bricht bei HIGH/CRITICAL oder unsicheren Belegen ab.
+  Keine Release-, Pub/Sub-, GitHub-Merge- oder Cloud-Freigabe.
+- **Offener MEDIUM-Fund:** Trivy CVE-2026-85091, Alpine-Paket zlib
+  1.3.2-r0, laut Scanner Fix-Version 1.3.2-r1 (Alpine 3.24.2).
+  Er betrifft die vom Basisimage gelieferte zlib-Bibliothek und ist
+  nicht durch npm/Corepack-Entfernung zu beheben. Die erreichte
+  CVE-Reduktion wurde ohne Netzwerkzugriff beim Image-Build erzielt.
+  **Kein** unkontrolliertes apk-upgrade im Containerbuild:
+  das würde Pakete ausserhalb des SHA-gepinnten Basisimages aus
+  einem sich ändernden Netzrepository nachladen und die
+  Reproduzierbarkeit/Quellnachweise aufweichen. Vor einem
+  tatsächlichen Registry-/Cloud-Deploy nur über ein neu geprüftes
+  Basisimage mit bereits aktualisiertem zlib oder einen gesondert
+  verifizierten, digest-/checksum-festgepinnten Patchprozess beheben.
+- **Neues OCI-Manifest, nur lokaler Kandidat:**
+  sha256:83e32f0966e511168af5c65e4179fb94f415388aaedf47a960e28f804412097c.
+  Nicht als Artifact-Registry-Reference verwenden oder deployen.
+
+**Ergebnis:** High/Critical auf Basis des benutzten Trivy-Datenbankstandes
+0, aber Medium-Restbefund sowie signierte Provenance, effektives IAM,
+kostenbezogene Betriebstests und gesonderte menschliche Freigaben offen.
+**NO_GO**.

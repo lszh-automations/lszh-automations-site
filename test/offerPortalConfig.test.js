@@ -78,3 +78,29 @@ test('one-record synthetic acceptance is explicit and keeps business Airtable li
  ])assert.throws(()=>stagingConfig({...enabled,...change}),/staging_synthetic_accept_config_invalid/);
  assert.deepEqual(stagingConfig({...enabled,LSZH_PORTAL_STAGING_ENABLED:'false'}),{enabled:false});
 });
+
+test('browser pilot accepts only its exact service, origin and seeded record',async()=>{
+ const {stagingConfig,BROWSER_PILOT}=await import('../cloud-run/offer-portal-staging/stagingConfig.mjs');
+ const env={...good,K_SERVICE:BROWSER_PILOT.service,
+   K_REVISION:'lszh-offer-browser-staging-00007-syn',
+   LSZH_PORTAL_BROWSER_PILOT_ENABLED:'true',
+   LSZH_PORTAL_ORIGIN:BROWSER_PILOT.origins[1],
+   LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED:'true',
+   LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:BROWSER_PILOT.sourceRecordId,
+   LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED:'true'};
+ for(const origin of BROWSER_PILOT.origins)
+   assert.equal(stagingConfig({...env,LSZH_PORTAL_ORIGIN:origin}).browserPilot,true);
+ for(const change of [
+   {LSZH_PORTAL_BROWSER_PILOT_ENABLED:undefined},
+   {K_SERVICE:'other-service'},
+   {K_REVISION:good.K_REVISION},
+   {LSZH_PORTAL_ORIGIN:good.LSZH_PORTAL_ORIGIN},
+   {LSZH_PORTAL_ORIGIN:'https://other---lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app'},
+   {LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:'rec12345678901234'},
+   {LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED:'false'},
+   {LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED:'true'},
+   {LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED:'true'},
+   {LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED:'false'}
+ ])assert.throws(()=>stagingConfig({...env,...change}),/staging_/);
+ assert.throws(()=>stagingConfig({...good,LSZH_PORTAL_ORIGIN:BROWSER_PILOT.origins[0]}),/origin_invalid/);
+});

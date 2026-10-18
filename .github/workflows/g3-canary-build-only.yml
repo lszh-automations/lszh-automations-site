@@ -169,6 +169,19 @@ jobs:
             g3-trivy.json g3-sbom.cdx.json \
             g3-image-oci-report.json g3-image-inputs.json \
             | tee g3-security-review.json
+          # Never label this security check PASS while HIGH/CRITICAL CVEs remain.
+          node -e '
+            const fs=require("node:fs");
+            const report=JSON.parse(fs.readFileSync("g3-security-review.json","utf8"));
+            if(report.releaseStatus!=="NO_GO"||report.canPublish!==false||
+               report.canDeploy!==false||
+               report.status!=="SCAN_AND_SBOM_RECORDED_NO_HIGH_CRITICAL"||
+               (report.counts.HIGH+report.counts.CRITICAL)!==0){
+              console.error("BLOCKED_G3_HIGH_CRITICAL_CVE_REVIEW");
+              process.exit(2);
+            }
+            console.log("PASS: local CVE gate HIGH=0 and CRITICAL=0; release still NO_GO");
+          '
           echo "NO_GO: a successful local scan is not a signature or deployment approval."
 
       - name: Upload small audit reports only (no container, no secrets)

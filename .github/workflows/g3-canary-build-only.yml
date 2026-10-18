@@ -7,6 +7,8 @@ on:
       - 'scripts/g3-canary-image-plan.mjs'
       - 'scripts/g3-canary-oci-verify.py'
       - 'scripts/g3-canary-security-review.mjs'
+      - 'scripts/g3-canary-provenance-correlation.mjs'
+      - 'test/g3CanaryProvenance.test.js'
       - 'test/g3CanarySecurityReview.test.js'
       - 'test/g3CanaryImageBuild.test.js'
       - '.github/workflows/g3-canary-build-only.yml'
@@ -36,7 +38,8 @@ jobs:
           node --check cloud-run/g3-review-staging/index.mjs
           python3 -m py_compile scripts/g3-canary-oci-verify.py
           node --check scripts/g3-canary-security-review.mjs
-          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js
+          node --check scripts/g3-canary-provenance-correlation.mjs
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js
           node scripts/g3-canary-image-plan.mjs
 
       - name: Verify fixed candidate base SHA lock (Docker Hub read-only)
@@ -98,6 +101,17 @@ jobs:
             --build-arg SOURCE_DATE_EPOCH=0 \
             --network none --no-cache --provenance=false --sbom=false \
             --load -t lszh-g3-canary:offline-review cloud-run/g3-review-staging
+          # Bind the separately loaded scan target to the verified OCI build config.
+          # Docker's image ID is the SHA-256 of the image configuration JSON.
+          expected_config="$(node -e 'const r=require("./g3-image-oci-report.json");
+            if(r.status!=="CANDIDATE_OCI_DOUBLE_BUILD_VERIFIED")process.exit(2);
+            process.stdout.write(r.candidate.ociConfigDigest)')"
+          loaded_config="$(docker image inspect --format '{{.Id}}' lszh-g3-canary:offline-review)"
+          test "$loaded_config" = "$expected_config" || {
+            echo "BLOCKED_SCANNED_IMAGE_CONFIG_DIFFERS_FROM_OCI"
+            exit 2
+          }
+          echo "PASS: scanner local image configuration matches verified OCI candidate"
           test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-canary:offline-review)" = node
           docker run --rm --network none --entrypoint node lszh-g3-canary:offline-review -e '
             const fs=require("node:fs");
@@ -184,6 +198,16 @@ jobs:
           '
           echo "NO_GO: a successful local scan is not a signature or deployment approval."
 
+      - name: Correlate raw build, source and scan evidence without any signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/g3-canary-provenance-correlation.mjs \
+            g3-image-inputs.json g3-image-oci-report.json \
+            g3-security-review.json g3-trivy.json g3-sbom.cdx.json \
+            | tee g3-provenance-correlation.json
+          echo "PASS: self-reported checkout-correlated hashes (NOT signed provenance, NO_GO)"
+
       - name: Upload small audit reports only (no container, no secrets)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -196,5 +220,6 @@ jobs:
             g3-trivy.json
             g3-sbom.cdx.json
             g3-security-review.json
+            g3-provenance-correlation.json
           if-no-files-found: ignore
           retention-days: 7

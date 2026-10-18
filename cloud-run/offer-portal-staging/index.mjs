@@ -37,6 +37,7 @@ const readOnlyDriveCheck=driveCheck.enabled?()=>{
     }
     return verifySyntheticDriveReadOnly({
       folder:driveCheck.folder,hashes:driveCheck.hashes,accessToken:token,
+      businessPrechecked:driveCheck.businessPrechecked===true,
       onDiagnostic:diagnostic?
         code=>console.warn('LSZH_TEMP_DRIVE_DIAG:'+code):undefined
     });

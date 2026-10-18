@@ -10,7 +10,7 @@
 
 **Make-/IAM-Entscheidungsgrundlagen:** `docs/LSZH_G3_PUBSUB_SERVICE_AGENT_OAUTH_CHECK_20261018.md` enthält nachgewiesene Make-Modul-Eigenschaften, definitive vs KI-generierte/noch ungeprüfte OAuth-Angaben, Grenzen der standardisierten Agent-Rolle und die spätere risikoarme Betreiber-Leseprobe. Native Make-`messages[].data`-Kodierung weiterhin ungeklärt (Google REST base64 ≠ gesichertes natives Make-Input-Format); kein Pub/Sub-Topic/Subscription angelegt. Produktive Kunden/Verträge/Belege/Mails bleiben NO-GO.
 
-**GitHub Actions [39142605990](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39142605990):** reguläre `validate`-Job **175 PASS, 0 FAIL, 5 SKIP**, extra 5 Sicherheits-Mocktests für Agent-Rolle/IAM-/Befehl-Allowlist. Die anderen Jobs separat auf Abschluss zu prüfen. Änderungen nur im bestehenden Draft PR #5, nicht gemergt/deployed. Keine IAM-, Make-, Cloud- oder Geschäfts-Drive-Änderungen.
+**GitHub Actions [39142605990](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39142605990) vollständig SUCCESS:** reguläre Offline-Tests **175 PASS, 0 FAIL, 5 SKIP**, inkl. 5 zusätzlicher Sicherheits-Mocktests für Agent-Rolle/IAM-/Befehl-Allowlist; **19/19 Firestore-Emulator PASS**, Chromium-UI-Journey PASS, deaktivierter Container-Build PASS. Keine echten GCP-Schreib- oder Token-Ausstellungsprüfungen. Änderungen nur im bestehenden Draft PR #5, nicht gemergt/deployed. Keine IAM-, Make-, Cloud- oder Geschäfts-Drive-Änderungen.
 
 ---
 

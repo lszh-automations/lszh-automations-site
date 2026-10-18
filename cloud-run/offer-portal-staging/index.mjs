@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {stagingConfig,STAGING} from './stagingConfig.mjs';
 import {createFirestoreOfferStore} from './firestoreOfferStore.mjs';
 import {createOfferPortal} from './portalCore.mjs';
+import {createStagingAirtableCallback} from './stagingAirtableRuntime.mjs';
 import {createOfferPortalHttp} from './portalHttp.mjs';
 import {tempBrowserDemoConfig,createTemporaryBrowserDemoHttp,
   verifyTemporaryBrowserIdentity} from './temporaryBrowserDemo.mjs';
@@ -83,6 +84,9 @@ function activeHandler(){
         portal:createOfferPortal({
           store:createFirestoreOfferStore(db),verifyBundle,readPdf,
           approvedVersion:STAGING.termsVersion,proofSalt:config.proofSalt,
+          // The business Airtable callback is absent unless explicitly enabled.
+          // Post-commit only; the existing acceptance HTTP route stays disabled.
+          onAccepted:createStagingAirtableCallback({config,env:process.env,fetcher:fetch}),
           // Deployment must never process a real customer offer.
           syntheticOnly:true
         }),

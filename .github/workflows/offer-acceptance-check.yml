@@ -31,6 +31,7 @@ on:
       - 'scripts/offer-temp-drive-folder-reader.py'
       - 'scripts/offer-temp-drive-probe-release.sh'
       - 'scripts/offer-temp-drive-phase-release.sh'
+      - 'scripts/offer-temp-drive-child-readonly-check.py'
       - 'scripts/offer-temp-drive-probe-smoke.sh'
       - 'test/temporaryDriveProbe.test.js'
       - 'scripts/offer-browser-cloud-bootstrap.sh'
@@ -66,6 +67,8 @@ jobs:
           python3 scripts/offer-business-drive-provider-sha-diagnose.py --self-test
           python3 -m py_compile scripts/offer-temp-drive-folder-reader.py
           python3 scripts/offer-temp-drive-folder-reader.py --self-test
+          python3 -m py_compile scripts/offer-temp-drive-child-readonly-check.py
+          python3 scripts/offer-temp-drive-child-readonly-check.py --self-test
           bash -n scripts/offer-browser-cloud-bootstrap.sh
           bash -n scripts/offer-browser-cloud-cleanup.sh
           bash -n scripts/offer-browser-cloud-resume.sh

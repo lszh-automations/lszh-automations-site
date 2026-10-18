@@ -74,8 +74,8 @@ export function assessSyntheticPubsubIamDesign(p){
      p.runtime.serviceAccount!==RUNTIME||p.runtime.database!==DB ||
      !Array.isArray(p.runtime.permissions)||
      p.runtime.permissions.slice().sort().join('|')!==
-       ['datastore.entities.get','datastore.entities.create',
-        'datastore.entities.update'].sort().join('|')||
+       ['datastore.databases.get','datastore.entities.get',
+        'datastore.entities.create','datastore.entities.update'].sort().join('|')||
      p.runtime.effectiveIamVerified!==false||
      p.runtime.quarantineAccess!==false)
     return result('NO_GO','runtime_database_scope_unverified_or_broad');
@@ -121,8 +121,8 @@ export function syntheticPubsubIamDesignFixture(){
     },
     runtime:{
       serviceAccount:RUNTIME,database:DB,
-      permissions:['datastore.entities.get','datastore.entities.create',
-        'datastore.entities.update'],
+      permissions:['datastore.databases.get','datastore.entities.get',
+        'datastore.entities.create','datastore.entities.update'],
       effectiveIamVerified:false,quarantineAccess:false
     },
     serviceAgent:{

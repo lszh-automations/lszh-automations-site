@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Make-HTTP-/WIF-Machbarkeit mit verbundenem Konto geprüft, IAM weiterhin NO-GO
+
+**Read-only tatsächlicher Make-Stand:** `eu1.make.com`, Organisation `LZSH AUTOMATIONS` (7700421), Team `1728770`, Make Pro. Verifiziert via `environment_get` und `organization_get`. Das bestehende Offertenbeleg-Szenario `7940220` bleibt `inactive`, die Claim-/Mail-Gates (Module 2 und 8) sind hart `0=1`; 0 unvollständige Ausführungen. Google-Docs-, Drive-, Gmail- und Airtable-Verbindungen werden von Make als `ok` gemeldet. Keine eigenen Make-Custom-Apps gelistet.
+
+**Make-HTTP-App:** Die aus der tatsächlich verbundenen Make-App abgerufene aktuelle HTTP-Dokumentation bestätigt HTTPS und Credentials mit **Basic Auth, API Key oder OAuth 2.0**, die in Make-Keychains/Connections statt in Roh-Headern gepflegt werden sollen. **Nicht bestätigt:** dass diese Make-Organisation einen gültigen externen OIDC-Subject-Token für Google Workload Identity Federation bereitstellt oder den Google STS→IAM `generateIdToken`-Ablauf automatisch sicher durchführt. Zwei Make-`app_find`-Suchläufe brachten themenfremde Treffer; kein hypothetisches HTTP-Modul installiert oder konfiguriert.
+
+**Entscheidung:** `OAuth 2.0` ≠ `WIF geeignet`. **Kein Cloud IAM, Invoker, WIF-Pool, Service-Account-Key oder neues Make-Modul anlegen.** Schlüsselloses WIF bleibt theoretisch bevorzugt, aber ein verifizierbarer IdP- und kurzlebiger Audience-ID-Token-Pfad fehlt. Alternativ wäre ein eigener streng authentifizierter externer Gateway/Google-internes Queue-/Agent-System gesondert sicherheitstechnisch zu entwickeln; keineswegs ein ungeschützter anonymer Cloud-Run-Webhook. Zusätzlich erfordert ein internes `ingress=internal`-Cloud-Run-Ziel einen vermittelnden, berechtigten Netzwerkpfad aus Make.
+
+**Nächster technischer Prüfpunkt:** Authentisierungsweg *und* konkreten Dienst-Invoker/Ingress zunächst im Plan nachweisen: Make-Berechtigung für externes OIDC-Subject-Token (ohne Tokendaten zu loggen), federierter Principal, eingrenzbarer Audience- und Firestore-Datenbankscope, Anwendungs-replay-safe Auth, explizit gesicherter Rollen-/Netz-/Rollbackplan. Bis dahin G3/G5/G6 echte Integration NO-GO. Detailliert: `docs/LSZH_MAKE_CALLER_AUTH_ARCHITEKTUR_20261018.md`. Keine externen Aktionen, keine produktiven Verträge, Kundenmails, Cloud-/Make-Deployments; PR #5 Draft.
+
+---
+
 ## 18.10.2026 – G3 synthetische Make-Aufruferidentität, kryptografische Offline-Prüfung PASS
 
 **Auftrag `Vamos`:** Für die künftige interne Authentisierung zwischen Make und dem Reservierungsdienst wurde ein rein **offline** nutzbarer Signatur-/Identitätsprüfpfad implementiert. Live-Ressourcen, IAM, Dienstkonten, Credentials und Make-Szenarien wurden **nicht verändert**. Aktuelles Make-Offertenbeleg-Szenario `7940220` bleibt inactive und die Claim-/Mail-Filter auf `0=1`.

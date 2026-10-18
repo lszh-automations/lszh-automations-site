@@ -1,5 +1,18 @@
 # LSZH Automations – MVP-Fokus und nächster Pilot
 
+## 18.10.2026 – Geschäfts-Drive: Projektbedingungen als PDF und Google Doc vorhanden
+
+**Die bisherige PDF-Upload-Sperre ist behoben, kein Workaround oder neues Szenario notwendig.** Die bereits im geschäftlichen Drive abgelegte Kundenfassung in Endkontrolle ist nun im Ordner `Projektbedingungen` in zwei Formaten vorhanden und durch erneutes Drive-Ordnerlisting bestätigt:
+
+- [PDF: Projektbedingungen v1.0 RC1 – Endkontrolle, NICHT VERSENDEN](https://drive.google.com/file/d/1jCCNkO_ZQSx70juwCmAK5bEHl3CToXiw/view), ID `1jCCNkO_ZQSx70juwCmAK5bEHl3CToXiw`.
+- [Google Doc: Bearbeitbare Projektbedingungen – Endkontrolle](https://docs.google.com/document/d/1gXc0H0d9KnV0mYFI35W7GmA03L38IUuNtvjwkfXntTI/edit), ID `1gXc0H0d9KnV0mYFI35W7GmA03L38IUuNtvjwkfXntTI`.
+
+Beide Dateien gehören zum Geschäftskonto `lars@lszh-automations.ch`, nicht zum privaten Account. **Noch nicht im Online-Kundenprozess eingebunden; keine Make-/Airtable-/Live-Änderung.** Die bestehende PDF-Kundenfassung ist redaktionell gegenüber dem ursprünglichen RC1-Freigabeentwurf bereinigt, daher muss ihre genaue endgültige Textfassung vor Kundenversand nochmals kontrolliert werden. Die geschäftliche Akzeptanz der Vertragsregeln bleibt gültig und wird nicht erneut abgefragt.
+
+**Nächster konkreter Prozessschritt:** Die sechsseitige Original-AVV v0.9 RC1 liegt als DOCX in der ChatGPT-Dateibibliothek vor. Ihre Anlagen A–C enthalten echte projektbezogene Pflichtfelder. **Keine pauschale AVV ohne Kunden-/Projektangaben veröffentlichen.** Einmalige Pilot-AVV mit genau einem synthetischen Auftrag als vollständige PDF-Fixture vorbereiten, später bei echtem Kunden dessen konkreten Auftrag, Systeme, Daten/Empfänger, Regionen, TOM und Subprozessor-Genehmigungen eintragen. Danach bereits vorhandenen Online-Annahmeprozess für `AVV=Ja/Nein` mit echten endgültigen PDF-Datei-IDs verbinden, ohne zusätzliche Make-Szenarien oder G3-Ausbau.
+
+---
+
 ## 18.10.2026 – Kundenfassung der Projektbedingungen im Geschäfts-Drive vorbereitet
 
 Der Betreiber hat die Geschäftsbedingungen intern bereits angenommen. Im verbundenen **geschäftlichen** Google Drive wurde ein neues Google Doc im vorhandenen Ordner `Projektbedingungen` erstellt: [LSZH Projektbedingungen v1.0 RC1 – Endkontrolle, NICHT VERSENDEN](https://docs.google.com/document/d/1gXc0H0d9KnV0mYFI35W7GmA03L38IUuNtvjwkfXntTI). Quelle war die vollständige 4-seitige Originalfassung der ChatGPT-Dateibibliothek; 16/16 Abschnitte im Google-Docs-Readback und exportiertem 5-seitigem A4-PDF geprüft. Alte RC1-Entwurfs-Kopf-/Fusszeilen, der alte Freigabehinweis und die ausdrücklichen Formulierungen «Regelvorschlag», «noch zu prüfender Vertragsvorschlag» wurden entfernt, **ohne Care-/Abnahme-/Haftungsparameter materiell zu ändern**. Dies ist eine **neue redaktionell bearbeitete Version** und darf trotz interner geschäftlicher Zustimmung nicht automatisch als rechtlich final und versandbereit ausgegeben werden.

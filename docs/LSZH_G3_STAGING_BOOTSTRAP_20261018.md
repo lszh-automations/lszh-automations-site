@@ -57,3 +57,23 @@ Es werden **kein** Make-OAuth-Client, **kein** Make-Publisher-Grant, **keine** F
 - https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/describe
 - https://docs.cloud.google.com/pubsub/docs/authenticate-push-subscriptions
 - https://docs.cloud.google.com/run/docs/securing/ingress
+
+## Ergänzung 18.10.2026 – Kandidatenimage und zusätzliche IAM-Sperre
+
+Der reproduzierbare synthetische Docker-Kandidatenbuild ist im Draft vorbereitet.
+`cloud-run/g3-review-staging/base-image.candidate.json` sperrt den im
+ersten GitHub-Job gelesenen Node-Basis-SHA über Läufe hinweg; der erste
+und der nachfolgende Job bestätigten identische OCI-Manifeste. Das
+nicht veröffentlichte OCI-Image hat **keinen Artifact-Registry-Digest**.
+Evidenz, Grenzen und aktueller CI-Stand:
+`docs/LSZH_G3_CANARY_IMAGE_BUILD_20261018.md`.
+
+Bootstrap-`--apply` hat vor einer eventuellen Subscription jetzt
+eine weitere fail-closed Stufe: Receiver-Readback lehnt auch vorhandene
+fremde private Invoker und explizit abgeschaltete IAM-Prüfung ab.
+Nach dem einzig vorgesehenen dienstbezogenen
+`roles/run.invoker`-Grant prüft ein **zweites** Policy-Readback,
+dass exakt und unbedingt ausschliesslich das G3-Push-SA den Invoker
+besitzt. Fehler => `PARTIAL_APPLY_HALTED`, keine Subscription.
+Das ist **keine** vollständige Effective-IAM-Prüfung. Keine Änderung
+in Google Cloud ausgeführt; alle bestehenden NO-GO-Bedingungen gelten.

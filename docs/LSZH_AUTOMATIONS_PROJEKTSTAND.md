@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Drive-Metadaten 4/4 MATCH; Cloud Run HTTP 503 bleibt offen
+
+**Betreiber-Livenachweis:** Nach Korrektur des fehlenden X-Goog-User-Project-Headers hat der geschäftliche, rein lesende Drive-v3-Metadatenprüfer für alle vier synthetischen PDFs ausdrücklich PROVIDER_SHA256_MATCH sowie einen abschliessenden PASS gemeldet. Die von Google Drive gelieferten SHA-256-Metadaten stimmen mit den unabhängig ermittelten Hashes der vollständigen gespeicherten PDFs überein.
+
+**Abgrenzung:** Die erfolgreichen Checks liefen mit der Geschäftskonto-Benutzeridentität, nicht mit dem temporären Cloud-Run-Dienstkonto. Dessen IAM-geschützter Read-only-Endpunkt hatte zuletzt HTTP 503 geliefert. Die interne Fehlerphase wird im bestehenden Handler absichtlich nicht an den Client geliefert und nicht geloggt. Weiterhin ungeklärt: dienstkontoseitige Drive-OAuth-Scopes, direkter Zugriffsstatus, Owner-/Folder-Listing-Sichtbarkeit und konkreter Drive-API-Fehler. Nicht erneut deployen, keine IAM-/Drive-Rechte erweitern und nicht die Hash- oder Inhaltssperrenprüfung lockern.
+
+**Nächster Schritt:** Vorhandene Cloud-Run-Logs der exakten temporären Revision 00003-j2p ausschliesslich lesen. Falls keine ausreichenden Fehlersignale existieren, nur gezielte Fehlereingrenzung mit festen Phasencodes für einen später ausdrücklich freigegebenen isolierten temporären Test entwerfen. Keine Benutzertokens oder privaten Datei-IDs in öffentlichen Logs oder GitHub aufnehmen.
+
+---
+
+
 ## 18.10.2026 – Drive-Metadaten-Diagnose mit HTTP 403; fehlender Quota-Project-Header korrigiert
 
 **Echte Cloud-Shell-Ausgabe:** Der erste reine Geschäftsbenutzer-Drive-Metadatenaufruf aus `scripts/offer-business-drive-provider-sha-diagnose.py` lieferte `NO-GO: Google Drive metadata HTTP 403` und brach **vor einer inhaltlichen SHA-256-Aussage** ab. Diese Antwort beweist weder einen fehlenden Hash noch veränderte PDFs noch den Grund für das separate Cloud-Run-HTTP-503.

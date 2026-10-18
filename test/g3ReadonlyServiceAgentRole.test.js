@@ -28,7 +28,7 @@ function fixture(overrides={}){
       }]:[{
         role:'roles/pubsub.serviceAgent',
         members:['serviceAccount:service-'+NUM+
-          '@gcp-sa-pubsub.iam.gserviceaccount.com'
+          '@gcp-sa-pubsub.iam.gserviceaccount.com']
       }]
     },
     'iam service-accounts list':[]

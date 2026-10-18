@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Feste Drive-Diagnosephasen: CI vollständig PASS, nur --check als nächster Schritt
+
+**Bestand:** Der bisherige Cloud-Run-HTTP-503-Befund hat in Cloud Logging **nur** `ERROR / 503` mit leerem `TEXT_PAYLOAD` (00:11:18Z) geliefert. Ein eigenständiger Geschäftsbenutzer-Drive-Test hat anschliessend für **alle vier** Test-PDFs `PROVIDER_SHA256_MATCH` bestätigt; die Berechtigung/Fehlerphase **unter der temporären Cloud-Run-Identität** bleibt offen.
+
+**Vorbereiteter Diagnose-Fix im Feature-Branch, nicht deployed:**
+- `temporaryDriveProbe.mjs` ermittelt einen streng enumerierten Fehlschritt `FOLDER_API` / `FOLDER_VALIDATE` / `LIST_API` / `LIST_VALIDATE` / `PDF_YES_API` / `PDF_YES_INTEGRITY` / `PDF_NO_API` / `PDF_NO_INTEGRITY`. `index.mjs` protokolliert ausschliesslich bei zusätzlich eingeschaltetem `LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED=true` den festen Fehlercode `LSZH_TEMP_DRIVE_DIAG:...` (einschliesslich möglichem `TOKEN`). Keine rohen Google-Ausnahmen, Account-Tokens, Drive-Datei-IDs, PDF-Bytes oder Datei-Hashes in Log-/API-Antworten; nach aussen weiterhin HTTP 503 `not_available`.
+- `scripts/offer-temp-drive-phase-release.sh` fixiert die tatsächlich bestehende **temporäre** Revision `00003-j2p`, das bekannte Image, die alte interne Preflight-Revision, isolierte Dienstidentität, geschäftlichen PDF-Test-Unterordner sowie dessen exakt vier Dateien und bereits vorhandene Reader-Berechtigung. Die read-only PDF-Ordnerprüfung ist **nicht mehr** an die frühere `00002`-Revision gekoppelt: Die neue Release-Vorprüfung lädt nur die **reinen Google-Drive-GET-Validierungsfunktionen** des ursprünglichen Grant-Skripts und überprüft die aktuelle Revision eigenständig. **Keinerlei neue Drive- oder IAM-Freigabe, Firestore-Änderung oder Produktionsdeployment.**
+- Neue Tests mit expliziten Fehlerwerten für Ordner/Dateiliste/PDF-Prüfungen und gefälschten Geheimnissen, plus Deployment-/IAM-Sicherheitsgates. **GitHub Actions [39083531527](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39083531527) vollständig SUCCESS:** Funktionstests, Chromium, Firestore-Emulator und Docker-Build bestanden.
+
+**Nächster Betreiberauftrag:** Den Release-Vorabtest mit `--check` gegen den geschäftlichen synthetischen Ordner auf Cloud Shell ausführen. **NICHT sofort `--apply` oder den bisherigen Probe-Smoke erneut starten**. Nach erfolgreichem Vorabtest kann eine ausdrücklich gewählte isolierte temporäre Phasendiagnose-Revision deployed werden; erst dann liefert ein neuer einmaliger Live-Probe einen sicher verwertbaren festen Logcode. Der bisherige Dienst `lszh-offer-browser-staging-00003-j2p` und der ursprüngliche Produktions-/Preflight-Dienst bleiben derzeit unverändert.
+
+---
+
+
 ## 18.10.2026 – Cloud-Logging-503 ohne Fehlertext; Phasendiagnose vorbereitet (noch NICHT deployed)
 
 **Echte Cloud-Shell-Logausgabe:** Für temporären Cloud-Run-Dienst `lszh-offer-browser-staging`, Revision `lszh-offer-browser-staging-00003-j2p`, zeigte der Nutzer **2026-10-18T00:11:18.366020Z**, `SEVERITY=ERROR`, `HTTP STATUS=503`, `TEXT_PAYLOAD` **leer**. Der letzte Test bestätigte zuvor die statische Vorschau (HTTP 200) und die alte Originaldienst-Preflight-Sicherheit. Das Log enthält **keinen beweiskräftigen Grund** für den Dienstkonto-Drive-Ausfall. NICHT als Beweis für unzureichende Cloud-IAM-/Drive-Berechtigungen deuten.

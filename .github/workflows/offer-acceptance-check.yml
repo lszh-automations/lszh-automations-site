@@ -27,6 +27,8 @@ on:
       - 'test/offerReceiptUploadContract.test.js'
       - 'test/offerReceiptProcessingLock.test.js'
       - 'test/offerReceiptMakeReservationContract.test.js'
+      - 'test/offerSyntheticSourceIndex.test.js'
+      - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
@@ -111,6 +113,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
           node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
+          node --check cloud-run/offer-portal-staging/syntheticSourceIndex.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -134,6 +137,8 @@ jobs:
           node --check test/offerReceiptUploadContract.test.js
           node --check test/offerReceiptProcessingLock.test.js
           node --check test/offerReceiptMakeReservationContract.test.js
+          node --check test/offerSyntheticSourceIndex.test.js
+          node --check test/offerSyntheticSourceIndex.emulator.test.js
           node --check test/offerReceiptProcessingLock.emulator.test.js
           node --check test/offerPortalDocuments.test.js
           node --check test/offerPortalHttp.test.js
@@ -203,7 +208,7 @@ jobs:
             --only firestore \
             --project demo-lszh-automations \
             --config cloud-run/offer-portal-staging/firebase.emulator.json \
-            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js test/offerReceiptProcessingLock.emulator.test.js"
+            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js test/offerReceiptProcessingLock.emulator.test.js test/offerSyntheticSourceIndex.emulator.test.js"
 
   browser-synthetic:
     name: Synthetic customer journey in real Chromium (offline only)

@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Cloud-Logging-503 ohne Fehlertext; Phasendiagnose vorbereitet (noch NICHT deployed)
+
+**Echte Cloud-Shell-Logausgabe:** Für temporären Cloud-Run-Dienst `lszh-offer-browser-staging`, Revision `lszh-offer-browser-staging-00003-j2p`, zeigte der Nutzer **2026-10-18T00:11:18.366020Z**, `SEVERITY=ERROR`, `HTTP STATUS=503`, `TEXT_PAYLOAD` **leer**. Der letzte Test bestätigte zuvor die statische Vorschau (HTTP 200) und die alte Originaldienst-Preflight-Sicherheit. Das Log enthält **keinen beweiskräftigen Grund** für den Dienstkonto-Drive-Ausfall. NICHT als Beweis für unzureichende Cloud-IAM-/Drive-Berechtigungen deuten.
+
+**Nur im Entwicklungsbranch umgesetzt, nicht auf GCP deployed:**
+- `temporaryDriveProbe.mjs`: Opt-in-Callback `onDiagnostic` meldet beim **ersten** Fehlschlag genau eine der festen Kategorien `FOLDER_API`, `FOLDER_VALIDATE`, `LIST_API`, `LIST_VALIDATE`, `PDF_YES_API`, `PDF_YES_INTEGRITY`, `PDF_NO_API`, `PDF_NO_INTEGRITY`; kein Provider-Fehlertext und keine Dateinamen, -IDs, Hashes oder Zugriffstokens. Die PDF-Prüfung mit `sha256Checksum`, aktiver `contentRestrictions.readOnly`-Sperre, direktem Parent und vollständig berechnetem SHA bleibt **unverändert**; fail-closed.
+- `index.mjs`: Neues *ausdrücklich zusätzlich erforderliches* Flag `LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED=true` aktiviert nur für den bestehenden temporären Drive-Probe-Test die Logging-Zeile `LSZH_TEMP_DRIVE_DIAG:<konstante Phase>`; bei Token-Fehler allein `LSZH_TEMP_DRIVE_DIAG:TOKEN`. Der HTTP-503-Body bleibt immer derselbe `{"error":"not_available"}`; keine Rohdaten/Stacks in Logs. Wird das Diagnoseflag ohne den isolierten Drive-Test gesetzt, lehnt die Konfiguration Start/Anfrage geschlossen ab.
+- Negative Offline-Tests in `test/temporaryDriveProbe.test.js` prüfen unberechtigte Opt-ins, falsche Owner/Parents, zusätzliche Dateien, veränderte Hashes/Bytes und geworfene Provider-Fehler inklusive gefälschtem Secret – es wird **nur der erste feste Phasencode** berichtet.
+- `scripts/offer-temp-drive-phase-release.sh --check|--apply FOLDER_ID` ist separat und gegen die **tatsächlich live bestehende** Revision `00003-j2p`, das dazugehörige Image, das **gleiche** Dienstkonto, dieselbe namentliche IAM-Invoker-Bindung und den synthetischen Geschäftstestordner gepinnt. `--check` ist ausschliesslich read-only. `--apply` baut/deployed erst nach Guard-Checks eine neue Revision ausschliesslich des temporären Testdienstes. Das echte `lszh-offer-portal-staging` und dessen Traffic/Ingress/IAM bleiben unverändert, Firestore/Make/Airtable/E-Mails und Vertragsabschluss bleiben weiterhin OFF.
+- Die CI-Schutzprüfung verbietet IAM-Ausweitungen, ungeschützte Run-Deployments und Veröffentlichung von Zugriffs-/Dateidaten.
+
+**Nächster Betreiber-Schritt:** Zuerst den schreibfreien `--check`-Befehl ausführen, danach einen ausdrücklich kontrollierten `--apply`-Test an der temporären Revision. Erst nach neuem Build/Deployment und genau **einem** IAM-geschützten GET `/_lszh/synthetic-drive-check` darf ein eingegrenzter Logphasen-Code aus Cloud Logging gelesen werden. Die Produktionsreife ist dadurch nicht erklärt; der reale E2E-Drive-Probe-Status bleibt **NO-GO**, bis vier synthetische PDFs direkt aus Cloud Run erfolgreich bestätigt sind.
+
+---
+
+
 ## 18.10.2026 – Drive-Metadaten 4/4 MATCH; Cloud Run HTTP 503 bleibt offen
 
 **Betreiber-Livenachweis:** Nach Korrektur des fehlenden X-Goog-User-Project-Headers hat der geschäftliche, rein lesende Drive-v3-Metadatenprüfer für alle vier synthetischen PDFs ausdrücklich PROVIDER_SHA256_MATCH sowie einen abschliessenden PASS gemeldet. Die von Google Drive gelieferten SHA-256-Metadaten stimmen mit den unabhängig ermittelten Hashes der vollständigen gespeicherten PDFs überein.

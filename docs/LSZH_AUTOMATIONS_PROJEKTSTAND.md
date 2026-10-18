@@ -6,11 +6,13 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Ziel:** Einen vollständigen Offertenprozess für einen KMU fertigstellen: Offerte → private PDFs → getrennte Online-Zustimmungen → Annahmenachweis → Airtable → Make-Beleg und Bestätigung. Beide Varianten AVV Ja/Nein müssen funktionieren.
 
-**Letztes abgeschlossenes Ergebnis:** Einmalige synthetische Annahme der bestehenden Offerte `TEST_CLOUD_E2E_20261018_NO_CONTRACT` (AVV Nein) über Revision `lszh-offer-browser-staging-00008-json` erfolgreich. Betreiber führte `offer-browser-synthetic-accept-once.py --accept-once` aus Commit `7f9cafabb3b5e365e6b9926c4b7fb60baa444709` aus. HTTP-Annahme bestätigt, `airtable_sync_status=synced`. Unabhängiger Readback bestätigt Firestore-Annahme, Person, Zustimmungen und Dokumenthashes sowie übereinstimmenden Airtable-Status, Person, Zeitpunkt und PDF-Referenzen. Damit ist **Cloud Run → Firestore → Airtable live bestanden**. Zuvor bestanden private Vorschau und beide PDF-Downloads samt SHA-256. Kein Make-Lauf, keine E-Mail, kein echter Vertrag. Beim Deployment blieben Originalportal und 100 % Demo-Traffic erhalten.
+**Letztes abgeschlossenes Ergebnis:** Cloud Run → Firestore → Airtable → Make-Beleg für die synthetische Offerte `TEST_CLOUD_E2E_20261018_NO_CONTRACT` (AVV Nein) live bestanden. Nach erfolgreicher einmaliger Portal-Annahme und unabhängigem Firestore-/Airtable-Readback lief Make-Szenario `7940220` am 19.10.2026 um 01:08 Zürich erfolgreich: Execution `6f4a6b7254454e9688a7dd2fa98d8437`, 13 Module, keine Modulfehler. Aktivierung startete den Lauf automatisch; zusätzlicher Run-Aufruf wurde wegen laufender Ausführung abgewiesen, kein zweiter Lauf gestartet. Szenario anschliessend wieder deaktiviert. Gmail und Versanddatums-Modul wurden nicht ausgeführt.
 
-**Nächste Arbeit:** Make-Szenario `7940220` ist für genau den bereits angenommenen Testrecord vorbereitet und weiter **inaktiv**. Verbindungen live geprüft: alle OK. Filter begrenzt auf Record-ID, Testoffertennummer, synthetische E-Mail, Version und beide exakten PDF-IDs/Hashes; maximal ein Treffer. Dokument und PDF landen im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`, mit TEST_ONLY-Kennzeichnung. Claim prüft Quell-PDF-Hashes und direkten Parent; für synthetische Quelldateien wird kein Schreibschutz verlangt. Beleg-ID wird erst nach Prüfung des archivierten Belegs gespeichert; Bearbeitungsflag danach zurückgesetzt. Gmail und Versanddatums-Modul deaktiviert, Mailfilter weiterhin `0=1`. Konfiguration gespeichert und zurückgelesen, noch kein Beleglauf. Vor einmaliger temporärer Aktivierung die ausdrücklich vorbehaltene Aktivierungsfreigabe einholen; danach Lauf prüfen und Szenario wieder deaktivieren. Bestehender 15-Minuten-Zeitplan ist wegen Inaktivität aus. Ausgangskonfiguration: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json). Cloud-Annahme nicht wiederholen.
+**Belegnachweis:** [TEST_ONLY-PDF im Geschäfts-Drive](https://drive.google.com/file/d/1Cdf0_5_80zB867lDP4AooNn1IKiB5Hzv/view), direkt im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`. PDF-Text unabhängig gelesen: Testkennzeichnung, Offertennummer, Person, E-Mail, Annahmezeit `2026-10-18T23:03:30.355Z`, Version und beide Quell-PDF-Hashes stimmen. Airtable unabhängig gelesen: Status Angenommen und exakt diese Beleg-ID; kein Versandzeitpunkt, Bearbeitungsflag leer/false. Make-Detailein-/ausgaben waren über das Plugin nicht verfügbar; Nachweis deshalb durch Laufstruktur plus direkte Drive-/Airtable-Abfrage. Keine visuelle PDF-Layoutprüfung durchgeführt.
 
-**Konkreter offener Nachweis:** Beleg-PDF aus dieser Cloud-Annahme, Bestätigungsweg und vollständiger AVV-Ja-Durchlauf. Testrevisionen und temporäre Secret-Rechte sind noch nicht bereinigt; dafür bestehenden Cleanup-Abschnitt beachten.
+**Nächste Arbeit:** Vollständige AVV-Ja-Variante mit vorhandenen synthetischen PDFs und bestehendem Szenario `7965223` vorbereiten und nachweisen. AVV-Nein-Annahme und Beleg nicht wiederholen. Bestätigungsweg bleibt offen; echte Kundenmails und Verträge wurden nicht ausgeführt.
+
+**Konkreter offener Nachweis:** Vollständiger AVV-Ja-Durchlauf, Bestätigungsweg und endgültige Kundenunterlagen. Temporäre Cloud-Testrevisionen/Secret-Rechte noch bereinigen. Ausgangskonfiguration von Make: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json).
 
 **Nicht wiederholen:** Erfolgreiche Testannahme, Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 
@@ -35,7 +37,7 @@ Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https
 | Drive-Dokumente | Echter Portal-Download von Offerte und Bedingungen samt SHA-256-Prüfung live bestanden (AVV Nein); frühere temporäre Leseprobe 4/4 | Vollständiger AVV-Ja-Durchlauf noch offen |
 | Firestore | Echte Cloud-Annahme inklusive Person, Zustimmungen und Dokumenthashes unabhängig zurückgelesen | Vollständiger AVV-Ja-Durchlauf noch offen |
 | Airtable | Automatischer Callback der echten Cloud-Annahme erfolgreich; Status, Person, Zeitpunkt und PDF-Referenzen stimmen mit Firestore überein | Nachfolgender Make-Beleg und Bestätigungsweg noch offen |
-| Make-Beleg | Bestehende Ja/Nein-Szenarien, Beleg-Handoff und korrigierte AVV-Belegvorlage vorhanden | Durchgängige Belegerstellung aus der neuen Cloud-Testannahme und Bestätigungsweg fehlen |
+| Make-Beleg | AVV-Nein-Beleg aus echter synthetischer Cloud-Annahme erzeugt, im Geschäfts-Drive archiviert und in Airtable gespeichert; Inhalt unabhängig geprüft | AVV-Ja-Beleg und Bestätigungsweg noch offen |
 | Kundenunterlagen | Projektbedingungen als PDF/Google Doc und synthetische AVV samt Anlagen im Geschäfts-Drive vorhanden | Endkontroll-/TEST_ONLY-Dateien sind keine final freigegebenen Kundenverträge |
 | Secure Transfer | Dummy-Schlüssel funktional getestet | Keine Produktivfreigabe für reale Kundensecrets; kein zusätzlicher MVP-Pflichtschritt bei OAuth |
 | G3-Infrastruktur | Umfangreiche Offline-/CI-Nachweise im Repository | Zurückgestellt; keine G3-Release-/Deploymentfreigabe |
@@ -59,23 +61,23 @@ Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `
 
 ## Bestehende Make-Strecken
 
-Szenario `7940220` am 19.10.2026 live geprüft und vorbereitet; übrige Angaben zuletzt vom 18.10.2026:
+Szenario `7940220` am 19.10.2026 live erfolgreich ausgeführt und wieder deaktiviert; übrige Angaben zuletzt vom 18.10.2026:
 
 | Aufgabe | Szenario-ID | Stand |
 | --- | --- | --- |
 | Offerten-PDF, Archiv, Versand | `7835460` | Inaktiv; Trigger/Gmail gesperrt, Gmail zusätzlich deaktiviert |
 | Annahmelink ohne AVV | `7940261` | Inaktiv; Token-/Mailpfad gesperrt |
-| Annahmebeleg ohne AVV | `7940220` | Am 19.10. für exakt einen synthetischen Record vorbereitet; inaktiv; Mail und Versanddatums-Modul deaktiviert, Mail zusätzlich `0=1` |
+| Annahmebeleg ohne AVV | `7940220` | Synthetischer Beleglauf am 19.10. erfolgreich; wieder inaktiv; Mail und Versanddatums-Modul deaktiviert |
 | Annahmelink mit AVV | `7965215` | Inaktiv; Token-/Mailpfad gesperrt |
 | Annahmebeleg mit AVV | `7965223` | Inaktiv; Claim/Gmail mit `0=1` gesperrt |
 
 ## Nächste Schritte und Grenzen
 
 1. **Privater Cloud-Test bestanden (AVV Nein):** Bereitstellung, Leseweg, einmalige Annahme und unabhängiger Firestore-/Airtable-Readback erfolgreich. Nicht wiederholen. Temporäre Testrevisionen und Secret-Rechte noch kontrolliert bereinigen; bestehenden Traffic erhalten.
-2. **Belegstrecke vervollständigen:** Bestehende Make-Module mit dem synthetischen Ergebnis verbinden und realen Testbeleg prüfen. Fehlende Freigaben für konkrete externe Aktionen erst am ausführbaren Schritt klären. AVV Ja ebenfalls vollständig nachweisen. Vor Annahme 2/3 Vertrags-PDFs, danach 3/4 Dokumente inklusive Beleg.
+2. **Belegstrecke vervollständigen:** AVV-Nein-Testbeleg erfolgreich. AVV Ja ebenfalls vollständig nachweisen und Bestätigungsweg fertigstellen. Vor Annahme 2/3 Vertrags-PDFs, danach 3/4 Dokumente inklusive Beleg.
 3. **Begrenzten Kundenpilot vorbereiten:** Endgültige PDF-Versionen, konkrete AVV-Anlagen, Kundenroute, Verantwortlichkeiten und Betrieb klären; danach ausdrückliches Pilot-GO.
 
-Bereits genehmigt: einmaliger privater Cloud-Run-Staging-Test mit synthetischen Daten; separater synthetischer Airtable-Schreibtest (erledigt). **Nicht genehmigt:** echte Kundenverträge/-mails, externe Kundeneinladungen, allgemeine Make-Aktivierung, Main-Merge oder öffentlicher Go-Live. Bestehende Freigaben nicht nochmals pauschal einholen; den Umfang nicht ausweiten.
+Bereits genehmigt und erledigt: einmaliger privater Cloud-Run-Staging-Test mit synthetischen Daten, separater synthetischer Airtable-Schreibtest und einmaliger Make-Belegtest. Am 19.10. stellte der Betreiber klar, dass für die weitere synthetische Entwicklungs- und Testarbeit keine wiederholten Freigabefragen nötig sind; im bestehenden Aufgabenrahmen selbstständig weiterarbeiten. **Nicht genehmigt:** echte Kundenverträge/-mails, externe Kundeneinladungen, allgemeine Make-Aktivierung, Main-Merge oder öffentlicher Go-Live. Bestehende Freigaben nicht nochmals pauschal einholen; den Umfang nicht ausweiten.
 
 Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale und kosmetische Website-Erweiterungen folgen nach dem nutzbaren MVP. Sanitär-OS-Monteurportal wird nicht weiterverfolgt.
 

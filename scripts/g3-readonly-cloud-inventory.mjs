@@ -101,7 +101,7 @@ export function inventory(read=readGcloud){
      !/^\d+$/.test(String(project.projectNumber||'')))
     return {...base,result:'STOP_PROJECT_NOT_VERIFIED'};
   const number=String(project.projectNumber);
-  const enabled=getList(read,['services','list','--enabled',...COMMON]);
+  const enabled=getList(read,['services','list',...COMMON,'--enabled']);
   if(!enabled)return {...base,result:'STOP_ENABLED_API_INVENTORY_UNAVAILABLE',
     projectIdentityVerified:true};
   const enabledNames=enabled.map(x=>x.config?.name||x.name).filter(Boolean);
@@ -115,7 +115,7 @@ export function inventory(read=readGcloud){
   const accounts=getList(read,['iam','service-accounts','list',...COMMON]);
   const projectIam=getObject(read,['projects','get-iam-policy',PROJECT,...COMMON]);
   const run=enabledNames.includes('run.googleapis.com')?
-    getList(read,['run','services','list','--region='+REGION,...COMMON]):null;
+    getList(read,['run','services','list',...COMMON,'--region='+REGION]):null;
   const proposedTopic=seen(topics,TOPIC);
   const proposedSubscription=seen(subs,SUB);
   const proposedPush=accounts===null?'UNKNOWN':
@@ -141,8 +141,8 @@ export function inventory(read=readGcloud){
     bindingReport(getObject(read,['iam','service-accounts','get-iam-policy',RUNTIME_SA,...COMMON])):
     bindingReport(null);
   const runIam=proposedRun==='PRESENT'?
-    bindingReport(getObject(read,['run','services','get-iam-policy',SERVICE,
-      '--region='+REGION,...COMMON])):bindingReport(null);
+    bindingReport(getObject(read,['run','services','get-iam-policy',SERVICE,...COMMON,
+      '--region='+REGION])):bindingReport(null);
   return {...base,result:'READ_ONLY_INVENTORY_WITH_UNVERIFIED_EFFECTIVE_IAM',
     projectIdentityVerified:true,
     apiStatus,

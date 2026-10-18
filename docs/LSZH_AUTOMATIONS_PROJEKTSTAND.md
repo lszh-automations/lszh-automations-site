@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – G3-Base-Update-Scout und echte Signaturverifikation vorbereitet (NO_GO)
+
+**Ausschliesslich bestehender Draft PR #5, keine Cloud-Aktionen.** Der offizielle Docker-Hub-Tag `node:22-alpine` wurde über den bestehenden CI-Runner read-only auf den aktuellen Multiarch-Digest geprüft. [G3 CI 39150513439](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39150513439) meldet **`NO_NEW_UPSTREAM_DIGEST`**: aktuell ist im ursprünglichen Base-Tag noch keine andere SHA-Version zu finden. Die im Draft fixierte Basisimage-Referenz und der einzelne mittlere Trivy-zlib-Befund `CVE-2026-85091` bleiben deshalb **unverändert**. Der neue harmlose Scout `scripts/g3-upstream-base-review.mjs` prüft künftig einen ggf. anderen, digest-gepinnten Kandidaten und weist auch bei nicht gemeldeter CVE auf die weiterhin benötigte unabhängige Paketversionsprüfung hin; er darf keine Base-Lock-Datei überschreiben oder einen Go-Entscheid fällen.
+
+**Signaturprüfung vorbereitet, nicht ausgeführt:** Öffentliches GitHub-Repository unterstützt grundsätzlich die Sigstore-basierten GitHub Artifact Attestations. Die vorhandene PR-CI bleibt mit GitHub-`contents: read` ohne `id-token: write` oder `attestations: write`. Der neue read-only-Verifikator `scripts/g3-signed-artifact-verify-readonly.sh` prüft erst nach einer **zukünftig separat genehmigten, tatsächlich signierten** OCI-Tar-Ausgabe mit `gh attestation verify` deren realen SHA-256-Dateiinhalt, konkreten geschützten `main`-Source-Commit, Signer-Workflow-Pfad und signer-Commit. Der vorgeschriebene spätere Release-Signaturworkflow `g3-canary-release-attest.yml` existiert **noch nicht**, kein PR-Merge-Commit wird hier signiert. Das Skript liefert auch bei gültigem Attest **keine** Cloud-Freigabe. Lokale Tests decken nur Fail-closed-Ablehnungen ab, bis ein reales freigegebenes signiertes Artefakt existiert.
+
+**Unveränderte harten Gates:** G3 `--apply` bleibt ohne Ausnahme blockiert (`BLOCKED_G3_SIGNED_PROVENANCE_GATE`). Kein Registry-Upload, kein Cloud-Run-Deployment, neue Dienstkonten, IAM, API-/OAuth-Aktivierung, Make-Edit oder Kundenaktionen. Make `7940220` bleibt inaktiv mit beiden `0=1`-Filtern; ausschliesslich geschäftliches Google Drive. Weitere Details in `docs/LSZH_G3_PROVENANCE_AND_REGISTRY_GATES_20261018.md`.
+
+---
+
 ## 18.10.2026 – G3-Quell-/OCI-/Scanner-Evidenz korreliert, Bootstrap-Apply technisch gesperrt
 
 **Fortsetzung auf bestehendem Draft PR #5; keine tatsächliche Cloud-, IAM-, Make- oder Drive-Schreiboperation.** Die neue Entwicklung korrigiert eine wesentliche Prüflücke: Der OCI-SHA-verifizierte Export und der separat `--load` gebaute Smoke-Testcontainer hatten unterschiedliche Config-Digests aufgrund verschiedener Exportmodi. Ein zunächst hart fehlschlagender Direktvergleich wurde **nicht** weggelassen, sondern durch die in der Trivy-Dokumentation ausdrücklich unterstützte Untersuchung des **aus dem SHA-geprüften OCI-Tar extrahierten Layouts** ersetzt. Der isolierte Container-Smoke bleibt ein separater Funktionstest und wird nicht als identisch mit dem Scan-Image ausgegeben.

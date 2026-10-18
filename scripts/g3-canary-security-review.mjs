@@ -33,7 +33,7 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
        !/^docker\.io\/library\/node:22-alpine@sha256:[a-f0-9]{64}$/.test(inputs.inputs?.candidateBaseImage)||
        inputs.inputs.platform!=='linux/amd64')
       throw Error('source_and_base_not_verified');
-    if(!validSha(sourceCommit)||!/^\d{6,20}$/.test(String(runId)))
+    if(!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(sourceCommit)||!/^\d{6,20}$/.test(String(runId)))
       throw Error('missing_ci_build_identity');
     const severities=['UNKNOWN','LOW','MEDIUM','HIGH','CRITICAL'];
     const counts=Object.fromEntries(severities.map(x=>[x,0]));

@@ -73,7 +73,9 @@ test('only the synthetic offer demo GET is public on private staging', {timeout:
  assert.equal(response.headers.get('set-cookie'),null,'public demo must never grant privileged session');
  const html=await response.text();
  assert.match(html,/OFF-TEST-AVV-20261018-001/,'fake offer only');
- assert.match(html,/if\(!current\|\|demo\|\|current\.test_only===true\|\|!form\.reportValidity\(\)\)return/,'demo and synthetic previews have no submit path');
+ assert.match(html,/if\(!current\|\|demo\|\|/,'public demo can never submit');
+ assert.match(html,/const testAccept=o\.test_accept_enabled===true && !demo/,
+   'staging synthetic acceptance requires an explicit backend capability');
 
  // ChatGPT and other link providers append tracking to opened URLs.
  // These parameters must not turn a harmless public demo into HTTP 503.

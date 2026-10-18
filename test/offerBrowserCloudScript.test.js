@@ -13,7 +13,6 @@ const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
 const driveProbeRelease='scripts/offer-temp-drive-probe-release.sh';
 const drivePhaseRelease='scripts/offer-temp-drive-phase-release.sh';
 const driveShapeRelease='scripts/offer-temp-drive-folder-shape-release.sh';
-const driveShapeRelease='scripts/offer-temp-drive-folder-shape-release.sh';
 const driveProbeSmoke='scripts/offer-temp-drive-probe-smoke.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
@@ -233,15 +232,4 @@ test('folder-shape diagnostic release pinned to 00004 is strictly temporary and 
  assert.doesNotMatch(src,/lszh-offer-browser-staging-00003-j2p/);
  assert.doesNotMatch(src,/<<'PY' \|\|/);
  assert.doesNotMatch(src,/gcloud firestore|gcloud run jobs/);
-});
-
-test('folder shape diagnostic is pinned to previous protected temp revision',()=>{
- const src=fs.readFileSync(driveShapeRelease,'utf8');
- assert.match(src,/00004-nk6/);
- assert.match(src,/708dd11a1e37/);
- assert.match(src,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
- assert.match(src,/if ! python3/);
- assert.match(src,/--no-allow-unauthenticated --invoker-iam-check/);
- assert.doesNotMatch(src,/gcloud projects add-iam-policy-binding/);
- assert.doesNotMatch(src,/gcloud run deploy "lszh-offer-portal-staging"/);
 });

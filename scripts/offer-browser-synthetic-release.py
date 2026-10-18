@@ -45,7 +45,10 @@ def command(args, timeout=90):
 def cloud(args, timeout=90):
     raw = command(["gcloud", *args, "--project=" + PROJECT,
                    "--account=" + USER, "--format=json", "--quiet"], timeout)
-    return json.loads(raw) if raw.strip() else {}
+    try:
+        return json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        raise RuntimeError("invalid_json_from_gcloud: " + " ".join(args[:3])) from None
 
 
 def service(name):
@@ -129,13 +132,23 @@ def package(stage):
         "git", "show", SOURCE + ":cloud-run/Dockerfile.offer-portal-staging"]))
 
 
-def apply():
-    with tempfile.TemporaryDirectory(prefix="lszh-offer-e2e-") as d:
-        stage = Path(d)
-        package(stage)
-        print("BUILD: isolated tested portal package; this may take several minutes.", flush=True)
-        build = cloud(["builds", "submit", str(stage), "--region=" + REGION,
-                       "--tag=" + IMAGE], timeout=1800)
+def apply(resume_build=None):
+    if resume_build is not None:
+        require(re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", resume_build),
+                "invalid_build_id")
+        print("RESUME: reading existing build " + resume_build, flush=True)
+        build = cloud(["builds", "describe", resume_build, "--region=" + REGION])
+        require(build.get("id") == resume_build and build.get("projectId") == PROJECT,
+                "resume_build_identity_mismatch")
+        require(build.get("images") == [IMAGE], "resume_build_requested_image_mismatch")
+    else:
+        with tempfile.TemporaryDirectory(prefix="lszh-offer-e2e-") as d:
+            stage = Path(d)
+            package(stage)
+            print("BUILD: isolated tested portal package; this may take several minutes.", flush=True)
+            # Build-log streaming can pollute stdout despite --format=json.
+            build = cloud(["builds", "submit", str(stage), "--region=" + REGION,
+                           "--tag=" + IMAGE, "--suppress-logs"], timeout=1800)
     require(build.get("status") == "SUCCESS", "cloud_build_not_success")
     images = [i for i in build.get("results", {}).get("images", []) if i.get("name") == IMAGE]
     require(len(images) == 1 and re.fullmatch(r"sha256:[0-9a-f]{64}", images[0].get("digest", "")),
@@ -204,11 +217,12 @@ if __name__ == "__main__":
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--resume-build", metavar="BUILD_ID")
     args = parser.parse_args()
     try:
         check()
-        if args.apply:
-            apply()
+        if args.apply or args.resume_build:
+            apply(args.resume_build)
     except (RuntimeError, OSError, ValueError, KeyError, subprocess.TimeoutExpired) as error:
         print("STOP:", error)
         print("Do not rerun --apply blindly. Existing build/grants/revision may need inspection.")

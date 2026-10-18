@@ -1,5 +1,19 @@
 # LSZH Automations – G3 Authentifizierung Make → interner Reservierungsdienst
 
+## 18.10.2026 – LIVE-MAKE-READONLY-FEASIBILITY-CHECK
+
+**Verifizierter Kontokontext:** Make-Zone `eu1.make.com`, Organisation `LZSH AUTOMATIONS` (ID 7700421), Team `1728770`, Plan `Pro`. Gelesen mit `environment_get`/`organization_get` ohne Schreiboperationen. Existierendes Beleg-Szenario `7940220` weiter `inactive`, Claim-Gate in Modul 2 und Mail-Gate in Modul 8 weiterhin `0=1`; Make-Verbindungen zu Airtable, Drive, Docs und Gmail sind als `ok` gemeldet. In der Organisation sind keine Make-Custom-Apps verzeichnet; das ist kein Nachweis über externe Identitätsanbieter.
+
+**Make-HTTP-App (direkt über verbundene Make-Dokumentation geprüft):** Make HTTP Version 4 bietet HTTPS-Anfragen sowie Credential-Typen **Basic Auth, API key und OAuth 2.0**; die Dokumentation rät, geheime Werte ausschliesslich im Credential-Feld statt in frei belegten Headers/Query-Feldern zu halten. Diese Feature-Angabe **beweist weder OIDC-Subject-Token-Ausstellung noch Workload-Identity-Federation zu Google Cloud IAM**. Zwei freie App-Finder-Abfragen lieferten themenfremde Apps; deshalb keine hypothetischen HTTP-Modulnamen oder vorgetäuschte angebundene Verbindung übernommen.
+
+**Entscheidung:** Aktuell **kein belastbarer Make→Google-Cloud-WIF-Tokenpfad vorhanden**. Aus `OAuth 2.0 verfügbar` darf **nicht** `OIDC für STS verfügbar` gefolgert werden. Die bevorzugte schlüssellose WIF-Architektur bleibt **Kandidat, keine freigegebene Integration**. Keine statischen SA-Key-Dateien oder TokenCreator-Dauerrollen in Make ablegen. Keine `allUsers`-Invoker-Bindung oder eigenmächtige Netzwerköffnung.
+
+**Minimaler nächster Nachweis ohne Kundenwirkung:** (a) Aufrufer-IdP inklusive Format, Signatur, Issuer, Audience, Subject, Ausgabe-/Ablaufzeit der tatsächlich von Make beschaffbaren Belege bestimmen – **keine echten Tokens in Chat/Logs ausgeben**; (b) falls WIF: genaue Provider-/Pool-/Principalset-Konfiguration und kurzlebige `generateIdToken`-Kette in isoliertem, separat genehmigtem synthetischen Staging beweisen; (c) ansonsten Gateway-Lösung mit Google-internem Agent/Queue, der IAM-Tokens **selbst unter einem passenden Dienstkonto** erzeugt, als eigenständiges, zu überprüfendes Design. Die Authentisierung externer Make-Ereignisse an einem solchen Gateway muss separat vor Missbrauch/Replay geschützt werden. Der bestehende `ingress=internal`-Dienst ist nicht unmittelbar aus Make erreichbar.
+
+**Keine Ausführung:** Hier wurden nur Make-Metadaten und App-Dokumentation gelesen sowie GitHub-Dokumentation verändert. Kein Cloud-Run-Dienst erstellt, kein IAM geändert, keine Make-Module aktiviert, keine Tokens generiert, keine Google-Drive-/Firestore-Writes.
+
+---
+
 Stand 18.10.2026. **Nur Architektur, synthetischer Code und lokaler Firestore-Emulator. Keine neue Cloud-Ressource, IAM-Bindung, aktive Make-Route oder Produktionsfreigabe.**
 
 ## Ausgangslage

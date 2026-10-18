@@ -1,5 +1,7 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+> **AKTUELLE ARBEITSPRIORITÄT – 18.10.2026:** Kundenfähiges Offerten-MVP fertigstellen und einen einzigen Pilot vorbereiten. Keine neue G3-Sicherheitsentwicklung ohne konkreten Pilot-Blocker. Der kurze, verbindliche Arbeitsplan steht in [LSZH_MVP_FOKUS_20261018.md](LSZH_MVP_FOKUS_20261018.md). Die untenstehenden G3-Abschnitte sind historische technische Nachweise, nicht die aktuelle To-do-Reihenfolge. Bestehende Betriebs-/Produktivsperren gelten weiter.
+
 ## 18.10.2026 – G3-zlib-Fix erstmals signaturgeprüft, lokal reproduzierbar und CVE-frei getestet
 
 **VAMOS-Phase abgeschlossen im bestehenden Draft PR #5, keine Cloud-/Make-/Drive-Änderung.** Ausgangspunkt war `zlib 1.3.2-r0` mit dem einzelnen MEDIUM `CVE-2026-85091` im ursprünglichen synthetischen G3-Canary. Der separat fixierte Alpine-3.24-`x86_64`-Patch `zlib-1.3.2-r1.apk` mit `SHA-256:63aeea03c15a2f9018f81805cfc8aa926bdf5cd68921f22149c2fbb5d0ee9f47` wurde mit dem nativen `apk --no-network verify` und den im SHA-fixierten offiziellen Node-Basisimage vorhandenen Alpine-Trustkeys **kryptografisch signaturverifiziert** ([G3 CI 39152416789](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39152416789)). Die vollständige externe unabhängige Prüfung der Schlüssel-Fingerprints bleibt offen.

@@ -8,6 +8,8 @@ on:
       - 'scripts/g3-canary-oci-verify.py'
       - 'scripts/g3-canary-security-review.mjs'
       - 'scripts/g3-canary-provenance-correlation.mjs'
+      - 'scripts/g3-upstream-base-review.mjs'
+      - 'test/g3UpstreamBaseReview.test.js'
       - 'test/g3CanaryProvenance.test.js'
       - 'test/g3CanarySecurityReview.test.js'
       - 'test/g3CanaryImageBuild.test.js'
@@ -39,7 +41,8 @@ jobs:
           python3 -m py_compile scripts/g3-canary-oci-verify.py
           node --check scripts/g3-canary-security-review.mjs
           node --check scripts/g3-canary-provenance-correlation.mjs
-          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js
+          node --check scripts/g3-upstream-base-review.mjs
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js test/g3UpstreamBaseReview.test.js
           node scripts/g3-canary-image-plan.mjs
 
       - name: Verify fixed candidate base SHA lock (Docker Hub read-only)
@@ -209,6 +212,24 @@ jobs:
             | tee g3-provenance-correlation.json
           echo "PASS: self-reported checkout-correlated hashes (NOT signed provenance, NO_GO)"
 
+      - name: Read-only upstream Node Alpine base digest and zlib advisory
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_sha="$(docker buildx imagetools inspect docker.io/library/node:22-alpine --format '{{.Manifest.Digest}}')"
+          [[ "$candidate_sha" =~ ^sha256:[a-f0-9]{64}$ ]]
+          candidate="docker.io/library/node:22-alpine@$candidate_sha"
+          if [ "$candidate" != "$G3_CANARY_BASE_IMAGE" ]; then
+            # Advisory only. No Docker pull/run, build, lock change, signing or push.
+            trivy image --quiet --scanners vuln --vuln-type os,library \
+              --platform linux/amd64 --format json \
+              --output g3-upstream-base-trivy.json "$candidate"
+          fi
+          node scripts/g3-upstream-base-review.mjs \
+            "$G3_CANARY_BASE_IMAGE" "$candidate" g3-upstream-base-trivy.json \
+            | tee g3-upstream-base-review.json
+          echo "NO_GO: candidate digest is information only, never promoted"
+
       - name: Upload small audit reports only (no container, no secrets)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -222,5 +243,7 @@ jobs:
             g3-sbom.cdx.json
             g3-security-review.json
             g3-provenance-correlation.json
+            g3-upstream-base-review.json
+            g3-upstream-base-trivy.json
           if-no-files-found: ignore
           retention-days: 7

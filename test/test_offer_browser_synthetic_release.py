@@ -20,11 +20,15 @@ class ReleaseTests(unittest.TestCase):
                     return {"metadata":{"annotations":{"run.googleapis.com/ingress":"internal"}},
                             "status":{"traffic":[{"revisionName":"lszh-offer-portal-staging-00004-qt7","percent":100}]}}
                 return {"metadata":{"annotations":{"run.googleapis.com/ingress":"all"}},
-                        "status":{"traffic":[{"revisionName":release.BASELINE,"percent":100}]},
+                        "status":{"traffic":[{"revisionName":release.BASELINE,"percent":100},
+                            {"tag":release.TAG,"revisionName":release.PREVIOUS,"url":release.ORIGIN}]},
                         "spec":{"template":{"spec":{"serviceAccountName":
-                            "lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com"}}}}
+                            release.SA,"containers":[{"image":release.PREVIOUS_IMAGE}]}}}}
             if args[:3] == ["run", "services", "get-iam-policy"]:
                 return {"bindings":[{"role":"roles/run.invoker","members":["user:"+release.USER]}]}
+            if args[:2] == ["secrets", "get-iam-policy"]:
+                return {"bindings":[{"role":"roles/secretmanager.secretAccessor",
+                    "members":["serviceAccount:"+release.SA]}]}
             if args[:3] == ["run", "revisions", "list"]:
                 return []
             if args[:3] == ["secrets", "versions", "describe"]:
@@ -47,7 +51,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0][:2], ["builds", "submit"])
 
-    def test_apply_keeps_no_traffic_and_two_secret_scoped_grants(self):
+    def test_fix_keeps_no_traffic_and_does_not_modify_iam(self):
         calls = []
         env = {}
         image = release.IMAGE.split(":")[0]+"@sha256:"+"a"*64
@@ -79,7 +83,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertNotIn("--allow-unauthenticated", deploy)
         self.assertEqual(env["LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID"],"recensIiczNGsoPeR")
         grants = [a for a in calls if a[:2] == ["secrets","add-iam-policy-binding"]]
-        self.assertEqual({a[2] for a in grants},set(release.SECRETS.values()))
+        self.assertEqual(grants, [])
         self.assertFalse(any(a[:2] == ["projects","add-iam-policy-binding"] for a in calls))
 
     def test_resume_reuses_successful_build_without_submit(self):

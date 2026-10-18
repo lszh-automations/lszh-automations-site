@@ -75,3 +75,17 @@ Die Tests werden im GitHub-Workflow parallel geprüft: normale synthetische Test
 ### Sicherheit vor Go-Live
 
 Firestore-Emulator-Tests sind keine Last-/Rechtsfreigabe. Der Portal-HTTP-Adapter enthält noch keinen WAF-/Rate-Limiting-Dienst oder vollständige Browseroberfläche. Firestore-Transaktion und Google-Drive-Prüfung können keine nachträgliche Veränderung von reversibel gesperrten Drive-Dateien verhindern; WORM/Beweissicherung und PDF-Zuordnung weiter lösen. Vor erster öffentlicher Kundenannahme eigene Identität, produktionsfähiges Hosting, eigenständige datenschutzrechtliche und juristische Prüfung, DNS und ausdrückliche Freigabe erforderlich.
+
+## Einmaliger synthetischer Cloud-Run-Annahmetest (18.10.2026)
+
+**Status: vorbereitet und offline getestet; NICHT deployed.** Keine neuen Dienste oder Make-Szenarien.
+
+- `LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED` bleibt standardmaessig aus. Nur `true` ermoeglicht eine synthetische Annahme; sonst HTTP 503.
+- `LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID` muss bei aktivem Test genau eine zuvor genehmigte neue synthetische `rec...`-ID benennen; jede andere Offerte bleibt blockiert.
+- `LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED=true` ist ebenfalls erforderlich. Den geschäftlichen `LSZH_AIRTABLE_ACCESS_TOKEN` nur als Runtime-Secret konfigurieren, nicht in Code, GitHub, Konsole oder Chat veroeffentlichen.
+- Der existierende Service `lszh-offer-portal-staging` und die benannte Firestore-Datenbank werden verwendet. Ohne separat freigegebene neue IAM-geschuetzte, no-traffic Testrevision darf nichts deployed oder aktiviert werden.
+- Testdatensatz muss neu sein, nicht der bereits am 18.10. manuell auf Angenommen gesetzte Testdatensatz. Er braucht fiktiven Empfaenger `example.invalid`, TEST/NO_CONTRACT-Kennzeichnung, gueltigen Token-Hash und tatsaechlich verifizierte synthetische Geschaefts-Drive-PDFs.
+- Nach Freigabe genau einen privaten Preview/Document/Accept-Test gegen die Testrevision ausfuehren und Firestore sowie Airtable per separatem GET pruefen. Make, Mail und Beleg-Upload bleiben aus.
+- Bei `airtable_sync_status=manual_review_required` nur lesend abgleichen, niemals einen zweiten Annahmeversuch als automatischen Retry ausloesen. Anschliessend Testoption deaktivieren, Testrevision ohne Traffic halten und synthetische Daten eindeutig markieren.
+
+Offline CI mit Ein-Record-Filter: https://github.com/lszh-automations/lszh-automations-site/actions/runs/39166293848 (**SUCCESS**). Dieser Nachweis ist kein echter Cloud-Run-Airtable-End-to-End-Test.

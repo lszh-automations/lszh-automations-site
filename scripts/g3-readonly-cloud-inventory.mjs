@@ -26,7 +26,7 @@ const allowedCommandHeads=new Set([
 ]);
 const safeError=()=>({ok:false,error:'UNAVAILABLE_OR_PERMISSION_DENIED'});
 const isObject=v=>v && typeof v==='object'&&!Array.isArray(v);
-function validateCommand(args){
+export function validateCommand(args){
   if(!Array.isArray(args)||!args.every(s=>typeof s==='string')||
     args.some(s=>/--(impersonate|access-token-file|log-http|billing-project|trace-token)/.test(s)))
     throw Error('unapproved_gcloud_argument');

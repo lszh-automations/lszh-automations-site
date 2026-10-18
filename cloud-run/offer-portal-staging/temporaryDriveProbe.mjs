@@ -20,7 +20,11 @@ const NAMES=Object.freeze([
 // NOT relax folder authorization/parent/ownership checks. In a shared-child
 // folder, the temporary reader may not see parent/owner metadata; we must
 // observe that separately before changing validation rules or access rights.
-export function classifySyntheticFolderMetadata(meta,folder){
+export function classifySyntheticFolderMetadata(meta,folder,{businessPrechecked=false}={}){
+ // Only this synthetic temporary probe may rely on an independently
+ // completed business-user GET-only preflight for owner/root evidence that
+ // Google's API hides from the narrow service account. Visible values must
+ // always match; null/empty/mismatched values are never bypassed.
  if(meta===null||typeof meta!=='object'||Array.isArray(meta))
    return 'FOLDER_STRUCTURE';
  if(meta.id!==folder)return 'FOLDER_ID';
@@ -28,13 +32,15 @@ export function classifySyntheticFolderMetadata(meta,folder){
  if(meta.mimeType!=='application/vnd.google-apps.folder')
    return 'FOLDER_MIME';
  if(meta.trashed===true)return 'FOLDER_TRASHED';
- if(!Object.prototype.hasOwnProperty.call(meta,'parents')||
-    meta.parents==null)return 'FOLDER_PARENT_HIDDEN';
- if(JSON.stringify(meta.parents)!==JSON.stringify([ROOT]))
+ if(!Object.prototype.hasOwnProperty.call(meta,'parents')){
+   if(!businessPrechecked)return 'FOLDER_PARENT_HIDDEN';
+ }else if(meta.parents==null)return 'FOLDER_PARENT_MISMATCH';
+ if(Object.prototype.hasOwnProperty.call(meta,'parents')&&
+    JSON.stringify(meta.parents)!==JSON.stringify([ROOT]))
    return 'FOLDER_PARENT_MISMATCH';
- if(!Object.prototype.hasOwnProperty.call(meta,'owners')||
-    meta.owners==null)return 'FOLDER_OWNER_HIDDEN';
- if(!Array.isArray(meta.owners)||meta.owners.length!==1||
+ if(!Object.prototype.hasOwnProperty.call(meta,'owners')){
+   if(!businessPrechecked)return 'FOLDER_OWNER_HIDDEN';
+ }else if(!Array.isArray(meta.owners)||meta.owners.length!==1||
     meta.owners[0]?.emailAddress!==OWNER)
    return 'FOLDER_OWNER_MISMATCH';
  return null;
@@ -44,6 +50,10 @@ export function temporaryDriveProbeConfig(env={},tempConfig={enabled:false}){
  if(env.LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED==='true' &&
     env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true')
    throw Error('temporary_drive_diagnostics_requires_probe');
+ if(env.LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT==='true' &&
+    (env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true' ||
+     env.LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED!=='true'))
+   throw Error('temporary_drive_business_preflight_gate_invalid');
  if(env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true')return {enabled:false};
  if(tempConfig.enabled!==true||env.LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED!=='true'||
     env.LSZH_PORTAL_STAGING_ENABLED!=='false')
@@ -53,7 +63,11 @@ export function temporaryDriveProbeConfig(env={},tempConfig={enabled:false}){
  if(!ID.test(folder)||folder===ROOT||hashes.length!==4||
     !hashes.every(x=>SHA.test(x))||new Set(hashes).size!==4)
    throw Error('temporary_drive_probe_inputs_invalid');
- return {enabled:true,folder,hashes};
+ return {enabled:true,folder,hashes,
+   // This is set solely by a guarded operator-run TEMP deployment; it
+   // delegates missing ancestor/owner metadata only to the business-user
+   // checks run BEFORE deployment. Never available to the full offer API.
+   businessPrechecked:env.LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT==='true'};
 }
 
 async function readJson(url,fetcher,token){
@@ -67,7 +81,8 @@ async function readJson(url,fetcher,token){
 }
 
 export async function verifySyntheticDriveReadOnly({
- folder,hashes,accessToken,fetcher=fetch,onDiagnostic}){
+ folder,hashes,accessToken,fetcher=fetch,onDiagnostic,
+ businessPrechecked=false}){
  // Strict, fixed codes only. Never pass provider messages, URLs or tokens.
  // This callback is ONLY invoked after a failed check.
  let alreadyReported=false;
@@ -87,7 +102,9 @@ export async function verifySyntheticDriveReadOnly({
  const meta=await stage('FOLDER_API',()=>readJson(DRIVE+encodeURIComponent(folder)+'?'+new URLSearchParams({
   fields:'id,name,mimeType,parents,owners(emailAddress),trashed',
   supportsAllDrives:'true'}),fetcher,accessToken));
- const folderError=classifySyntheticFolderMetadata(meta,folder);
+ const folderError=classifySyntheticFolderMetadata(meta,folder,{
+   businessPrechecked:businessPrechecked===true
+ });
  if(folderError!==null){
    note(folderError);
    throw Error('probe_folder_invalid');

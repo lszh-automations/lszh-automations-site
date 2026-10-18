@@ -31,6 +31,13 @@ export function validateCommand(args){
   if(!Array.isArray(args)||!args.every(s=>typeof s==='string')||
     args.some(s=>/--(impersonate|access-token-file|log-http|billing-project|trace-token)/.test(s)))
     throw Error('unapproved_gcloud_argument');
+  // Google's documented predefined-role form omits --project. Allow only
+  // this precise immutable role description as an unscoped read. The caller
+  // independently verifies the project identity FIRST.
+  const predefinedUnscoped=['iam','roles','describe',
+    'roles/pubsub.serviceAgent','--format=json','--quiet'];
+  if(args.length===predefinedUnscoped.length &&
+     args.every((value,i)=>value===predefinedUnscoped[i]))return;
   const head=args.slice(0,args.indexOf('--project='+PROJECT)).join(' ');
   const legal=[...allowedCommandHeads].some(s=>head===s||
     (s==='projects describe'&&head==='projects describe '+PROJECT)||

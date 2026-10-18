@@ -10,7 +10,8 @@ synthetischen Pub/Sub-Nachricht gibt er HTTP 204 zurück. Es werden **keine** Of
 angenommen und **keine** Firestore-, Airtable-, Google-Drive-, Kunden- oder Mail-APIs benutzt.
 
 Wir prüfen zuerst den **Quellcode**, bauen ihn zweimal in GitHub Actions mit einem
-pro Job auf SHA-256 festgepinnten Node-Basisimage und vergleichen die OCI-Deskriptoren.
+in `base-image.candidate.json` auch **über verschiedene Läufe hinweg** auf SHA-256
+festgepinnten Node-Basisimage und vergleichen die OCI-Deskriptoren.
 Erst später könnte nach eigenständiger Genehmigung ein bestimmtes, gescanntes
 Image in die geschäftliche Artifact Registry hochgeladen und dessen Registry-Digest
 ausgelesen werden. Ein lokaler OCI-SHA ist **nicht** automatisch ein deploybarer
@@ -18,6 +19,10 @@ Artifact-Registry-Digest.
 
 ## Dateien und Ablauf
 
+- `cloud-run/g3-review-staging/base-image.candidate.json`: unveränderlich
+  im Draft festgehaltener Kandidaten-Basisdigest aus dem erfolgreichen
+  GitHub-Lauf 39146208943. Review ausdrücklich `UNREVIEWED`, `NO_GO`;
+  keine eigenständige Sicherheitsfreigabe.
 - `cloud-run/g3-review-staging/Dockerfile`: `ARG BASE_IMAGE`, `FROM ${BASE_IMAGE}`.
   Ohne explizit übergebenen festgepinnten Basisimage-Digest ist das Image
   nicht baubar. Nur `index.mjs` wird hineinkopiert, `USER node`,
@@ -33,8 +38,8 @@ Artifact-Registry-Digest.
   Kein Google-/Registry-Zugriff.
 - `.github/workflows/g3-canary-build-only.yml`: eigenes `contents: read`-Workflow,
   ohne GCP-Credentials, `id-token: write`, Docker-Login/Push, Service-Accounts
-  oder Deploy. Liest das aktuelle offizielle `node:22-alpine`-Manifest von Docker
-  Hub, sperrt dessen Digest für **den einzelnen Kandidatenlauf**, führt zwei
+  oder Deploy. Prüft den im Repository fixierten offiziellen Node-Basisdigest
+  durch einen **nur lesenden** Docker-Hub-Zugriff und führt zwei
   `--network none`-Docker-Builds mit `SOURCE_DATE_EPOCH=0`,
   ohne Provenance-/SBOM-Anhang und mit OCI-Timestamp-Normalisierung aus.
   Verifiziert SHA und die Reproduzierbarkeit. Baut separat einen lokalen
@@ -103,3 +108,33 @@ beschränkt. Keine Produktiv-Mail, kein Firestore-Schreibrecht, keine API-Aktivi
 
 **Make-Szenario 7940220** bleibt inaktiv, Modul 2 und 8 bleiben mit `0=1`
 gesperrt. **Nur Geschäftskonto/geschäftliches Drive**, nicht privat.
+
+## Tatsächlich belegter erster CI-Kandidatenlauf, 18.10.2026
+
+- GitHub Actions **39146208943**, Job `build-candidate`: **SUCCESS** für
+  Quellpolicy/Negativtests, zweimaligen OCI-Build, SHA-Prüfung, identische
+  OCI-Konfiguration/Manifest und den echten netzisolierten Containertest.
+- Beobachteter offizieller Node-Basisdigest:
+  `docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402`
+- Identischer Kandidaten-OCI-Manifest-Digest beider Builds:
+  `sha256:1ee2b30f6ba250e1f2ccc229edca2b3d0e60c1cbab196f8b3634fe182b2fd5dd`
+- Kandidaten-OCI-Konfigurations-Digest:
+  `sha256:8808ae284a415d79581dcd46caba2534b92d194e81f9c35e3008bab57e0f9da8`
+- **8 OCI-Blobs SHA-256-verifiziert.** Artifact Registry Image: **NOT_CREATED**.
+  Lauf beweist weder Schwachstellenfreiheit noch einen künftigen Registry-Digest.
+- Danach wurde genau dieser Base-Digest als **noch nicht security-reviewed**
+  Kandidat im Branch fixiert. Der nachfolgende Regressionslauf für die
+  neue Lock-Datei und die IAM-Readback-Härtung ist separat zu beurteilen.
+
+## Bootstrap-Verschärfung nach Review
+
+- Eine schon vor der erlaubten eigenen Invoker-Bindung vorhandene
+  `roles/run.invoker`-Policy am neuen Service führt jetzt zum Halt,
+  selbst wenn sie nicht anonym ist.
+- Eine explizite Deaktivierung des Cloud-Run-Invoker-IAM-Checks führt zum Halt.
+- Nach **einem** dienstspezifischen Invoker-Grant liest das Skript die Policy
+  erneut. Nur **genau eine**, unbedingte `roles/run.invoker`-Bindung
+  mit ausschliesslich `lszh-g3-push-stg@lszh-automations.iam.gserviceaccount.com`
+  erlaubt, die einzelne Subscription anzulegen.
+- Weder das Prüfen noch diese Codeänderung haben IAM oder Cloud verändert.
+  Geerbte Effective-IAM- und GCP-Deny/PAB-Gates bleiben ausdrücklich offen.

@@ -21,11 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, observed run 39146988139
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4, observed run 39146988139
         with:
           node-version: '22'
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Offline source-policy and deny tests (before Docker)
         run: |
@@ -124,7 +126,7 @@ jobs:
           '
 
       - name: Trivy local image vulnerability scan (no registry push or Cloud auth)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: 'lszh-g3-canary:offline-review'
@@ -139,7 +141,7 @@ jobs:
           version: 'v0.74.0'
 
       - name: CycloneDX SBOM of same local image (no publishing)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: 'lszh-g3-canary:offline-review'
@@ -162,7 +164,7 @@ jobs:
 
       - name: Upload small audit reports only (no container, no secrets)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: g3-image-candidate-offline-audit
           path: |

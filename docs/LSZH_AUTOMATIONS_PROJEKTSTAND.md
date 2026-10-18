@@ -1,5 +1,23 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporäre Drive-Reader-Freigabe LIVE bestätigt; Cloud-Run-Leseprobe vorbereitet
+
+**Live-Ergebnis vom Betreiber:**
+- `scripts/offer-temp-drive-folder-reader.py --apply` hat **SUCCESS** für genau **eine** neue `reader`-Freigabe auf dem isolierten Geschäfts-Unterordner `LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT` an `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com` zurückgemeldet. Keine Benachrichtigungsmail.
+- Die Drive-Verbindung `LSZHA` wurde danach erneut **nur lesend** gefragt: Ordner-Owner weiterhin Geschäftskonto `lars@lszh-automations.ch`, unmittelbar unter bestehendem Geschäftsstagingarchiv; die neue einzelne `reader`-Permission des temporären Dienstkontos ist **sichtbar vorhanden**. Bisherige `reader`-Permissions am Archivreader/Originalportal unverändert.
+- Das Skript meldete nach Freigabe erneut `PASS: preflight revision, ingress and service identity unchanged` und `PASS: original internal preflight and temporary static demo unchanged`. Kein neues Cloud-Run-Deployment, keine Firestore-/Mail- oder Vertragsaktion.
+
+**Entwicklungsfortschritt – noch NICHT LIVE deployt:**
+- Neues `cloud-run/offer-portal-staging/temporaryDriveProbe.mjs`: exakte, rein synthetische Test-Unterordner-ID und die vier **unabhängig nach Upload bestätigten vollen** SHA-256-Hashes ausschliesslich über temporäre Run-Konfiguration. Cloud-Run-Dienstkonto holt Google-Drive-`readonly`-Zugriffstoken ohne Schlüsseldatei; Ordner-Metadaten (Name, Geschäftsowner, direkter Parent), genau vier PDF-Dateinamen, MIME und Position werden überprüft. Unser unveränderter `verifyArchiveBundle` prüft für AVV Ja/Nein dieselben vier Dateien, Drive-`sha256Checksum`, `contentRestrictions.readOnly=true`, unmittelbare Elternordner sowie tatsächlich heruntergeladene vollständige PDF-Bytes. Keine Nutzung echter Kundendaten.
+- Ergänztes `temporaryBrowserDemo.mjs`: Optionaler IAM-geschützter **GET `/_lszh/synthetic-drive-check`**, dessen einzige erfolgreiche Antwort `PASS_SYNTHETIC_ARCHIVE_READ_ONLY / verifiedFiles=4` enthält. Keine Dateinamen, IDs, PDFs, Empfänger, Access-Tokens oder Hashes in HTTP-Antworten. Alle übrigen Offer-/PDF-/Accept-APIs bleiben HTTP 503, die vorhandene unverbindliche Demo bleibt gleich. Optionaler Check ist standardmässig AUS und nur bei `LSZH_PORTAL_STAGING_ENABLED=false` plus `LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true` und exakter temporärer Runtime-Identität einschaltbar.
+- `scripts/offer-temp-drive-probe-release.sh --check|--apply FOLDER_ID` kontrolliert vor Deploy die bisherige geschützte Originalrevision und temporäre Demo-Revision `00002-fkq`, namentliche IAM-Invoker-Rolle und das exakte Geschäfts-Unterverzeichnis mit **vier** fiktiven PDFs; keine IAM-Freigaben nötig. Erst `--apply` baut ein neues Container-Image und aktualisiert ausschliesslich den **bereits bestehenden** temporären Browser-Dienst. Keine Firestore-Rollen, keine Vertragsaktion, keine E-Mail.
+- Neue Offline-Regressionsfälle in `test/temporaryDriveProbe.test.js` und `test/offerBrowserCloudScript.test.js`: falscher Geschäftsowner oder Parent, zusätzliche PDFs, veränderte Bytes, entsperrte Dateien, ungültige Drive-SHA-Checks, nicht autorisierte POSTs und API-Pfade bleiben gesperrt; falsche Service-/Demo-Konfiguration schaltet nie den Probezugriff ein.
+
+**Weiterhin offen:** Zunächst vollständige CI-Abnahme, danach Operator-Entscheidung/Ausführung des neuen temporären Deployments. Der eigentliche Google-Cloud-Run→Google-Drive-Test ist **noch nicht** live durchgeführt. Firestore/Staging-Eintrag, Annahme, Belege und E-Mails bleiben gesondert ausstehend. Die privaten echten Drive-Datei-IDs wurden **nicht** im öffentlichen GitHub-Projekt abgelegt.
+
+---
+
+
 
 ## 18.10.2026 – Temporäres Dienstkonto: minimaler Geschäfts-Drive-Reader vorbereitet, noch NICHT erteilt
 

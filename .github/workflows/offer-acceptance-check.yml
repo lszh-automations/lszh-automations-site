@@ -34,6 +34,10 @@ on:
       - 'test/g3ReadonlyCloudInventory.test.js'
       - 'test/g3ReadonlyServiceAgentRole.test.js'
       - 'scripts/g3-readonly-service-agent-role.mjs'
+      - 'scripts/g3-staging-bootstrap.mjs'
+      - 'test/g3StagingBootstrap.test.js'
+      - 'test/g3CanaryReceiver.test.js'
+      - 'cloud-run/g3-review-staging/**'
       - 'scripts/g3-readonly-cloud-inventory.mjs'
       - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
@@ -126,6 +130,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/syntheticPubsubIamPreflight.mjs
           node --check scripts/g3-readonly-cloud-inventory.mjs
           node --check scripts/g3-readonly-service-agent-role.mjs
+          node --check scripts/g3-staging-bootstrap.mjs
+          node --check cloud-run/g3-review-staging/index.mjs
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
@@ -155,6 +161,8 @@ jobs:
           node --check test/offerSyntheticPubsubIamPreflight.test.js
           node --check test/g3ReadonlyCloudInventory.test.js
           node --check test/g3ReadonlyServiceAgentRole.test.js
+          node --check test/g3StagingBootstrap.test.js
+          node --check test/g3CanaryReceiver.test.js
           node --check test/offerSyntheticSourceIndex.emulator.test.js
           node --check test/offerReceiptProcessingLock.emulator.test.js
           node --check test/offerPortalDocuments.test.js

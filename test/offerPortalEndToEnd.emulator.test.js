@@ -70,7 +70,8 @@ function offerFor(token,mode,files){
     termsVersion:TERMS_VERSION,expiresAt:'2099-12-31T23:59:59.000Z',
     recipientEmail:'synthetic@example.invalid',
     offerNumber:'TEST_ONLY_E2E_'+randomBytes(7).toString('hex'),
-    details:{company:'LSZH Synthetic Test AG',onceCHF:20,monthlyCHF:5},
+    details:{company:'LSZH Synthetic Test AG',onceCHF:20,monthlyCHF:5,
+      ...(mode==='Ja'?{avvVersion:'TEST_ONLY_AVV_v1.0'}:{})},
     bundle:{
       avv_required:mode,quote:{id:files.quote.id,sha256:files.quote.sha256},
       terms:{id:files.terms.id,sha256:files.terms.sha256},
@@ -83,7 +84,7 @@ function agreement(token,mode,files){
     email:'synthetic@example.invalid',authorized:true,accept_quote:true,accept_terms:true,
     quote_sha256:files.quote.sha256,terms_sha256:files.terms.sha256,
     ...(mode==='Ja'?
-      {accept_avv:true,avv_sha256:files.avv.sha256}:
+      {accept_avv:true,avv_sha256:files.avv.sha256,avv_version:'TEST_ONLY_AVV_v1.0'}:
       {accept_avv:false})};
 }
 if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR ||
@@ -164,6 +165,11 @@ if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR ||
        });
        assert.equal(noAvv.status,400);
        assert.equal(noAvv.body.error,'avv_consent_required');
+       const omittedVersion=await post(base,'/api/offer/accept',{
+         ...agreementBody,avv_version:null
+       });
+       assert.equal(omittedVersion.status,409);
+       assert.equal(omittedVersion.body.error,'document_changed');
      }else{
        const unexpectedAvv=await post(base,'/api/offer/accept',{
          ...agreementBody,accept_avv:true

@@ -30,6 +30,7 @@ on:
       - 'scripts/offer-business-drive-provider-sha-diagnose.py'
       - 'scripts/offer-temp-drive-folder-reader.py'
       - 'scripts/offer-temp-drive-probe-release.sh'
+      - 'scripts/offer-temp-drive-phase-release.sh'
       - 'scripts/offer-temp-drive-probe-smoke.sh'
       - 'test/temporaryDriveProbe.test.js'
       - 'scripts/offer-browser-cloud-bootstrap.sh'
@@ -72,6 +73,7 @@ jobs:
           bash -n scripts/offer-browser-static-demo-release.sh
           bash -n scripts/offer-browser-static-demo-smoke.sh
           bash -n scripts/offer-temp-drive-probe-release.sh
+          bash -n scripts/offer-temp-drive-phase-release.sh
           bash -n scripts/offer-temp-drive-probe-smoke.sh
       - name: Syntax checks
         run: |

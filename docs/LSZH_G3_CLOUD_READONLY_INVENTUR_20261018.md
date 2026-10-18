@@ -1,7 +1,36 @@
 # LSZH Automations – G3 echte Google-Cloud-Bestandsinventur (NUR LESEN)
 
 **Datum:** 18.10.2026  
-**Status:** Skript bereitgestellt, **LIVE-CLOUD-INVENTUR NOCH NICHT AUSGEFÜHRT**. Kein Google-Cloud-Zugriff durch die in dieser Chat-Sitzung verfügbaren verbundenen Apps. Vorhandene Make-/GitHub-/Render-Connectoren sind kein Ersatz für Google-Cloud-IAM-/Pub/Sub-Lesezugriff. Keine Cloud-Ressource wurde verändert.
+**Status:** **Echte Live-Leseinventur erfolgreich ausgeführt** durch den Betreiber in der bereits authentifizierten **geschäftlichen Google Cloud Shell** am 18.10.2026. Prüfresultat: `READ_ONLY_INVENTORY_WITH_UNVERIFIED_EFFECTIVE_IAM`, `projectIdentityVerified=true`, `releaseStatus=NO_GO`. Kein Google-Cloud-Verwaltungskonnektor direkt aus diesem Chat; der Betreiber hat das geprüfte Repository-Skript ausgeführt und die redigierte JSON-Ausgabe hier übermittelt. Inventur read-only, keine Cloud-Ressourcen verändert.
+
+## Tatsächlich beobachtetes Inventarergebnis vom 18.10.2026
+
+**Belegquelle:** Die vom Betreiber aus der geschäftlichen Cloud Shell kopierte, redigierte JSON-Ausgabe des Skripts `scripts/g3-readonly-cloud-inventory.mjs`, nach Clone des Featurebranchs. Diese Werte sind **Live-Leseergebnisse**, keine Mock-Testwerte. Es gibt keine Roh-IAM-Policies, Credentials, Kundendaten oder Geheimnisse im Bericht.
+
+| Kontrollpunkt | Beobachtung | Aussagegrenze |
+| --- | --- | --- |
+| Projekt-/Identitätsprüfung | `lszh-automations`, `europe-west6`, `projectIdentityVerified=true` | Ausführungsprojekt stimmt überein |
+| `pubsub.googleapis.com` | **ENABLED** | Kein `services enable` erforderlich |
+| `run.googleapis.com` | **ENABLED** | G3-Receiver noch nicht vorhanden |
+| `iam.googleapis.com` | **ENABLED** | Effektive Gruppen/Deny/PAB-Rechte nicht automatisch geprüft |
+| `firestore.googleapis.com` | **ENABLED** | Kein Beleg für Datenbank- oder Laufzeitberechtigungen |
+| `serviceusage.googleapis.com` | **ENABLED** | Nur API-Aktivierungsstatus |
+| Pub/Sub-Topics insgesamt | **0** | `plannedTopic=ABSENT_IN_THIS_LIST` |
+| Pub/Sub-Subscriptions insgesamt | **0** | `plannedSubscription=ABSENT_IN_THIS_LIST` |
+| Service Accounts im Projekt | **8** | G3 Push-SA und Runtime-SA jeweils `ABSENT_IN_THIS_LIST` |
+| Cloud Run Services in `europe-west6` | **6** | G3-Receiver `ABSENT_IN_THIS_REGION_LIST` |
+| Pub/Sub Service Agent (Projekt-IAM) | **DIRECT_POLICY_BINDING_FOUND** für `roles/pubsub.serviceAgent` | **Nicht** gleichzusetzen mit geprüften `getOpenIdToken`-Effektrechten |
+| Service-Agent-Tokenausstellung | `NOT_EVALUATED` | **Keine** pauschale TokenCreator-Berechtigung vergeben |
+| Effektive IAM-/Gruppen-/Deny-/PAB-Rechte | `NOT_EVALUATED` | Direkte Ressourcen-IAM-Snapshots fehlen für noch nicht vorhandene G3-Ressourcen |
+| OIDC-Push und Ingress | `NOT_TESTED` bzw. `NOT_EVALUATED` | Private Pub/Sub→Cloud-Run-Zustellung nicht verifiziert |
+| Business-Make-Pub/Sub-OAuth | `NOT_CONFIGURED_AS_OF_PRIOR_READ` | Keine passende Verbindung beim vorangegangenen verbundenen Make-Read |
+| Native `messages[].data`-Kodierung | `NOT_VERIFIED` | REST-Base64 nicht ungeprüft in das native Make-Modul kopieren |
+
+**Bewertung:** Die APIs sind verfügbar und der Service Agent besitzt laut direktem Projekt-IAM einen Eintrag für seine Standardrolle. **Das erlaubt noch keinen synthetischen Publish-/Push-Test und keinen Live-Kundenprozess.** Topic, Subscription, dedizierte G3-Dienstkonten und privater G3-Receiver müssen als *neue* Ressourcen separat geplant und genehmigt werden. Vorher effektiv bereits vorhandene TokenMinting-Berechtigungen prüfen; keine Projekt- oder Organisations-TokenCreator-Rolle aus dem bloßen Rollenfund ableiten.
+
+**Nächste sicher zulässige Arbeiten:** Offline-Bereitstellungs-/Rückbauplan mit genauen Ressourcen, minimalen IAM-Rollen, Kostenlimit und Logging erstellen; Business-Publisher-Principal und Make-Modul-Data-Encoding **nur lesend** abklären. Erst dann **separate ausdrückliche Freigabe** für G3-synthetische Cloud-Ressourcen/OAuth-Connection einholen. Aus der hier durchgeführten Live-Leseinventur folgt kein automatisches GO.
+
+---
 
 ## Ziel und Grenzen
 

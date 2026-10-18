@@ -13,7 +13,7 @@ const TOKEN='Z'.repeat(48); // synthetic, never a production credential
 const ORIGIN='https://portal-staging.lszh-automations.ch'; // adapter's synthetic allowed origin
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 
-async function localFixture(mode,{previewOnly=false}={}){
+async function localFixture(mode,{previewOnly=false,syntheticAcceptance=false}={}){
  const [{createOfferPortal,offerFingerprint},{createOfferPortalHttp},
   {verifyArchiveBundle,readVerifiedArchivePdf}]=await Promise.all([
   import('../cloud-run/offer-portal-staging/portalCore.mjs'),
@@ -45,7 +45,7 @@ async function localFixture(mode,{previewOnly=false}={}){
   termsVersion:'TEST_v1.0_RC1',expiresAt:'2099-12-31T23:59:59Z',
   recipientEmail:'synthetic@example.invalid',
   offerNumber:'TEST_BROWSER_'+mode.toUpperCase()+'_NO_CONTRACT',
-  ...(previewOnly?{
+  ...((previewOnly||syntheticAcceptance)?{
     source:{kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
       tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'},
     downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}
@@ -75,7 +75,8 @@ async function localFixture(mode,{previewOnly=false}={}){
   readPdf:(bundle,which)=>readVerifiedArchivePdf(bundle,which,options),
   approvedVersion:'TEST_v1.0_RC1',
   proofSalt:'SYNTHETIC_BROWSER_ONLY_NOT_A_SECRET_12345',
-  syntheticOnly:previewOnly,
+  syntheticOnly:previewOnly||syntheticAcceptance,
+  ...(syntheticAcceptance?{syntheticAcceptRecordId:'rec12345678901234'}:{}),
   clock:()=>new Date('2026-10-17T12:00:00.000Z')
  });
  const handle=createOfferPortalHttp({portal,enabled:true,acceptEnabled:!previewOnly,
@@ -215,6 +216,32 @@ for(const mode of ['Ja','Nein']){
    }finally{await fixture.close();}
  });
 }
+
+
+test('single pinned synthetic Cloud pilot: browser can submit NO CONTRACT once',async({page})=>{
+ const fixture=await localFixture('Nein',{syntheticAcceptance:true});
+ try{
+  await page.goto(fixture.base+'/offerte-annehmen/?code='+TOKEN);
+  await expect(page.locator('#number')).toHaveText(fixture.offer.offerNumber);
+  await expect(page.locator('#acceptanceHeading')).toContainText('Synthetische Testannahme');
+  await expect(page.locator('#message')).toContainText('Kein Vertrag, keine E-Mail');
+  await expect(page.locator('#submit')).toBeEnabled();
+  await expect(page.locator('#submit')).toHaveText('Testannahme speichern – kein Vertrag');
+  await expect(page.locator('#avvSection')).toBeHidden();
+  await page.locator('#person').fill('Synthetische Testperson');
+  await page.locator('#email').fill('synthetic@example.invalid');
+  await page.locator('#authorized').check();
+  await page.locator('#quoteConsent').check();
+  await page.locator('#terms').check();
+  await page.locator('#submit').click();
+  await expect(page.locator('#completedTitle')).toContainText('kein Vertrag');
+  await expect(page.locator('#emailFollowup')).toBeHidden();
+  expect(fixture.stats).toEqual({preview:1,accept:1,pdf:0});
+  expect(fixture.offer.status).toBe('accepted');
+  expect(fixture.offer.revision).toBe(2);
+  expect(fixture.getEvidence().email).toBe('synthetic@example.invalid');
+ }finally{await fixture.close();}
+});
 
 test('TEMP CLOUD-ONLY STATIC DEMO: real Chromium displays existing demo and never sends an offer POST',async({page})=>{
  const {createTemporaryBrowserDemoHttp}=await import('../cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs');

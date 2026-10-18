@@ -256,7 +256,17 @@ jobs:
           node scripts/g3-zlib-candidate-integrity.mjs \
             "${RUNNER_TEMP}/g3-zlib-patched.apk" \
             | tee g3-zlib-patch-integrity.json
-          echo "NO_GO: hash-locked bytes only; publisher signature, install and final scan still absent."
+
+          # Verify the package signature using Alpine's trusted signing keys
+          # already shipped in the immutable SHA-pinned official Node base.
+          # No package installation, internet in container or key import.
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --mount "type=bind,src=${RUNNER_TEMP}/g3-zlib-patched.apk,dst=/tmp/zlib-1.3.2-r1.apk,readonly" \
+            --entrypoint /sbin/apk "$G3_CANARY_BASE_IMAGE" \
+            --no-network verify /tmp/zlib-1.3.2-r1.apk
+          echo "PASS: Alpine apk signature verified using pinned base trust store"
+          echo "NO_GO: not independently fingerprinted publisher keys; no install or release."
 
       - name: Upload small audit reports only (no container, no secrets)
         if: always()

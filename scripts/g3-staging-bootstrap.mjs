@@ -127,12 +127,30 @@ export function validatePrivateReceiver(config,policy){
   const allBindings=list(policy?.bindings);
   const publiclyInvokable=allBindings?.some(b=>b?.members?.some(
     x=>x==='allUsers'||x==='allAuthenticatedUsers'));
+  // Before the grant the new service must not have any pre-existing invoker.
+  // A prior non-public invoker is not acceptable just because it isn't allUsers.
+  const preExistingInvokers=allBindings?.some(b=>b?.role==='roles/run.invoker');
+  const iamBypassed=config?.metadata?.annotations?.['run.googleapis.com/invoker-iam-disabled']==='true'||
+    config?.invokerIamDisabled===true;
   return svcName===SERVICE&&
     (ingress==='internal'||v2Ingress==='INGRESS_TRAFFIC_INTERNAL_ONLY') &&
     templateServiceAccount===RUNTIME&&
     typeof url==='string'&&
     /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/.test(url)&&
-    allBindings!==null&&!publiclyInvokable?url:null;
+    allBindings!==null&&!publiclyInvokable&&!preExistingInvokers&&!iamBypassed?url:null;
+}
+// Invoker policy is read again after the single permitted service-level grant,
+// BEFORE creating a push subscription. This is not an effective-IAM proof.
+export function verifyScopedInvoker(policy){
+  const bindings=list(policy?.bindings);
+  if(!bindings)return false;
+  if(bindings.some(b=>b?.members?.some(
+    x=>x==='allUsers'||x==='allAuthenticatedUsers')))return false;
+  const invokers=bindings.filter(b=>b?.role==='roles/run.invoker');
+  return invokers.length===1&&!invokers[0].condition&&
+    Array.isArray(invokers[0].members)&&
+    invokers[0].members.length===1&&
+    invokers[0].members[0]===IAM_MEMBER;
 }
 
 export function formatPlan(preflight,role,image){
@@ -221,10 +239,17 @@ async function main(){
       process.exitCode=2;return;
     }
     const scoped=buildCommands(image,url);
-    for(const item of scoped.slice(4)){
-      gcloud(item.args);
-      console.log('G3_STEP_COMPLETED '+item.step);
+    gcloud(scoped[4].args);
+    console.log('G3_STEP_COMPLETED '+scoped[4].step);
+    const granted=lookup(['run','services','get-iam-policy',SERVICE,
+      '--region='+REGION,'--project='+PROJECT,'--format=json','--quiet']);
+    if(!granted.ok||!verifyScopedInvoker(granted.data)){
+      console.log(JSON.stringify(redactFail('verify_scoped_invoker')));
+      process.exitCode=2;return;
     }
+    // The only remaining write is the single OIDC push subscription.
+    gcloud(scoped[5].args);
+    console.log('G3_STEP_COMPLETED '+scoped[5].step);
     console.log(JSON.stringify({...status,
       status:'STAGING_CANARY_TRANSPORT_CREATED_NOT_PUBLISHED',
       followup:'Verify scoped IAM, OIDC and cost/rollback; no Make OAuth or publisher permission'}));

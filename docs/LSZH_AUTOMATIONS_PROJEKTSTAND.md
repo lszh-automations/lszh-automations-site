@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Nach abgeschlossener Drive-Stagingprobe: Live-Bestandsaufnahme Make, Airtable und GitHub
+
+**Arbeitsauftrag `Vamos`: read-only-Überprüfung tatsächlich verbundener Apps, keine Kundenänderungen.**
+
+- **GitHub:** Draft PR #5 `feature/optional-avv-acceptance-staging-20261014` weiterhin offen, ungemergt; letzte bestätigte Tests des Entwicklungsbranches [39116921917](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39116921917) SUCCESS. Echte temporäre Cloud-Run-Revision `00006-h5w` hatte am 18.10.2026 HTTP-200-Drive-Check mit vier synthetischen, integrierten PDFs und separate GET-/POST-/CSP-Blockierung erfolgreich bestanden.
+- **Make EU1**, Organisation `LZSH AUTOMATIONS` / Team `My Team` (`1728770`): die überprüften Offerten-Szenarien `7835460`, `7940261`, `7940220`, `7965215`, `7965223` sind **alle inaktiv** und weisen **0 unvollständige Ausführungen** auf. Bei `7835460` sind Gmail-Versandmodul und nachgelagerter Versandmarker zusätzlich deaktiviert sowie `0=1`-gesperrt. Bei `7940261` sind Token-Schritt und Gmail-Mail hart `0=1`; `7940220` blockiert Claim und Gmail-Mail mit `0=1`. Die AVV=Ja-Stagingvarianten `7965215` und `7965223` halten Token/Claim/Mail ausdrücklich `0=1` blockiert. Airtable-/Drive-/Docs-/Gmail-Verbindungen melden `ok`. Dies ist **keine** Prüfung der zugrundeliegenden Identität, Accountzuordnung, Mailzustellung oder Rechte auf Kundenorganisationen.
+- **Airtable:** `LSZH Automations – Website CRM`, Base `appzJiskpAdaR1HEv`, Tabelle `Offerten` (`tbljeIUoD7wwKuSmS`) existiert mit Datenfeldern für AVV `Ja/Nein`, `Online-Annahme rechtlich freigegeben`, PDF-Drive-IDs/-SHA256s, Zeitstempel, Annahmenachweis sowie Status; verknüpfte Tabellen `Kunden`, `Aufträge`, `Rechnungen`, `Kunden-Onboarding` sind ebenfalls vorhanden. **Nur Schema geprüft**, keine realen Datensätze gelesen oder verändert.
+- **Neue zentrale Freigabematrix:** [`docs/LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md`](LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md). Unterscheidet dokumentierte Live-Belege, technische Vorarbeiten und harte NO-GO-Freigaben G1–G7 mit konkreten Kriterien.
+- **Priorität:** An dieser Stelle **keine zusätzlichen Cloud-Diagnose-Deployments**; als Nächstes G1 (geerbte effektive IAM-Rechte/Portalarchitektur), G3 (atomare idempotente Annahme und Wiederanlauf) und G4 (AVV Ja/Nein End-to-End, ohne Kundenmail). Die RC1-Originalvertragsfreigabe (G2), echter Mailversand (G5) und produktiver Abschluss (G7) bleiben ausdrücklich zurückgestellt.
+- **Sicherheitsgrenze:** Keine Make-Aktivierung, kein Airtable-Write, kein Drive-Write, keine Mail/Einladung, kein Produktivvertrag, kein GitHub-Merge/Deployment. Der synthetische TEMP-Drive-Parent-Fallback darf nicht als allgemeine produktive Archivbefugnis gelten.
+
+---
+
+
 ## 18.10.2026 – TEMP Live-Sicherheitsprüfung komplett PASS, Cloud-Drive-E2E abgeschlossen
 
 **Vom Betreiber bestätigte Cloud-Shell-Ausgabe für den unveränderten temporären Dienst `lszh-offer-browser-staging`, Revision `lszh-offer-browser-staging-00006-h5w`:**

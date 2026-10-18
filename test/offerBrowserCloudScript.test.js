@@ -12,19 +12,20 @@ const demo='scripts/offer-browser-static-demo-release.sh';
 const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
 const driveProbeRelease='scripts/offer-temp-drive-probe-release.sh';
 const drivePhaseRelease='scripts/offer-temp-drive-phase-release.sh';
+const driveShapeRelease='scripts/offer-temp-drive-folder-shape-release.sh';
 const driveProbeSmoke='scripts/offer-temp-drive-probe-smoke.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveProbeSmoke]){
+ for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveShapeRelease,driveProbeSmoke]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveProbeSmoke)
+  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveShapeRelease && file!==driveProbeSmoke)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else if(file===smoke || file===staticSmoke || file===driveProbeSmoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
-  else if(file===driveProbeRelease || file===drivePhaseRelease)
+  else if(file===driveProbeRelease || file===drivePhaseRelease || file===driveShapeRelease)
    assert.match(s,/SA="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
@@ -211,4 +212,24 @@ test('phase release child-folder security gate MUST fail closed on Python errors
  const success=cp.spawnSync('bash',['-c',shell(0)],{encoding:'utf8',timeout:2000});
  assert.equal(success.status,0);
  assert.match(success.stdout,/UNSAFE_CHECK_PASS/);
+});
+
+test('folder-shape diagnostic release pinned to 00004 is strictly temporary and fail closed',()=>{
+ const src=fs.readFileSync(driveShapeRelease,'utf8');
+ assert.match(src,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(src,/lszh-offer-browser-staging-00004-nk6/);
+ assert.match(src,/lszh-offer-browser-staging:708dd11a1e37/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(src,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(src,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(src,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(src,/offer-cloud-readiness-readonly\.py/);
+ assert.match(src,/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" \\\n   --folder "\$FOLDER"; then\n fatal "Business Drive synthetic subfolder verification failed"\nfi/);
+ assert.match(src,/gcloud run deploy "\$TEMP"/);
+ assert.doesNotMatch(src,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(src,/gcloud (projects add-iam-policy-binding|run services add-iam-policy-binding)/);
+ assert.doesNotMatch(src,/lszh-offer-browser-staging-00003-j2p/);
+ assert.doesNotMatch(src,/<<'PY' \|\|/);
+ assert.doesNotMatch(src,/gcloud firestore|gcloud run jobs/);
 });

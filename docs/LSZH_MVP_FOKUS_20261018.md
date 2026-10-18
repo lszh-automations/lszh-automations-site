@@ -1,5 +1,17 @@
 # LSZH Automations – MVP-Fokus und nächster Pilot
 
+## Verbindliches MVP-Ziel – Kundin oder Kunde akzeptiert alles online
+
+**Korrektur durch Betreiber am 18.10.2026:** Die Geschäftsbedingungen sind **geschäftlich bereits akzeptiert**. Die drei ursprünglichen Verhandlungspunkte (Care, Abnahme, Haftungsregel) werden **nicht erneut zur unternehmerischen Abstimmung vorgelegt**. AVV RC1 bleibt die früher intern provisorisch akzeptierte Arbeitsversion; ihre Anlagen müssen pro Kunde ausgefüllt werden. Dies ist **keine behauptete anwaltliche Prüfung** und keine automatische Freigabe für reale Online-Vertragsabschlüsse.
+
+**Zielbild:** LSZH versendet einen persönlichen Offertenlink. Der Kunde liest oder lädt **Offerte + Projektbedingungen + (falls für diesen Auftrag erforderlich) AVV einschliesslich Anlagen** herunter. Im selben Browser bestätigt er **jede Unterlage ausdrücklich und separat** sowie seine Vertretungsbefugnis. Der Server protokolliert Identität, Zeitpunkt, zugehörige Dokumentversionen und SHA-256-Hashes; danach werden Status, Annahmebeleg und Bestätigungs-E-Mail über die **bereits vorhandenen** Airtable/Make-Abläufe verarbeitet. AVV=Nein: zwei PDFs. AVV=Ja: drei PDFs; Annahmebeleg später zusätzlich.
+
+**Heute konkret umgesetzt – vorhandene Architektur, keine neuen Szenarien:** `offerte-annehmen/index.html` hat separate verpflichtende Zustimmungen für Offerte, Projektbedingungen und gegebenenfalls AVV. Sowohl `offerAcceptance.js` (Website-Backend) als auch `cloud-run/offer-portal-staging/portalCore.mjs` verlangen diese Eingaben auch serverseitig und vermerken `quote_confirmed`, `terms_confirmed` und bei AVV `avv_confirmed`/AVV-Hash im Annahmenachweis. Browser-, HTTP-, Offline- und Emulator-Tests wurden an das Schema angepasst. Die Annahme bleibt bis zur separaten konkreten Live-Freigabe deaktiviert; kein E-Mail-Versand, kein Kundenvertrag, kein Cloud-Deployment.
+
+**Nur noch echte Go-Live-Abhängigkeiten:** (a) geschäftlich akzeptierte Fassungen als exakt benannte Kunden-PDFs ins **geschäftliche** Drive übernehmen; (b) formale rechtliche Prüfung und AVV-Anlagen je Kundenfall sowie verbindliche Dokumentversion klären, ohne die akzeptierten Geschäftsregeln erneut zu verhandeln; (c) einen kontrollierten End-to-End-Pilot und danach separate Autorisierung für echte Annahme und Versand. **G3/Pub/Sub/Canary ist nicht Voraussetzung für die erste benutzbare Online-Annahme.**
+
+---
+
 **18.10.2026 | Verbindliche Arbeitspriorität aus Betreiberfeedback:** Zielorientiert zum benutzbaren Kundenprozess. Keine zusätzlichen Sicherheits-Subsysteme ohne nachweisbaren Nutzen für den nächsten Pilot. Bestehende Datenschutz- und Produktivsperren bleiben erhalten.
 
 ## Das Produkt, das wir jetzt fertigstellen
@@ -31,7 +43,7 @@ Die damals aus den Gesprächen entstandenen drei **Originalentwürfe** befinden 
 - `LSZH_AVV_v0_9_RC1_Freigabeentwurf.docx`: vollständige sechsseitige AVV v0.9 RC1, einschliesslich Anlagen A (Daten), B (TOM) und C (Unterauftragsbearbeiter).
 - `LSZH_Geschaeftsbedingungen_Entscheidungsblatt_RC1.docx`: einseitiges ursprüngliches Entscheidungsblatt. Ebenfalls vorhanden: `LSZH_Freigabemappe_RC1_Entscheidungsvorlage.pdf`.
 
-**Konkrete noch nicht gefällte Geschäftsentscheide:** (1) Care-Kündigung: 30 Kalendertage zum Monatsende, vorbehaltlich gesetzlicher Rechte; (2) Kundenabnahme: zehn Arbeitstage, keine automatische Abnahme durch Schweigen; (3) Haftungsbeschränkung: bei leichter Fahrlässigkeit Entgelt der letzten zwölf Monate für die betroffene Leistung, jedoch mindestens CHF 2'000. **Insbesondere Punkt (3) war im ursprünglichen Entscheidungsblatt ausdrücklich zur Überarbeitung / juristischen Prüfung empfohlen.** Keine dieser Regeln gilt als freigegeben.
+**Historische ursprüngliche Geschäftsregeln (inzwischen intern vom Betreiber akzeptiert):** Care-Kündigung 30 Tage zum Monatsende; Abnahme zehn Arbeitstage ohne automatische Schweigeabnahme; entworfene Haftungsbegrenzung auf betroffene zwölfmonatige Vergütung mit mindestens CHF 2'000. Die frühere juristische Prüfempfehlung zur Haftung ist keine erneute geschäftliche Grundsatzentscheidung. Die vertragliche Rechtsprüfung vor Echtnutzung bleibt getrennt.
 
 **AVV für den ersten Pilot:** Anlagen A–C enthalten noch kundenspezifische Platzhalter. Ob AVV Ja/Nein für die konkrete Leistung notwendig ist, hängt von echten Datenflüssen/Rollen ab und wird nicht automatisch vom UI entschieden. Vor Nutzung sind Unterauftragsbearbeiter, Datenregionen, Verantwortlichkeiten, Löschfristen und Kunde zu konkretisieren.
 
@@ -44,7 +56,7 @@ Die damals aus den Gesprächen entstandenen drei **Originalentwürfe** befinden 
 ## Die nächsten drei Arbeiten – genau in dieser Reihenfolge
 
 **1. RC1/AVV-Originale und offene Geschäftsentscheide (G2).**
-Die letzten real vorgesehenen Projektbedingungen und AVV samt Anlagen im Geschäftskonto identifizieren oder dort als Entwurf bereitstellen. Versionen, Leistungs-/Haftungsgrenzen, AVV-Erforderlichkeit und Vertragsschluss prüfen; nach juristischer Prüfung und Unternehmerentscheid die genauen finalen PDFs festlegen. Kein bisheriges TEST_ONLY-Dokument stillschweigend als echt markieren.
+Die bereits intern akzeptierten Geschäftsbedingungen als Kunden-PDF vorbereiten und im Geschäftskonto archivieren; AVV-Anlagen pro Auftrag ergänzen. Die erforderliche juristische Endprüfung und tatsächlichen Dokumentversionen vor Echtnutzung dokumentieren. **Keine Wiederholung der längst getroffenen Geschäftsentscheidungen.** Kein bisheriges TEST_ONLY-Dokument stillschweigend als echt markieren.
 
 **2. Ein einzelner kompletter Offerten-Pilot mit ausschliesslich erfundenen Daten.**
 Vorhandene Make-Szenarien, Airtable und bestehende PDF-Archivierung verwenden; **keine neuen Szenarien**. AVV-Nein und AVV-Ja je einmal vollständig prüfen, inklusive Statusführung, korrekter PDF-Anzahl und einem Annahmebeleg. Bis zur gesonderten Autorisierung bleiben alle bisherigen Aktivierungs-, E-Mail- und Vertragsannahmesperren bestehen. Noch offene echte Cloud-/Write-Schritte nur nach der dafür konkret erteilten Einzelfreigabe.

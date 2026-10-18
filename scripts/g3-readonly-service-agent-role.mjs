@@ -40,13 +40,24 @@ export function auditPubsubAgentRole(read=readGcloud){
   if(!enabledNames.includes('iam.googleapis.com'))
     return {...base,result:'STOP_IAM_API_NOT_ENABLED'};
 
-  const role=readJson(read,['iam','roles','describe',ROLE,...COMMON]);
-  const rolePermission=
-    !role||role.name!==ROLE||!Array.isArray(role.includedPermissions) ||
-      !role.includedPermissions.every(p=>typeof p==='string')?
-        'UNKNOWN_ROLE_DEFINITION':
-        role.includedPermissions.includes(PERMISSION)?
-          'PRESENT_IN_PREDEFINED_ROLE':'ABSENT_IN_PREDEFINED_ROLE';
+  // The previous cloud run returned UNKNOWN_ROLE_DEFINITION while the
+  // separate project-IAM read worked. For predefined roles, Google documents
+  // a read form WITHOUT --project. Prefer original project-scoped read but
+  // retry EXACTLY this one immutable, unscoped role if unreadable/invalid.
+  // Failure causes neither IAM changes nor permissions recommendations.
+  const validRole=x=>x&&x.name===ROLE&&
+    Array.isArray(x.includedPermissions)&&
+    x.includedPermissions.every(p=>typeof p==='string');
+  let role=readJson(read,['iam','roles','describe',ROLE,...COMMON]);
+  let roleReadVariant=validRole(role)?'PROJECT_SCOPED':'UNVERIFIED';
+  if(!validRole(role)){
+    role=readJson(read,['iam','roles','describe',ROLE,
+      '--format=json','--quiet']);
+    if(validRole(role))roleReadVariant='PREDEFINED_UNSCOPED_FALLBACK';
+  }
+  const rolePermission=!validRole(role)?'UNKNOWN_ROLE_DEFINITION':
+    role.includedPermissions.includes(PERMISSION)?
+      'PRESENT_IN_PREDEFINED_ROLE':'ABSENT_IN_PREDEFINED_ROLE';
 
   const policy=readJson(read,['projects','get-iam-policy',PROJECT,...COMMON]);
   const agent='serviceAccount:service-'+number+
@@ -70,7 +81,8 @@ export function auditPubsubAgentRole(read=readGcloud){
   // runtime policies have not been assessed here.
   return {...base,result:'READ_ONLY_ROLE_DEFINITION_CHECK',
     projectIdentityVerified:true,roleDefinitionPermission:rolePermission,
-    serviceAgentProjectBinding:directRole,plannedPushSa:plannedPush,
+    roleReadVariant,serviceAgentProjectBinding:directRole,
+    plannedPushSa:plannedPush,
     serviceAgentEffectiveOidc:'NOT_EVALUATED',
     groupDenyPab:'NOT_EVALUATED',
     tokenCreatorAdditionalGrant:'NOT_RECOMMENDED_WITHOUT_EFFECTIVE_CHECK',

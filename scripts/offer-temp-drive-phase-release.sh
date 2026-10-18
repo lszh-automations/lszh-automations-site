@@ -73,28 +73,14 @@ assert any(b.get("role")=="roles/run.invoker" and
 print("PASS: current synthetic-only read probe unchanged and named IAM Invoker only.")
 PY
 
-# Ensure expected business test child folder is accessible and contains exactly
-# the four test PDFs before *any* build/deploy. This call is purely read-only
-# and delegates to the independently tested, narrow Drive grant guard.
-# The original grant tool is pinned to older temporary revision 00002,
-# so reuse ONLY its pure read-only Drive validations here. This release script
-# separately verifies exact current revision 00003 above and never grants IAM.
-python3 - "$ROOT" "$FOLDER" <<'PY' ||
+# Fail closed: a separate GET-only verifier enforces the exact business-owned
+# synthetic child folder, four PDFs and existing temporary Reader role.
+# NEVER use the old revision-pinned grant script's --check/--apply workflow.
+# Any Python syntax/API/validation error terminates BEFORE build/deploy or PASS.
+if ! python3 "$ROOT/scripts/offer-temp-drive-child-readonly-check.py" \
+   --folder "$FOLDER"; then
  fatal "Business Drive synthetic subfolder verification failed"
-import runpy,sys
-root,folder=sys.argv[1:]
-try:
-    check=runpy.run_path(root+"/scripts/offer-temp-drive-folder-reader.py")
-    token=check["get_token"]()
-    meta_url,list_url,_=check["urls"](folder)
-    granted=check["verify_folder"](check["api"](token,"GET",meta_url),folder)
-    files_ok=check["verify_list"](check["api"](token,"GET",list_url),folder)
-    if not granted or files_ok is not True:
-        raise ValueError("scoped_reader_or_pdf_set_unverified")
-    print("PASS: business-owned synthetic PDF folder, four files and scoped temporary reader verified.")
-except Exception:
-    sys.exit("NO-GO: cannot verify synthetic business folder and reader without writes")
-PY
+fi
 gcloud projects get-iam-policy "$PROJECT" --format=json |
  python3 -c '
 import json,sys

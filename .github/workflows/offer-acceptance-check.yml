@@ -17,6 +17,7 @@ on:
       - 'cloud-run/offer-portal-transaction-smoke/**'
       - 'test/offerPortalStaging.test.js'
       - 'test/offerPortalHttp.test.js'
+      - 'test/offerPortalFramework.integration.test.cjs'
       - 'test/offerPortalConfig.test.js'
       - 'test/firestoreEmulator.integration.test.js'
       - 'test/offerPortalEndToEnd.emulator.test.js'
@@ -231,6 +232,8 @@ jobs:
           java-version: '21'
       - name: Install isolated portal SDK dependencies
         run: npm install --prefix cloud-run/offer-portal-staging --no-audit --no-fund --ignore-scripts
+      - name: Real Functions Framework JSON-body regression (no cloud)
+        run: node --test test/offerPortalFramework.integration.test.cjs
       - name: Run local emulator transaction contention tests
         env:
           CI: 'true'

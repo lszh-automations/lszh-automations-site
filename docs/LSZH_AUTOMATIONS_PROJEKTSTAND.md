@@ -1,5 +1,14 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – TEMP Cloud Run→Drive 4/4 Live PASS
+
+Livebericht Cloud Shell: Revision lszh-offer-browser-staging-00006-h5w aktiv; statische Vorschau erreichbar; einmaliger IAM-authentifizierter GET /_lszh/synthetic-drive-check mit DRIVE_PROBE_HTTP=200 und positiver JSON-Prüfung status=PASS_SYNTHETIC_ARCHIVE_READ_ONLY, verifiedFiles=4. Die vier synthetischen PDFs wurden durch den Cloud-Run-Lesedienst samt unveränderter Archiv-Integritätsprüfung bestätigt. Keine LSZH_TEMP_DRIVE_DIAG-Fehlerzeilen in den danach gelesenen Revisionslogs. Ursache des vorigen 503 war FOLDER_PARENT_HIDDEN; im synthetischen TEMP-Testpfad wird das fehlende Parent-Metadatenfeld nach gesonderter geschäftlicher Vorabprüfung berücksichtigt.
+
+Offen: separat die gesperrten Vertragsannahme- und PDF-Ausgaberouten, POST-Methoden sowie die CSP der Vorschau an genau dieser Revision prüfen; geerbte Cloud-IAM-Bindungen sind nicht vollständig evaluiert. Der Test liefert keine Produktionsfreigabe. Keine zusätzlichen Rechte oder produktive Deployments.
+
+---
+
+
 ## 18.10.2026 – Eingeschränkter Drive-Parent-Fix auf temporärem Cloud Run erfolgreich deployed; Live-E2E weiterhin offen
 
 **Echte Cloud-Shell-Ausgabe des Betreibers nach `scripts/offer-temp-drive-restricted-parent-release.sh --apply`:**

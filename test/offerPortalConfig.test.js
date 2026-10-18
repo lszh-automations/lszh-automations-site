@@ -4,7 +4,7 @@ const good={
  LSZH_PORTAL_STAGING_ENABLED:'true',
  K_SERVICE:'lszh-offer-portal-staging',K_REVISION:'lszh-offer-portal-staging-00001-syn',
  GOOGLE_CLOUD_PROJECT:'lszh-automations',LSZH_PORTAL_DATABASE:'lszh-offers-staging',
- LSZH_PORTAL_ARCHIVE_FOLDER:'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in',
+ LSZH_PORTAL_ARCHIVE_FOLDER:'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko',
  LSZH_PORTAL_TERMS_VERSION:'TEST_v1.0_RC1',
  LSZH_PORTAL_ORIGIN:'https://portal-staging.lszh-automations.ch',
  LSZH_PORTAL_PROOF_SALT:'1234567890ABCDEFRANDOMSTAGING0987654321ABCDE'
@@ -23,6 +23,8 @@ test('valid isolated portal staging runtime may be explicitly configured',async(
  assert.equal(STAGING.databaseId,'lszh-offers-staging');
  assert.equal(STAGING.region,'europe-west6');
  assert.equal(STAGING.firestoreHost,'firestore.europe-west6.rep.googleapis.com');
+ assert.equal(STAGING.archiveFolderId,'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko');
+ assert.notEqual(STAGING.archiveFolderId,'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in');
  assert.notEqual(STAGING.databaseId,'(default)');
 });
 test('strict service, project, revision and named-db settings always fail closed',async()=>{

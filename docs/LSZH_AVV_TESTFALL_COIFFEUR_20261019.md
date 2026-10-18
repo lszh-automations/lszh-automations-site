@@ -2,6 +2,8 @@
 
 Stand: 19.10.2026. Strukturierte Arbeitsnotiz zum bereits vorhandenen Coiffeur-TEST_ONLY-Beispiel im geschäftlichen Drive. Keine zweite Testannahme. Keine Rechtsberatung, keine echte Offerte oder AVV, keine Kundendaten, keine Freigabe für Produktivbetrieb.
 
+**Vorhandene Quelle:** [TEST_ONLY-AVV im Geschäfts-Drive](https://docs.google.com/document/d/1Lfh_WRp-TyqQ2useZsW9YBHkGuf6hBNP-Dp3c8smTK4/edit) mit dem synthetischen Coiffeur-Beispiel. Diese Arbeitsnotiz strukturiert dessen Fakten und offenen Punkte; sie ersetzt das Dokument nicht.
+
 ## Erfundenes Szenario
 
 **Testkunde:** Mustercoiffeur TEST GmbH – vollständig fiktiv, nicht im Handelsregister eingetragen.  

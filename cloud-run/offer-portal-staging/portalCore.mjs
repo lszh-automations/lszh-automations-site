@@ -147,6 +147,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
       terms_pdf_sha256:offer.bundle.terms.sha256,
       avv_required:avv,
       avv_pdf_sha256:avv?offer.bundle.avv.sha256:null,
+      avv_version:avv?offer.details.avvVersion:null,
       authorized_confirmed:true,quote_confirmed:true,terms_confirmed:true,avv_confirmed:avv,
       name,email,
       ip_pseudonym:createHmac('sha256',proofSalt).update(String(ip).slice(0,128)).digest('hex')

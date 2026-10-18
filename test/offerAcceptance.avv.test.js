@@ -69,7 +69,7 @@ function setup(fields) {
   const res=()=>({setHeader(){},writeHead(status,headers){this.status=status;this.headers=headers;},end(data){this.bytes=data;}});
   return {api,res,changes};
 }
-const payload={code,name:'Fiktive Testperson',email:'test@example.invalid',authorized:true,accept_terms:true,quote_sha256:q,terms_sha256:t};
+const payload={code,name:'Fiktive Testperson',email:'test@example.invalid',authorized:true,accept_quote:true,accept_terms:true,quote_sha256:q,terms_sha256:t};
 
 test('AVV Ja preview declares third PDF and exact hash',async()=>{
   const h=setup(fakeFields('Ja'));const r=h.res();
@@ -94,6 +94,7 @@ test('AVV Ja stores explicitly accepted, versioned AVV evidence',async()=>{
   assert.equal(h.changes[0].fields['Online-Annahme AVV ausdrücklich akzeptiert'],true);
   const ev=JSON.parse(h.changes[0].fields['Online-Annahme Nachweis']);
   assert.equal(ev.avv_pdf_sha256,a);assert.equal(ev.avv_explicitly_confirmed,true);
+  assert.equal(ev.quote_confirmed,true);assert.equal(ev.terms_confirmed,true);
 });
 test('AVV Nein rejects unexpected AVV consent',async()=>{
   const h=setup(fakeFields('Nein'));const r=h.res();

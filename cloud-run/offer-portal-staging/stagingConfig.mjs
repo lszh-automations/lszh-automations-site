@@ -15,6 +15,7 @@ export const STAGING={
 export const BROWSER_PILOT={
   service:'lszh-offer-browser-staging',
   sourceRecordId:'recensIiczNGsoPeR',
+  avvSourceRecordId:'recktLXj5wUxLmHFQ',
   origins:[
     'https://lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app',
     'https://cloud-e2e---lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app'
@@ -64,7 +65,7 @@ export function stagingConfig(env={}){
       throw Error('staging_synthetic_accept_config_invalid');
   }
   if(browserPilot && (!acceptEnabled ||
-     sourceRecordId!==BROWSER_PILOT.sourceRecordId ||
+     ![BROWSER_PILOT.sourceRecordId,BROWSER_PILOT.avvSourceRecordId].includes(sourceRecordId) ||
      env.LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED==='true' ||
      env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED==='true'))
     throw Error('staging_browser_pilot_invalid');

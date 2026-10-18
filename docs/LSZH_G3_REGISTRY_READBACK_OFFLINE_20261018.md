@@ -39,3 +39,14 @@ https://cli.github.com/manual/gh_attestation_verify
 - **Sperre:** `scripts/g3-staging-bootstrap.mjs --apply` bleibt vor jedem `gcloud`-Aufruf hart blockiert.
 
 Make `7940220` bleibt inactive, `0=1` vor Claim und Mail. Nur geschäftliches Google Drive, keine Kunden-/Vertragsaktionen und **kein Merge ohne Zustimmung**.
+
+## Konkreter v3.24-zlib-Kandidat (nur Byte-Fixierung)
+
+Der offizielle Alpine-Paketendpunkt
+`https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/zlib-1.3.2-r1.apk`
+wurde im GitHub-CI-Lauf [39151702483](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39151702483) **ohne Installation** gelesen. Gemessener SHA-256:
+`63aeea03c15a2f9018f81805cfc8aa926bdf5cd68921f22149c2fbb5d0ee9f47`.
+`cloud-run/g3-review-staging/zlib-patch.candidate.json` fixiert URL, Branch, Version, Plattform und diesen Hash als **unfreigegebenen Kandidaten**.
+`scripts/g3-zlib-candidate-integrity.mjs` validiert seine Felder und überprüft die SHA-256 der auf dem Runner geladenen tatsächlichen Bytes; jede Änderung verweigert den Kandidaten. Das neue CLI-Resultat `CANDIDATE_BYTES_MATCH_NOT_PUBLISHER_VERIFIED` bedeutet ausdrücklich **nicht**, dass Alpine die Bytes kryptografisch signiert hat oder dass der Einbau legitimiert wurde.
+
+Bevor dieses Paket in ein neues Containerimage dürfte, sind Hersteller-/Alpine-Signatur und Schlüsselverifikation, offline reproduzierbarer Einbau ohne `--allow-untrusted`, vollständiger SHA-geprüfter Doppelbuild, Trivy-Nachscan, Canary-Smoke und erneuter Provenance-Review notwendig. Bis dahin bleibt das tatsächliche Image weiterhin mit einem mittleren zlib-Fund belastet, und die Cloud-Freigabe bleibt `NO_GO`.

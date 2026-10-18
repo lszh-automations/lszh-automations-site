@@ -225,7 +225,7 @@ test('TEMP CLOUD-ONLY STATIC DEMO: real Chromium displays existing demo and neve
  try{
   const base='http://127.0.0.1:'+server.address().port;
   await page.goto(base+'/offerte-annehmen/?demo=1');
-  await expect(page.locator('#number')).toHaveText('MUSTER-2026-001');
+  await expect(page.locator('#number')).toHaveText('OFF-TEST-AVV-20261018-001');
   await expect(page.locator('#message')).toContainText('unverbindliche Designvorschau');
   await expect(page.locator('#submit')).toBeDisabled();
   await page.locator('#quotePdf').click();

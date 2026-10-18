@@ -6,6 +6,8 @@ on:
       - 'cloud-run/g3-review-staging/**'
       - 'scripts/g3-canary-image-plan.mjs'
       - 'scripts/g3-canary-oci-verify.py'
+      - 'scripts/g3-canary-security-review.mjs'
+      - 'test/g3CanarySecurityReview.test.js'
       - 'test/g3CanaryImageBuild.test.js'
       - '.github/workflows/g3-canary-build-only.yml'
   workflow_dispatch:
@@ -31,7 +33,8 @@ jobs:
           node --check scripts/g3-canary-image-plan.mjs
           node --check cloud-run/g3-review-staging/index.mjs
           python3 -m py_compile scripts/g3-canary-oci-verify.py
-          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js
+          node --check scripts/g3-canary-security-review.mjs
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js
           node scripts/g3-canary-image-plan.mjs
 
       - name: Verify fixed candidate base SHA lock (Docker Hub read-only)
@@ -120,6 +123,43 @@ jobs:
             console.log("PASS: network-isolated real container, canary-only ACK");
           '
 
+      - name: Trivy local image vulnerability scan (no registry push or Cloud auth)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: 'lszh-g3-canary:offline-review'
+          scanners: vuln
+          vuln-type: 'os,library'
+          format: json
+          output: g3-trivy.json
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+          ignore-unfixed: false
+          exit-code: '0'
+          cache: 'false'
+          version: 'v0.74.0'
+
+      - name: CycloneDX SBOM of same local image (no publishing)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: 'lszh-g3-canary:offline-review'
+          scanners: vuln
+          format: cyclonedx
+          output: g3-sbom.cdx.json
+          skip-setup-trivy: true
+          cache: 'false'
+          version: 'v0.74.0'
+
+      - name: Parse CVE review and hash unsigned candidate evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/g3-canary-security-review.mjs \
+            g3-trivy.json g3-sbom.cdx.json \
+            g3-image-oci-report.json g3-image-inputs.json \
+            | tee g3-security-review.json
+          echo "NO_GO: a successful local scan is not a signature or deployment approval."
+
       - name: Upload small audit reports only (no container, no secrets)
         if: always()
         uses: actions/upload-artifact@v4
@@ -129,5 +169,8 @@ jobs:
             g3-image-inputs.json
             g3-image-oci-report.json
             g3-candidate-tar-sha256.txt
+            g3-trivy.json
+            g3-sbom.cdx.json
+            g3-security-review.json
           if-no-files-found: ignore
           retention-days: 7

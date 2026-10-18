@@ -184,6 +184,16 @@ async function main(){
     console.log(JSON.stringify({status:'BLOCKED',reason:intent.reason,
       ...status}));process.exitCode=2;return;
   }
+  // Hard release hold: a syntactically valid image and known approval phrase
+  // are NOT independently verified provenance or a signed change decision.
+  // Future operator-approved work must intentionally replace this guard
+  // with a reviewed trusted attestation verifier and change authorization.
+  // This guard sits BEFORE any gcloud read or write, including --apply.
+  if(mode==='apply'){
+    console.log(JSON.stringify({status:'BLOCKED_G3_SIGNED_PROVENANCE_GATE',
+      reason:'independent_signed_image_provenance_and_change_approval_not_implemented',
+      ...status}));process.exitCode=2;return;
+  }
   // Read-only status uses our previously tested, fixed-scope GCP queries.
   // Extend API map for Artifact Registry (the former snapshot had only 5 APIs).
   const original=inventory();

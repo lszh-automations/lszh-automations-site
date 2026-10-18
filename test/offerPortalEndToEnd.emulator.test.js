@@ -80,7 +80,7 @@ function offerFor(token,mode,files){
 }
 function agreement(token,mode,files){
   return {code:token,name:'Synthetischer Testempfaenger',
-    email:'synthetic@example.invalid',authorized:true,accept_terms:true,
+    email:'synthetic@example.invalid',authorized:true,accept_quote:true,accept_terms:true,
     quote_sha256:files.quote.sha256,terms_sha256:files.terms.sha256,
     ...(mode==='Ja'?
       {accept_avv:true,avv_sha256:files.avv.sha256}:

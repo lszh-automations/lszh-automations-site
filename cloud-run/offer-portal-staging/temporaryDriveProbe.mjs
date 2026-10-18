@@ -16,6 +16,30 @@ const NAMES=Object.freeze([
  'TEST_ONLY_avv_NO_CONTRACT.pdf'
 ]);
 
+// Diagnose only: determine which exact structural check failed. This does
+// NOT relax folder authorization/parent/ownership checks. In a shared-child
+// folder, the temporary reader may not see parent/owner metadata; we must
+// observe that separately before changing validation rules or access rights.
+export function classifySyntheticFolderMetadata(meta,folder){
+ if(meta===null||typeof meta!=='object'||Array.isArray(meta))
+   return 'FOLDER_STRUCTURE';
+ if(meta.id!==folder)return 'FOLDER_ID';
+ if(meta.name!==FOLDER_NAME)return 'FOLDER_NAME';
+ if(meta.mimeType!=='application/vnd.google-apps.folder')
+   return 'FOLDER_MIME';
+ if(meta.trashed===true)return 'FOLDER_TRASHED';
+ if(!Object.prototype.hasOwnProperty.call(meta,'parents')||
+    meta.parents==null)return 'FOLDER_PARENT_HIDDEN';
+ if(JSON.stringify(meta.parents)!==JSON.stringify([ROOT]))
+   return 'FOLDER_PARENT_MISMATCH';
+ if(!Object.prototype.hasOwnProperty.call(meta,'owners')||
+    meta.owners==null)return 'FOLDER_OWNER_HIDDEN';
+ if(!Array.isArray(meta.owners)||meta.owners.length!==1||
+    meta.owners[0]?.emailAddress!==OWNER)
+   return 'FOLDER_OWNER_MISMATCH';
+ return null;
+}
+
 export function temporaryDriveProbeConfig(env={},tempConfig={enabled:false}){
  if(env.LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED==='true' &&
     env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true')
@@ -63,12 +87,11 @@ export async function verifySyntheticDriveReadOnly({
  const meta=await stage('FOLDER_API',()=>readJson(DRIVE+encodeURIComponent(folder)+'?'+new URLSearchParams({
   fields:'id,name,mimeType,parents,owners(emailAddress),trashed',
   supportsAllDrives:'true'}),fetcher,accessToken));
- if(meta.id!==folder||meta.name!==FOLDER_NAME||
-    meta.mimeType!=='application/vnd.google-apps.folder'||
-    meta.trashed===true||JSON.stringify(meta.parents)!==JSON.stringify([ROOT])||
-    !Array.isArray(meta.owners)||meta.owners.length!==1||
-    meta.owners[0].emailAddress!==OWNER)
-   {note('FOLDER_VALIDATE');throw Error('probe_folder_invalid');}
+ const folderError=classifySyntheticFolderMetadata(meta,folder);
+ if(folderError!==null){
+   note(folderError);
+   throw Error('probe_folder_invalid');
+ }
  const query="'"+folder+"' in parents and trashed = false";
  const list=await stage('LIST_API',()=>readJson('https://www.googleapis.com/drive/v3/files?'+
    new URLSearchParams({q:query,fields:'nextPageToken,files(id,name,mimeType,parents,trashed)',

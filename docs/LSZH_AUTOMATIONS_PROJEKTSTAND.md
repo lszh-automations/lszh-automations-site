@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Cloud Run→Google Drive Live-Lesetest NO-GO (HTTP 503); keinerlei weitere IAM-/Deploy-Änderung
+
+**Echte Cloud-Shell-Betreiber-Ausgabe** nach Test `scripts/offer-temp-drive-probe-smoke.sh` gegen temporären Dienst Revision `lszh-offer-browser-staging-00003-j2p`:
+- `PASS: preflight revision, ingress and service identity unchanged`; Original `lszh-offer-portal-staging` nach dem begleitenden Read-only-Guard unverändert.
+- `PASS: exact temporary revision, business IAM invoker, read-only Drive test and disabled full portal`.
+- `PASS: authenticated Cloud Run design preview still HTTP 200 and strictly static`.
+- **`NO-GO: authenticated Cloud Run -> Drive returned HTTP 503 (expected 200)`**. Der neue temporäre Endpunkt konnte die 4-Datei-Drive-Verifikation **nicht erfolgreich** abschliessen; er gibt aus Sicherheitsgründen absichtlich keine interne Ursache im HTTP-Body oder in normalen Application-Logs aus.
+- Der betriebliche Scriptlauf hat bei 503 wie vorgesehen **abgebrochen**, ohne weitere IAM-Freigabe, ohne Cloud-Run-Update, ohne Firestore-Schreibzugriff, ohne Mailversand und ohne Annahme. Die nachgelagerte gesonderte Prüfung aller gesperrten Vertrags-/PDF-API-Routen wurde nicht ausgeführt und darf daher für diese Revision **noch nicht** als erneut bestanden markiert werden.
+
+**Ursache offen, 503 allein beweist keinen Berechtigungsfehler.** Enger Verdacht aus Quellcode: `cloud-run/archive-reader-staging/archiveBundleVerifier.mjs` verlangt **sowohl** tatsächlich berechneten Byte-SHA256 **als auch** das vom Google-Drive-v3-Metadatenfeld `sha256Checksum` gelieferte SHA256. Der vorige Geschäftsbenutzer-Prüfer `scripts/offer-business-drive-readonly-verify.py` hat zwar die vollständigen gespeicherten Bytes, direkten Parent, Content-Lock und Owner verifiziert, aber explizit **nicht** das Drive-eigene `sha256Checksum` abgefragt. Auch GCP-Servicekonto-Token-Scope, Drive-API-Fehler, Folder-Listing oder Owners-Visibility kommen als Ursache in Frage. Keine IAM- oder Prüfungsabschwächung aufgrund einer Hypothese.
+
+**Neue, rein lesende Diagnose im Feature-Branch:** `scripts/offer-business-drive-provider-sha-diagnose.py --folder <synthetische-Test-Unterordner-ID> --file ID,SIZE,SHA256` für exakt 4 PDF-Dateien. Es nutzt ausschliesslich die bereits funktionierende geschäftliche **Nutzeridentität**, fragt Googles Drive-v3-`files.get`-Metadaten inklusive `sha256Checksum` und `contentRestrictions.readOnly` ab, vergleicht mit den zuvor unabhängig verifizierten gespeicherten SHA256 und gibt **nur** die Statusklassen MATCH/MISSING/DIFFERS bzw. Sperr-/Ordnerfehler aus (keine Tokens, Hash-Werte oder Datei-IDs). Offline-Selbsttests in GitHub CI. **Kein Dienstkonto-Token, keine Cloud-Mutation.** Erst nach diesem Ergebnis nächsten Diagnoseschritt entscheiden; falls 4/4 MATCH, SA-OAuth-/Service-Laufzeit-Fehler isoliert analysieren, ohne IAM auszuweiten. Original- und Temp-Cloud-Run-Dienste bleiben vorerst auf bestehenden Revisionen.
+
+---
+
+
 ## 18.10.2026 – Temporäre Cloud-Run→Drive-Read-only-Prüfrevision real deployed, Live-Smoke ausstehend
 
 **Vom Betreiber bestätigtes echtes Deployment:**

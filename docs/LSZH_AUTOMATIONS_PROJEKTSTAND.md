@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Drive-Liveprobe hat Folder-Metadaten-Gate FOLDER_VALIDATE erreicht; präzise Sichtbarkeitsdiagnose vorbereitet
+
+**Echter Live-Nachweis vom Betreiber:** Die IAM-authentifizierte Designvorschau der temporären Cloud-Run-Revision `lszh-offer-browser-staging-00004-nk6` meldete PASS. Der einzige reine Leseaufruf an `/_lszh/synthetic-drive-check` lieferte HTTP 503. Cloud Logging gab für diese Revision `2026-10-18T08:42:32.360010Z LSZH_TEMP_DRIVE_DIAG:FOLDER_VALIDATE` aus. Damit wurde der erste Drive-v3-`files.get`-Ordneraufruf **erfolgreich beantwortet** und erst die lokale Prüfung von `id`, `name`, `mimeType`, `trashed`, `parents` oder `owners` hat abgebrochen. Die Test-PDFs wurden dabei **nicht** geprüft; keine Aussage über direkte Dienstkonto-PDF-Bereitschaft. Geschäftskonto-Hauptarchiv und vier gesperrte PDFs bleiben durch die vorherigen Benutzer-GET-Prüfungen bestätigt.
+
+**Plausibler, noch nicht bewiesener Grund:** Das temporäre Dienstkonto erhält bewusst nur `reader` auf den **synthetischen Unterordner**, nicht auf den darüberliegenden geschäftlichen Archivroot. Google Drive kann `parents` für einen freigegebenen Ordner zurückhalten, wenn das anfragende Konto den Parent nicht lesen darf; je nach Sichtbarkeit könnte auch `owners` fehlen. Zur Sicherheit **keine** Berechtigungen auf das Rootarchiv erweitern und Parent/Owner-Validierung nicht ohne Beleg aufweichen. Drive-Dokumentation zu eingeschränkter Parent-Sichtbarkeit: `https://developers.google.com/workspace/drive/api/guides/shared-drives-diffs`.
+
+**Vorbereitete Fehlereingrenzung im Feature-Branch, noch NICHT deployed:**
+- `cloud-run/offer-portal-staging/temporaryDriveProbe.mjs` unterscheidet bei Folder-Validierungsfehlern nun ausschliesslich feste, nicht sensitive Kategorien: `FOLDER_STRUCTURE`, `FOLDER_ID`, `FOLDER_NAME`, `FOLDER_MIME`, `FOLDER_TRASHED`, `FOLDER_PARENT_HIDDEN`, `FOLDER_PARENT_MISMATCH`, `FOLDER_OWNER_HIDDEN`, `FOLDER_OWNER_MISMATCH`. **Die bisherigen strengen Metadaten-Gates bleiben identisch; kein fehlendes Eigentums-/Parent-Feld wird als PASS gewertet.**
+- `test/temporaryDriveProbe.test.js`: Offline-Negativfälle für versteckte, falsche und explizit leere Parent-/Owner-Felder. Bestehende PDF-SHA-256-, `contentRestrictions.readOnly`-, Listing-/Dubletten-/Parent- und HTTP-503-Gates bleiben unverändert.
+- `scripts/offer-temp-drive-folder-shape-release.sh --check|--apply <TESTORDNER-ID>`: neuer exakt auf aktuell bestehende TEMP-Revision `00004-nk6` und Image `708dd11a1e37` gepinnter, fail-closed Prüf- und anschliessend ggf. isolierter temporärer Diagnose-Deployablauf; reiner `--check` liest nur aktuelle Sicherheit/IAM/Drive. **Keine** neue IAM-Rolle, kein Produktiv-Merge, keine Firestore-/Mail-/Vertragsaktivierung.
+- Vor einer Deploymentfreigabe zunächst alle GitHub-CI-Jobs sowie einen **neuen echten Cloud-Shell-`--check`** abwarten. Danach gezielt entscheiden, ob das reine temporäre Diagnose-Image deployed und genau ein Liveprobe ausgeführt werden soll. Root-Archiv niemals als Notbehelf freigeben.
+
+---
+
+
 ## 18.10.2026 – Temporäre sichere Fehlerphasendiagnose in Cloud Run deployed; Live-Probe noch offen
 
 **Echter Betreiber-Deploynachweis:**

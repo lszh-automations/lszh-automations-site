@@ -87,10 +87,13 @@ function activeHandler(){
           // The business Airtable callback is absent unless explicitly enabled.
           // Post-commit only; the existing acceptance HTTP route stays disabled.
           onAccepted:createStagingAirtableCallback({config,env:process.env,fetcher:fetch}),
+          // An explicitly approved private staging pilot can accept exactly
+          // one pinned synthetic source record, never an arbitrary offer.
+          syntheticAcceptRecordId:config.acceptEnabled?config.sourceRecordId:undefined,
           // Deployment must never process a real customer offer.
           syntheticOnly:true
         }),
-        enabled:true,acceptEnabled:false,
+        enabled:true,acceptEnabled:config.acceptEnabled===true,
         allowedOrigin:config.origin,pageHtml
       });
     })();

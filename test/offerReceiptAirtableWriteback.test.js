@@ -50,6 +50,15 @@ function fakeApi(offer,{mutateRead,mutatePatch}={}){
     Offertennummer:offer.offerNumber,Status:'Entwurf',
     'Online-Annahme Token-Hash':offer.tokenHash,
     'AVV erforderlich':offer.bundle.avv_required,
+    'Online-Annahme Offerten Drive ID':offer.bundle.quote.id,
+    'Online-Annahme Bedingungen Drive ID':offer.bundle.terms.id,
+    'Online-Annahme Offerten-SHA256':offer.bundle.quote.sha256,
+    'Online-Annahme Bedingungen-SHA256':offer.bundle.terms.sha256,
+    ...(offer.bundle.avv_required==='Ja'?{
+      'Online-Annahme AVV Drive ID':offer.bundle.avv.id,
+      'Online-Annahme AVV-SHA256':offer.bundle.avv.sha256,
+      'Online-Annahme AVV-Version':offer.details.avvVersion
+    }:{}),
     'Online-Annahme rechtlich freigegeben':false,
     'Vertragsunterlagen akzeptiert':false,
     'Internal unrelated CRM data':'KEEP',
@@ -134,6 +143,8 @@ test('existing or conflicting Airtable data are never overwritten',async()=>{
     fields=>{fields['Online-Annahme Beleg Drive ID']='already-exists';},
     fields=>{fields['Online-Annahme Person']='Unexpected existing acceptance';},
     fields=>{fields['Online-Annahme AVV-Version']='WRONG';},
+    fields=>{fields['Online-Annahme Offerten Drive ID']='1ChangedQuote0000000000000000000000';},
+    fields=>{fields['Online-Annahme Bedingungen-SHA256']='d'.repeat(64);},
     fields=>{fields['Vertragsunterlagen akzeptiert']=true;}
   ];
   for(const change of changes){

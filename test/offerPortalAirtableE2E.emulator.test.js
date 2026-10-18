@@ -166,6 +166,15 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal(attempts.filter(x=>[404,409].includes(x.status)).length,7);
    const end=(await ref.get()).data();
    assert.equal(end.status,'accepted');assert.equal(end.revision,2);
+   // The inert recovery marker must be in the SAME Firestore commit as acceptance.
+   assert.equal(end.receiptReview?.purpose,'LSZH_SYNTHETIC_REVIEW_ONLY_NO_CONTRACT');
+   assert.equal(end.receiptReview?.state,'AWAITING_MANUAL_RECONCILIATION');
+   assert.match(end.receiptReview?.idempotencyKey||'',/^[a-f0-9]{64}$/);
+   assert.equal(end.receiptReview?.receiptDriveId,null);
+   assert.equal(end.receiptReview?.emailProviderMessageId,null);
+   assert.deepEqual(end.receiptReview?.downstream,{
+     airtable:'disabled',proofPdf:'disabled',email:'disabled'
+   });
    assert.equal(end.evidence.avv_required,mode==='Ja');
    assert.equal(end.evidence.avv_confirmed,mode==='Ja');
    assert.deepEqual(end.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});

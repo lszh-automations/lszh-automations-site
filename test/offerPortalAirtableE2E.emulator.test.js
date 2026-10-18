@@ -102,6 +102,10 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    const docs=fakePdfs(),source=fakeRecord(SOURCE,token,mode,docs);
    const mapped=mapSyntheticAirtableOffer(source);
    const ref=db.collection('lszh_staging_offers_v1').doc(sha(token));
+   const {syntheticSourceIndexId,SYNTHETIC_SOURCE_INDEX}=await import(
+     '../cloud-run/offer-portal-staging/syntheticSourceIndex.mjs');
+   const indexRef=db.collection(SYNTHETIC_SOURCE_INDEX)
+     .doc(syntheticSourceIndexId(source.id));
    let created=false,server;
    t.after(async()=>{
     if(server)await new Promise((resolve,reject)=>server.close(err=>err?reject(err):resolve()));
@@ -111,8 +115,12 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
       const data=current.data();
       assert.equal(data.source.kind,'LSZH_SYNTHETIC_ONLY');
       assert.equal(data.source.recordId,source.id);
-      await ref.delete();
+      const idx=await indexRef.get();
+      assert.equal(idx.exists,true);
+      assert.equal(idx.data().tokenHash,sha(token));
+      await Promise.all([ref.delete(),indexRef.delete()]);
       assert.equal((await ref.get()).exists,false);
+      assert.equal((await indexRef.get()).exists,false);
      }
     }
     await db.terminate();

@@ -366,7 +366,8 @@ jobs:
               totalFindings:all.length,highCritical:high.length,
               originalZlibCve:zlib.length,releaseStatus:"NO_GO",
               signedProvenance:false,canPublish:false,canDeploy:false}));
-            if(high.length||zlib.length)process.exit(2);
+            // Candidate policy: any new CVE requires another explicit review.
+            if(all.length||high.length||zlib.length)process.exit(2);
           '
           echo "NO_GO: this is a local experimental patch result, not a customer release."
 

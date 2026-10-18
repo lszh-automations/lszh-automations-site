@@ -21,7 +21,6 @@ const review=(reason,additional={})=>({
   canWriteAirtable:false,canSendEmail:false
 });
 
-const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const plain=o=>o!==null && typeof o==='object' && !Array.isArray(o) &&
   Object.getPrototypeOf(o)===Object.prototype;
 const allowedKeys=(value,names)=>
@@ -54,7 +53,7 @@ export function reconcileSyntheticReceiptArchive(acceptedOffer,scan){
     // incorrectly suggest no receipt was uploaded.
     if(!allowedKeys(file,[
       'id','name','mimeType','parents','size','sha256Checksum',
-      'contentRestrictions','trashed','appProperties',
+      'contentRestrictions','trashed','properties',
       'independentlyReadByteSha256','pdfHeaderVerified'
     ]) || !ID.test(file.id||'') || observedIds.has(file.id) ||
        typeof file.name!=='string' || file.name.length<1 ||
@@ -70,14 +69,16 @@ export function reconcileSyntheticReceiptArchive(acceptedOffer,scan){
        !file.contentRestrictions.every(r=>allowedKeys(r,['readOnly']) &&
          typeof r.readOnly==='boolean') ||
        typeof file.pdfHeaderVerified!=='boolean' ||
-       !allowedKeys(file.appProperties,[
-         'lszhSyntheticOnly','lszhReceiptReviewKey','lszhSourceRecordId'
-       ]) || typeof file.appProperties.lszhSyntheticOnly!=='string' ||
-       typeof file.appProperties.lszhReceiptReviewKey!=='string' ||
-       typeof file.appProperties.lszhSourceRecordId!=='string')
+       !allowedKeys(file.properties,[
+         'lszhSyntheticOnly','lszhReceiptReviewKey','lszhSourceRecordId',
+         'lszhReceiptPdfSha256'
+       ]) || typeof file.properties.lszhSyntheticOnly!=='string' ||
+       typeof file.properties.lszhReceiptReviewKey!=='string' ||
+       typeof file.properties.lszhSourceRecordId!=='string' ||
+       !SHA.test(file.properties.lszhReceiptPdfSha256||''))
       return deny('archive_inventory_invalid_entry');
     observedIds.add(file.id);
-    if(file.appProperties.lszhReceiptReviewKey!==marker.idempotencyKey)continue;
+    if(file.properties.lszhReceiptReviewKey!==marker.idempotencyKey)continue;
     correlated.push(file);
   }
 
@@ -89,19 +90,21 @@ export function reconcileSyntheticReceiptArchive(acceptedOffer,scan){
 
   const candidate=correlated[0];
   const syntheticBinding=
-    candidate.appProperties.lszhSyntheticOnly==='TRUE' &&
-    candidate.appProperties.lszhSourceRecordId===acceptedOffer.source.recordId &&
+    candidate.properties.lszhSyntheticOnly==='TRUE' &&
+    candidate.properties.lszhSourceRecordId===acceptedOffer.source.recordId &&
+    candidate.properties.lszhReceiptPdfSha256===candidate.sha256Checksum &&
     candidate.parents.length===1 && candidate.parents[0]===scan.folderId &&
     candidate.trashed===false &&
     candidate.mimeType==='application/pdf' &&
     candidate.contentRestrictions.some(x=>x.readOnly===true) &&
     candidate.sha256Checksum===candidate.independentlyReadByteSha256 &&
     candidate.pdfHeaderVerified===true &&
-    candidate.name.startsWith('LSZH_TEST_ONLY_') &&
-    candidate.name.endsWith('_NO_CONTRACT.pdf');
+    candidate.name===('LSZH_TEST_ONLY_'+marker.idempotencyKey+'_NO_CONTRACT.pdf');
   if(!syntheticBinding)
     return deny('correlated_receipt_integrity_or_ownership_mismatch');
 
+  // Non-sensitive Drive properties are cross-client readable, but neither
+  // uniqueness nor authenticity of this fixture is externally proved.
   // This synthetic fixture is not independently proved to exist in Drive.
   return review('one_correlated_candidate_requires_operator_review',{
     candidateCount:1,candidateId:candidate.id,

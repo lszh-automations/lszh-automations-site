@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Erster tatsächlicher IAM-Ancestor-Inventarlauf NO-GO; Ursache noch offen
+
+Live-Ausgabe des Betreibers von `python3 scripts/offer-iam-hierarchy-readonly.py` nach frischem Git-Klon: **`NO-GO: IAM ancestry inaccessible or returned unexpected data.`**. Der ursprüngliche Skriptlauf hat die Geschäftskonto-Identitätskontrolle passiert; danach schlug entweder `gcloud projects get-ancestors-iam-policy lszh-automations --include-deny --format=json` fehl oder die Rückgabe war kein gültiges JSON. Das ist **keine** Erkenntnis, dass eine bestimmte IAM-Rolle öffentlich oder falsch gesetzt sei. Frühere erfolgreiche Dienst-IAM-Direktprüfungen gelten weiterhin nur für direkte Bindungen.
+
+Gemäss offizieller Google-Cloud-Dokumentation ist der Befehl gültig, für vollständige Allow-/Deny-Policy-Einsicht können aber übergeordnete IAM-Leserechte (z.B. Security Reviewer auf Organisationsebene) erforderlich sein. **Jetzt weder neue Rechte vergeben noch vermeintlichen IAM-PASS behaupten.**
+
+Für die reine Ursachenanalyse ist `scripts/offer-iam-hierarchy-readonly.py` im Feature-Branch um sichere Fehlerklassen erweitert worden. Keine rohen Google-Cloud-Fehlernachrichten, Policies, Principal-Daten oder Identitäten werden ausgegeben; der Skriptlauf bleibt read-only und bei unbekannten Zuständen NO-GO. Zusätzliche Offline-Tests simulieren Berechtigungs-/Login-/Flag-/API-/JSON-Fehler. Nächster operatorgestützter Schritt ist ein neuer frischer `python3 scripts/offer-iam-hierarchy-readonly.py`-Lauf, erst nach CI. **Produktions-GO und vollständige geerbte IAM-Sicherheitsprüfung weiterhin OFFEN.** Pilot-Freigabematrix G1 aktualisiert.
+
+---
+
+
 ## 18.10.2026 – Pilot-Freigabematrix erstellt, IAM-Vererbungsinventar als rein lesender Check vorbereitet
 
 Im Rahmen von `Vamos` wurden die Live-Szenarien in Make (inaktiv mit harten 0=1-Mail-/Claim-/Token-Gates), das Airtable-Geschäfts-CRM-Schema sowie PR #5 erneut geprüft. Die strukturierte [Pilot-Freigabematrix G1–G7](LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md) liegt neu im Feature-Branch. PR #5 bleibt **Draft, offen, ungemergt**; die PR-Beschreibung wurde mit den realen Cloud-Run-E2E-Ergebnissen und den offenen Produktivblockern aktualisiert.

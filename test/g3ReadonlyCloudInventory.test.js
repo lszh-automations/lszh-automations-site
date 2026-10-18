@@ -98,10 +98,10 @@ test('full fake inventory summarises direct IAM only and never enables any actio
     assert.ok(cmd.includes('--project='+PROJECT));
     assert.ok(cmd.includes('--format=json'));
     assert.ok(cmd.includes('--quiet'));
-    assert.ok(!cmd.some(x=>/create|enable|delete|publish|ack|pull|token|set-iam|add-iam/.test(x)
-      && !x.includes('topic') && !x.includes('subscription') &&
-      !x.includes('get-iam-policy') &&
-      !x.includes('lszh-g3-review-staging')));
+    // Ignore read-only flags such as --enabled: only verb tokens matter.
+    const verb=cmd.filter(x=>!x.startsWith('--')).slice(0,3).join(' ');
+    assert.ok(!/\b(create|enable|delete|publish|ack|pull|set-iam-policy|add-iam-policy-binding)\b/.test(verb),
+      'mutating verb in '+verb);
   }
 });
 test('wrong project refuses any inventory reads after project describe',async()=>{

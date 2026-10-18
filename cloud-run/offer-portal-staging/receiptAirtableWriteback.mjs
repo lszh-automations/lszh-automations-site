@@ -42,20 +42,28 @@ export async function executeSyntheticAirtableAcceptanceWriteback(acceptedOffer,
     if(!identical)fail('already_accepted_mismatch');
     return {result:'already_identical',sourceRecordId:plan.recordId,patched:false};
   }
+  // A valid *draft* already contains the verified PDF references and SHA256:
+  // the Airtable->Firestore importer requires them before acceptance. Never
+  // reject those fields merely for being present or silently overwrite changes.
+  const documentary=['Online-Annahme Offerten Drive ID',
+    'Online-Annahme Bedingungen Drive ID','Online-Annahme Offerten-SHA256',
+    'Online-Annahme Bedingungen-SHA256'];
+  if(plan.fields['AVV erforderlich']==='Ja')documentary.push(
+    'Online-Annahme AVV Drive ID','Online-Annahme AVV-SHA256',
+    'Online-Annahme AVV-Version');
+  if(documentary.some(k=>fields[k]!==plan.fields[k]))
+    fail('source_documents_changed');
   if(choice(fields.Status)!=='Entwurf' ||
      fields['Vertragsunterlagen akzeptiert']===true ||
      !EMPTY(fields['Online-Annahme Zeitstempel']) ||
      !EMPTY(fields['Online-Annahme Person']) ||
      !EMPTY(fields['Online-Annahme Vertragsversion']) ||
-     !EMPTY(fields['Online-Annahme Offerten Drive ID']) ||
-     !EMPTY(fields['Online-Annahme Bedingungen Drive ID']) ||
-     !EMPTY(fields['Online-Annahme Offerten-SHA256']) ||
-     !EMPTY(fields['Online-Annahme Bedingungen-SHA256']) ||
      !EMPTY(fields['Online-Annahme E-Mail']) ||
      fields['Online-Annahme AVV ausdrücklich akzeptiert']===true ||
-     !EMPTY(fields['Online-Annahme AVV Drive ID']) ||
-     !EMPTY(fields['Online-Annahme AVV-SHA256']) ||
-     !EMPTY(fields['Online-Annahme AVV-Version']))
+     (plan.fields['AVV erforderlich']==='Nein' && (
+       !EMPTY(fields['Online-Annahme AVV Drive ID']) ||
+       !EMPTY(fields['Online-Annahme AVV-SHA256']) ||
+       !EMPTY(fields['Online-Annahme AVV-Version']))))
     fail('source_conflict');
 
   // One PATCH, never in the Firestore claim transaction. Airtable PATCH has

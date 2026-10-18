@@ -1,5 +1,17 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – G3 Canary-Image: reproduzierbarer Kandidatenbuild erfolgreich; weiterhin NO-GO
+
+**Bestandsaufnahme und Umsetzung im bisherigen Draft PR #5, ohne Cloud-/Make-/Drive-Schreibzugriff:** Vorhandenes G3-Bootstrap-/Canary-System geprüft. Das vorher frei schwebende Docker-Base `node:22-alpine` wurde durch eine zwingende `ARG BASE_IMAGE`-SHA-Referenz ersetzt. Der offizielle Basisdigest ist aus dem ersten erfolgreichen GitHub-Lauf im Repository als **unfreigegebener Kandidat** fixiert (`cloud-run/g3-review-staging/base-image.candidate.json`, `reviewStatus=UNREVIEWED`, `releaseStatus=NO_GO`). Neue reine Quell-/Imageprüfungen: `scripts/g3-canary-image-plan.mjs` (Policy, Quellhash, Inputhash, Digestform) und `scripts/g3-canary-oci-verify.py` (alle OCI-Blobs SHA-256-verifizieren, Linux/amd64, Nichtroot-Config, identische Manifest-/Config-Digests zweier Builds). Neue Negativtests `test/g3CanaryImageBuild.test.js` und separater build-only Workflow `.github/workflows/g3-canary-build-only.yml` ohne GCP-OIDC, Registry-Push, Deploy, Cloud-Rollen, Make oder echte Kundenaktionen.
+
+**Nachweis:** GitHub Actions [39146208943](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39146208943) hat alle Schritte einschliesslich **zwei erfolgreicher identischer OCI-Builds**, **8 SHA-verifizierter OCI-Blobs** und echter netzisolierter Canary-/Reject-/404-Containertests erfolgreich abgeschlossen. Beobachtete Werte: Docker-Hub-Node-Base `sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402`; lokales OCI-Manifest `sha256:1ee2b30f6ba250e1f2ccc229edca2b3d0e60c1cbab196f8b3634fe182b2fd5dd`. **Der OCI-Digest ist ausdrücklich kein Artifact-Registry-Manifest-Digest; kein Image wurde gepusht/gescannt oder in GCP erstellt.** Der anschliessend eingefrorene Basisdigest verhindert künftiges stilles `node:22-alpine`-Tag-Driften. CI muss nach den jüngsten Branch-Änderungen erneut vollständig grün sein.
+
+**Bootstrap-Sicherheitsfix:** Ein bestehender privater fremder `roles/run.invoker` oder explizit deaktivierter IAM-Check blockiert nun den privaten Receiver-Readback. Nach der einzigen zulässigen Service-Invoker-Bindung ist ein strenger Policy-Readback nötig, *bevor* eine Push-Subscription erstellt würde. Dazu neue Tests für falsche, konditionierte, doppelte oder anonyme Invoker. **Keine** tatsächliche IAM-/GCP-Aktion. Die menschliche Freigabe, wirksame/effective IAM-/Deny/PAB-Betrachtung, Image-Security-/Provenance-Review, Kostenlimit und der konkrete Artifact-Registry-Digest bleiben separate NO-GO-Gates.
+
+**Ausführliche Dokumentation:** `docs/LSZH_G3_CANARY_IMAGE_BUILD_20261018.md`. Make `7940220` weiterhin inaktiv mit `0=1` vor Claim und E-Mail; Geschäfts-Drive weiterhin mit `lars@lszh-automations.ch`; keine Privatdateien oder Kundenaktionen. PR #5 weiterhin Draft, ungemergt.
+
+---
+
 ## 18.10.2026 – G3 Ein-Skript-Staging-Bootstrap synthetisch fertig vorbereitet, Cloud noch unverändert
 
 **Auftrag `Vamos`:** Auf ausdrücklichen Nutzerwunsch nach einem späteren **einzigen, vorher geprüften Cloud-Shell-Installationsschritt** ist ein neuer, **standardmässig nur lesender** Bootstrap entstanden: `scripts/g3-staging-bootstrap.mjs`. Ohne Argument bzw. mit `--plan` führt er nur bereits geprüfte, projektfeste GCP-Leseabfragen sowie einen aktivierten-Artifact-Registry-API-Check durch; **keine** Ressource/IAM/Rolle/Service/API wird angelegt. Bericht: `PLAN_READ_ONLY`, `releaseStatus=NO_GO`.

@@ -70,6 +70,42 @@ test('both AVV modes yield stable Drive multipart metadata and never an upload',
     assert.ok(!raw.includes('%PDF-'));
   }
 });
+test('proposed upload metadata is recognized after simulated upload crash',async()=>{
+  const {reconcileSyntheticReceiptArchive}=await import(
+    '../cloud-run/offer-portal-staging/receiptArchiveReconciliation.mjs');
+  for(const mode of ['Ja','Nein']){
+    const offer=await base(mode);
+    const plan=await makePlan(offer);
+    const candidate={
+      id:'1LSZHBusinessSyntheticReceipt00000000001',
+      name:plan.metadata.name,mimeType:plan.metadata.mimeType,
+      parents:plan.metadata.parents.slice(),size:plan.byteLength,
+      sha256Checksum:plan.byteSha256,
+      independentlyReadByteSha256:sha(PDF),
+      pdfHeaderVerified:true,trashed:false,
+      contentRestrictions:[{readOnly:true}],
+      properties:{...plan.metadata.properties}
+    };
+    const observation={source:'LSZH_SYNTHETIC_ARCHIVE_SCAN_OFFLINE_ONLY',
+      complete:true,folderId:FOLDER,items:[candidate]};
+    const checked=reconcileSyntheticReceiptArchive(offer,observation);
+    assert.equal(checked.status,'REVIEW_ONLY');
+    assert.equal(checked.reason,'one_correlated_candidate_requires_operator_review');
+    assert.equal(checked.canCreateReceipt,false);
+    assert.equal(checked.canSendEmail,false);
+    assert.equal(checked.candidateId,candidate.id);
+
+    const untagged=structuredClone(candidate);
+    delete untagged.properties;
+    const rejected=reconcileSyntheticReceiptArchive(offer,
+      {...observation,items:[untagged]});
+    assert.equal(rejected.status,'NO_GO');
+    const duplicate=reconcileSyntheticReceiptArchive(offer,
+      {...observation,items:[candidate,{...candidate,
+        id:'1LSZHBusinessSyntheticReceipt00000000002'}]});
+    assert.equal(duplicate.status,'NO_GO');
+  }
+});
 test('different PDF bytes keep stable correlation but produce conflicting byte hashes',async()=>{
   const offer=await base();
   const first=await makePlan(offer);

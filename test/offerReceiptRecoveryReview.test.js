@@ -23,8 +23,8 @@ function offer(mode='Ja'){
     details:{company:'Synthetic GmbH'},
     source:{kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',
       tableId:'tbljeIUoD7wwKuSmS',recordId:'rec12345678901234'},
-    bundle:{avv_required:mode,quote:files.quote,terms:files.terms,
-      ...(mode==='Ja'?{avv:files.avv}:{})},
+    bundle:{avv_required:mode,quote:structuredClone(files.quote),terms:structuredClone(files.terms),
+      ...(mode==='Ja'?{avv:structuredClone(files.avv)}:{})},
     downstream:{...enabled}
   };
 }
@@ -120,20 +120,12 @@ test('malformed synthetic provenance or altered evidence fails before any write'
     s=>{s.bundle.quote.sha256='f'.repeat(64);}
   ];
   for(const change of cases){
-    const initial=offer(),fake=fakeDb(initial),store=createFirestoreOfferStore(fake.db);
+    const initial=offer();
     change(initial);
-    if(initial.downstream.email==='enabled'){
-      // The fake datastore reflects the tampering before the claim.
-      const tampered=fakeDb(initial);
-      await assert.rejects(()=>createFirestoreOfferStore(tampered.db).claim(
-        tokenHash,offerFingerprint(initial),evidence(),at),/synthetic_receipt_review_invalid/);
-      assert.equal(tampered.updates(),0);
-    }else{
-      const tampered=fakeDb(initial);
-      await assert.rejects(()=>createFirestoreOfferStore(tampered.db).claim(
-        tokenHash,offerFingerprint(initial),evidence(),at),/synthetic_receipt_review_invalid/);
-      assert.equal(tampered.updates(),0);
-    }
+    const tampered=fakeDb(initial);
+    await assert.rejects(()=>createFirestoreOfferStore(tampered.db).claim(
+      tokenHash,offerFingerprint(initial),evidence(),at),/synthetic_receipt_review_invalid/);
+    assert.equal(tampered.updates(),0);
   }
   assert.throws(()=>buildSyntheticReceiptReview(offer('Nein'),evidence('Ja'),
     at.toISOString()),/synthetic_receipt_review_invalid/);

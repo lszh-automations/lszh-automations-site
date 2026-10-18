@@ -79,7 +79,7 @@ test('reject if client confirms a different document hash',async()=>{
   global.fetch=async()=>Response.json({records:[baseRecord]});
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:'c'.repeat(64),terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:'c'.repeat(64),terms_sha256:K};
     await api.accept(req,r);return r;
   });
   assert.equal(res.code,409);
@@ -104,7 +104,7 @@ test('store audit fields before dispatching confirmation webhook',async()=>{
   };
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
     await api.accept(req,r);return r;
   });
   assert.equal(res.code,200);
@@ -142,7 +142,7 @@ test('block acceptance before Airtable PATCH if archived hash does not match',as
   };
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
     await api.accept(req,r);return r;
   },{verify:async()=>false});
   assert.equal(res.code,409);

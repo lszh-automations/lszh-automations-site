@@ -1,5 +1,16 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Pilot-Freigabematrix erstellt, IAM-Vererbungsinventar als rein lesender Check vorbereitet
+
+Im Rahmen von `Vamos` wurden die Live-Szenarien in Make (inaktiv mit harten 0=1-Mail-/Claim-/Token-Gates), das Airtable-Geschäfts-CRM-Schema sowie PR #5 erneut geprüft. Die strukturierte [Pilot-Freigabematrix G1–G7](LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md) liegt neu im Feature-Branch. PR #5 bleibt **Draft, offen, ungemergt**; die PR-Beschreibung wurde mit den realen Cloud-Run-E2E-Ergebnissen und den offenen Produktivblockern aktualisiert.
+
+**Neuer rein lesender G1-Prüfer:** `scripts/offer-iam-hierarchy-readonly.py` nutzt nach expliziter Geschäftskonto-Identitätsprüfung nur `gcloud projects get-ancestors-iam-policy lszh-automations --include-deny --format=json`, wertet potenzielle öffentliche, unbekannte, benutzerdefinierte und bedingte IAM-Zuweisungen anonymisiert aus und gibt **keine** IAM-Principals, Gruppen, Policies, Tokens, Schreiboperationen oder IAM-GO-Aussage aus. Selbst bei unauffälligem Inventar lautet die technische Grenze `INVESTIGATION ONLY`: effektive Rollen, Service-Policies, Gruppen, IAM-Deny/Conditions müssen weiterhin betrieblich geprüft werden. Ohne Berechtigung/saubere Policy-Struktur wird der Test NO-GO. `--self-test` (ausschliesslich fiktive Offline-Daten) läuft im GitHub-Workflow. **Echter Geschäfts-Cloud-Shell-Lauf noch nicht ausgeführt.**
+
+**Zusätzliche Präzisierung G3:** `firestoreOfferStore.mjs` enthält eine einzelne transaktionale, offer-fingerprint-gesicherte Annahme-Statusänderung; das vorhandene echte Firestore-Emulator-E2E testet 12 gleichzeitige fiktive Annahmeversuche, exakt 1 erfolgreich und 11 abgelehnt. Das beweist **keine** produktive genau-einmal-Beleg-/Mail-/Airtable-Synchronisation, die als separates NO-GO offen bleibt. Keine neuen Make-Szenarien, keine Aktivierung, Kundenmails oder echte Verträge.
+
+---
+
+
 ## 18.10.2026 – Nach abgeschlossener Drive-Stagingprobe: Live-Bestandsaufnahme Make, Airtable und GitHub
 
 **Arbeitsauftrag `Vamos`: read-only-Überprüfung tatsächlich verbundener Apps, keine Kundenänderungen.**

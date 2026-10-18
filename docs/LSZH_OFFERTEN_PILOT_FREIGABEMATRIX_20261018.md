@@ -42,7 +42,7 @@
 ## C. Was wir als Nächstes sicher umsetzen
 
 1. **Kein weiteres Cloud-Run-Drive-Diagnose-Deployment:** Die temporäre Lese- und Sperrstrecke ist bestanden.
-2. **IAM-Vererbungsprüfung nur lesend vorbereiten**, mit ausdrücklich begrenzter Aussagekraft zu effektiven Rollen; keine IAM-Bindungen setzen.
+2. **IAM-Vererbungsprüfung nur lesend vorbereitet:** `scripts/offer-iam-hierarchy-readonly.py` fragt mit dem geschäftlichen Cloud-Konto ausschliesslich `gcloud projects get-ancestors-iam-policy ... --include-deny` ab und zeigt **nur aggregierte Risikozahlen**, keine Principal-IDs, Gruppen oder rohen Policydaten. `--self-test` läuft in CI. **Der Live-Betreiberlauf ist noch offen**; selbst bei unauffälligem Resultat heisst die Ausgabe absichtlich `INVESTIGATION ONLY`, nie `IAM GO`. Keine IAM-Bindungen setzen.
 3. **Prüffälle für G3/G4 auf vorhandener Codebasis vervollständigen:** insbesondere gleichzeitige Annahme, Revision-/Token-Replay, beidseitige AVV-Checkbox, erzwungener Fehler zwischen Belegarchivierung und Rückschreiben, Wiederanlauf ohne doppelte Kundenmail. Vorhandene Simulator-/Emulatortests weiterverwenden.
 4. **Original RC1/AVV-Richtlinien beschaffen und Entscheidungen protokollieren**, aber nicht als rechtsgültig markieren; Dokument- oder Signaturerstellung erst nach expliziter Geschäftswahl.
 5. Erst danach konkrete Entscheidung des Betreibers über **einen einzigen weiteren synthetischen Schreibtest** oder eine intern adressierte E-Mail – niemals implizit aus dem Startsignal `Vamos` ableiten.

@@ -10,7 +10,7 @@ const dig='a'.repeat(64);
 const good='docker.io/library/node:22-alpine@sha256:'+dig;
 const load=()=>import('../scripts/g3-canary-image-plan.mjs');
 
-test('review build source has exact nonroot, single-file, no-RUN Dockerfile',async()=>{
+test('review build source permits only exact npm removal and nonroot single-file runtime',async()=>{
   const {main,auditDockerfile}=await load();
   const r=main([]);
   assert.equal(r.status,'SOURCE_ONLY_VALID');
@@ -21,7 +21,8 @@ test('review build source has exact nonroot, single-file, no-RUN Dockerfile',asy
   assert.match(r.inputs.receiverSha256,/^[a-f0-9]{64}$/);
   const source=fs.readFileSync(path.join(root,'cloud-run/g3-review-staging/Dockerfile'),'utf8');
   for(const line of ['RUN apk add curl','COPY . /srv','USER root','FROM node:22-alpine',
-    'ENV GOOGLE_APPLICATION_CREDENTIALS=/tmp/key']){
+    'ENV GOOGLE_APPLICATION_CREDENTIALS=/tmp/key',
+    'RUN rm -rf /srv', 'RUN curl https://example.invalid']){
     assert.equal(auditDockerfile(source+'\n'+line),false,line);
   }
 });

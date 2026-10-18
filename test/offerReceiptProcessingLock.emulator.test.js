@@ -74,10 +74,39 @@ if(!ENV_OK){
     const key=original.receiptReview.idempotencyKey;
     const a='TEST_ATTEMPT_AAAA123456789012';
     const b='TEST_ATTEMPT_BBBB123456789012';
+    const {prepareSyntheticMakeReceiptReservation,
+      describeSyntheticMakeReservationResult}=await import(
+        '../cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs');
+    const makeRequest=id=>({
+      schemaVersion:1,channel:'LSZH_MAKE_RECEIPT_REVIEW_STAGING_V1',
+      syntheticOnly:true,sourceRecordId:recordId,
+      receiptReviewKey:key,attemptId:id
+    });
+    // Make passes only non-customer correlation; server resolves and validates
+    // the Firestore source record before each emulator-only transaction.
+    const readyA=prepareSyntheticMakeReceiptReservation(original,makeRequest(a));
+    const readyB=prepareSyntheticMakeReceiptReservation(original,makeRequest(b));
+    assert.equal(readyA.status,'VALIDATED_OFFLINE_ONLY');
+    assert.equal(readyB.status,'VALIDATED_OFFLINE_ONLY');
+    assert.equal(readyA.canCreateGoogleDoc,false);
+    assert.equal(readyB.canCreateGoogleDoc,false);
     const result=await Promise.all([
-      storeA.reserveSyntheticReceiptReview(tokenHash,key,a,NOW),
-      storeB.reserveSyntheticReceiptReview(tokenHash,key,b,NOW)
+      storeA.reserveSyntheticReceiptReview(tokenHash,readyA.receiptReviewKey,
+        readyA.attemptId,NOW),
+      storeB.reserveSyntheticReceiptReview(tokenHash,readyB.receiptReviewKey,
+        readyB.attemptId,NOW)
     ]);
+    const makeOutcomes=[
+      describeSyntheticMakeReservationResult(original,makeRequest(a),result[0]),
+      describeSyntheticMakeReservationResult(original,makeRequest(b),result[1])
+    ];
+    for(const outcome of makeOutcomes){
+      assert.equal(outcome.status,'STOP_REVIEW_ONLY');
+      assert.equal(outcome.stopBeforeModule,5);
+      assert.equal(outcome.canCreateGoogleDoc,false);
+      assert.equal(outcome.canUpload,false);
+      assert.equal(outcome.canSendEmail,false);
+    }
     assert.equal(result.filter(x=>x==='RESERVED_REVIEW_ONLY').length,1);
     assert.equal(result.filter(x=>x==='LOCKED_BY_OTHER_ATTEMPT').length,1);
     const saved=(await ref.get()).data();

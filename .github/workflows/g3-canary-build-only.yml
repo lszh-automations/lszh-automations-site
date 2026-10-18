@@ -15,6 +15,7 @@ on:
       - 'scripts/g3-zlib-candidate-integrity.mjs'
       - 'test/g3ZlibCandidateIntegrity.test.js'
       - 'test/g3ZlibExperimentalBuild.test.js'
+      - 'scripts/g3-zlib-oci-diff-diagnose.py'
       - 'test/g3SignedArtifactVerify.test.js'
       - 'test/g3UpstreamBaseReview.test.js'
       - 'test/g3CanaryProvenance.test.js'
@@ -45,7 +46,7 @@ jobs:
           set -euo pipefail
           node --check scripts/g3-canary-image-plan.mjs
           node --check cloud-run/g3-review-staging/index.mjs
-          python3 -m py_compile scripts/g3-canary-oci-verify.py
+          python3 -m py_compile scripts/g3-canary-oci-verify.py scripts/g3-zlib-oci-diff-diagnose.py
           node --check scripts/g3-canary-security-review.mjs
           node --check scripts/g3-canary-provenance-correlation.mjs
           node --check scripts/g3-upstream-base-review.mjs
@@ -289,10 +290,17 @@ jobs:
               --output "type=oci,dest=${RUNNER_TEMP}/g3-zlib-experiment-${i}.oci.tar,oci-mediatypes=true,rewrite-timestamp=true" \
               "$context"
           done
-          python3 scripts/g3-canary-oci-verify.py \
+          if ! python3 scripts/g3-canary-oci-verify.py \
             "${RUNNER_TEMP}/g3-zlib-experiment-1.oci.tar" \
             "${RUNNER_TEMP}/g3-zlib-experiment-2.oci.tar" \
-            | tee g3-zlib-experiment-oci-report.json
+            | tee g3-zlib-experiment-oci-report.json; then
+            python3 scripts/g3-zlib-oci-diff-diagnose.py \
+              "${RUNNER_TEMP}/g3-zlib-experiment-1.oci.tar" \
+              "${RUNNER_TEMP}/g3-zlib-experiment-2.oci.tar" \
+              | tee g3-zlib-experiment-difference.json
+            echo "BLOCKED_PATCHED_OCI_NOT_REPRODUCIBLE"
+            exit 2
+          fi
           echo "NO_GO: local OCI candidate only; never pushed or deployed."
 
       - name: Verify patched runtime behavior and CVEs (still NOT released)
@@ -379,6 +387,7 @@ jobs:
             g3-upstream-base-trivy.json
             g3-zlib-patch-integrity.json
             g3-zlib-experiment-oci-report.json
+            g3-zlib-experiment-difference.json
             g3-zlib-experiment-trivy.json
           if-no-files-found: ignore
           retention-days: 7

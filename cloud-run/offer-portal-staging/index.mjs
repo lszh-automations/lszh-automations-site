@@ -22,12 +22,23 @@ const driveCheck=temporaryDriveProbeConfig(process.env,tempConfig);
 let driveCheckPromise;
 const readOnlyDriveCheck=driveCheck.enabled?()=>{
   driveCheckPromise ??=(async()=>{
-    // Uses the Cloud Run runtime service identity only; NEVER a JSON key.
-    const auth=new GoogleAuth({scopes:['https://www.googleapis.com/auth/drive.readonly']});
-    const token=await auth.getAccessToken();
-    if(!token)throw Error('temp_drive_identity_unavailable');
+    // Only fixed diagnostic codes; never log tokens, provider error text,
+    // URLs, Drive file IDs, filenames or PDF content.
+    const diagnostic=process.env.LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED==='true';
+    let token;
+    try{
+      // Uses the Cloud Run runtime service identity only; NEVER a JSON key.
+      const auth=new GoogleAuth({scopes:['https://www.googleapis.com/auth/drive.readonly']});
+      token=await auth.getAccessToken();
+      if(!token)throw Error('temp_drive_identity_unavailable');
+    }catch{
+      if(diagnostic)console.warn('LSZH_TEMP_DRIVE_DIAG:TOKEN');
+      throw Error('temp_drive_identity_unavailable');
+    }
     return verifySyntheticDriveReadOnly({
-      folder:driveCheck.folder,hashes:driveCheck.hashes,accessToken:token
+      folder:driveCheck.folder,hashes:driveCheck.hashes,accessToken:token,
+      onDiagnostic:diagnostic?
+        code=>console.warn('LSZH_TEMP_DRIVE_DIAG:'+code):undefined
     });
   })();
   return driveCheckPromise;

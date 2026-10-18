@@ -1,6 +1,8 @@
-# Only synthetic private-transport canary. No third-party packages.
-# SHA digest must be pinned and approved before any deployment.
-FROM node:22-alpine
+# G3 synthetic-only private Cloud Run receiver.
+# Build must supply a digest-pinned, independently reviewed base image.
+# No default base image: accidental floating-tag builds fail closed.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
 WORKDIR /srv
 COPY --chown=node:node index.mjs /srv/index.mjs
 ENV NODE_ENV=production

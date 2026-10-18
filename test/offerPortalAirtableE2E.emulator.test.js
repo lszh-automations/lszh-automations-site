@@ -89,13 +89,14 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    {timeout:90000},async t=>{
    const [{Firestore},{SOURCE,mapSyntheticAirtableOffer,seedOnlyLocalEmulator},
     {createOfferPortal},{createOfferPortalHttp},{createFirestoreOfferStore},
-    {verifyArchiveBundle}]=await Promise.all([
+    {verifyArchiveBundle},{prepareSyntheticReceiptDocument}]=await Promise.all([
     Promise.resolve(loadSDK('@google-cloud/firestore')),
     import('../cloud-run/offer-portal-staging/airtableSyntheticImport.mjs'),
     import('../cloud-run/offer-portal-staging/portalCore.mjs'),
     import('../cloud-run/offer-portal-staging/portalHttp.mjs'),
     import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs'),
-    import('../cloud-run/archive-reader-staging/archiveBundleVerifier.mjs')
+    import('../cloud-run/archive-reader-staging/archiveBundleVerifier.mjs'),
+    import('../cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs')
    ]);
    const db=new Firestore({projectId:PROJECT,databaseId:DATABASE});
    const token=randomBytes(36).toString('base64url');
@@ -192,6 +193,18 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    if(mode==='Nein')assert.ok(!drive.requests.includes(docs.avv.id),'no AVV PDF accessed');
    assert.ok(drive.requests.includes(docs.quote.id));
    assert.ok(drive.requests.includes(docs.terms.id));
+   // The existing Google Docs -> PDF Make mapping can now be prepared directly
+   // from the exact accepted Firestore record. No Make call, PDF export or mail.
+   const documentPlan=prepareSyntheticReceiptDocument(end,{folderId:FOLDER});
+   assert.equal(documentPlan.module,'google-docs:createADocument');
+   assert.equal(documentPlan.action,'DO_NOT_CREATE');
+   assert.equal(documentPlan.mapper.folderId,FOLDER);
+   assert.ok(documentPlan.mapper.content.includes(end.offerNumber));
+   assert.ok(documentPlan.mapper.content.includes(end.evidence.accepted_at_utc));
+   assert.ok(documentPlan.mapper.content.includes(docs.quote.sha256));
+   assert.equal(documentPlan.mapper.content.includes('AVV-Version:'),mode==='Ja');
+   assert.equal(documentPlan.canExportPdf,false);
+   assert.equal(documentPlan.canSendEmail,false);
   });
  }
 }

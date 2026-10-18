@@ -17,6 +17,9 @@ const NAMES=Object.freeze([
 ]);
 
 export function temporaryDriveProbeConfig(env={},tempConfig={enabled:false}){
+ if(env.LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED==='true' &&
+    env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true')
+   throw Error('temporary_drive_diagnostics_requires_probe');
  if(env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED!=='true')return {enabled:false};
  if(tempConfig.enabled!==true||env.LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED!=='true'||
     env.LSZH_PORTAL_STAGING_ENABLED!=='false')

@@ -99,3 +99,29 @@ test('Cloud staging opt-in callback executes one fake Airtable GET/PATCH after a
  assert.equal(again.result,'already_identical');
  assert.deepEqual(methods,['GET','PATCH','GET']);
 });
+
+test('browser callback requires validated single-record runtime before any provider call',async()=>{
+ const {stagingConfig,BROWSER_PILOT}=await import('../cloud-run/offer-portal-staging/stagingConfig.mjs');
+ const {createStagingAirtableCallback}=await import('../cloud-run/offer-portal-staging/stagingAirtableRuntime.mjs');
+ const browserEnv={...env,K_SERVICE:BROWSER_PILOT.service,
+   K_REVISION:'lszh-offer-browser-staging-00007-syn',
+   GOOGLE_CLOUD_PROJECT:'lszh-automations',
+   LSZH_PORTAL_STAGING_ENABLED:'true',LSZH_PORTAL_BROWSER_PILOT_ENABLED:'true',
+   LSZH_PORTAL_DATABASE:'lszh-offers-staging',
+   LSZH_PORTAL_ARCHIVE_FOLDER:'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko',
+   LSZH_PORTAL_TERMS_VERSION:'TEST_v1.0_RC1',
+   LSZH_PORTAL_ORIGIN:BROWSER_PILOT.origins[1],
+   LSZH_PORTAL_PROOF_SALT:'1234567890ABCDEFRANDOMSTAGING0987654321ABCDE',
+   LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED:'true',
+   LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:BROWSER_PILOT.sourceRecordId};
+ let calls=0;
+ const fetcher=()=>{calls++;throw Error('unexpected provider call');};
+ const cfg=stagingConfig(browserEnv);
+ assert.equal(typeof createStagingAirtableCallback({config:cfg,env:browserEnv,fetcher}),'function');
+ assert.equal(calls,0);
+ assert.throws(()=>createStagingAirtableCallback({
+   config:cfg,env:{...browserEnv,LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:'rec12345678901234'},fetcher
+ }),/staging_browser_pilot_invalid/);
+ assert.throws(()=>createStagingAirtableCallback({config,env:browserEnv,fetcher}),/staging_airtable_runtime_invalid/);
+ assert.equal(calls,0);
+});

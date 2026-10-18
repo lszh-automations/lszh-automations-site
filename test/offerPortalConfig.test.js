@@ -49,7 +49,30 @@ test('hard-pinned cloud release gates reject real contracts and all acceptance P
  const fs=require('node:fs');
  const source=fs.readFileSync('cloud-run/offer-portal-staging/index.mjs','utf8');
  assert.match(source,/syntheticOnly:true/);
- assert.match(source,/acceptEnabled:false/);
+ assert.match(source,/acceptEnabled:config\.acceptEnabled===true/);
+ assert.match(source,/syntheticAcceptRecordId:config\.acceptEnabled\?config\.sourceRecordId:undefined/);
  const adapter=fs.readFileSync('cloud-run/offer-portal-staging/portalHttp.mjs','utf8');
  assert.match(adapter,/path==='\/api\/offer\/accept' && acceptEnabled!==true/);
+});
+
+test('one-record synthetic acceptance is explicit and keeps business Airtable linked',async()=>{
+ const {stagingConfig}=await import('../cloud-run/offer-portal-staging/stagingConfig.mjs');
+ const no=stagingConfig(good);
+ assert.equal(no.enabled,true);
+ assert.equal(no.acceptEnabled,false);
+ assert.equal(no.sourceRecordId,undefined);
+ const sourceRecordId='rec12345678901234';
+ const enabled={...good,LSZH_PORTAL_SYNTHETIC_ACCEPT_ENABLED:'true',
+   LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:sourceRecordId,
+   LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED:'true'};
+ const yes=stagingConfig(enabled);
+ assert.equal(yes.acceptEnabled,true);
+ assert.equal(yes.sourceRecordId,sourceRecordId);
+ for(const change of [
+   {LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:undefined},
+   {LSZH_PORTAL_SYNTHETIC_SOURCE_RECORD_ID:'invalid'},
+   {LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED:'false'},
+   {LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED:undefined}
+ ])assert.throws(()=>stagingConfig({...enabled,...change}),/staging_synthetic_accept_config_invalid/);
+ assert.deepEqual(stagingConfig({...enabled,LSZH_PORTAL_STAGING_ENABLED:'false'}),{enabled:false});
 });

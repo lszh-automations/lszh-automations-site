@@ -43,14 +43,15 @@ async function subject(mode='Ja'){
 }
 function candidate(offer,id=A){
   return {
-    id,name:'LSZH_TEST_ONLY_RECEIPT_NO_CONTRACT.pdf',
+    id,name:'LSZH_TEST_ONLY_'+offer.receiptReview.idempotencyKey+'_NO_CONTRACT.pdf',
     mimeType:'application/pdf',parents:[FOLDER],size:36,
     sha256Checksum:HASH,independentlyReadByteSha256:HASH,
     pdfHeaderVerified:true,trashed:false,
     contentRestrictions:[{readOnly:true}],
-    appProperties:{lszhSyntheticOnly:'TRUE',
+    properties:{lszhSyntheticOnly:'TRUE',
       lszhReceiptReviewKey:offer.receiptReview.idempotencyKey,
-      lszhSourceRecordId:offer.source.recordId}
+      lszhSourceRecordId:offer.source.recordId,
+      lszhReceiptPdfSha256:HASH}
   };
 }
 function scan(items=[],other={}){
@@ -91,7 +92,7 @@ test('no matching file is NOT proof that it was never uploaded',async()=>{
   for(const observation of [
     scan([]),
     scan([{...candidate(offer),id:B,
-      appProperties:{...candidate(offer).appProperties,
+      properties:{...candidate(offer).properties,
         lszhReceiptReviewKey:'f'.repeat(64)}}])
   ]){
     const result=await evaluate(offer,observation);
@@ -121,9 +122,11 @@ test('correlated candidate must match business folder, PDF bytes and strict synt
     c=>{c.sha256Checksum='f'.repeat(64);},
     c=>{c.independentlyReadByteSha256='e'.repeat(64);},
     c=>{c.pdfHeaderVerified=false;},
-    c=>{c.appProperties.lszhSourceRecordId='rec00000000000000';},
-    c=>{c.appProperties.lszhSyntheticOnly='FALSE';},
-    c=>{c.name='Real_Invoice.pdf';}
+    c=>{c.properties.lszhSourceRecordId='rec00000000000000';},
+    c=>{c.properties.lszhSyntheticOnly='FALSE';},
+    c=>{c.name='Real_Invoice.pdf';},
+    c=>{c.name='LSZH_TEST_ONLY_OTHER_NO_CONTRACT.pdf';},
+    c=>{c.properties.lszhReceiptPdfSha256='d'.repeat(64);}
   ];
   for(const change of changes){
     const c=candidate(offer);change(c);

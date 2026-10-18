@@ -1,5 +1,19 @@
 # LSZH Automations – MVP-Fokus und nächster Pilot
 
+## 18.10.2026 – Ein vollständiges synthetisches Online-Vertragspaket ist bereit
+
+**Konkretes Ergebnis: Der fiktive Kunde «Mustercoiffeur TEST GmbH» und die Testofferte `OFF-TEST-AVV-20261018-001` sind jetzt in allen drei Vertrags-PDFs konsistent.** Alle Dateien liegen im **geschäftlichen** Google Drive, nicht im Privatkonto:
+
+- [TEST_ONLY Offerte, 1 PDF-Seite](https://drive.google.com/file/d/1QIjkk-5FjQq9LUGddI0fQTdD-4UM_1gq/view), Dateiid `1QIjkk-5FjQq9LUGddI0fQTdD-4UM_1gq`, im bestehenden geschäftlichen Ordner `Offerten-PDF`. Synthetischer einmaliger Beispielpreis CHF 1'490, monatliche Betreuung CHF 149, keine Zahlung oder reale Leistungszusage.
+- [Projektbedingungen v1.0 RC1 – Kundenfassung in Endkontrolle, NICHT VERSENDEN](https://drive.google.com/file/d/1jCCNkO_ZQSx70juwCmAK5bEHl3CToXiw/view), Dateiid `1jCCNkO_ZQSx70juwCmAK5bEHl3CToXiw`, im Ordner `Projektbedingungen`. Die Regeln wurden vom Betreiber geschäftlich bereits akzeptiert, die redaktionell bearbeitete Endfassung bleibt dennoch vor Kundenversand zu kontrollieren.
+- [TEST_ONLY AVV v0.9 RC1 einschliesslich synthetischer Anlagen A–C, 6 PDF-Seiten](https://drive.google.com/file/d/1XYjomyY5VmicoHMJIB-Ewfd4E33mEpHf/view), Dateiid `1XYjomyY5VmicoHMJIB-Ewfd4E33mEpHf`. [Bearbeitbare Test-AVV](https://docs.google.com/document/d/1Lfh_WRp-TyqQ2useZsW9YBHkGuf6hBNP-Dp3c8smTK4/edit). 12 Vertragsabschnitte aus der ursprünglichen RC1-Vorlage inhaltlich übernommen; die 15 Felder des Projekt- und Datensteckbriefs sind mit **ausdrücklich erfundenen** Coiffeur-Daten ausgefüllt. TOM- und Subprozessor-Angaben stehen als **Testannahmen und keine bestätigten Realzustände oder echten Genehmigungen** im Dokument.
+
+**Der bestehende Online-Demobildschirm** `offerte-annehmen/?demo=1` wurde im Draft-Branch auf denselben fiktiven Kunden, Offertennummer, Beispielpreise, Endkontrollversion und AVV v0.9 RC1 eingestellt. Das ist nur eine **nicht verbindliche Designvorschau ohne Zugriff auf die privaten Drive-PDFs**, kein echter Kundenlink und kein realer POST. Die bereits vorhandenen realistischen HTTP-/Firestore-Emulator-/Chromium-Tests prüfen separat das PDF-/Hash-gebundene Annahmeprinzip für AVV=Ja und AVV=Nein. **Das konkrete Paket ist noch nicht als aktivierbare Offerte in Airtable/Make hinterlegt**; keine echten E-Mails, Online-Annahmen oder Vertragsabschlüsse.
+
+**Nächster nutzbarer Schritt:** Die endgültig für Kunden freigegebenen PDF-Versionen per tatsächlichem Drive-Dateiinhalt und Hash im existierenden Offerten-/Annahmeprozess hinterlegen. Dann eine einzige bewusst kontrollierte Pilotannahme einschliesslich Mail- und Belegweg autorisieren. Dafür benötigt es keine zusätzliche G3-/Pub/Sub-/Registry-Arbeit und kein neues Make-Szenario. Die bisherige Abschlusssperre bleibt bis zu einem ausdrücklichen Betreiber-GO.
+
+---
+
 ## 18.10.2026 – Geschäfts-Drive: Projektbedingungen als PDF und Google Doc vorhanden
 
 **Die bisherige PDF-Upload-Sperre ist behoben, kein Workaround oder neues Szenario notwendig.** Die bereits im geschäftlichen Drive abgelegte Kundenfassung in Endkontrolle ist nun im Ordner `Projektbedingungen` in zwei Formaten vorhanden und durch erneutes Drive-Ordnerlisting bestätigt:

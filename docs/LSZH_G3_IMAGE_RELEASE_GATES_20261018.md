@@ -67,3 +67,32 @@ jedem tatsächlichen `--apply` separat zu schliessen.
 **Betrieb unverändert:** Make `7940220` inactive und Claim-/Mail-Pfade
 `0=1`, ausschliesslich Geschäfts-Drive `lars@lszh-automations.ch`,
 kein realer Kunde, Vertrag, PDF-Mailversand oder Firestore-Schreibzugriff.
+
+## Verifizierter initialer Scan und abgegrenzte Behebung (18.10.2026)
+
+**Erster vollständiger Scan:** [GitHub Actions 39147203165](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147203165) **SUCCESS als Prüfungsworkflow**, nicht als Security-Approval:
+`CRITICAL=0`, `HIGH=11`, `MEDIUM=10`, `LOW=1`, `UNKNOWN=0`;
+**217** SBOM-Komponenten. Für 10 hohe Befunde nennt Trivy Fix-Versionen,
+für 1 keine. Die 11 Funde stammen aus Node.js-Distributionskomponenten
+`brace-expansion` (5 Befunde), `http-cache-semantics` (1),
+`ip-address` (1), `pacote` (2), `picomatch` (1) und
+`sigstore` (1). Die genaue Einzelfallliste steht im
+`g3-security-review.json`-Artifact von
+[GitHub Actions 39147340026](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39147340026).
+
+**Remediation im Draft, bisher keine Cloud-Aktion:**
+Der Canary verwendet ausschliesslich `node /srv/index.mjs`, **nicht**
+das Paketmanagement. Der Dockerfile entfernt deshalb im isolierten
+Build präzise die vorinstallierten npm-/Corepack-Bibliotheken und deren
+Launcher. Dieser einzige `RUN`-Befehl ist exakt durch die
+Source-Policy whitelistet und unter `--network none` ausgeführt.
+Ein isolierter Container-Smoke prüft ausdrücklich, dass `node`
+weiter läuft und kein npm/Corepack mehr enthalten ist. Zusätzlich
+bleiben SHA-256-Doppelbuild, CycloneDX, Trivy und Quelltests zwingend.
+Die Wirksamkeit gilt **erst** mit einem dokumentierten erfolgreichen
+Folgelauf als bestätigt.
+
+**Sicherheitsgrenze:** Die Softwarekomponentenfunde sind nicht automatisch
+ausnutzbare Cloud-Run-Schwachstellen. Umgekehrt beweist ein späterer
+Scan mit weniger Treffern keine vollständige Sicherheit, signierte
+Provenance oder Deployberechtigung. `NO_GO` gilt unabhängig vom Ergebnis.

@@ -11,6 +11,8 @@ const expected=[
   'ARG BASE_IMAGE',
   'FROM ${BASE_IMAGE}',
   'WORKDIR /srv',
+  // This single network-free remove-only command is the ONLY permitted RUN.
+  'RUN test -d /usr/local/lib/node_modules/npm && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack',
   'COPY --chown=node:node index.mjs /srv/index.mjs',
   'ENV NODE_ENV=production',
   'USER node',

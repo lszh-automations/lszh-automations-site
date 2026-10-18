@@ -213,5 +213,8 @@ if(!LOCAL){
     const poisoned=await resolveAndReserveSyntheticMakeLocalEmulator(db,fake,NOW);
     assert.equal(poisoned.status,'NO_GO');
     assert.equal((await offerRef.get()).data().receiptReviewLock,undefined);
+    // Return the explicitly synthetic index to its original value so
+    // the strict owned-fixture cleanup can verify and delete both records.
+    await idxRef.update({sourceRecordId:item.source.recordId});
   });
 }

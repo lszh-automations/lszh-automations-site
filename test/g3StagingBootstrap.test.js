@@ -50,7 +50,7 @@ test('approve is fail closed without separate future scope and pinned image SHA'
   assert.equal(auditImageReference(digest),true);
   assert.equal(validateOperatorIntent({mode:'apply',
     approval:'LSZH_G3_SYNTHETIC_PRIVATE_TRANSPORT_ONLY',
-    image:digest}).status,'APPLY_ALLOWED_ONLY_AFTER_REAL_OPERATOR_APPROVAL');
+    image:digest}).status,'APPLY_INPUT_VALID_BUT_RELEASE_BLOCKED');
 });
 test('strict fixed resource scope rejects existing, unknown or missing APIs',async()=>{
   const {verifyReadOnlySnapshot}=await load();

@@ -9,6 +9,8 @@ on:
       - 'scripts/g3-canary-security-review.mjs'
       - 'scripts/g3-canary-provenance-correlation.mjs'
       - 'scripts/g3-upstream-base-review.mjs'
+      - 'scripts/g3-signed-artifact-verify-readonly.sh'
+      - 'test/g3SignedArtifactVerify.test.js'
       - 'test/g3UpstreamBaseReview.test.js'
       - 'test/g3CanaryProvenance.test.js'
       - 'test/g3CanarySecurityReview.test.js'
@@ -42,7 +44,8 @@ jobs:
           node --check scripts/g3-canary-security-review.mjs
           node --check scripts/g3-canary-provenance-correlation.mjs
           node --check scripts/g3-upstream-base-review.mjs
-          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js test/g3UpstreamBaseReview.test.js
+          bash -n scripts/g3-signed-artifact-verify-readonly.sh
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js test/g3UpstreamBaseReview.test.js test/g3SignedArtifactVerify.test.js
           node scripts/g3-canary-image-plan.mjs
 
       - name: Verify fixed candidate base SHA lock (Docker Hub read-only)

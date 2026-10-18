@@ -1,5 +1,19 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Temporäre sichere Fehlerphasendiagnose in Cloud Run deployed; Live-Probe noch offen
+
+**Echter Betreiber-Deploynachweis:**
+- `scripts/offer-temp-drive-phase-release.sh --apply 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` im frischen Feature-Branch erfolgreich ausgeführt.
+- Alle fail-closed Gates **vor Build** bestanden: ursprüngliches Offertenportal-Preflight (Revision, Ingress, Identität) unverändert; temporäre Dienstrevision `00003-j2p` und namentlicher Cloud-Run-Invoker korrekt; **explizit `PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks.`**
+- Cloud Build `156de310-ffcd-4f5f-aaf4-e10e5d52767c` **SUCCESS**; neues ausschliesslich temporäres Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-browser-staging:708dd11a1e37`, Digest `sha256:e5d91a6c3408b01f7955da954d150a32677a3f89e5a48372bd0b30b65cfe473e`.
+- **Nur temporärer** Cloud-Run-Dienst `lszh-offer-browser-staging` auf Revision `lszh-offer-browser-staging-00004-nk6` aktualisiert; 100 % Traffic **innerhalb dieses temporären Dienstes**, bestehendes Dienstkonto `lszh-offer-browser-tmp@lszh-automations.iam.gserviceaccount.com`. Skript meldet `SUCCESS: temporary read-only Drive phase diagnostic revision deployed. No data writes.`
+- Original-Preflight nach Deployment erneut PASS; keine direkten öffentlichen Service-IAM-Bindings festgestellt. **Einschränkung:** Das Prüfskript weist ausdrücklich darauf hin, dass geerbte IAM-Rechte nicht vollständig evaluiert wurden; daraus folgt keine Freigabe für produktive Deployments. Keine neuen IAM- oder Drive-Freigaben, Firestore-Schreibzugriffe, E-Mails oder Vertragsannahmen aus diesem Ablauf.
+
+**Aktueller noch OFFENER Nachweis:** Unter dem tatsächlichen temporären Cloud-Run-Dienstkonto exakt einen IAM-authentifizierten **GET `/_lszh/synthetic-drive-check`** ausführen und das Ergebnis HTTP 200 bzw. 503 feststellen; falls 503, in Cloud Logging **ausschliesslich** `LSZH_TEMP_DRIVE_DIAG:<FESTE_PHASE>` aus genau Revision `00004-nk6` lesen. Zulässige Phasen laut Code: `TOKEN`, `FOLDER_API`, `FOLDER_VALIDATE`, `LIST_API`, `LIST_VALIDATE`, `PDF_YES_API`, `PDF_YES_INTEGRITY`, `PDF_NO_API`, `PDF_NO_INTEGRITY`. Fehlende Logzeilen sind nicht als PASS zu interpretieren. Logging enthält keine rohen Providerfehler, Tokens oder Datei-IDs. **Kein** erneuter Build, kein Deployment, kein breiteres IAM. Vor erfolgreichem Cloud-Run-Live-Drive-Check keine Aussage, dass die Integration fertig sei.
+
+---
+
+
 ## 18.10.2026 – Korrigierte Live-Vorabprüfung der Phasendiagnose vollständig PASS
 
 **Echte Geschäfts-Cloud-Shell-Ausgabe des Betreibers:**

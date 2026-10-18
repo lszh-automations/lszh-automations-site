@@ -45,7 +45,7 @@ function verifiedSource(item,recordId){
     item.source.recordId===recordId &&
     RECORD.test(recordId||'') && SHA.test(item.tokenHash||'') &&
     /^TEST[-_][A-Z0-9_-]{8,90}[-_]NO[-_]CONTRACT$/.test(item.offerNumber||'') &&
-    /^[a-z0-9._%+-]+@(?:[a-z0-9-]+\\.)*example\\.invalid$/.test(item.recipientEmail||'') &&
+    /^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)*example\.invalid$/.test(item.recipientEmail||'') &&
     item.termsVersion==='TEST_v1.0_RC1' &&
     item.downstream?.airtable==='disabled' &&
     item.downstream?.proofPdf==='disabled' &&

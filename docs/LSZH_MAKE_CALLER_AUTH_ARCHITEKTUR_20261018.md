@@ -1,5 +1,15 @@
 # LSZH Automations – G3 Authentifizierung Make → interner Reservierungsdienst
 
+## Entscheid-Ergänzung 18.10.2026 – Pub/Sub-Transport vor direktem WIF priorisiert
+
+Die untere WIF-Skizze bleibt **nur eine Vergleichsvariante** und ist für diesen Pilot **nicht mehr die bevorzugte nächste Prüfrichtung**. In der verbundenen Make-Organisation konnte `google-cloud-pubsub:publishMessage` Version 1 tatsächlich gefunden werden; der Modul-Spec meldet Credential-Typ `account:google-custom` und **keine vorhandene passende Verbindung (`existing: []`)**. Aktueller Architekturbeschluss: **Make → eng berechtigtes Google Pub/Sub Topic → authentifizierte Push-Subscription → Cloud Run mit `ingress=internal` → atomarer Firestore-Review-Lock** als vorrangiger *Prüfpfad*, noch nicht aktiviert.
+
+Die Identitätsgrenze würde mit Pub/Sub **innerhalb Google Cloud** verlaufen; Make müsste dann lediglich über einen im Geschäftskonto autorisierten, minimalen OAuth-Publisher-Principal das **eine** Topic beschreiben können, kein Cloud-Run-ID-Token via WIF erzeugen. Pub/Sub Push kann bei passender Projekt- und IAM-Konfiguration interne Cloud-Run-Ziele per eigener Google-signierter Identität aufrufen. Dafür braucht der Push-Invoker `roles/run.invoker` nur auf dem Ziel-Dienst, und Pub/Sub-Service-Agent benötigt OIDC-Token-Erstellung für **genau diesen Push-Dienstaccount**. Keine pauschale Projekt-TokenCreator-Rolle vorsehen. **Publisher OAuth, Scopes, IAM und Netz tatsächlich noch nicht verifiziert oder eingerichtet.** Der Make-Modul-2-Gate müsste für eine spätere asynchrone Veröffentlichung separat umgebaut werden; der gleiche Make-Lauf dürfte **nicht** zu Google Docs Modul 5 weiterspringen.
+
+**Wichtig:** Pub/Sub Push ist *at least once*, nicht genau-einmal. Das bisherige atomare Firestore-Review-Gate bleibt notwendig; keine Annahme oder Beleg-/Mail-GO nur durch Publish-ACK. Dokumentation und aktuelle Optionen unter `docs/LSZH_G3_TRANSPORT_ARCHITEKTUR_ADR_20261018.md`. Ein rein offline testbarer, nicht ausführbarer Nachrichtenvertrag ist `syntheticPubsubReviewTransport.mjs`. Vier Varianten inklusive Cloud-Scheduler-Poll als Alternative sind im ADR verglichen. **Keine** Ressourcen, Credentials, IAM-Bindungen, Deployments oder Szenarien verändert.
+
+---
+
 ## 18.10.2026 – LIVE-MAKE-READONLY-FEASIBILITY-CHECK
 
 **Verifizierter Kontokontext:** Make-Zone `eu1.make.com`, Organisation `LZSH AUTOMATIONS` (ID 7700421), Team `1728770`, Plan `Pro`. Gelesen mit `environment_get`/`organization_get` ohne Schreiboperationen. Existierendes Beleg-Szenario `7940220` weiter `inactive`, Claim-Gate in Modul 2 und Mail-Gate in Modul 8 weiterhin `0=1`; Make-Verbindungen zu Airtable, Drive, Docs und Gmail sind als `ok` gemeldet. In der Organisation sind keine Make-Custom-Apps verzeichnet; das ist kein Nachweis über externe Identitätsanbieter.

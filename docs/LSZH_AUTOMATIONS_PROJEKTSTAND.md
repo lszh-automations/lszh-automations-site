@@ -1,5 +1,20 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Sicherheitsfehler im Phasendiagnose-Release-Check abgefangen und behoben
+
+**Operativer Cloud-Shell-Befund vom Betreiber:** `scripts/offer-temp-drive-phase-release.sh --check` hat zunächst den originalen Preflight, die temporäre Revision `00003-j2p` und die namentliche IAM-Invoker-Rolle erfolgreich read-only geprüft. Der eingebettete Python-Drive-Check ist jedoch wegen einer fehlerhaft konstruierten Bash-Heredoc-Zeile mit `IndentationError: unexpected indent` gescheitert. **Trotzdem** folgte `READ-ONLY CHECK PASS`. Diese konkrete Erfolgsmeldung ist **ungültig**; geschäftlicher Parent, genau vier PDF-Dateien und temporärer Reader wurden in diesem Lauf nicht korrekt geprüft. **Kein `--apply`**, kein Deployment, keine Berechtigungsveränderung.
+
+**Fail-closed Korrektur implementiert:**
+- Ein unabhängiger, ausschliesslich **GET-lesender** Guard `scripts/offer-temp-drive-child-readonly-check.py --folder FOLDER_ID` benutzt die geprüften Metadaten- und Datei-Validierungen, **ohne** den revision-00002-gepinnten Grant-Workflow auszuführen. Er verlangt den konkreten isolierten Geschäfts-Testordner, vier erwartete PDF-Dateien, Business-Owner/Root-Parent und die bereits bestehende explizite `reader`-Berechtigung des temporären Dienstkontos. Bei jedem Python-, OAuth-, Netzwerk- oder Validierungsfehler endet er mit Exitcode 1 und generischem `NO-GO` statt einem falschen PASS; keine Dateiinhalte, IDs oder Tokens in Fehlermeldungen.
+- Das Phasendiagnose-Release-Skript verwendet nun die separate Python-Datei als **explizite Bash-Bedingung** `if ! python3 … --folder "$FOLDER"; then fatal …; fi` **vor** dem nachgelagerten Projekt-IAM-Check, jeder Erfolgsmeldung und jeder Build-/Deploy-Anweisung. Der fehlerhafte `<<'PY' ||`-HereDoc ist vollständig entfernt.
+- Python-Offline-Negativtests behandeln falsches Ziel, fehlenden Reader, ungültige PDF-Liste und Google-API-Ausnahmen. Ein zusätzlicher echter Bash-Verhaltenstest simuliert Python-Exitcodes 1, 2 und 127: In allen drei Fällen muss die Shell `BLOCKED_BY_GUARD` melden und darf **nie** bis `UNSAFE_CHECK_PASS` weiterlaufen.
+- GitHub Actions [39083957402](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39083957402): **vollständig SUCCESS**, 119 Unit-Tests bestanden, 3 planmässig übersprungen, 6/6 Chromium, 12/12 Firestore-Emulator, Docker-Build PASS. **Kein** Cloud-/Drive-/Firestore-Schreibzugriff während CI.
+
+**Nächster zwingender Betreiber-Schritt:** `--check` aus **neu geklontem** Feature-Branch wiederholen und explizit **beide** Ausgabezeilen `PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks.` und `READ-ONLY CHECK PASS` verlangen. Falls `NO-GO` oder auch nur Python-Fehler auftreten, **STOP, kein `--apply`**. Bis zum neuen erfolgreichen echten Cloud-Shell-Durchlauf bleibt die Phasendiagnose **nur vorbereitet, nicht deployed**. Der ursprüngliche Cloud-Run-Dienst, die unverbindliche statische Testvorschau und die vier gesperrten PDF-Dateien wurden nicht verändert.
+
+---
+
+
 ## 18.10.2026 – Feste Drive-Diagnosephasen: CI vollständig PASS, nur --check als nächster Schritt
 
 **Bestand:** Der bisherige Cloud-Run-HTTP-503-Befund hat in Cloud Logging **nur** `ERROR / 503` mit leerem `TEXT_PAYLOAD` (00:11:18Z) geliefert. Ein eigenständiger Geschäftsbenutzer-Drive-Test hat anschliessend für **alle vier** Test-PDFs `PROVIDER_SHA256_MATCH` bestätigt; die Berechtigung/Fehlerphase **unter der temporären Cloud-Run-Identität** bleibt offen.

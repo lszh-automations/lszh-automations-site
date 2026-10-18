@@ -175,6 +175,7 @@ test('staging acceptance with AVV records complete consent once',async()=>{
  equal(doc.status,'accepted');equal(doc.revision,2);
  deepStrictEqual(doc.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
  equal(doc.evidence.avv_pdf_sha256,refs.avv.sha256);
+ equal(doc.evidence.avv_version,'TEST_ONLY_AVV_v1.0');
  equal(doc.evidence.quote_pdf_sha256,refs.quote.sha256);
  equal(doc.evidence.quote_confirmed,true);
  equal(doc.evidence.terms_confirmed,true);
@@ -223,6 +224,7 @@ test('AVV Nein allows exactly two PDFs and rejects AVV consent',async()=>{
  equal(data.state().updates,0);
  equal((await portal.accept(token,accepted('Nein'))).ok,true);
  equal(data.state().doc.evidence.avv_required,false);
+ equal(data.state().doc.evidence.avv_version,null);
 });
 test('missing AVV checkbox, false authorization and wrong hashes fail closed',async()=>{
  for(const body of [

@@ -82,6 +82,48 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual({a[2] for a in grants},set(release.SECRETS.values()))
         self.assertFalse(any(a[:2] == ["projects","add-iam-policy-binding"] for a in calls))
 
+    def test_resume_reuses_successful_build_without_submit(self):
+        build_id = "11111111-2222-3333-4444-555555555555"
+        calls = []
+        def cloud(args, timeout=90):
+            calls.append(args)
+            return {"id":build_id, "projectId":release.PROJECT,
+                    "images":[release.IMAGE], "status":"SUCCESS",
+                    "results":{"images":[{"name":release.IMAGE,"digest":"sha256:"+"b"*64}]}}
+        # Stop at the subsequent baseline check to isolate the read-only reuse path.
+        with patch.object(release, "cloud", cloud), \
+             patch.object(release, "check", side_effect=RuntimeError("baseline_drift")), \
+             patch.object(release, "package") as package:
+            with self.assertRaisesRegex(RuntimeError, "baseline_drift"):
+                release.apply(build_id)
+        self.assertEqual(calls, [["builds","describe",build_id,"--region="+release.REGION]])
+        package.assert_not_called()
+
+    def test_resume_rejects_wrong_build_before_any_writes(self):
+        build_id = "11111111-2222-3333-4444-555555555555"
+        for changed in [
+            {"projectId":"wrong"}, {"images":["wrong"]}, {"status":"WORKING"},
+            {"results":{"images":[{"name":release.IMAGE,"digest":"bad"}]}}
+        ]:
+            build = {"id":build_id,"projectId":release.PROJECT,"images":[release.IMAGE],
+                     "status":"SUCCESS","results":{"images":[
+                         {"name":release.IMAGE,"digest":"sha256:"+"b"*64}]}}
+            build.update(changed)
+            with patch.object(release, "cloud", return_value=build) as cloud:
+                with self.assertRaises(RuntimeError):
+                    release.apply(build_id)
+                self.assertEqual(cloud.call_count, 1)
+
+    def test_build_log_suppression_and_json_diagnostic(self):
+        with patch.object(release, "package"), \
+             patch.object(release, "cloud", return_value={"status":"FAILURE"}) as cloud:
+            with self.assertRaises(RuntimeError):
+                release.apply()
+            self.assertIn("--suppress-logs", cloud.call_args.args[0])
+        with patch.object(release, "command", return_value="BUILD LOG\\n{}"):
+            with self.assertRaisesRegex(RuntimeError, "invalid_json_from_gcloud: builds submit"):
+                release.cloud(["builds","submit","directory"])
+
 
 if __name__ == "__main__":
     unittest.main()

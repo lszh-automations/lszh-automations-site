@@ -10,7 +10,7 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Belegnachweis:** [TEST_ONLY-PDF im Geschäfts-Drive](https://drive.google.com/file/d/1Cdf0_5_80zB867lDP4AooNn1IKiB5Hzv/view), direkt im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`. PDF-Text unabhängig gelesen: Testkennzeichnung, Offertennummer, Person, E-Mail, Annahmezeit `2026-10-18T23:03:30.355Z`, Version und beide Quell-PDF-Hashes stimmen. Airtable unabhängig gelesen: Status Angenommen und exakt diese Beleg-ID; kein Versandzeitpunkt, Bearbeitungsflag leer/false. Make-Detailein-/ausgaben waren über das Plugin nicht verfügbar; Nachweis deshalb durch Laufstruktur plus direkte Drive-/Airtable-Abfrage. Keine visuelle PDF-Layoutprüfung durchgeführt.
 
-**Nächste Arbeit:** Vollständige AVV-Ja-Variante mit vorhandenen synthetischen PDFs und bestehendem Szenario `7965223` vorbereiten und nachweisen. AVV-Nein-Annahme und Beleg nicht wiederholen. Bestätigungsweg bleibt offen; echte Kundenmails und Verträge wurden nicht ausgeführt.
+**Nächste Arbeit:** AVV-Ja-Fall vorbereitet: neuer synthetischer Airtable-Entwurf `recktLXj5wUxLmHFQ`, Nummer `TEST_CLOUD_AVV_JA_20261019_NO_CONTRACT`, vorhandener fiktiver Lead `recv49NbSCmc5nEu3`, E-Mail `fake-lszh-e2e@example.invalid`. Drei vorhandene Geschäfts-Test-PDFs zugeordnet; AVV-Version `TEST_ONLY_AVV_v1.0_RC1`. `scripts/offer-cloud-synthetic-avv-seed-once.mjs --apply /absoluter/pfad/token.txt` in Betreiber-Cloud-Shell ausführen: erzeugt Token lokal mit Modus 0600, speichert nur Hash in genau diesem Airtable-Draft, erstellt atomar genau ein neues Firestore-Angebot plus Quellindex und liest Werte zurück. Bestehendes Secret wird verwendet, keine Token-Eingabe nötig. **Noch kein AVV-Ja-Seed, Deployment oder Accept ausgeführt.** Danach neue 0%-Traffic-Testrevision für AVV-Ja bauen/bereitstellen, Vorschau/3 PDFs prüfen, einmal annehmen, Firestore/Airtable zurücklesen und bestehenden Make-Beleg `7965223` ausführen. Source-Konfiguration erlaubt nun die zwei exakten synthetischen Record-IDs; jede Revision wählt weiterhin genau einen Record. Lokale Tests 3/3 PASS, CI zum neuen Source noch prüfen. Alter AVV-Nein-Test bleibt unverändert.
 
 **Konkreter offener Nachweis:** Vollständiger AVV-Ja-Durchlauf, Bestätigungsweg und endgültige Kundenunterlagen. Temporäre Cloud-Testrevisionen/Secret-Rechte noch bereinigen. Ausgangskonfiguration von Make: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json).
 
@@ -58,6 +58,15 @@ Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementier
 | Direkter Geschäfts-Testordner | `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` |
 
 Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `lszh_synthetic_cloud_test_20261018_token.txt`, nicht in Chat, GitHub oder Airtable. Datei-Verfügbarkeit vor Nutzung prüfen; hier ist kein Token enthalten. Der ältere separate Airtable-Test `rec4lc9AV5TxRQlcd` ist bereits simuliert angenommen und **nicht** der aktuelle Cloud-Testrecord. Auch das Dokument-/Demo-Paket `OFF-TEST-AVV-20261018-001` ist ein anderer Testfall.
+
+## Vorbereiteter AVV-Ja-Testfall
+
+- Airtable: `recktLXj5wUxLmHFQ`, noch Entwurf, noch kein Token-Hash/Cloud-Seed zum Dokumentationszeitpunkt.
+- Offerte: `1-GQyj0cKC4aAJD_9wrxanckCJisEy0nB`, SHA-256 `2dd5c5377461c969b9a436f36999150dc53cf159f02e4985e2f2536b683b004c`.
+- Bedingungen: identische synthetische Bedingungen wie im AVV-Nein-Test.
+- AVV: `1p2ZRrPuSuaICH9W4N0afK5xt8xeOeKZI`, SHA-256 `53f9deda2000e219f79e0496b33f1e74df8ac00eac09f221b2436c3fd848d060`.
+- Offerte/AVV direkt aus Geschäfts-Drive heruntergeladen, SHA-256 lokal berechnet und Text geprüft. Alle Dateien TEST_ONLY, kein echter Vertrag.
+- Tokendatei in der Betreiber-Cloud-Shell: `$HOME/lszh_synthetic_cloud_avv_20261019_token.txt`; Inhalt niemals ausgeben.
 
 ## Bestehende Make-Strecken
 

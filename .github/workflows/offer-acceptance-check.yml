@@ -26,6 +26,7 @@ on:
       - 'test-browser/**'
       - 'cloud-run/Dockerfile.offer-portal-staging'
       - 'scripts/offer-cloud-readiness-readonly.py'
+      - 'scripts/offer-iam-hierarchy-readonly.py'
       - 'scripts/offer-business-drive-readonly-verify.py'
       - 'scripts/offer-business-drive-provider-sha-diagnose.py'
       - 'scripts/offer-temp-drive-folder-reader.py'
@@ -63,6 +64,8 @@ jobs:
         run: |
           python3 -m py_compile scripts/offer-cloud-readiness-readonly.py
           python3 scripts/offer-cloud-readiness-readonly.py --self-test
+          python3 -m py_compile scripts/offer-iam-hierarchy-readonly.py
+          python3 scripts/offer-iam-hierarchy-readonly.py --self-test
           python3 -m py_compile scripts/offer-business-drive-readonly-verify.py
           python3 scripts/offer-business-drive-readonly-verify.py --self-test
           python3 -m py_compile scripts/offer-business-drive-provider-sha-diagnose.py

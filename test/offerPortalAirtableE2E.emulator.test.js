@@ -159,7 +159,7 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal((await ref.get()).data().status,'sent');
    const submission={
     code:token,name:'Synthetische Testperson',email:'synthetic@example.invalid',
-    authorized:true,accept_terms:true,quote_sha256:offer.quote_sha256,
+    authorized:true,accept_quote:true,accept_terms:true,quote_sha256:offer.quote_sha256,
     terms_sha256:offer.terms_sha256,
     accept_avv:mode==='Ja',avv_sha256:offer.avv_sha256,
     avv_version:offer.avv_version

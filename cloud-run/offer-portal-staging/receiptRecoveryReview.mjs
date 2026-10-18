@@ -9,6 +9,12 @@ const SOURCE_BASE='appzJiskpAdaR1HEv';
 const SOURCE_TABLE='tbljeIUoD7wwKuSmS';
 const DISABLED={airtable:'disabled',proofPdf:'disabled',email:'disabled'};
 const sha=s=>createHash('sha256').update(s).digest('hex');
+function canonical(v){
+  if(Array.isArray(v))return v.map(canonical);
+  if(v && typeof v==='object' && Object.getPrototypeOf(v)===Object.prototype)
+    return Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])]));
+  return v;
+}
 
 function fail(){throw Error('synthetic_receipt_review_invalid');}
 function isDisabled(d){
@@ -73,7 +79,7 @@ export function inspectSyntheticReceiptRecovery(acceptedOffer){
     const expected=buildSyntheticReceiptReview(
       acceptedOffer,acceptedOffer.evidence,acceptedOffer.acceptedAt);
     const actual=acceptedOffer.receiptReview;
-    if(!actual || JSON.stringify(actual)!==JSON.stringify(expected))
+    if(!actual || JSON.stringify(canonical(actual))!==JSON.stringify(canonical(expected)))
       return {status:'NO_GO',reason:'receipt_review_mismatch'};
     return {status:'REVIEW_ONLY',idempotencyKey:expected.idempotencyKey,
       next:'MANUAL_RECONCILIATION_REQUIRED',

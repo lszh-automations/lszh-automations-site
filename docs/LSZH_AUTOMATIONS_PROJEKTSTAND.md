@@ -1,5 +1,15 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – G3: synthetischer, atomarer Wiederanlauf-Marker (weiterhin nicht ausführbar)
+
+**Auftrag `Vamos`, Änderungen nur im offenen Draft PR #5:** Der bestehende `firestoreOfferStore.mjs` speichert bei einer **streng synthetisch markierten** Offertenannahme jetzt `receiptReview` **innerhalb derselben Firestore-Transaktion** wie `status=accepted` und `evidence`. Für nicht synthetische historische Offline-Testdaten wird kein Marker erstellt; sie dürfen daraus keine Aktivierungsberechtigung ableiten. `receiptRecoveryReview.mjs` erstellt den deterministischen SHA-256-`idempotencyKey` aus gebundener Testofferte, Quelle, Annahmezeit und 2/3 PDF-Hashes. Die Konsistenz- und Re-Inspection prüft nur Metadaten, gibt `MANUAL_RECONCILIATION_REQUIRED` zurück und enthält **keine** Methode für PDF-Generierung, E-Mail-Versand, Make- oder Airtable-Veränderungen. Explizit `downstream={airtable:'disabled',proofPdf:'disabled',email:'disabled'}`, `receiptDriveId=null`, `emailProviderMessageId=null`.
+
+**Tests im Branch:** `test/offerReceiptRecoveryReview.test.js` prüft AVV Ja/Nein, atomaren Marker, 12 parallele Claims (nur ein Erfolg), Replay ohne erneute Mutation, ungültige synthetische Herkunft und manipulierte Beleg-/Downstream-Daten; bestehender `test/offerPortalAirtableE2E.emulator.test.js` kontrolliert den Marker über die reale Firestore-SDK-Transaktion im **lokalen Emulator**. GitHub-Actions-Workflow enthält zusätzliche Syntaxchecks und nimmt die Tests über `npm test` auf. Bei der ersten CI-Runde war der Browser-, Image- und Firestore-Emulator-Job erfolgreich; ein Unit-Negativtest mutierte eine gemeinsam genutzte PDF-Fixture, wodurch ein Folgetest fälschlich scheiterte. Das Testdaten-Sharing wurde korrigiert; **neuen CI-Gesamterfolg gesondert bestätigen, nicht vorwegnehmen**.
+
+**Wichtige Grenze:** Dieser Marker ist lediglich ein robustes, nicht ausführbares Review-Intent. Er **ist keine fertig implementierte Outbox**, erstellt/archiviert keinen Beleg und garantiert ohne separate Provider-Idempotenz oder nachgelagerte Wiederabgleichlogik keine Exactly-once-Mail. G3/G4/G5/G6 bleiben für reale Folgeaktionen **NO-GO**. Nicht deployed, nicht gemergt; alle Make-Szenarien inaktiv, keine Gmail-, Drive-, Airtable- oder Cloud-Firestore-Produktionsoperationen. Vor realem Pilot zuerst synthetische Fehler nach Drive-PDF-Erstellung, Beleg-ID-Persistierung, Wiederanlauf und manuelle Prüfzustände umfassend testen.
+
+---
+
 ## 18.10.2026 – IAM/CAS-Sicherheitsprüfung reconciliert; Pilot-G1 bleibt teilweise offen
 
 **Abschluss der zuvor fehlgeschlagenen IAM-Abfrage (betreiberseitig in Cloud Shell belegt):**

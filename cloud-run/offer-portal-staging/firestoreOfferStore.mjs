@@ -1,5 +1,6 @@
 import {offerFingerprint} from './portalCore.mjs';
 import {buildSyntheticReceiptReview} from './receiptRecoveryReview.mjs';
+import {decideSyntheticReceiptReviewLock} from './receiptProcessingLock.mjs';
 
 // Purposefully isolated staging collection. Firestore server SDK uses the
 // Cloud Run service identity (ADC) — never JSON private keys in the app.
@@ -52,6 +53,32 @@ export function createFirestoreOfferStore(db){
       return 'accepted';
     });
   }
-  return {get,claim};
+  // Extra capability is intentionally LOCAL-EMULATOR-ONLY, even if the
+  // disabled full portal package were accidentally built in Cloud Run.
+  // It atomically reserves a review marker; it NEVER authorises a PDF upload.
+  async function reserveSyntheticReceiptReview(tokenHash,expectedReviewKey,attemptId,now){
+    if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
+       process.env.GCLOUD_PROJECT!=='demo-lszh-automations' ||
+       process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+       process.env.K_SERVICE ||
+       db.projectId!=='demo-lszh-automations' ||
+       db.databaseId!=='lszh-offers-staging')
+      throw Error('local_emulator_required');
+    const ref=refFor(tokenHash);
+    return db.runTransaction(async transaction=>{
+      const snapshot=await transaction.get(ref);
+      if(!snapshot.exists)return 'NO_GO_INVALID_SYNTHETIC_REVIEW';
+      const latest=snapshot.data();
+      if(!latest || latest.tokenHash!==tokenHash)
+        return 'NO_GO_INVALID_SYNTHETIC_REVIEW';
+      const decision=decideSyntheticReceiptReviewLock(latest,{
+        expectedReviewKey,attemptId,now
+      });
+      if(decision.code==='RESERVED_REVIEW_ONLY')
+        transaction.update(ref,decision.patch);
+      return decision.code;
+    });
+  }
+  return {get,claim,reserveSyntheticReceiptReview};
 }
 export const STAGING_COLLECTION=COLLECTION;

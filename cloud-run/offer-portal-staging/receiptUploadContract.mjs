@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {inspectSyntheticReceiptRecovery} from './receiptRecoveryReview.mjs';
 
 const DRIVE_ID=/^[A-Za-z0-9_-]{20,100}$/;
-const MAX_MULTIPART_BYTES=5*1024*1024;
+// Stay at or below the documented 5 MB multipart size (decimal bytes).
+const MAX_MULTIPART_BYTES=5_000_000;
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 function reject(){throw Error('synthetic_receipt_upload_plan_unavailable');}

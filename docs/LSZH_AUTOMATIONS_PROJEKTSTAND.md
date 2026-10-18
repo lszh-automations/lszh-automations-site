@@ -1,5 +1,21 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – Präzise Drive-Ordnerdiagnose: echter Cloud-Shell-Check PASS, Deploy noch offen
+
+**Vom Betreiber real ausgeführter, fehlerfreier read-only Vorabtest** `scripts/offer-temp-drive-folder-shape-release.sh --check 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` meldete:
+- `PASS: preflight revision, ingress and service identity unchanged`.
+- `PASS: no direct public IAM binding on the service`, mit **WARNUNG `inherited IAM not evaluated; deployment is NOT authorised`**. Keine Behauptung, geerbte Rechte geprüft zu haben.
+- `PASS: current synthetic-only read probe unchanged and named IAM Invoker only`.
+- `PASS: business-only Drive test folder, four PDFs and temporary Reader confirmed by GET-only checks`.
+- `READ-ONLY CHECK PASS`, ohne Python-/Shell-Fehler oder falsches Heredoc-PASS.
+
+**Stand der Laufzeit:** Aktuelle temporäre Cloud-Run-Revision bleibt `lszh-offer-browser-staging-00004-nk6`. Der letzte IAM-authentifizierte Probeaufruf ergab `LSZH_TEMP_DRIVE_DIAG:FOLDER_VALIDATE` bei HTTP 503; keine PDF-Verifizierung unter temporärem Dienstkonto abgeschlossen. Auf echter Google-Cloud-Plattform wurde **noch keine** genauere Metadatenfehler-Klassifizierung deployed.
+
+**Nächster möglicher, eigens kontrollierter Schritt:** Einen auf diesen unveränderten Ausgangszustand gepinnten reinen diagnostischen **temporären** Service-Deploy mit `scripts/offer-temp-drive-folder-shape-release.sh --apply 10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` erst nach neuer impliziter/ausdrücklicher Betreiberfreigabe ausführen. Alle Guards werden dabei erneut durchlaufen. Diese Testfunktion ändert keine Berechtigung und keine produktiven Funktionen; sie ist **keine** allgemeine Sicherheits-/Produktionsfreigabe. Nach erfolgreichem Temp-Deploy einmalig den IAM-geschützten Drive-Check ausführen und nur den feststehenden `FOLDER_* `-Code protokollieren. Bei `NO-GO` stoppen, keine Freigaben ausweiten.
+
+---
+
+
 ## 18.10.2026 – Drive-Liveprobe hat Folder-Metadaten-Gate FOLDER_VALIDATE erreicht; präzise Sichtbarkeitsdiagnose vorbereitet
 
 **Echter Live-Nachweis vom Betreiber:** Die IAM-authentifizierte Designvorschau der temporären Cloud-Run-Revision `lszh-offer-browser-staging-00004-nk6` meldete PASS. Der einzige reine Leseaufruf an `/_lszh/synthetic-drive-check` lieferte HTTP 503. Cloud Logging gab für diese Revision `2026-10-18T08:42:32.360010Z LSZH_TEMP_DRIVE_DIAG:FOLDER_VALIDATE` aus. Damit wurde der erste Drive-v3-`files.get`-Ordneraufruf **erfolgreich beantwortet** und erst die lokale Prüfung von `id`, `name`, `mimeType`, `trashed`, `parents` oder `owners` hat abgebrochen. Die Test-PDFs wurden dabei **nicht** geprüft; keine Aussage über direkte Dienstkonto-PDF-Bereitschaft. Geschäftskonto-Hauptarchiv und vier gesperrte PDFs bleiben durch die vorherigen Benutzer-GET-Prüfungen bestätigt.

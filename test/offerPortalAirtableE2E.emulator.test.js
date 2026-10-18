@@ -90,7 +90,8 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    const [{Firestore},{SOURCE,mapSyntheticAirtableOffer,seedOnlyLocalEmulator},
     {createOfferPortal},{createOfferPortalHttp},{createFirestoreOfferStore},
     {verifyArchiveBundle},{prepareSyntheticReceiptDocument},
-    {prepareSyntheticAirtableAcceptanceHandoff}]=await Promise.all([
+    {prepareSyntheticAirtableAcceptanceHandoff},
+    {executeSyntheticAirtableAcceptanceWriteback}]=await Promise.all([
     Promise.resolve(loadSDK('@google-cloud/firestore')),
     import('../cloud-run/offer-portal-staging/airtableSyntheticImport.mjs'),
     import('../cloud-run/offer-portal-staging/portalCore.mjs'),
@@ -98,7 +99,8 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
     import('../cloud-run/offer-portal-staging/firestoreOfferStore.mjs'),
     import('../cloud-run/archive-reader-staging/archiveBundleVerifier.mjs'),
     import('../cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs'),
-    import('../cloud-run/offer-portal-staging/receiptAirtableHandoff.mjs')
+    import('../cloud-run/offer-portal-staging/receiptAirtableHandoff.mjs'),
+    import('../cloud-run/offer-portal-staging/receiptAirtableWriteback.mjs')
    ]);
    const db=new Firestore({projectId:PROJECT,databaseId:DATABASE});
    const token=randomBytes(36).toString('base64url');
@@ -231,6 +233,36 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
    assert.equal('Online-Annahme Beleg Drive ID' in airtablePlan.fields,false);
    assert.equal('Online-Annahme Bestätigung gesendet am' in airtablePlan.fields,false);
    assert.equal(airtablePlan.canWriteAirtable,false);
+   // Executable handoff tested with an in-memory Airtable API, no network.
+   const crm={id:source.id,fields:{
+     Offertennummer:end.offerNumber,Status:'Entwurf',
+     'Online-Annahme Token-Hash':end.tokenHash,
+     'AVV erforderlich':mode,
+     'Online-Annahme rechtlich freigegeben':false,
+     'Keep existing CRM info':'UNCHANGED'
+   }};
+   let patchCount=0;
+   const fakeClient={
+     readRecord:async({recordId})=>{
+       assert.equal(recordId,source.id);
+       return structuredClone(crm);
+     },
+     patchRecord:async({recordId},patch)=>{
+       assert.equal(recordId,source.id);
+       patchCount++;
+       Object.assign(crm.fields,patch.fields);
+       return structuredClone(crm);
+     }
+   };
+   const written=await executeSyntheticAirtableAcceptanceWriteback(end,fakeClient);
+   assert.equal(written.result,'synthetic_fields_patched');
+   assert.equal(patchCount,1);
+   assert.equal(crm.fields.Status,'Angenommen');
+   assert.equal(crm.fields['Keep existing CRM info'],'UNCHANGED');
+   assert.equal(crm.fields['Online-Annahme rechtlich freigegeben'],false);
+   const repeated=await executeSyntheticAirtableAcceptanceWriteback(end,fakeClient);
+   assert.equal(repeated.result,'already_identical');
+   assert.equal(patchCount,1,'never write a duplicate synthetic confirmation');
    const altered=structuredClone(end);
    altered.evidence.email='different@example.invalid';
    assert.throws(()=>prepareSyntheticAirtableAcceptanceHandoff(altered),

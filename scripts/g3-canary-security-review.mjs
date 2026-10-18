@@ -73,8 +73,14 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
         'effective_iam_not_verified','registry_digest_absent',
         'formal_operator_approval_absent']
     };
-  }catch{
+  }catch(error){
+    // No exception values, data contents, filesystem paths or credentials in CI.
+    const permitted=new Set(['invalid_audit_input','trivy_scan_missing',
+      'sbom_missing','oci_not_verified','source_and_base_not_verified',
+      'missing_ci_build_identity','malformed_scan_target',
+      'malformed_vulnerability']);
     return {status:'BLOCKED_UNVERIFIED_SECURITY_EVIDENCE',
+      reason:permitted.has(error?.message)?error.message:'invalid_json_or_unknown',
       releaseStatus:'NO_GO',canPublish:false,canDeploy:false};
   }
 }

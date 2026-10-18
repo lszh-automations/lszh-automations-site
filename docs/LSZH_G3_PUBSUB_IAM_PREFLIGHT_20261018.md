@@ -1,7 +1,7 @@
 # LSZH Automations – G3 Pub/Sub/OAuth/IAM-Preflight, ohne Cloud-Änderungen
 
 **Datum:** 18.10.2026  
-**Status:** REINER ENTWURF / KEINE REALE IAM- ODER MAKE-FREIGABE
+**Status:** REINER ENTWURF / KEINE REALE IAM- ODER MAKE-FREIGABE. **Echte Geschäfts-Cloud-Shell-Inventur vom 18.10.2026 liegt vor:** 5 APIs enabled, 0 Topics/Subscriptions, 8 SAs/6 Run-Dienste und direkte Pub/Sub-Service-Agent-Rolle bestätigt; neue G3-Ressourcen fehlen.
 
 ## 1. Tatsächlich geprüfte Make-Funktion
 
@@ -27,7 +27,7 @@ Diese Namen sind ausschliesslich **Reservierungen im Entwurf**, nicht bestätigt
 | Push-Subscription | `projects/lszh-automations/subscriptions/lszh-g3-review-staging`, Push über HTTPS mit Google-OIDC und expliziter Audience des Cloud-Run-Receivers | **nicht ermittelt / nicht angelegt** |
 | Push-Invoker-Dienstkonto | `lszh-g3-push-stg@lszh-automations.iam.gserviceaccount.com`; `roles/run.invoker` nur auf geplantem Dienst `lszh-g3-review-staging` | **nicht ermittelt / nicht angelegt** |
 | Cloud Run Receiver | eigenes Review-only-Staging, `europe-west6`, `ingress=internal`, IAM **required**, Standard-`run.app`-URL, **keine** Docs/PDF/Mail-Route | **nicht ermittelt / nicht deployed** |
-| Runtime-Dienstkonto | separat `lszh-g3-reserve-stg@lszh-automations.iam.gserviceaccount.com`; Zugriff ausschliesslich auf geprüfte Firestore-DB `lszh-offers-staging`; keine Quarantäne-DB- oder Senderechte | **nicht ermittelt / nicht angelegt** |
+| Runtime-Dienstkonto | separat `lszh-g3-reserve-stg@lszh-automations.iam.gserviceaccount.com`; Zugriff ausschliesslich auf geprüfte Firestore-DB `lszh-offers-staging`; Kandidat: `datastore.databases.get` für Transaktionen plus `datastore.entities.get/create/update`, keine `delete`, keine Quarantäne-DB oder Senderechte. Effektiver SDK-/Datenbankscope vor Betrieb noch zu prüfen | **Laut Live-Inventur 18.10.2026 nicht vorhanden** |
 | Pub/Sub Service Agent | Projekt-Service-Agent muss Google-OIDC-Token für Push-Invoker bilden dürfen; bestehende `roles/pubsub.serviceAgent`/Berechtigungen **zuerst lesen** | **nicht ermittelt** |
 
 Die offiziellen Google-Anweisungen unterscheiden Projekte **vor bzw. nach 08.04.2021** hinsichtlich notwendiger zusätzlicher Service-Agent-`roles/iam.serviceAccountTokenCreator`-Zuweisung. **Kein** TokenCreator-Grant auf Projekt-/Organisationsebene aus diesem Entwurf ableiten. Zuerst effektiv bestehende Service-Agent-Rolle und `iam.serviceAccounts.getOpenIdToken` prüfen. Falls überhaupt ein zusätzlicher Grant nötig wird, nur nach exakter Principal- und SA-Prüfung, bevorzugt auf dem einen Push-SA, separat genehmigen. Referenzen: https://docs.cloud.google.com/run/docs/tutorials/pubsub und https://docs.cloud.google.com/pubsub/docs/authenticate-push-subscriptions
@@ -35,6 +35,16 @@ Die offiziellen Google-Anweisungen unterscheiden Projekte **vor bzw. nach 08.04.
 Cloud Run `ingress=internal` erkennt die Pub/Sub-Push-Subscription unter den dokumentierten Voraussetzungen im **gleichen Projekt** und via default `run.app`-URL als interne Quelle. Es ist **kein allgemeiner privater VPC-HTTP-Endpunkt** und nicht durch beliebiges Make-HTTP von extern erreichbar. Referenz: https://docs.cloud.google.com/run/docs/securing/ingress
 
 **IAM-Grenze:** Eine Datenbank-Condition bindet die Firestore-Rechte ggf. an die richtige *Datenbank*, nicht automatisch an einzelne Collections. Jede Schreibmutation benötigt zusätzlich eine vertrauenswürdige Prüfung des Angebotsstatus und der synthetischen Testherkunft im Code. Bestehende `lszh-quarantine-cas-stg`-Rolle/Identität **nicht** wiederverwenden.
+
+## 2a. Präzisierter Firestore-Transaktions- und Push-Berechtigungsstand
+
+**FireStore Server SDK:** Die Google-IAM-Methodentabelle unterscheidet `datastore.databases.get` (Transaktion beginnen/zurücksetzen) von `datastore.databases.getMetadata`. Der bisherige reine Offline-Plan enthielt nur `datastore.entities.get/create/update` und wurde am 18.10.2026 für das *Kandidatenmanifest* um `datastore.databases.get` ergänzt. Diese Rollenliste ist **kein Beweis**, dass das Google Node SDK beim späteren Cloud-Run-Test ohne zusätzliche schmale Metadatenrechte arbeitet; das muss getrennt abgenommen werden. Quelle: https://docs.cloud.google.com/firestore/native/docs/security/iam
+
+**Pub/Sub-OIDC:** Die tatsächlich erfasste direkte Projekt-`roles/pubsub.serviceAgent`-Bindung ist ein wichtiges Indiz: Die Standardrolle umfasst `iam.serviceAccounts.getOpenIdToken`. Es gibt aber noch keinen effektiven IAM-/Deny-/PAB-Nachweis oder einen Push-SA. Vor einer zusätzlichen TokenCreator-Bindung zuerst den tatsächlichen Principal, die alte Projekt-/Service-Agent-Historie und effektive Rechte prüfen. Quelle: https://docs.cloud.google.com/pubsub/docs/access-control
+
+**Vollständiger Freigabe- und Rollbackplan:** `docs/LSZH_G3_PUBSUB_CHANGE_ROLLBACK_PLAN_20261018.md` mit einzeln zu genehmigenden Phasen, Rollen-/Netz-/OAuth-Scope/Make-Kodierungsprüfung, Monitoring, Entzug/Deaktivierung und sicherer Rückbaureihenfolge. **Keine ausführbaren Änderungsbefehle**, keine neue Verbindung oder IAM-Bindung. **GitHub Actions 39141818159 SUCCESS:** 170 Unit-PASS, 19 lokale Firestore-Emulator-PASS und Browser/Container PASS.
+
+---
 
 ## 3. Prüfbarkeit und was sie nicht beweist
 

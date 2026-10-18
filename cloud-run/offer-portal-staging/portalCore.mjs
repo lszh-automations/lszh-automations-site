@@ -77,7 +77,7 @@ function consent(offer,b){
   if(name.length<4||name.length>120||email.length>254||!MAIL.test(email))
     throw bad('invalid_identity');
   if(email!==offer.recipientEmail)throw bad('invalid_identity');
-  if(b.authorized!==true||b.accept_terms!==true)throw bad('consent_required');
+  if(b.authorized!==true||b.accept_quote!==true||b.accept_terms!==true)throw bad('consent_required');
   if(b.quote_sha256!==expected.quote.sha256||
      b.terms_sha256!==expected.terms.sha256)throw bad('document_changed');
   if(expected.avv_required==='Ja'){
@@ -147,7 +147,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
       terms_pdf_sha256:offer.bundle.terms.sha256,
       avv_required:avv,
       avv_pdf_sha256:avv?offer.bundle.avv.sha256:null,
-      authorized_confirmed:true,terms_confirmed:true,avv_confirmed:avv,
+      authorized_confirmed:true,quote_confirmed:true,terms_confirmed:true,avv_confirmed:avv,
       name,email,
       ip_pseudonym:createHmac('sha256',proofSalt).update(String(ip).slice(0,128)).digest('hex')
     };

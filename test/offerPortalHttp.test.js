@@ -3,10 +3,17 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const http=require('node:http');
 const ORIGIN='https://portal-staging.lszh-automations.ch';
-async function setup(enabled,portal,pageHtml,acceptEnabled=true){
+async function setup(enabled,portal,pageHtml,acceptEnabled=true,consumedBody=false){
   const {createOfferPortalHttp}=await import('../cloud-run/offer-portal-staging/portalHttp.mjs');
   const listener=createOfferPortalHttp({enabled,acceptEnabled,allowedOrigin:ORIGIN,portal,pageHtml});
-  const server=http.createServer(listener);
+  const server=http.createServer(async(req,res)=>{
+    if(consumedBody){
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      req.rawBody=Buffer.concat(chunks);
+      try{req.body=JSON.parse(req.rawBody.toString('utf8'));}catch{}
+    }
+    return listener(req,res);
+  });
   await new Promise((resolve,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   return {base,close:()=>new Promise(resolve=>server.close(resolve))};
@@ -105,4 +112,22 @@ test('safe error mapping never exposes internal exception messages',async t=>{
  const again=await call(s.base,'/api/offer/accept',{code:'Z'.repeat(48)});
  assert.equal(again.status,409);
  assert.equal(again.body.error,'already_accepted');
+});
+
+test('already consumed Functions Framework request still reaches preview and accept',async t=>{
+ const seen=[];
+ const portal={preview:async code=>{seen.push(['preview',code]);return {number:'TEST_ONLY'};},
+   accept:async(code,b)=>{seen.push(['accept',code,b.name]);return {accepted:true};}};
+ const s=await setup(true,portal,undefined,true,true);t.after(()=>s.close());
+ assert.equal((await call(s.base,'/api/offer/preview',{code:'Z'.repeat(48)})).status,200);
+ assert.equal((await call(s.base,'/api/offer/accept',{code:'Z'.repeat(48),name:'Test Person'})).status,200);
+ assert.deepEqual(seen,[['preview','Z'.repeat(48)],['accept','Z'.repeat(48),'Test Person']]);
+});
+test('framework raw body retains invalid JSON, object and byte-limit rejection',async t=>{
+ let calls=0;const portal={preview:async()=>{calls++;return {};},accept:async()=>{calls++;return {};}};
+ const s=await setup(true,portal,undefined,true,true);t.after(()=>s.close());
+ for(const body of ['{bad','[]','null','',JSON.stringify({padding:'A'.repeat(16000)})]){
+   assert.equal((await call(s.base,'/api/offer/preview',body)).status,400);
+ }
+ assert.equal(calls,0);
 });

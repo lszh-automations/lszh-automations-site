@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "LSZH_G3_CANDIDATE_NODE_BASE_V1",
+  "image": "docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "platform": "linux/amd64",
+  "source": "Observed from official Docker Hub tag node:22-alpine in Github Actions 39146208943 (2026-10-18)",
+  "reviewStatus": "UNREVIEWED",
+  "releaseStatus": "NO_GO",
+  "canPublish": false,
+  "canDeploy": false
+}

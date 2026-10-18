@@ -39,6 +39,11 @@ export function buildSyntheticPubsubPublishPlan(payload){
   if(bytes.length>MAX_DATA_BYTES)return denied('oversized_synthetic_publish_request');
   return {
     status:'PLAN_ONLY_DO_NOT_PUBLISH',
+    // The following message.data is the Pub/Sub REST WIRE representation.
+    // Make's native "Publish Messages" mapper may expect raw data and apply
+    // Base64 itself. DO NOT paste this data into Make until verified.
+    dataFormat:'PUBSUB_REST_BASE64_WIRE_ONLY',
+    makeNativeDataEncodingVerified:false,
     topic:TOPIC,
     message:{
       data:bytes.toString('base64'),

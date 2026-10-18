@@ -7,8 +7,9 @@ fail() { printf '%s\n' '{"status":"BLOCKED_SIGNED_ATTESTATION_VERIFICATION","rel
 
 # A future, operator-approved release workflow must produce and attest an OCI
 # archive from a protected release commit; untrusted PR merge commits are NOT valid.
-[ "$#" -eq 4 ] || fail
-artifact="$1"; expected_file_sha="$2"; source_sha="$3"; signer_sha="$4"
+[ "$#" -eq 5 ] || fail
+artifact="$1"; expected_file_sha="$2"; source_sha="$3"; signer_sha="$4"; expected_manifest="$5"
+[[ "$expected_manifest" =~ ^sha256:[a-f0-9]{64}$ ]] || fail
 [[ "$expected_file_sha" =~ ^[a-f0-9]{64}$ ]] || fail
 [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]] || fail
 [[ "$signer_sha" =~ ^[a-f0-9]{40}$ ]] || fail
@@ -16,10 +17,26 @@ artifact="$1"; expected_file_sha="$2"; source_sha="$3"; signer_sha="$4"
 [[ "$artifact" == *.oci.tar ]] || fail
 command -v sha256sum >/dev/null 2>&1 || fail
 command -v gh >/dev/null 2>&1 || fail
+command -v python3 >/dev/null 2>&1 || fail
 
 # Verify the *actual archive bytes*, not an OCI manifest hash or a JSON claim.
 actual_file_sha="$(sha256sum "$artifact" | cut -d ' ' -f1)" || fail
 [ "$actual_file_sha" = "$expected_file_sha" ] || fail
+
+# Bind the signed OCI TAR bytes to the *manifest* to be uploaded. TAR SHA
+# and OCI manifest digest are distinct identifiers and must never be conflated.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)" || fail
+oci_report="$(python3 "$SCRIPT_DIR/g3-canary-oci-verify.py" "$artifact" "$artifact")" || fail
+python3 -c '
+import json,sys
+try:
+  report=json.loads(sys.argv[1])
+  assert report["status"]=="CANDIDATE_OCI_DOUBLE_BUILD_VERIFIED"
+  assert report["releaseStatus"]=="NO_GO"
+  assert report["candidate"]["ociManifestDigest"]==sys.argv[2]
+except (ValueError,KeyError,TypeError,AssertionError):
+  sys.exit(2)
+' "$oci_report" "$expected_manifest" >/dev/null || fail
 
 # The signer workflow does NOT exist in the Draft branch: it must first undergo
 # a separately approved protected-main design/review. No PR artifact qualifies.

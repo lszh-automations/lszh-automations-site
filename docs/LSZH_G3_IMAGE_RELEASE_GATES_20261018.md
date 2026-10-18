@@ -125,3 +125,13 @@ Provenance oder Deployberechtigung. `NO_GO` gilt unabhängig vom Ergebnis.
 0, aber Medium-Restbefund sowie signierte Provenance, effektives IAM,
 kostenbezogene Betriebstests und gesonderte menschliche Freigaben offen.
 **NO_GO**.
+
+## Ergänzung – direkter OCI-Scan, Quell-/Scanner-Korrelation und harte Apply-Sperre
+
+Die letzte gesicherte Pipeline scannt nun tatsächlich das **zuvor SHA-geprüfte OCI-Tar** nach Extraktion in ein OCI-Layout. Der separat lokal laufende Docker-Smoke-Container dient nur dem Funktionstest und wird nicht länger als identische Bildinstanz des OCI-Exports behauptet. Eine ursprüngliche CI-Gleichheitsprüfung von Docker-Konfigurations-ID und normalisiertem OCI-Export schlug fehl; die Korrektur hat die direkte Scanbindung statt einer Abschwächung des Sicherheitsgates geschaffen.
+
+[GitHub Actions 39149286136](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39149286136): **SUCCESS** inkl. 14/14 isolierter Sicherheitsnegativtests und `UNSIGNED_CI_CORRELATION_VERIFIED`. Die neue Datei `g3-provenance-correlation.json` dokumentiert GitHub-PR-Merge-Commit, festgepinnten Base-Digest, Quell-Hashes, OCI-Manifest und Hashes der unveränderten Trivy-/CycloneDX-Dateien. Diese Selbstangaben sind **nicht signiert**; eine authentifizierte, unabhängig verifizierte Build-Provenance fehlt weiter.
+
+Die Codebasis enthält nun eine frühe **unbedingte `--apply`-Sperre**: `BLOCKED_G3_SIGNED_PROVENANCE_GATE`, selbst wenn Image- und Approval-Parameter syntaktisch korrekt sind. Das Skript erreicht dabei kein `gcloud`. Die Freigabe erfordert eine **spätere eigenständige genehmigte Codeänderung**, ein vertrauenswürdiges Attestierungsverfahren und das separat genehmigte konkrete G3-Change-Paket.
+
+Vollständige Herkunfts- und Registry-Readback-Kontrollpunkte: `docs/LSZH_G3_PROVENANCE_AND_REGISTRY_GATES_20261018.md`. Bis dahin Image-Push, Cloud Run, IAM, Make-OAuth, Firestore, Produktiv-E-Mails und Kundenannahmen **NO_GO**.

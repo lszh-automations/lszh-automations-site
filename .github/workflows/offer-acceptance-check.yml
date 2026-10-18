@@ -25,6 +25,7 @@ on:
       - 'test/offerReceiptRecoveryReview.test.js'
       - 'test/offerReceiptArchiveReconciliation.test.js'
       - 'test/offerReceiptUploadContract.test.js'
+      - 'test/offerReceiptDocumentHandoff.test.js'
       - 'test/offerReceiptProcessingLock.test.js'
       - 'test/offerReceiptMakeReservationContract.test.js'
       - 'test/offerSyntheticSourceIndex.test.js'
@@ -122,6 +123,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptRecoveryReview.mjs
           node --check cloud-run/offer-portal-staging/receiptArchiveReconciliation.mjs
           node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
+          node --check cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs
+          node --check test/offerReceiptDocumentHandoff.test.js
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
           node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
           node --check cloud-run/offer-portal-staging/syntheticSourceIndex.mjs

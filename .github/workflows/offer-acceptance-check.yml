@@ -27,6 +27,7 @@ on:
       - 'cloud-run/Dockerfile.offer-portal-staging'
       - 'scripts/offer-cloud-readiness-readonly.py'
       - 'scripts/offer-business-drive-readonly-verify.py'
+      - 'scripts/offer-business-drive-provider-sha-diagnose.py'
       - 'scripts/offer-temp-drive-folder-reader.py'
       - 'scripts/offer-temp-drive-probe-release.sh'
       - 'scripts/offer-temp-drive-probe-smoke.sh'
@@ -60,6 +61,8 @@ jobs:
           python3 scripts/offer-cloud-readiness-readonly.py --self-test
           python3 -m py_compile scripts/offer-business-drive-readonly-verify.py
           python3 scripts/offer-business-drive-readonly-verify.py --self-test
+          python3 -m py_compile scripts/offer-business-drive-provider-sha-diagnose.py
+          python3 scripts/offer-business-drive-provider-sha-diagnose.py --self-test
           python3 -m py_compile scripts/offer-temp-drive-folder-reader.py
           python3 scripts/offer-temp-drive-folder-reader.py --self-test
           bash -n scripts/offer-browser-cloud-bootstrap.sh

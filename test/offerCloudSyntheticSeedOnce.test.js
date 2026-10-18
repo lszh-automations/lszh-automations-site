@@ -1,9 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {
-  checkBusinessDraft,fieldsTyped,toAirtableAppRecord
-}=await import('../scripts/offer-cloud-synthetic-seed-once.mjs');
+const load=()=>import('../scripts/offer-cloud-synthetic-seed-once.mjs');
 const HASH='55f035054bf4f5501cf134a9573075e2ef415ce8820290fbd154f017b1394083';
 const record=()=>({
  Offertennummer:'TEST_CLOUD_E2E_20261018_NO_CONTRACT',
@@ -24,7 +22,8 @@ const record=()=>({
  'Vertragsunterlagen akzeptiert':false,
  'Interne Notiz':'TEST ONLY / NO CONTRACT / NO EMAIL'
 });
-test('pinned real-business synthetic draft is accepted only if every source field matches',()=>{
+test('pinned real-business synthetic draft is accepted only if every source field matches',async()=>{
+ const {checkBusinessDraft,toAirtableAppRecord}=await load();
  const original=record();
  assert.strictEqual(checkBusinessDraft(original),original);
  const mapped=toAirtableAppRecord(original);
@@ -52,7 +51,8 @@ test('pinned real-business synthetic draft is accepted only if every source fiel
  assert.throws(()=>checkBusinessDraft({...original,
    'Lead E-Mail':['real@company.example']}),/pinned_airtable_draft_changed/);
 });
-test('Firestore REST payload supports atomic offer/index data including maps and booleans',()=>{
+test('Firestore REST payload supports atomic offer/index data including maps and booleans',async()=>{
+ const {fieldsTyped}=await load();
  const result=fieldsTyped({
    status:'sent',approved:true,revision:1,
    evidence:null,source:{recordId:'recensIiczNGsoPeR'},

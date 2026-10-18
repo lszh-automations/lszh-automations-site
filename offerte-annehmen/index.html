@@ -197,10 +197,12 @@ rate_limited:'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
 temporarily_unavailable:'Die Verbindung ist derzeit gestört. Bitte versuchen Sie es später erneut oder kontaktieren Sie uns.'
 };
 if(demo){
-showOffer({number:'MUSTER-2026-001',company:'Muster KMU AG',service:'Automatisierter Anfrageprozess',
-once:1490,monthly:149,payment_model:'50 % bei Auftrag / 50 % nach Abnahme',
-valid_until:'2026-11-30',terms_version:'ENTWURF – nicht freigegeben',
-quote_sha256:'',terms_sha256:'',avv_required:true,avv_version:'TEST_ONLY_AVV_v1.0',avv_sha256:''});
+showOffer({number:'OFF-TEST-AVV-20261018-001',company:'Mustercoiffeur TEST GmbH',
+service:'Fiktiver Coiffeur-Termin- und Erinnerungsprozess',
+once:1490,monthly:149,payment_model:'Nur synthetischer Test – keine Zahlung',
+valid_until:'2026-11-30',terms_version:'v1.0 RC1 – Kundenfassung in Endkontrolle',
+quote_sha256:'',terms_sha256:'',avv_required:true,
+avv_version:'TEST_ONLY_AVV_v0.9_RC1',avv_sha256:''});
 setMessage('Nur eine unverbindliche Designvorschau. Es wird kein Vertrag abgeschlossen.','');
 button.disabled=true;
 }else if(!/^[A-Za-z0-9_-]{32,80}$/.test(code)){

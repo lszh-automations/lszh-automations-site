@@ -24,7 +24,7 @@ function doc(){
 }
 function body(){
  return {name:'Synthetischer Empfaenger',email:'synthetic@example.invalid',
-  authorized:true,accept_terms:true,accept_avv:true,
+  authorized:true,accept_quote:true,accept_terms:true,accept_avv:true,
   quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,avv_sha256:refs.avv.sha256};
 }
 if(process.env.FIRESTORE_EMULATOR_HOST!==EMULATOR || process.env.GCLOUD_PROJECT!==PROJECT){

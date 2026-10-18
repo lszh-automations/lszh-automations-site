@@ -11,19 +11,20 @@ const smoke='scripts/offer-browser-cloud-smoke.sh';
 const demo='scripts/offer-browser-static-demo-release.sh';
 const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
 const driveProbeRelease='scripts/offer-temp-drive-probe-release.sh';
+const drivePhaseRelease='scripts/offer-temp-drive-phase-release.sh';
 const driveProbeSmoke='scripts/offer-temp-drive-probe-smoke.sh';
 
 test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
- for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,driveProbeSmoke]){
+ for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveProbeSmoke]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
   const s=fs.readFileSync(file,'utf8');
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
-  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==driveProbeSmoke)
+  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveProbeSmoke)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else if(file===smoke || file===staticSmoke || file===driveProbeSmoke)
    assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
-  else if(file===driveProbeRelease)
+  else if(file===driveProbeRelease || file===drivePhaseRelease)
    assert.match(s,/SA="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
   else
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
@@ -164,4 +165,24 @@ test('deployed temporary Drive smoke only probes IAM-protected exact revision an
  assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
  assert.doesNotMatch(s,/gcloud run services (add-iam-policy-binding|set-iam-policy)/);
  assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
+});
+
+test('diagnostic-only temp deployment pins previous revision and never widens IAM or enables offer API',()=>{
+ const s=fs.readFileSync(drivePhaseRelease,'utf8');
+ assert.match(s,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(s,/lszh-offer-browser-staging-00003-j2p/);
+ assert.match(s,/lszh-offer-browser-staging:c19d8bb0f514/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED: "true"/);
+ assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.match(s,/offer-temp-drive-folder-reader\.py/);
+ assert.match(s,/--min-instances=0 --max-instances=1/);
+ assert.doesNotMatch(s,/lszh-offer-browser-staging-00002-fkq/);
+ assert.doesNotMatch(s,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud projects add-iam-policy-binding|gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud firestore|gcloud run jobs/);
 });

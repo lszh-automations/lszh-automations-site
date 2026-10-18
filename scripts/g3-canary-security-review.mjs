@@ -38,6 +38,7 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
     const severities=['UNKNOWN','LOW','MEDIUM','HIGH','CRITICAL'];
     const counts=Object.fromEntries(severities.map(x=>[x,0]));
     let fixedHighCritical=0,unfixedHighCritical=0;
+    const highCriticalFindings=[];
     for(const item of scan.Results){
       if(!str(item.Target)||!str(item.Class)||!str(item.Type)||
          (item.Vulnerabilities!==undefined&&!Array.isArray(item.Vulnerabilities)))
@@ -50,6 +51,14 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
         if(level==='HIGH'||level==='CRITICAL'){
           if(str(vuln.FixedVersion))fixedHighCritical++;
           else unfixedHighCritical++;
+          // Public vulnerability identifiers and package versions only.
+          if(highCriticalFindings.length<100)
+            highCriticalFindings.push({
+              id:vuln.VulnerabilityID,package:vuln.PkgName,
+              installedVersion:typeof vuln.InstalledVersion==='string'?vuln.InstalledVersion:'',
+              fixedVersion:typeof vuln.FixedVersion==='string'?vuln.FixedVersion:'',
+              severity:level,target:item.Target
+            });
         }
       }
     }
@@ -66,6 +75,8 @@ export function review({scanText,sbomText,ociText,inputsText,sourceCommit,runId}
       scanSha256:sha(Buffer.from(scanText)),
       sbomSha256:sha(Buffer.from(sbomText)),
       counts,fixedHighCritical,unfixedHighCritical,
+      highCriticalFindings:highCriticalFindings.sort((a,b)=>
+        (a.package+'/'+a.id).localeCompare(b.package+'/'+b.id)),
       sbomComponentCount:sbom.components.length,
       registryImageDigest:'NOT_CREATED',signature:'NOT_SIGNED',
       limitations:['scanner_db_snapshot_not_signed_by_this_workflow',

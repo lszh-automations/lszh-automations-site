@@ -141,6 +141,15 @@ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8088' ||
      Offertennummer:mapped.offerNumber,Status:'Entwurf',
      'Online-Annahme Token-Hash':mapped.tokenHash,
      'AVV erforderlich':mode,
+     'Online-Annahme Offerten Drive ID':mapped.bundle.quote.id,
+     'Online-Annahme Bedingungen Drive ID':mapped.bundle.terms.id,
+     'Online-Annahme Offerten-SHA256':mapped.bundle.quote.sha256,
+     'Online-Annahme Bedingungen-SHA256':mapped.bundle.terms.sha256,
+     ...(mode==='Ja'?{
+       'Online-Annahme AVV Drive ID':mapped.bundle.avv.id,
+       'Online-Annahme AVV-SHA256':mapped.bundle.avv.sha256,
+       'Online-Annahme AVV-Version':mapped.details.avvVersion
+     }:{}),
      'Online-Annahme rechtlich freigegeben':false,
      'Keep existing CRM info':'UNCHANGED'
    }};

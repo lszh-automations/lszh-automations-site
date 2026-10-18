@@ -77,7 +77,8 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 <input id="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@unternehmen.ch">
 <h2 id="acceptanceHeading">3. Verbindliche Bestätigung</h2>
 <label class="check"><input id="authorized" type="checkbox" required><span>Ich bin berechtigt, für das oben genannte Unternehmen diese Offerte anzunehmen.</span></label>
-<label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Offerte und die Projektbedingungen der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie als Bestandteil des Vertrags.</span></label>
+<label class="check"><input id="quoteConsent" type="checkbox" required><span>Ich habe die Offerte mit Leistungsumfang, Preisen und Zahlungsbedingungen zur Kenntnis nehmen können und nehme sie verbindlich an.</span></label>
+<label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Projektbedingungen in der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie ausdrücklich als Vertragsbestandteil.</span></label>
 <div id="avvConsentSection" class="hidden">
 <label class="check"><input id="avvConsent" type="checkbox"><span>Ich habe die zusätzlich angezeigte AVV einschliesslich der Anlagen in der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie ausdrücklich für das Unternehmen.</span></label>
 </div>
@@ -186,7 +187,7 @@ document_changed:'Die Dokumente wurden zwischenzeitlich geändert. Bitte laden S
 archive_changed:'Die archivierten Dokumente stimmen nicht mehr mit den vereinbarten Versionen überein. Bitte kontaktieren Sie uns.',
 archive_unavailable:'Die gesicherten Dokumente sind vorübergehend nicht abrufbar. Bitte kontaktieren Sie uns.',
 email_mismatch:'Bitte verwenden Sie die E-Mail-Adresse, an welche die Offerte verschickt wurde.',
-consent_required:'Bitte bestätigen Sie beide Erklärungen.',
+consent_required:'Bitte bestätigen Sie Ihre Berechtigung sowie die Offerte und die Projektbedingungen einzeln.',
 avv_consent_required:'Bitte bestätigen Sie die AVV separat, nachdem Sie diese heruntergeladen und geprüft haben.',
 avv_document_changed:'Die AVV-Datei oder ihre Version wurde geändert. Bitte fordern Sie eine aktualisierte Offerte an.',
 unexpected_avv_consent:'Für diese Offerte ist keine AVV vorgesehen. Bitte laden Sie das Formular erneut.',
@@ -218,6 +219,7 @@ const result=await request('/api/offer/accept',{
 code,name:document.getElementById('person').value,
 email:document.getElementById('email').value,
 authorized:document.getElementById('authorized').checked,
+accept_quote:document.getElementById('quoteConsent').checked,
 accept_terms:document.getElementById('terms').checked,
 quote_sha256:current.quote_sha256,terms_sha256:current.terms_sha256,
 accept_avv:current.avv_required===true && document.getElementById('avvConsent').checked,

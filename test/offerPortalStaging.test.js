@@ -23,7 +23,7 @@ function record(mode='Ja'){
 }
 function accepted(mode='Ja'){
  return {name:'Synthetischer Kunde',email:'client@example.invalid',authorized:true,
-  accept_terms:true,quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,
+  accept_quote:true,accept_terms:true,quote_sha256:refs.quote.sha256,terms_sha256:refs.terms.sha256,
   ...(mode==='Ja'?{accept_avv:true,avv_sha256:refs.avv.sha256,
     avv_version:'TEST_ONLY_AVV_v1.0'}:
     {accept_avv:false,avv_sha256:null,avv_version:null})};
@@ -174,6 +174,8 @@ test('staging acceptance with AVV records complete consent once',async()=>{
  deepStrictEqual(doc.downstream,{airtable:'disabled',proofPdf:'disabled',email:'disabled'});
  equal(doc.evidence.avv_pdf_sha256,refs.avv.sha256);
  equal(doc.evidence.quote_pdf_sha256,refs.quote.sha256);
+ equal(doc.evidence.quote_confirmed,true);
+ equal(doc.evidence.terms_confirmed,true);
  equal(doc.evidence.name,'Synthetischer Kunde');
  ok(!JSON.stringify(doc).includes(token));
  await rejects(()=>portal.accept(token,accepted()),/unavailable/);
@@ -224,6 +226,7 @@ test('missing AVV checkbox, false authorization and wrong hashes fail closed',as
  for(const body of [
    {...accepted(),accept_avv:false},
    {...accepted(),authorized:false},
+   {...accepted(),accept_quote:false},
    {...accepted(),accept_terms:false},
    {...accepted(),quote_sha256:'d'.repeat(64)},
    {...accepted(),avv_sha256:'d'.repeat(64)}

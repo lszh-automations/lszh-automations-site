@@ -91,14 +91,16 @@ function consent(offer,b){
   return {name,email,avv:expected.avv_required==='Ja'};
 }
 export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
-  proofSalt,syntheticOnly=false,onAccepted}={}){
+  proofSalt,syntheticOnly=false,onAccepted,syntheticAcceptRecordId}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
     typeof verifyBundle!=='function'||
     (readPdf!==undefined && typeof readPdf!=='function') ||
     typeof approvedVersion!=='string'||
     !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16 ||
     typeof syntheticOnly!=='boolean' ||
-    (onAccepted!==undefined && (syntheticOnly!==true || typeof onAccepted!=='function')))
+    (onAccepted!==undefined && (syntheticOnly!==true || typeof onAccepted!=='function')) ||
+    (syntheticAcceptRecordId!==undefined &&
+      (syntheticOnly!==true || !/^rec[A-Za-z0-9]{14}$/.test(syntheticAcceptRecordId))))
     throw Error('portal_not_configured');
   async function offerFor(code){
     if(typeof code!=='string'||!TOKEN.test(code))throw bad('unavailable');
@@ -107,6 +109,10 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     const now=clock();if(!(now instanceof Date)||Number.isNaN(now.valueOf()))throw bad('unavailable');
     const fingerprint=validateOffer(offer,tokenHash,now,approvedVersion);
     if(syntheticOnly && !isSyntheticOnly(offer))throw bad('unavailable');
+    // A Cloud staging acceptance pilot must never select another offer.
+    if(syntheticAcceptRecordId!==undefined &&
+       offer.source?.recordId!==syntheticAcceptRecordId)
+      throw bad('unavailable');
     return {offer,tokenHash,fingerprint,now};
   }
   async function preview(code){

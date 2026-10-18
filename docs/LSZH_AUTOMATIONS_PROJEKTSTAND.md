@@ -1,5 +1,24 @@
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
+## 18.10.2026 – TEMP Live-Sicherheitsprüfung komplett PASS, Cloud-Drive-E2E abgeschlossen
+
+**Vom Betreiber bestätigte Cloud-Shell-Ausgabe für den unveränderten temporären Dienst `lszh-offer-browser-staging`, Revision `lszh-offer-browser-staging-00006-h5w`:**
+- `PASS: Temporäre Revision und Sicherheitskonfiguration` – genau diese Revision mit 100 % temporärem Traffic, Hauptportal-Flag OFF, Vorschau ON, synthetischer Geschäftskonto-Preflight ON, erwartetes isoliertes Laufzeitdienstkonto.
+- `PASS: Keine direkte öffentliche IAM-Freigabe` – weder `allUsers` noch `allAuthenticatedUsers` in der direkten IAM-Policy des temporären Dienstes. **Geerbte IAM-Rechte wurden durch diese Prüfung nicht abschliessend beurteilt.**
+- `PASS: Statische Vorschau und CSP geschützt` – IAM-authentifizierte Vorschau HTTP 200; `form-action 'none'` und `connect-src 'none'` geprüft.
+- `PASS: Alle geschützten GET-Routen blockiert` – API offer preview, document, accept, ungültiger Token-Link und unzulässige Diagnoseparameter lieferten jeweils HTTP 503 mit `{"error":"not_available"}`.
+- `PASS: Alle POST-Routen blockiert` – offer preview/document/accept sowie Drive-Diagnoseroute verweigern POST, jeweils HTTP 503 mit identischem `not_available`-Body.
+- **`SUCCESS: Temporäre Sicherheitsprüfung bestanden`.** Der ausführende Befehl war ausschliesslich lesend und löste keine Cloud-Änderung, Einladung, Vertragsannahme oder E-Mail aus.
+
+**Vorheriger ergänzender Live-Nachweis:** Die exakt gleiche Revision lieferte `DRIVE_PROBE_HTTP=200` und `PASS: Alle vier synthetischen PDFs durch Cloud Run verifiziert`. Archiv-GET, Dateisicherungen sowie SHA-256 der echten gespeicherten Bytes waren somit innerhalb der **synthetischen Testprobe** erfolgreich, ohne Rootarchiv-Grant. Der frühere Fehler `FOLDER_PARENT_HIDDEN` wird nur durch den separat Geschäftsbenutzer-geprüften TEMP-Fallback abgefangen; die produktive Archiv-Implementierung bleibt unverändert.
+
+**Abgeschlossener Meilenstein:** Temporäre Cloud-Run→geschäftliches Drive-E2E-Leseprüfung inkl. vier synthetischen PDFs, Integritätsschutz, statischer Vorschau und Negativprüfung der gesperrten GET-/POST-/Vertragsrouten **PASS**. Kein weiterer Diagnose-Deploy für diese Ursache nötig.
+
+**Unverändert offen, KEIN Produktions-GO:** Vererbte IAM-Rechte systematisch prüfen; produktives Ownership-/Drive-Archiv- und Beweiskonzept ohne TEMP-Ausnahmeregelung festlegen; originale Projektbedingungen/AVV RC1 mit geschäftlich-juristischer Freigabe abschliessen; vollständige kontrollierte Offertenannahme/Archivierung/Bestätigungs-E-Mail mit **synthetischen Daten** samt Firestore-/Make-/Airtable-Integration separat abnehmen; reale Kundendaten, produktive Verträge, Einladungen und E-Mailversand bleiben deaktiviert. Den temporären Dienst später kontrolliert zurückbauen, nicht voreilig löschen.
+
+---
+
+
 ## 18.10.2026 – TEMP Cloud Run→Drive 4/4 Live PASS
 
 Livebericht Cloud Shell: Revision lszh-offer-browser-staging-00006-h5w aktiv; statische Vorschau erreichbar; einmaliger IAM-authentifizierter GET /_lszh/synthetic-drive-check mit DRIVE_PROBE_HTTP=200 und positiver JSON-Prüfung status=PASS_SYNTHETIC_ARCHIVE_READ_ONLY, verifiedFiles=4. Die vier synthetischen PDFs wurden durch den Cloud-Run-Lesedienst samt unveränderter Archiv-Integritätsprüfung bestätigt. Keine LSZH_TEMP_DRIVE_DIAG-Fehlerzeilen in den danach gelesenen Revisionslogs. Ursache des vorigen 503 war FOLDER_PARENT_HIDDEN; im synthetischen TEMP-Testpfad wird das fehlende Parent-Metadatenfeld nach gesonderter geschäftlicher Vorabprüfung berücksichtigt.

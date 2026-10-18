@@ -28,7 +28,7 @@ const base={
  K_REVISION:'lszh-offer-browser-staging-00003-test',
  GOOGLE_CLOUD_PROJECT:'lszh-automations'
 };
-function mockDrive({wrongOwner=false,wrongParent=false,extra=false,
+function mockDrive({wrongOwner=false,wrongParent=false,hiddenParent=false,hiddenOwner=false,extra=false,
  changedBytes=false,unlocked=false,metadataShaMismatch=false}={}){
  const stats={list:0,meta:0,bytes:0};
  const fetcher=async(raw,options)=>{
@@ -49,8 +49,8 @@ function mockDrive({wrongOwner=false,wrongParent=false,extra=false,
   if(id===FOLDER){
    return Response.json({id,name:'LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT',
      mimeType:'application/vnd.google-apps.folder',
-     parents:[wrongParent?'1WRONG_ROOT_0000000000000000000':ROOT],
-     owners:[{emailAddress:wrongOwner?'private@example.invalid':OWNER}],
+     ...(hiddenParent?{}:{parents:[wrongParent?'1WRONG_ROOT_0000000000000000000':ROOT]}),
+     ...(hiddenOwner?{}:{owners:[{emailAddress:wrongOwner?'private@example.invalid':OWNER}]}),
      trashed:false});
   }
   const index=ids.indexOf(id);
@@ -75,7 +75,7 @@ test('probe stays disabled unless synthetic-only temporary demo has explicit exa
  assert.deepEqual(temporaryDriveProbeConfig({...base,LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED:'false'},
    tempBrowserDemoConfig(base)),{enabled:false});
  assert.deepEqual(temporaryDriveProbeConfig(base,tempBrowserDemoConfig(base)),{
-   enabled:true,folder:FOLDER,hashes
+   enabled:true,folder:FOLDER,hashes,businessPrechecked:false
  });
  for(const [change,value] of [
   ['LSZH_PORTAL_STAGING_ENABLED','true'],
@@ -173,6 +173,61 @@ test('folder metadata classifier is exact, secret-free and never relaxes missing
  }
 });
 
+test('only independently business-prechecked synthetic reader may omit inaccessible root/owner metadata',async()=>{
+ const {classifySyntheticFolderMetadata,verifySyntheticDriveReadOnly,
+  temporaryDriveProbeConfig}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
+ const cfg={...base,LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT:'true'};
+ assert.throws(()=>temporaryDriveProbeConfig(cfg,{enabled:true}),
+  /temporary_drive_business_preflight_gate_invalid/);
+ const confirmed=temporaryDriveProbeConfig({
+   ...cfg,LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED:'true'
+ },{enabled:true});
+ assert.equal(confirmed.businessPrechecked,true);
+ for(const variant of [
+   {hiddenParent:true},
+   {hiddenOwner:true},
+   {hiddenParent:true,hiddenOwner:true}
+ ]){
+  const mocked=mockDrive(variant);
+  const codes=[];
+  await assert.rejects(()=>verifySyntheticDriveReadOnly({
+    folder:FOLDER,hashes,accessToken:token,fetcher:mocked.fetcher,
+    businessPrechecked:false,onDiagnostic:x=>codes.push(x)
+  }),{name:'Error'});
+  assert.deepEqual(codes,[variant.hiddenParent?'FOLDER_PARENT_HIDDEN':'FOLDER_OWNER_HIDDEN']);
+  const result=await verifySyntheticDriveReadOnly({
+    folder:FOLDER,hashes,accessToken:token,fetcher:mocked.fetcher,
+    businessPrechecked:confirmed.businessPrechecked
+  });
+  assert.deepEqual(result,{status:'PASS_SYNTHETIC_ARCHIVE_READ_ONLY',verifiedFiles:4});
+ }
+ const exact={
+  id:FOLDER,name:'LSZH_SYNTHETIC_OFFER_PDFS_20261018_NO_CONTRACT',
+  mimeType:'application/vnd.google-apps.folder',
+  parents:[ROOT],owners:[{emailAddress:OWNER}],trashed:false
+ };
+ for(const changed of [
+  {...exact,parents:[]},
+  {...exact,parents:null},
+  {...exact,parents:['1WRONG_ROOT_00000000000000000']},
+  {...exact,owners:[]},
+  {...exact,owners:null},
+  {...exact,owners:[{emailAddress:'wrong@example.invalid'}]},
+  {...exact,id:'other'},
+  {...exact,name:'wrong'},
+  {...exact,trashed:true}
+ ]){
+  assert.notEqual(classifySyntheticFolderMetadata(changed,FOLDER,{businessPrechecked:true}),null);
+ }
+ for(const options of [{wrongOwner:true},{wrongParent:true},{extra:true},
+   {changedBytes:true},{unlocked:true},{metadataShaMismatch:true}]){
+  await assert.rejects(()=>verifySyntheticDriveReadOnly({
+    folder:FOLDER,hashes,accessToken:token,fetcher:mockDrive(options).fetcher,
+    businessPrechecked:true
+  }),{name:'Error'},JSON.stringify(options));
+ }
+});
+
 test('diagnostic logging must be opted in only with isolated temporary probe',async()=>{
  const {temporaryDriveProbeConfig}=await import('../cloud-run/offer-portal-staging/temporaryDriveProbe.mjs');
  assert.throws(()=>temporaryDriveProbeConfig({
@@ -181,7 +236,7 @@ test('diagnostic logging must be opted in only with isolated temporary probe',as
  },{enabled:true}),/temporary_drive_diagnostics_requires_probe/);
  assert.deepEqual(temporaryDriveProbeConfig({...base,
   LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED:'true'},{enabled:true}),{
-  enabled:true,folder:FOLDER,hashes
+  enabled:true,folder:FOLDER,hashes,businessPrechecked:false
  });
 });
 test('fixed Drive failure stages classify owner, files and checksum without echoing secrets',async()=>{

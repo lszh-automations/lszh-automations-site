@@ -20,7 +20,7 @@ const required = [
 for (const heading of required) {
   if (!body.includes(heading)) errors.push('Fehlender Abschnitt: ' + heading);
 }
-for (const risk of ['NEVER', 'Keine produktiven E-Mails', 'Keine Cloud-IAM', 'main', 'feature/optional-avv-acceptance-staging-20261014', 'feature/onboarding-notification-outbox-20261016']) {
+for (const risk of ['Nie wieder starten', 'Keine produktiven E-Mails', 'Keine Cloud-IAM', 'main', 'feature/optional-avv-acceptance-staging-20261014', 'feature/onboarding-notification-outbox-20261016']) {
   if (!body.includes(risk)) errors.push('Fehlender Pflichtmarker: ' + risk);
 }
 const target = body.match(/## Genau ein naechster Schritt\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim();

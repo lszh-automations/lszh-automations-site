@@ -6,15 +6,9 @@ Stand: 19.10.2026 (Europe/Zurich). Einmalige synthetische Cloud-Annahme inklusiv
 
 **Ziel:** Einen vollständigen Offertenprozess für einen KMU fertigstellen: Offerte → private PDFs → getrennte Online-Zustimmungen → Annahmenachweis → Airtable → Make-Beleg und Bestätigung. Beide Varianten AVV Ja/Nein müssen funktionieren.
 
-**Letztes abgeschlossenes Ergebnis:** Cloud Run → Firestore → Airtable → Make-Beleg für die synthetische Offerte `TEST_CLOUD_E2E_20261018_NO_CONTRACT` (AVV Nein) live bestanden. Nach erfolgreicher einmaliger Portal-Annahme und unabhängigem Firestore-/Airtable-Readback lief Make-Szenario `7940220` am 19.10.2026 um 01:08 Zürich erfolgreich: Execution `6f4a6b7254454e9688a7dd2fa98d8437`, 13 Module, keine Modulfehler. Aktivierung startete den Lauf automatisch; zusätzlicher Run-Aufruf wurde wegen laufender Ausführung abgewiesen, kein zweiter Lauf gestartet. Szenario anschliessend wieder deaktiviert. Gmail und Versanddatums-Modul wurden nicht ausgeführt.
+**Letztes abgeschlossenes Ergebnis:** Beide Varianten des vollständigen synthetischen Annahmewegs live bestanden. AVV Nein: Cloud Run → Firestore → Airtable → Make-Beleg (Execution `6f4a6b7254454e9688a7dd2fa98d8437`, 13 Module). AVV Ja: drei PDFs per Portal geprüft, ausdrückliche AVV-Zustimmung über Cloud Run gespeichert und in Firestore/Airtable zurückgelesen; Make-Beleg erstellt (Executions `a3fafc87f61743f6936ce7a07ef5626a` und `41ac7867306a471fbac9c10992b6ac90`, je 15 Module, keine Modulfehler). Das aktive Polling startete beim kurzzeitigen Aktivieren zwei Läufe parallel. Airtable verweist auf `1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t`; beide Beleg-PDFs und Google Docs waren identisch. Redundantes TEST_ONLY-PDF `1Ey83ZB7YcVUtEcbPATYDMN63KmQSxtaM` und zugehöriges Doc `1c283fm15cFFY0Zttpams6CcXXXFYnJifP7XhnB47dHo` gelöscht. Behaltener [AVV-TEST-Beleg](https://drive.google.com/file/d/1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t/view) liegt im Geschäfts-Testordner. Inhalt und beide Hashes der Offerte/Bedingungen sowie Hash und Version `TEST_ONLY_AVV_v1.0_RC1` unabhängig geprüft. Beide Make-Szenarien danach inaktiv; Gmail und Versanddatums-Module aus. Keine E-Mail, kein echter Vertrag.
 
-**Belegnachweis:** [TEST_ONLY-PDF im Geschäfts-Drive](https://drive.google.com/file/d/1Cdf0_5_80zB867lDP4AooNn1IKiB5Hzv/view), direkt im Geschäfts-Testordner `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko`. PDF-Text unabhängig gelesen: Testkennzeichnung, Offertennummer, Person, E-Mail, Annahmezeit `2026-10-18T23:03:30.355Z`, Version und beide Quell-PDF-Hashes stimmen. Airtable unabhängig gelesen: Status Angenommen und exakt diese Beleg-ID; kein Versandzeitpunkt, Bearbeitungsflag leer/false. Make-Detailein-/ausgaben waren über das Plugin nicht verfügbar; Nachweis deshalb durch Laufstruktur plus direkte Drive-/Airtable-Abfrage. Keine visuelle PDF-Layoutprüfung durchgeführt.
-
-**Nächste Arbeit:** AVV-Ja-Seed vom Betreiber am 19.10. bestätigt: exakt ein Firestore-Testangebot plus Quellindex atomar erstellt und zurückgelesen, Token nur lokal. Seed **nicht wiederholen**. Bereit stehen `offer-browser-synthetic-avv-release.py --apply`, `offer-browser-synthetic-avv-preview.py` und `offer-browser-synthetic-avv-accept-once.py --accept-once` für einen Shell-Block mit Fehlerabbruch. Release baut Source `e09a5b27ff105e0d3e1c2b6a9e3aa677bf05c4c0`, ersetzt Tag `cloud-e2e` von `00008-json` auf `00009-avv` mit 0 % regulärem Traffic und verwendet bestehende Identität/Secrets. Demo bleibt bei 100 %, Originalportal unverändert. Preview prüft AVV Ja, exakte Version und alle drei PDF-Hashes; Accept sendet höchstens einen POST mit ausdrücklicher AVV-Zustimmung und liest Firestore/Airtable unabhängig zurück. Bei unklarer Antwort kein POST-Retry. Noch kein AVV-Ja-Deployment, Preview oder Accept live ausgeführt. Danach vorhandenen Make-Beleg `7965223` für diesen Record vorbereiten/ausführen.
-
-**Prüfnachweis:** [CI 39175755576](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39175755576) zum gepinnten Source: alle vier Jobs SUCCESS (Validierung, Image, echte Functions-Framework-/Firestore-Emulatortests, Chromium). Neue Operator-Skripte zusätzlich lokal: 12 Python-Tests PASS, einschliesslich AVV-Zustimmung/Hash/Version, kein POST-Retry und kein regulärer Trafficwechsel.
-
-**Konkreter offener Nachweis:** Vollständiger AVV-Ja-Durchlauf, Bestätigungsweg und endgültige Kundenunterlagen. Temporäre Cloud-Testrevisionen/Secret-Rechte noch bereinigen. Ausgangskonfiguration von Make: [Snapshot](evidence/make-receipt-7940220-before-synthetic-20261019.json).
+**Nächste Arbeit:** Kernziel technisch erreicht: beide Varianten funktionieren bis zum archivierten Annahmebeleg. Noch offen: Bestätigungs-Mailweg gezielt testen, ohne eine Mail zu versenden; anschliessend kontrollierter Cleanup der Cloud-Testrevisionen und Secret-Zugriffe. Danach Pilotunterlagen und Kundenroute abschliessen. Keine Annahme/Belegläufe wiederholen.
 
 **Nicht wiederholen:** Erfolgreiche Testannahme, Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
 
@@ -35,18 +29,18 @@ Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https
 | Bereich | Belegt | Noch offen / Testgrenze |
 | --- | --- | --- |
 | Website und Onboarding | Website, persönliches Onboarding, Make-Konto-/Einladungsfelder und `/make-start/` vorhanden | Vollständige Kundenübergabe, tatsächliche Einladung/Rollen und Mailweg nicht aus dem Offerten-Test ableiten |
-| Online-Annahme | Getrennte Zustimmung zu Offerte, Bedingungen und optional AVV; Browser-, HTTP-, Emulator- und Paralleltests vorhanden | Keine rechtswirksame Kundenannahme aktiviert |
-| Drive-Dokumente | Echter Portal-Download von Offerte und Bedingungen samt SHA-256-Prüfung live bestanden (AVV Nein); frühere temporäre Leseprobe 4/4 | Vollständiger AVV-Ja-Durchlauf noch offen |
-| Firestore | Echte Cloud-Annahme inklusive Person, Zustimmungen und Dokumenthashes unabhängig zurückgelesen | Vollständiger AVV-Ja-Durchlauf noch offen |
-| Airtable | Automatischer Callback der echten Cloud-Annahme erfolgreich; Status, Person, Zeitpunkt und PDF-Referenzen stimmen mit Firestore überein | Nachfolgender Make-Beleg und Bestätigungsweg noch offen |
-| Make-Beleg | AVV-Nein-Beleg aus echter synthetischer Cloud-Annahme erzeugt, im Geschäfts-Drive archiviert und in Airtable gespeichert; Inhalt unabhängig geprüft | AVV-Ja-Beleg und Bestätigungsweg noch offen |
+| Online-Annahme | Beide synthetischen Cloud-Annahmen (AVV Nein/Ja) live mit getrennten Zustimmungen, Firestore-/Airtable-Readback bestanden | Echter Kundenbetrieb und Kundenunterlagen bleiben offen |
+| Drive-Dokumente | Echter Portal-Download aller drei AVV-Ja-PDFs und SHA-256-Prüfung live bestanden; Annahmebelege in Geschäfts-Testordner archiviert | Keine visuelle Layoutkontrolle der PDFs |
+| Firestore | Cloud-Annahmen AVV Nein und Ja samt Person, Zustimmungen und Dokumenthashes unabhängig zurückgelesen | Keine offene technische Lücke im synthetischen Annahmeweg |
+| Airtable | Beide Cloud-Annahmen inklusive AVV-Zustimmung synchronisiert; Beleg-IDs der beiden Make-Belege gespeichert | Bestätigungs-Mailweg noch offen |
+| Make-Beleg | AVV-Nein- und AVV-Ja-Beleg live erzeugt, im Geschäfts-Drive archiviert und in Airtable referenziert; AVV-Ja-Inhalt unabhängig geprüft | Bestätigungs-Mailweg noch offen; kein Mailversand ausgeführt |
 | Kundenunterlagen | Projektbedingungen als PDF/Google Doc und synthetische AVV samt Anlagen im Geschäfts-Drive vorhanden | Endkontroll-/TEST_ONLY-Dateien sind keine final freigegebenen Kundenverträge |
 | Secure Transfer | Dummy-Schlüssel funktional getestet | Keine Produktivfreigabe für reale Kundensecrets; kein zusätzlicher MVP-Pflichtschritt bei OAuth |
 | G3-Infrastruktur | Umfangreiche Offline-/CI-Nachweise im Repository | Zurückgestellt; keine G3-Release-/Deploymentfreigabe |
 
 Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementierte Callback `manual_review_required`. Firestore-Annahme bleibt bestehen; keine blinde Wiederholung. Airtable GET/PATCH ist keine atomare CAS-Operation: einzige Schreibverantwortung und Umgang mit unklaren Ergebnissen im Pilot beachten.
 
-## Aktueller Cloud-Testfall – erfolgreich synthetisch angenommen
+## Cloud-Testfälle – beide Varianten erfolgreich synthetisch angenommen
 
 | Referenz | Wert |
 | --- | --- |
@@ -61,9 +55,9 @@ Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementier
 
 Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `lszh_synthetic_cloud_test_20261018_token.txt`, nicht in Chat, GitHub oder Airtable. Datei-Verfügbarkeit vor Nutzung prüfen; hier ist kein Token enthalten. Der ältere separate Airtable-Test `rec4lc9AV5TxRQlcd` ist bereits simuliert angenommen und **nicht** der aktuelle Cloud-Testrecord. Auch das Dokument-/Demo-Paket `OFF-TEST-AVV-20261018-001` ist ein anderer Testfall.
 
-## Vorbereiteter AVV-Ja-Testfall
+## AVV-Ja-Testfall – abgeschlossen
 
-- Airtable: `recktLXj5wUxLmHFQ`, Entwurf mit Token-Hash; Firestore-Angebot und Quellindex vom Betreiber erfolgreich angelegt/zurückgelesen.
+- Airtable: `recktLXj5wUxLmHFQ`, angenommen mit AVV ausdrücklich akzeptiert; Airtable-Beleg-ID `1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t`.
 - Offerte: `1-GQyj0cKC4aAJD_9wrxanckCJisEy0nB`, SHA-256 `2dd5c5377461c969b9a436f36999150dc53cf159f02e4985e2f2536b683b004c`.
 - Bedingungen: identische synthetische Bedingungen wie im AVV-Nein-Test.
 - AVV: `1p2ZRrPuSuaICH9W4N0afK5xt8xeOeKZI`, SHA-256 `53f9deda2000e219f79e0496b33f1e74df8ac00eac09f221b2436c3fd848d060`.
@@ -80,12 +74,12 @@ Szenario `7940220` am 19.10.2026 live erfolgreich ausgeführt und wieder deaktiv
 | Annahmelink ohne AVV | `7940261` | Inaktiv; Token-/Mailpfad gesperrt |
 | Annahmebeleg ohne AVV | `7940220` | Synthetischer Beleglauf am 19.10. erfolgreich; wieder inaktiv; Mail und Versanddatums-Modul deaktiviert |
 | Annahmelink mit AVV | `7965215` | Inaktiv; Token-/Mailpfad gesperrt |
-| Annahmebeleg mit AVV | `7965223` | Inaktiv; Claim/Gmail mit `0=1` gesperrt |
+| Annahmebeleg mit AVV | `7965223` | Synthetischer Beleg am 19.10. erfolgreich; wieder inaktiv; Gmail und Versanddatums-Modul deaktiviert |
 
 ## Nächste Schritte und Grenzen
 
 1. **Privater Cloud-Test bestanden (AVV Nein):** Bereitstellung, Leseweg, einmalige Annahme und unabhängiger Firestore-/Airtable-Readback erfolgreich. Nicht wiederholen. Temporäre Testrevisionen und Secret-Rechte noch kontrolliert bereinigen; bestehenden Traffic erhalten.
-2. **Belegstrecke vervollständigen:** AVV-Nein-Testbeleg erfolgreich. AVV Ja ebenfalls vollständig nachweisen und Bestätigungsweg fertigstellen. Vor Annahme 2/3 Vertrags-PDFs, danach 3/4 Dokumente inklusive Beleg.
+2. **Belegstrecke bestanden:** AVV-Nein und AVV-Ja haben beide TEST_ONLY-Belege erzeugt. Bestätigungs-Mailweg noch ohne Versand technisch prüfen.
 3. **Begrenzten Kundenpilot vorbereiten:** Endgültige PDF-Versionen, konkrete AVV-Anlagen, Kundenroute, Verantwortlichkeiten und Betrieb klären; danach ausdrückliches Pilot-GO.
 
 Bereits genehmigt und erledigt: einmaliger privater Cloud-Run-Staging-Test mit synthetischen Daten, separater synthetischer Airtable-Schreibtest und einmaliger Make-Belegtest. Am 19.10. stellte der Betreiber klar, dass für die weitere synthetische Entwicklungs- und Testarbeit keine wiederholten Freigabefragen nötig sind; im bestehenden Aufgabenrahmen selbstständig weiterarbeiten. **Nicht genehmigt:** echte Kundenverträge/-mails, externe Kundeneinladungen, allgemeine Make-Aktivierung, Main-Merge oder öffentlicher Go-Live. Bestehende Freigaben nicht nochmals pauschal einholen; den Umfang nicht ausweiten.
@@ -102,7 +96,7 @@ Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale un
 
 ## Testrevision wieder ausser Betrieb nehmen
 
-Nach dem einmaligen Test: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` sowie (nach Bereitstellung) `lszh-offer-browser-staging-00009-avv` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
+Nach beiden Tests: exakt Tag `cloud-e2e` entfernen, Testrevisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` sowie (nach Bereitstellung) `lszh-offer-browser-staging-00009-avv` jeweils nach 0%-Traffic-Kontrolle löschen und die beiden für diesen Test hinzugefügten Secret-Accessor-Bindungen des Portal-Dienstkontos gezielt entfernen. Alte Demo-Revision, Originalportal, Testnachweise und andere Secrets nicht löschen. Noch kein Cleanup ausgeführt; bei Teilfehlern tatsächlichen Zustand lesen, keine pauschale Wiederholung.
 
 ## Historische Nachweise
 

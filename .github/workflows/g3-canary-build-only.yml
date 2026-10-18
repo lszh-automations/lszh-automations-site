@@ -34,16 +34,23 @@ jobs:
           node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js
           node scripts/g3-canary-image-plan.mjs
 
-      - name: Resolve candidate base SHA from official Docker Hub (read only)
+      - name: Verify fixed candidate base SHA lock (Docker Hub read-only)
         shell: bash
         run: |
           set -euo pipefail
-          base_sha="$(docker buildx imagetools inspect docker.io/library/node:22-alpine --format '{{.Manifest.Digest}}')"
-          [[ "$base_sha" =~ ^sha256:[a-f0-9]{64}$ ]]
-          base="docker.io/library/node:22-alpine@$base_sha"
+          base="$(node -e '
+            const lock=require("./cloud-run/g3-review-staging/base-image.candidate.json");
+            if(lock.schemaVersion!==1||lock.kind!=="LSZH_G3_CANDIDATE_NODE_BASE_V1"||
+               lock.platform!=="linux/amd64"||lock.reviewStatus!=="UNREVIEWED"||
+               lock.releaseStatus!=="NO_GO"||lock.canPublish!==false||lock.canDeploy!==false)
+              process.exit(2);
+            process.stdout.write(lock.image);
+          ')"
           node scripts/g3-canary-image-plan.mjs "--base-image=$base" > g3-image-inputs.json
+          # Verify the locked digest exists, NOT that it is security approved.
+          docker buildx imagetools inspect "$base" >/dev/null
           echo "G3_CANARY_BASE_IMAGE=$base" >> "$GITHUB_ENV"
-          echo "Candidate base pinned for THIS run: $base"
+          echo "Candidate base SHA LOCKED across CI runs: $base"
           echo "Not security-reviewed, not deploy-approved"
 
       - name: Two isolated, network-disabled build steps produce OCI candidates

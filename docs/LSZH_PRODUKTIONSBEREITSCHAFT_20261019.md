@@ -24,6 +24,7 @@ Die geprüfte Cloud-Run-Anwendung ist ausdrücklich auf Staging und synthetische
 
 - Beide synthetischen Varianten AVV Nein/Ja wurden erfolgreich angenommen und in Firestore sowie Airtable zurückgelesen.
 - Für beide Varianten wurden TEST_ONLY-Belege in Google Drive erzeugt und mit Airtable verknüpft.
+- Separater einmaliger Make-Mailtransporttest an die private Outlook-Adresse des Betreibers erfolgreich (Szenario `8038287`, danach inaktiv; Gmail-Message-ID `1a1517624c90bef0`). Das belegt den Gmail-Transport samt Absenderalias. Die produktiven Offerten-/Annahmevorlagen, PDF-Anhänge und Kundenempfänger sind damit nicht getestet.
 - Bestätigungsanhänge wurden statisch geprüft: drei PDFs ohne AVV, vier PDFs mit AVV. Kein Mailversand erfolgte.
 - Temporärer Cloud-E2E-Tag und zwei Testrevisionen wurden bereinigt; temporäre Secret-Zugriffe entfernt; Browser-Demo blieb zu 100 % auf der bisherigen Revision.
 - Im Make-Read-only-Check vom 19.10.2026 waren die Szenarien 7835460, 7940261, 7940220, 7965215 und 7965223 inaktiv; alle meldeten null offene fehlgeschlagene Ausführungen.

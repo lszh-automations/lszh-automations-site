@@ -24,15 +24,20 @@ def grants(action):
  for secret in r.SECRETS.values():
   r.cloud(['secrets',action+'-iam-policy-binding',secret,'--member=serviceAccount:'+r.SA,
    '--role=roles/secretmanager.secretAccessor','--condition='+CONDITION])
-def apply():
+def apply(resume_build=None):
  s=protected()
  r.require(not any(t.get('tag')==r.TAG for t in s['status'].get('traffic',[])),'pilot_tag_exists_inspect_before_retry')
  revs=r.cloud(['run','revisions','list','--service='+r.SERVICE,'--region='+r.REGION])
  r.require(not any(v['metadata']['name']==REVISION for v in revs),'pilot_revision_exists_inspect_before_retry')
- with tempfile.TemporaryDirectory(prefix='lszh-internal-pilot-') as d:
-  r.package(Path(d))
-  print('BUILD: isolated internal TEST_ONLY code package',flush=True)
-  build=r.cloud(['builds','submit',d,'--region='+r.REGION,'--tag='+IMAGE,'--suppress-logs'],timeout=1800)
+ if resume_build:
+  r.require(resume_build=='965c746c-3692-4f05-ac68-fb5ac31cf25d','unexpected_resume_build')
+  build=r.cloud(['builds','describe',resume_build,'--region='+r.REGION])
+  r.require(build.get('images')==[IMAGE],'resume_image_mismatch')
+ else:
+  with tempfile.TemporaryDirectory(prefix='lszh-internal-pilot-') as d:
+   r.package(Path(d))
+   print('BUILD: isolated internal TEST_ONLY code package',flush=True)
+   build=r.cloud(['builds','submit',d,'--region='+r.REGION,'--tag='+IMAGE,'--suppress-logs'],timeout=1800)
  r.require(build.get('status')=='SUCCESS','build_failed')
  images=[i for i in build.get('results',{}).get('images',[]) if i.get('name')==IMAGE]
  r.require(len(images)==1,'build_digest_missing')
@@ -69,6 +74,7 @@ def cleanup():
 if __name__=='__main__':
  try:
   if sys.argv[1:] == ['--apply']:apply()
+  elif len(sys.argv)==3 and sys.argv[1]=='--resume-build':apply(sys.argv[2])
   elif sys.argv[1:] == ['--cleanup']:cleanup()
   else:raise RuntimeError('use_apply_or_cleanup')
  except Exception as e:

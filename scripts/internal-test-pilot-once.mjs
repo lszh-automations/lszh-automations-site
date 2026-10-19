@@ -29,7 +29,7 @@ function decode(v){
 }
 const mode=process.argv[2];
 try{
- if(!['--seed','--readback'].includes(mode))fail('use_seed_or_readback');
+ if(!['--seed','--readback','--status'].includes(mode))fail('use_seed_or_readback');
  if(cloud('config','get-value','account')!=='lars@lszh-automations.ch')fail('wrong_account');
  const google=cloud('auth','print-access-token');
  const pat=cloud('secrets','versions','access','1','--secret=lszh-offer-cloud-e2e-airtable','--project='+PROJECT);
@@ -82,5 +82,5 @@ try{
     quote_confirmed:true,terms_confirmed:true,avv_required:false,
     quote_pdf_sha256:s.bundle.quote.sha256,terms_pdf_sha256:s.bundle.terms.sha256})}});
   console.log('PASS: independent Firestore/Airtable acceptance, person, consents, hashes and timestamps match.');
- }else console.log('PASS: independent staging offer readback; private invitation remains only in operator file.');
+ }else console.log('PASS: independent staging offer readback; private invitation remains only in operator file. Status: '+s.status);
 }catch(e){console.error('STOP: '+(/^[a-z0-9_]+$/.test(e.message)?e.message:'internal_pilot_failed_inspect_without_replay'));process.exitCode=1;}

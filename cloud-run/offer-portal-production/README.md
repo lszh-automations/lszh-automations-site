@@ -3,7 +3,7 @@
 Stand: 19.10.2026. Entwicklungsbranch `feature/optional-avv-acceptance-staging-20261014`.
 Ziel: Eine freigegebene KMU-Offerte mit persönlichem Link online annehmen, Nachweis atomar sichern,
 Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien benutzen.
-**Der Cloud-Run-Dienst ist noch nicht deployed und kein Kunde ist freigegeben.**
+**Cloud-Run-Kundendienst existiert:** Revision `lszh-offer-portal-00002-4zw` im Projekt `lszh-automations`/Zürich, IAM-privat und durch `LSZH_PORTAL_PRODUCTION_ENABLED=false` deaktiviert. **Noch kein Kunde freigegeben.**
 
 ## Bereits im Branch implementiert
 
@@ -26,8 +26,8 @@ Der Check liest nur den bestehenden GCP-Projektkontext und meldet für Cloud Run
 
 ## Noch konkret nötig vor echter Kundenofferte
 
-1. **Echte Enddokumente freigeben:** Projektbedingungen-PDF ohne `ENDKONTROLLE_NICHT_VERSENDEN`; bei AVV Ja finale projektspezifische AVV samt Anlagen, tatsächlich eingesetzte Subunternehmer, Datenarten, Regionen, Aufbewahrungs-/Löschfristen. Mit Geschäfts-Drive-IDs und SHA256 in Airtable referenzieren.
-2. **Google Cloud bereitstellen:** Im vorhandenen Projekt `lszh-automations` (kein neues Projekt nötig) den Dienst `lszh-offer-portal` mit eigener dienstgebundener Identität `lszh-offer-portal@lszh-automations.iam.gserviceaccount.com` vorbereiten, Named Firestore `lszh-offers` in `europe-west6`, minimale Lese-/Schreibberechtigungen nur für diese DB/Collections, Drive-Lesezugriff für Geschäftsdokumente, getrennte Secret-Manager-Einträge, Cloud Run HTTPS. Die hier aufgeführten Ressourcen sind **Sollwerte**, nicht als existent bestätigt.
+1. **Kundendokumente binden:** Geschäftlich freigegebene **Projektbedingungen v1.0** als PDF `1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX` im Geschäfts-Drive-Produktionsarchiv vorhanden. **AVV-Master v1.0** als PDF `1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x` in der gleichen Ablage; sie ist **nicht kundenspezifisch abgeschlossen**, Anlagen A/B/C im echten AVV-Ja-Fall tatsächlich ausfüllen/genehmigen lassen und eine eigene finale AVV-PDF erstellen. Hashes/geschäftliche Prüfentscheidung im [Freigaberegister](../../docs/LSZH_VERTRAGSFREIGABE_20261019.md). Vor Kunde: tatsächliche Drive-Dateihashes und ContentRestrictions prüfen.
+2. **Vorhandene Google-Cloud-Basis prüfen, nicht neu erzeugen:** Der IAM-private Dienst `lszh-offer-portal`, die benannte Firestore-DB `lszh-offers` in Zürich, das Laufzeitdienstkonto und die Geschäfts-Drive-Ordnerfreigabe sind durch Cloud-Shell-Ausgabe und Drive-Readback bestätigt. Offen bleiben tatsächlicher Cloud-Run-Drive-API-Lesetest, notwendige Secret-Manager-Rechte/Secrets, Domain/HTTPS und aktiver Kundentest. Dienst bis dahin per `LSZH_PORTAL_PRODUCTION_ENABLED=false` deaktiviert lassen.
 3. **Domain/HTTPS:** `https://portal.lszh-automations.ch` als tatsächliche Domain auf den Kundenservice konfigurieren und vollständige Origin/HTTPS-Funktion prüfen. Keinen Link auf die alte Website senden, solange deren `/offerte-annehmen/`-Backend nicht dieselbe echte Kundenroute nutzt.
 4. **Laufzeitwerte:** `LSZH_PORTAL_PRODUCTION_ENABLED=true`, `LSZH_PORTAL_DATABASE=lszh-offers`, `LSZH_PORTAL_BUSINESS_ARCHIVE_FOLDER=10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN`, `LSZH_PORTAL_ORIGIN=https://portal.lszh-automations.ch`, `LSZH_PORTAL_TERMS_VERSION=<finale Version>`; `LSZH_PORTAL_PROOF_SALT` und `LSZH_AIRTABLE_ACCESS_TOKEN` nur aus Secret Manager. Zugangsdaten niemals in Chat, GitHub oder Logs.
 5. **Erste Offerte:** Tatsächlichen Kunden im CRM aufnehmen; den passenden Datensatz prüfen; erst wenn Dokumente/Empfänger stimmen, die zwei Freigabe-Flags `Online-Annahme rechtlich freigegeben` und `Echtbetrieb – kein Test` setzen. Für echte Annahme müssen `Versand freigegeben` und `Vertragsunterlagen versendet` korrekt sein.

@@ -12,6 +12,23 @@ const sha=x=>createHash('sha256').update(x).digest('hex');
 const SYNTHETIC_NUMBER=/^TEST[-_][A-Z0-9_-]{8,90}[-_]NO[-_]CONTRACT$/;
 const SYNTHETIC_EMAIL=/^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)*example\.invalid$/;
 const SYNTHETIC_SOURCE={baseId:'appzJiskpAdaR1HEv',tableId:'tbljeIUoD7wwKuSmS'};
+const CUSTOMER_SOURCE={baseId:SYNTHETIC_SOURCE.baseId,tableId:SYNTHETIC_SOURCE.tableId};
+function isApprovedCustomerOffer(s){
+  const source=s?.source,downstream=s?.downstream;
+  return source?.kind==='LSZH_CUSTOMER_APPROVED_V1' &&
+    source.baseId===CUSTOMER_SOURCE.baseId &&
+    source.tableId===CUSTOMER_SOURCE.tableId &&
+    /^rec[A-Za-z0-9]{14}$/.test(source.recordId||'') &&
+    source.legalApproved===true && source.liveApproved===true &&
+    typeof s.offerNumber==='string' &&
+    !/^(TEST[-_]|DEMO[-_])/i.test(s.offerNumber) &&
+    !/(?:\.invalid|\.test)$/i.test(s.recipientEmail||'') &&
+    typeof s.termsVersion==='string' &&
+    !/test|draft|entwurf|rc/i.test(s.termsVersion) &&
+    downstream?.airtable==='pending' &&
+    downstream?.proofPdf==='pending' &&
+    downstream?.email==='pending';
+}
 function isSyntheticOnly(s){
   const source=s?.source, downstream=s?.downstream;
   return source?.kind==='LSZH_SYNTHETIC_ONLY' &&
@@ -91,13 +108,14 @@ function consent(offer,b){
   return {name,email,avv:expected.avv_required==='Ja'};
 }
 export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
-  proofSalt,syntheticOnly=false,onAccepted,syntheticAcceptRecordId}={}){
+  proofSalt,syntheticOnly=false,productionOnly=false,onAccepted,syntheticAcceptRecordId}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
     typeof verifyBundle!=='function'||
     (readPdf!==undefined && typeof readPdf!=='function') ||
     typeof approvedVersion!=='string'||
     !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16 ||
-    typeof syntheticOnly!=='boolean' ||
+    typeof syntheticOnly!=='boolean' || typeof productionOnly!=='boolean' ||
+    (productionOnly===true && syntheticOnly===true) ||
     (onAccepted!==undefined && (syntheticOnly!==true || typeof onAccepted!=='function')) ||
     (syntheticAcceptRecordId!==undefined &&
       (syntheticOnly!==true || !/^rec[A-Za-z0-9]{14}$/.test(syntheticAcceptRecordId))))
@@ -109,6 +127,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     const now=clock();if(!(now instanceof Date)||Number.isNaN(now.valueOf()))throw bad('unavailable');
     const fingerprint=validateOffer(offer,tokenHash,now,approvedVersion);
     if(syntheticOnly && !isSyntheticOnly(offer))throw bad('unavailable');
+    if(productionOnly && !isApprovedCustomerOffer(offer))throw bad('unavailable');
     // A Cloud staging acceptance pilot must never select another offer.
     if(syntheticAcceptRecordId!==undefined &&
        offer.source?.recordId!==syntheticAcceptRecordId)
@@ -129,7 +148,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
       ...(offer.bundle.avv_required==='Ja'?
         {avvVersion:String(offer.details.avvVersion||'')}:{})
     };
-    return {number:offer.offerNumber,test_only:syntheticOnly,
+    return {number:offer.offerNumber,test_only:!productionOnly,
       // Only the operator-pinned synthetic Cloud pilot may expose a test-only
       // submit button. The backend still enforces the exact record + token.
       ...(syntheticOnly?{test_accept_enabled:syntheticAcceptRecordId!==undefined}:{}),
@@ -151,7 +170,8 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     // External Drive I/O happens BEFORE, never inside the Firestore transaction.
     if(await verifyBundle(offer.bundle)!==true)throw bad('archive_changed');
     const evidence={
-      method:'lszh_b2b_staging_v1',offer_number:offer.offerNumber,
+      method:productionOnly?'lszh_b2b_customer_v1':'lszh_b2b_staging_v1',
+      offer_number:offer.offerNumber,
       accepted_at_utc:now.toISOString(),terms_version:offer.termsVersion,
       quote_pdf_sha256:offer.bundle.quote.sha256,
       terms_pdf_sha256:offer.bundle.terms.sha256,
@@ -190,7 +210,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
       }
     }
     // Still no proof PDF, mail, legal approval or Make activation.
-    return {ok:true,accepted:true,test_only:true,offer_number:offer.offerNumber,
+    return {ok:true,accepted:true,test_only:!productionOnly,offer_number:offer.offerNumber,
       confirmation_email_pending:false,
       ...(onAccepted?{airtable_sync_status:airtableSyncStatus}:{})};
   }

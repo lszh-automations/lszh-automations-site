@@ -1,0 +1,17 @@
+{
+  "name": "lszh-offer-portal-production",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "functions-framework --target=lszhOfferPortalProduction --source=index.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "9.3.1",
+    "@google-cloud/functions-framework": "5.0.5",
+    "google-auth-library": "11.2.0"
+  }
+}

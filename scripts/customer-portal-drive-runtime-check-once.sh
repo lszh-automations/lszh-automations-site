@@ -54,15 +54,22 @@ if gcloud run jobs execute "$JOB" --project="$PROJECT" --region="$REGION" --wait
 else
   SUCCESS=0
 fi
-sleep 5
+LOGS=""
+for attempt in 1 2 3 4 5; do
+  LOGS="$(gcloud logging read \
+    "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"$JOB\"" \
+    --project="$PROJECT" --limit=50 --format="value(textPayload)" 2>/dev/null \
+    | grep -E '^(PASS:|OFFEN:|BLOCK:)' || true)"
+  if [[ "$LOGS" == *"PASS: 2/2 Geschäfts-PDFs"* || "$LOGS" == *"OFFEN:"* ]]; then
+    break
+  fi
+  sleep 5
+done
 echo "Ergebnis aus Cloud-Run-Logs (nur PASS/OFFEN):"
-gcloud logging read \
-  "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"$JOB\"" \
-  --project="$PROJECT" --limit=50 --format="value(textPayload)" 2>/dev/null \
-  | grep -E '^(PASS:|OFFEN:|BLOCK:)' || true
-if [[ "$SUCCESS" == 1 ]]; then
-  echo "PASS: Job abgeschlossen; Ausgabe oben auf beide PDF-PASS prüfen"
+printf '%s\n' "$LOGS"
+if [[ "$SUCCESS" == 1 && "$LOGS" == *"PASS: 2/2 Geschäfts-PDFs"* ]]; then
+  echo "PASS: kompletter Laufzeit-Lesetest bestanden"
 else
-  echo "OFFEN: Job fehlgeschlagen; Details oben bzw. in der Cloud Run Console prüfen"
+  echo "OFFEN: Kein vollständiger PDF-PASS nachgewiesen (Job-Logs prüfen)"
   exit 4
 fi

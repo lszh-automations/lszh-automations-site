@@ -148,7 +148,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
       ...(offer.bundle.avv_required==='Ja'?
         {avvVersion:String(offer.details.avvVersion||'')}:{})
     };
-    return {number:offer.offerNumber,test_only:!productionOnly,
+    return {number:offer.offerNumber,test_only:syntheticOnly,
       // Only the operator-pinned synthetic Cloud pilot may expose a test-only
       // submit button. The backend still enforces the exact record + token.
       ...(syntheticOnly?{test_accept_enabled:syntheticAcceptRecordId!==undefined}:{}),

@@ -1,6 +1,6 @@
 # LSZH Automations – aktueller Projektstand
 
-Stand: 19.10.2026 (Europe/Zurich). Aktuell: interner TEST_ONLY-Pilot mit Betreiber-Daten begonnen, durch Cloud-Shell-Nutzungslimit vor Browserannahme unterbrochen. Kein vollständiger E2E-PASS; keine Kundenfreigabe.
+Stand: 19.10.2026 (Europe/Zurich). Aktuell: interner TEST_ONLY-Pilot mit Betreiber-Daten begonnen, durch Cloud-Shell-Nutzungslimit vor Browserannahme unterbrochen. **Verbundener Folge-Readback:** Airtable-Testofferte weiter Entwurf, Archivstatus VERIFIZIERT, 20 Offerten und 0 echte Freigaben; fünf relevante Make-Szenarien inaktiv, jeweils 0 unvollständige Ausführungen. Der Cloud-Shell-Zugang selbst konnte über die verbundenen Schnittstellen nicht auf erneute Verfügbarkeit geprüft werden. Release-Helfer blockiert jetzt IAM-Vergaben ab weniger als 30 Minuten Restzeit, ohne neue Build-/Deploy-Aktion. Kein vollständiger E2E-PASS; keine Kundenfreigabe.
 
 ## Verbindliche Übergabe – hier weiterarbeiten
 

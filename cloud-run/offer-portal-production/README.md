@@ -3,7 +3,7 @@
 Stand: 19.10.2026. Entwicklungsbranch `feature/optional-avv-acceptance-staging-20261014`.
 Ziel: Eine freigegebene KMU-Offerte mit persönlichem Link online annehmen, Nachweis atomar sichern,
 Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien benutzen.
-**Cloud-Run-Kundendienst existiert:** Projekt `lszh-automations`/Zürich, Firebase-Portal `https://portal.lszh-automations.ch` mit erfolgreichem HTTPS/Cloud-Run-Rewrite. Nach Domain-restricted-sharing-Fehler beim öffentlichen IAM-Binding wurde am einen Portalservice die Invoker-IAM-Prüfung deaktiviert; **Vertragsannahme bleibt durch `LSZH_PORTAL_PRODUCTION_ENABLED=false` gesperrt (HTTP 503)**. Die vier Laufzeitwerte und beide Secret-Manager-Referenzen sind verbunden; Dienst hat nach der Secret-Einbindung eine neuere Revision als `00003-p57` (genaue Kennung nur live prüfen). **Noch kein Kunde freigegeben.**
+**Cloud-Run-Kundendienst existiert:** Projekt `lszh-automations`/Zürich, Firebase-Portal `https://portal.lszh-automations.ch`, HTTPS/Rewrite betriebsbereit. Der durch `--no-invoker-iam-check` aufrufbare Kundendienst bleibt absichtlich `LSZH_PORTAL_PRODUCTION_ENABLED=false` und antwortet HTTP 503. **Nachprüfstand 19.10.:** `GOOGLE_CLOUD_PROJECT=lszh-automations` ist nun explizit gesetzt; Kundenannahme `false`, öffentlich HTTP 503. Firestore/Airtable-Lesepfade und zwei gesperrte Geschäfts-PDFs sind unter der echten Portal-Dienstidentität erfolgreich geprüft; beide Produktions-Secrets sind verbunden. **Noch kein freigegebener Echtkundenvertrag.**
 
 ## Bereits im Branch implementiert
 

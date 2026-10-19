@@ -16,6 +16,8 @@ on:
       - 'cloud-run/offer-portal-production/**'
       - 'cloud-run/Dockerfile.offer-portal-production'
       - 'scripts/customer-pilot-cloud-bootstrap-disabled.sh'
+      - 'hosting/customer-portal/**'
+      - 'scripts/customer-portal-hosting-readiness-readonly.sh'
       - 'test/approvedCustomer*.test.js'
       - 'test/customer*.test.js'
       - 'cloud-run/offer-portal-preflight/**'
@@ -104,6 +106,7 @@ jobs:
           python3 scripts/offer-temp-drive-child-readonly-check.py --self-test
           bash -n scripts/offer-browser-cloud-bootstrap.sh
           bash -n scripts/customer-pilot-cloud-bootstrap-disabled.sh
+          bash -n scripts/customer-portal-hosting-readiness-readonly.sh
           bash -n scripts/offer-browser-cloud-cleanup.sh
           bash -n scripts/offer-browser-cloud-resume.sh
           bash -n scripts/offer-browser-cloud-smoke.sh

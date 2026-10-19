@@ -5,6 +5,7 @@ No production enablement, customer release, source creation or acceptance POST.
 """
 import importlib.util, json, sys, tempfile
 from pathlib import Path
+from datetime import datetime, timezone
 spec=importlib.util.spec_from_file_location('release',Path(__file__).with_name('offer-browser-synthetic-release.py'))
 r=importlib.util.module_from_spec(spec);spec.loader.exec_module(r)
 r.SOURCE='ca1c7f036c07af6e3e75cd425a041e80341b10ee'
@@ -21,6 +22,11 @@ def protected():
  r.require(env.get('LSZH_PORTAL_PRODUCTION_ENABLED')=='false','production_gate_changed')
  return s
 def grants(action):
+ if action=='add':
+  # Do not grant already-expired access or start a test with too little time left.
+  deadline=datetime.fromisoformat('2026-10-19T14:00:00+00:00')
+  r.require((deadline-datetime.now(timezone.utc)).total_seconds()>=1800,
+            'pilot_iam_window_expired_or_less_than_30min_manual_review')
  for secret in r.SECRETS.values():
   r.cloud(['secrets',action+'-iam-policy-binding',secret,'--member=serviceAccount:'+r.SA,
    '--role=roles/secretmanager.secretAccessor','--condition='+CONDITION])

@@ -10,7 +10,7 @@ Die Geschäftsführung der LSZH Invest GmbH hat die **inhaltlichen Vertragsgrund
 - Geschäftliche Google Docs-Kundenfassung: [Projektbedingungen v1.0](https://docs.google.com/document/d/1bjFmtr-9WQxOZOv5YJtEc4_c4VIFFhgig06CoJah3z0/edit)
 - **PDF im Produktionsarchiv:** [LSZH_Projektbedingungen_v1_0_GESCHAEFTLICH_FREIGEGEBEN_20261019.pdf](https://drive.google.com/file/d/1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX/view)
 - Drive-ID: `1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX`
-- SHA-256 des exportierten PDFs: `b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa`; **Drive-Byte-Rückprüfung und Drive-Schreibschutz/ContentRestrictions noch offen**.
+- SHA-256 des exportierten PDFs: `b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa`; **Originalbyte-Rückprüfung aus dem geschäftlichen Drive am 19.10.2026 durchgeführt: SHA-256 stimmt exakt überein. Drive-Schreibschutz/ContentRestrictions noch offen**.
 - Freigabestatus: **GESCHÄFTLICH GEPRÜFT/FREIGEGEBEN**. Eine konkrete Offerte mit Preis, Leistungen, Empfänger und korrekten PDFs bleibt separat freigabepflichtig.
 
 ## 2. AVV – Rahmenwortlaut geprüft, kundenspezifische Freigabe offen
@@ -18,7 +18,7 @@ Die Geschäftsführung der LSZH Invest GmbH hat die **inhaltlichen Vertragsgrund
 - Geschäftliche Google Docs-Rahmenvorlage: [LSZH AVV v1.0](https://docs.google.com/document/d/1D1ymeF7t7ObSoQ0zALlC5O19nquApnzlryQ1k_Hv_Cg/edit)
 - **PDF im Produktionsarchiv (NICHT als unbefüllte Kunden-AVV versenden):** [LSZH_AVV_v1_0_RAHMENVORLAGE_ANLAGEN_VOR_EINSATZ_AUSFUELLEN.pdf](https://drive.google.com/file/d/1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x/view)
 - Drive-ID: `1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x`
-- SHA-256 des exportierten PDFs: `bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1`; **Drive-Byte-Rückprüfung und Drive-Schreibschutz/ContentRestrictions noch offen**.
+- SHA-256 des exportierten PDFs: `bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1`; **Originalbyte-Rückprüfung aus dem geschäftlichen Drive am 19.10.2026 durchgeführt: SHA-256 stimmt exakt überein. Drive-Schreibschutz/ContentRestrictions noch offen**.
 - Freigabestatus: **RAHMENWORTLAUT GESCHÄFTLICH GEPRÜFT/FREIGEGEBEN**. **NICHT**: reale Kunden-AVV freigegeben. Für jeden echten Fall Anlagen A/B/C vollständig, wahrheitsgemäss und mit genehmigten Unterauftragsbearbeitern/Transfergrundlagen, tatsächlich umgesetzten TOM, Zweck/Datenarten/Dauer und Kontakt vervollständigen und vom Kunden akzeptieren lassen. Erst dann projektspezifische AVV mit Versionskennung und eigener PDF/Hash erzeugen.
 - Bisherige `TEST_ONLY`-AVV einschliesslich Mustercoiffeur und fiktiver Anhänge bleibt in STAGING/Test; niemals umbenennen oder als echte AVV ausgeben.
 

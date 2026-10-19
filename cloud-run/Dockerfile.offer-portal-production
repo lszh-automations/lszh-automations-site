@@ -1,0 +1,15 @@
+# Build context: repository root. This is a distinct, DISABLED-BY-DEFAULT pilot image.
+# No live deploy, IAM grant, token or customer email is triggered by this Dockerfile.
+FROM node:22-bookworm-slim
+ENV NODE_ENV=production
+WORKDIR /app/offer-portal-production
+COPY cloud-run/offer-portal-production/package.json ./package.json
+RUN npm install --omit=dev --no-audit --no-fund
+COPY cloud-run/offer-portal-production/*.mjs ./
+COPY cloud-run/offer-portal-staging/portalCore.mjs ../offer-portal-staging/portalCore.mjs
+COPY cloud-run/offer-portal-staging/portalHttp.mjs ../offer-portal-staging/portalHttp.mjs
+COPY cloud-run/archive-reader-staging/archiveBundleVerifier.mjs ../archive-reader-staging/archiveBundleVerifier.mjs
+COPY offerte-annehmen/index.html ./offerte-annehmen.html
+USER node
+EXPOSE 8080
+CMD ["npm","start"]

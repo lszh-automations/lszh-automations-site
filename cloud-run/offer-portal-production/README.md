@@ -3,7 +3,7 @@
 Stand: 19.10.2026. Entwicklungsbranch `feature/optional-avv-acceptance-staging-20261014`.
 Ziel: Eine freigegebene KMU-Offerte mit persönlichem Link online annehmen, Nachweis atomar sichern,
 Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien benutzen.
-**Cloud-Run-Kundendienst existiert:** Revision `lszh-offer-portal-00002-4zw` im Projekt `lszh-automations`/Zürich, IAM-privat und durch `LSZH_PORTAL_PRODUCTION_ENABLED=false` deaktiviert. **Noch kein Kunde freigegeben.**
+**Cloud-Run-Kundendienst existiert:** Projekt `lszh-automations`/Zürich, Firebase-Portal `https://portal.lszh-automations.ch` mit erfolgreichem HTTPS/Cloud-Run-Rewrite. Nach Domain-restricted-sharing-Fehler beim öffentlichen IAM-Binding wurde am einen Portalservice die Invoker-IAM-Prüfung deaktiviert; **Vertragsannahme bleibt durch `LSZH_PORTAL_PRODUCTION_ENABLED=false` gesperrt (HTTP 503)**. Die vier Laufzeitwerte und beide Secret-Manager-Referenzen sind verbunden; Dienst hat nach der Secret-Einbindung eine neuere Revision als `00003-p57` (genaue Kennung nur live prüfen). **Noch kein Kunde freigegeben.**
 
 ## Bereits im Branch implementiert
 
@@ -13,22 +13,22 @@ Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien be
 - `productionConfig.mjs` / `index.mjs`: bestehende Offerten-Webseite und Cloud-Portalcode auf eigenem Cloud-Run-Service. Standardmässig AUS; konfigurierter Dienst braucht benannte Firestore-DB, eigene Laufzeitidentität, Geschäftsarchiv-Lesezugriff und final freigegebene Unterlagen.
 - `issueApprovedCustomerLink.mjs`: interner einmaliger Dry-Run und gesondert freizugebende Ausgabe eines persönlichen Links. Keine Kundennachricht.
 
-## Nächste Prüfung im bestehenden Google Cloud Shell (nur lesen)
+## Nächste technische Prüfung: Firestore und Airtable (nur lesen)
 
-Ohne zusätzliche GCP-App-Verbindung kann ChatGPT hier die echten Cloud-Run-/Servicekonto-/Firestore-Ressourcen nicht selbst provisionieren oder auslesen. Im vorhandenen Checkout des Entwicklungsbranches kann der Betreiber ausführen:
+Das geschäftliche Produktionsarchiv wurde am 19.10.2026 vollständig erfolgreich geprüft: Cloud Run Job als Produktionsservicekonto hat beide gesperrten PDFs aus dem korrekten Ordner gelesen, SHA-256 kontrolliert und sich anschliessend entfernt. Nicht wiederholen. Für den **nächsten** Schritt im vorhandenen Cloud-Shell-Checkout:
 
 ```bash
-git fetch origin feature/optional-avv-acceptance-staging-20261014
-git show origin/feature/optional-avv-acceptance-staging-20261014:scripts/customer-pilot-cloud-readiness-readonly.sh | bash
+git pull --ff-only
+bash scripts/customer-portal-data-runtime-readonly-once.sh
 ```
 
-Der Check liest nur den bestehenden GCP-Projektkontext und meldet für Cloud Run, Kunden-Dienstkonto und benannte Firestore-Datenbank **PASS** oder **OFFEN**; er führt keine Änderungen durch und gibt keine Secrets aus. `OFFEN` kann auch fehlende Leserechte bedeuten. Danach genau die fehlenden Ressourcen bereitstellen, statt zu raten.
+Der Check prüft vorab die deaktivierte Kundenannahme, richtige Produktionsrevision und Secret-Referenz; führt genau **einen** temporären Job mit der bestehenden Portal-Image-/Dienstkonto-Identität aus, liest maximal einen Firestore- und Airtable-Datensatz (ohne Daten/IDs auszugeben), schreibt nichts, sendet keine Mail und entfernt den Job. Falls `OFFEN`, nur die konkrete Fehlermeldung auswerten. Der Job selbst stellt keinen Kunden- oder Vertragstest dar.
 
 ## Noch konkret nötig vor echter Kundenofferte
 
 1. **Kundendokumente binden:** Geschäftlich freigegebene **Projektbedingungen v1.0** als PDF `1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX` im Geschäfts-Drive-Produktionsarchiv vorhanden. **AVV-Master v1.0** als PDF `1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x` in der gleichen Ablage; sie ist **nicht kundenspezifisch abgeschlossen**, Anlagen A/B/C im echten AVV-Ja-Fall tatsächlich ausfüllen/genehmigen lassen und eine eigene finale AVV-PDF erstellen. Hashes/geschäftliche Prüfentscheidung im [Freigaberegister](../../docs/LSZH_VERTRAGSFREIGABE_20261019.md). Vor Kunde: tatsächliche Drive-Dateihashes und ContentRestrictions prüfen.
-2. **Vorhandene Google-Cloud-Basis prüfen, nicht neu erzeugen:** Der IAM-private Dienst `lszh-offer-portal`, die benannte Firestore-DB `lszh-offers` in Zürich, das Laufzeitdienstkonto und die Geschäfts-Drive-Ordnerfreigabe sind durch Cloud-Shell-Ausgabe und Drive-Readback bestätigt. Offen bleiben tatsächlicher Cloud-Run-Drive-API-Lesetest, notwendige Secret-Manager-Rechte/Secrets, Domain/HTTPS und aktiver Kundentest. Dienst bis dahin per `LSZH_PORTAL_PRODUCTION_ENABLED=false` deaktiviert lassen.
-3. **Domain/HTTPS:** `https://portal.lszh-automations.ch` als tatsächliche Domain auf den Kundenservice konfigurieren und vollständige Origin/HTTPS-Funktion prüfen. Keinen Link auf die alte Website senden, solange deren `/offerte-annehmen/`-Backend nicht dieselbe echte Kundenroute nutzt.
+2. **Vorhandene Google-Cloud-Basis bestätigen, nicht neu erzeugen:** Firebase-Domain/HTTPS sind aktiv; Cloud-Run-Kundendienst `lszh-offer-portal`, benannte Firestore-DB `lszh-offers`, eigenständiges Dienstkonto und zwei Produktionssecrets sind eingerichtet. Der Drive-API-Test aus der echten Cloud Run-Identität **ist bestanden (beide PDFs 2/2)**. Offen bleibt der aktive Firestore-/Airtable-Lesetest, danach der kontrollierte Annahme-/Writeback-Pilot. Bis zum bewusst freigegebenen Pilot `LSZH_PORTAL_PRODUCTION_ENABLED=false` belassen.
+3. **Domain/HTTPS: ERLEDIGT.** `https://portal.lszh-automations.ch` → Firebase Hosting → Cloud Run; öffentliches HTTP 503 bei deaktivierter Kundenannahme nachgewiesen. Bestehende Render-Website bleibt unverändert. Den alten Websitepfad nicht als neue Kundenannahme bewerben.
 4. **Laufzeitwerte:** `LSZH_PORTAL_PRODUCTION_ENABLED=true`, `LSZH_PORTAL_DATABASE=lszh-offers`, `LSZH_PORTAL_BUSINESS_ARCHIVE_FOLDER=10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN`, `LSZH_PORTAL_ORIGIN=https://portal.lszh-automations.ch`, `LSZH_PORTAL_TERMS_VERSION=<finale Version>`; `LSZH_PORTAL_PROOF_SALT` und `LSZH_AIRTABLE_ACCESS_TOKEN` nur aus Secret Manager. Zugangsdaten niemals in Chat, GitHub oder Logs.
 5. **Erste Offerte:** Tatsächlichen Kunden im CRM aufnehmen; den passenden Datensatz prüfen; erst wenn Dokumente/Empfänger stimmen, die zwei Freigabe-Flags `Online-Annahme rechtlich freigegeben` und `Echtbetrieb – kein Test` setzen. Für echte Annahme müssen `Versand freigegeben` und `Vertragsunterlagen versendet` korrekt sein.
 6. **Link ausgeben, nur an bestätigten Empfänger senden:** Vor Test des Issuers nur Dry-Run. Ausführung benötigt eine gültige Operator-Cloud-Identität, die benannte Firestore-Datenbank, `LSZH_CUSTOMER_OFFER_ISSUE_ENABLED=true` und genau einen geprüften Record; danach persönlicher Link einmalig sichtbar. Für Kundenversand die vorhandenen Make-Annahmelink-Szenarien erst nach Anpassung der Ziel-Origin und tatsächlichem Ende-zu-Ende-Test aktivieren. Es ist **noch kein automatischer Serien-Linkversand** implementiert.

@@ -91,6 +91,7 @@ function activeHandler(){
           // one pinned synthetic source record, never an arbitrary offer.
           syntheticAcceptRecordId:config.acceptEnabled?config.sourceRecordId:undefined,
           // Deployment must never process a real customer offer.
+          internalPilotRecordId:config.internalPilotRecordId,
           syntheticOnly:true
         }),
         enabled:true,acceptEnabled:config.acceptEnabled===true,

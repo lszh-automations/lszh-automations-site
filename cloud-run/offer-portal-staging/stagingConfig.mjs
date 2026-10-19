@@ -64,12 +64,17 @@ export function stagingConfig(env={}){
        env.LSZH_SYNTHETIC_AIRTABLE_WRITEBACK_ENABLED!=='true')
       throw Error('staging_synthetic_accept_config_invalid');
   }
+  const internalPilot=env.LSZH_INTERNAL_TEST_PILOT_ENABLED==='true';
+  if(internalPilot && (!browserPilot || !acceptEnabled ||
+     [BROWSER_PILOT.sourceRecordId,BROWSER_PILOT.avvSourceRecordId].includes(sourceRecordId)))
+    throw Error('staging_internal_pilot_invalid');
   if(browserPilot && (!acceptEnabled ||
-     ![BROWSER_PILOT.sourceRecordId,BROWSER_PILOT.avvSourceRecordId].includes(sourceRecordId) ||
+     (!internalPilot && ![BROWSER_PILOT.sourceRecordId,BROWSER_PILOT.avvSourceRecordId].includes(sourceRecordId)) ||
      env.LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED==='true' ||
      env.LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED==='true'))
     throw Error('staging_browser_pilot_invalid');
   return {enabled:true,origin:u,proofSalt:salt,
     ...(browserPilot?{browserPilot:true}:{}),
+    ...(internalPilot?{internalPilotRecordId:sourceRecordId}:{}),
     acceptEnabled, ...(acceptEnabled?{sourceRecordId}:{})};
 }

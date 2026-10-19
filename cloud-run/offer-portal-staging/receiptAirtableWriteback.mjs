@@ -2,6 +2,7 @@
 // No startup hook, scheduler, Make trigger, token storage, or Cloud Run route.
 // Caller must provide a client; the imported module performs no I/O by itself.
 import {prepareSyntheticAirtableAcceptanceHandoff} from './receiptAirtableHandoff.mjs';
+import {isInternalTestPilot,INTERNAL_TEST_PILOT} from './internalTestPilot.mjs';
 
 const BASE='appzJiskpAdaR1HEv';
 const TABLE='tbljeIUoD7wwKuSmS';
@@ -26,6 +27,12 @@ export async function executeSyntheticAirtableAcceptanceWriteback(acceptedOffer,
      typeof current.fields!=='object'||Array.isArray(current.fields))
     fail('source_mismatch');
   const fields=current.fields;
+  if(acceptedOffer.source?.internalPilot && (
+     !isInternalTestPilot(acceptedOffer,plan.recordId) ||
+     fields['Echtbetrieb – kein Test']===true || fields['Versand freigegeben']===true ||
+     JSON.stringify(fields['Lead E-Mail'])!==JSON.stringify([INTERNAL_TEST_PILOT.email]) ||
+     !String(fields['Interne Notiz']||'').includes(INTERNAL_TEST_PILOT.purpose)))
+    fail('internal_pilot_source_conflict');
   const number=acceptedOffer.offerNumber;
   if(fields.Offertennummer!==number ||
      fields['Online-Annahme Token-Hash']!==acceptedOffer.tokenHash ||

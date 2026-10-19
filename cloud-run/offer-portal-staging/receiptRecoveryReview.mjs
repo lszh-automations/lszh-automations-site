@@ -1,3 +1,4 @@
+import {isInternalTestPilot} from './internalTestPilot.mjs';
 // REVIEW-ONLY synthetic acceptance evidence marker. Not an outbox worker.
 // No provider requests, mail, PDF creation, external archive writes or tokens.
 import {createHash} from 'node:crypto';
@@ -28,7 +29,8 @@ function validateSyntheticOffer(offer,evidence,acceptedAt){
     !/^rec[A-Za-z0-9]{14}$/.test(offer.source.recordId||'') ||
     !SHA.test(offer.tokenHash||'') || !isDisabled(offer.downstream) ||
     offer.approved!==true || !SYNTHETIC_NO_CONTRACT.test(offer.offerNumber||'') ||
-    !SYNTHETIC_EMAIL.test(offer.recipientEmail||'') ||
+    !(SYNTHETIC_EMAIL.test(offer.recipientEmail||'') ||
+      isInternalTestPilot(offer,offer.source.recordId)) ||
     offer.termsVersion!=='TEST_v1.0_RC1' ||
     !evidence || typeof evidence!=='object' ||
     evidence.accepted_at_utc!==acceptedAt ||

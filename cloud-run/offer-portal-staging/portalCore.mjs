@@ -1,3 +1,4 @@
+import {isInternalTestPilot} from './internalTestPilot.mjs';
 import {createHash,createHmac} from 'node:crypto';
 
 // Only pure domain logic here. No HTTP server, no live Airtable/Firestore writes.
@@ -29,14 +30,14 @@ function isApprovedCustomerOffer(s){
     downstream?.proofPdf==='pending' &&
     downstream?.email==='pending';
 }
-function isSyntheticOnly(s){
+function isSyntheticOnly(s,internalPilotRecordId){
   const source=s?.source, downstream=s?.downstream;
   return source?.kind==='LSZH_SYNTHETIC_ONLY' &&
     source.baseId===SYNTHETIC_SOURCE.baseId &&
     source.tableId===SYNTHETIC_SOURCE.tableId &&
     /^rec[A-Za-z0-9]{14}$/.test(source.recordId||'') &&
     SYNTHETIC_NUMBER.test(s.offerNumber||'') &&
-    SYNTHETIC_EMAIL.test(s.recipientEmail||'') &&
+    (SYNTHETIC_EMAIL.test(s.recipientEmail||'') || isInternalTestPilot(s,internalPilotRecordId)) &&
     s.termsVersion==='TEST_v1.0_RC1' &&
     downstream?.airtable==='disabled' &&
     downstream?.proofPdf==='disabled' &&
@@ -108,7 +109,7 @@ function consent(offer,b){
   return {name,email,avv:expected.avv_required==='Ja'};
 }
 export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date(),approvedVersion,
-  proofSalt,syntheticOnly=false,productionOnly=false,onAccepted,syntheticAcceptRecordId}={}){
+  proofSalt,syntheticOnly=false,productionOnly=false,onAccepted,syntheticAcceptRecordId,internalPilotRecordId}={}){
   if(!store||typeof store.get!=='function'||typeof store.claim!=='function'||
     typeof verifyBundle!=='function'||
     (readPdf!==undefined && typeof readPdf!=='function') ||
@@ -117,6 +118,8 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     typeof syntheticOnly!=='boolean' || typeof productionOnly!=='boolean' ||
     (productionOnly===true && syntheticOnly===true) ||
     (onAccepted!==undefined && (!(syntheticOnly===true || productionOnly===true) || typeof onAccepted!=='function')) ||
+    (internalPilotRecordId!==undefined && (syntheticOnly!==true ||
+      internalPilotRecordId!==syntheticAcceptRecordId)) ||
     (syntheticAcceptRecordId!==undefined &&
       (syntheticOnly!==true || !/^rec[A-Za-z0-9]{14}$/.test(syntheticAcceptRecordId))))
     throw Error('portal_not_configured');
@@ -126,7 +129,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     const offer=await store.get(tokenHash);
     const now=clock();if(!(now instanceof Date)||Number.isNaN(now.valueOf()))throw bad('unavailable');
     const fingerprint=validateOffer(offer,tokenHash,now,approvedVersion);
-    if(syntheticOnly && !isSyntheticOnly(offer))throw bad('unavailable');
+    if(syntheticOnly && !isSyntheticOnly(offer,internalPilotRecordId))throw bad('unavailable');
     if(productionOnly && !isApprovedCustomerOffer(offer))throw bad('unavailable');
     // A Cloud staging acceptance pilot must never select another offer.
     if(syntheticAcceptRecordId!==undefined &&
@@ -200,7 +203,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
            committed.tokenHash===tokenHash &&
            committed.acceptedAt===now.toISOString() &&
            committed.evidence?.offer_number===offer.offerNumber &&
-           ((syntheticOnly && isSyntheticOnly(committed)) ||
+           ((syntheticOnly && isSyntheticOnly(committed,internalPilotRecordId)) ||
             (productionOnly && isApprovedCustomerOffer(committed)))){
           const handoff=await onAccepted(committed);
           if(['synthetic_fields_patched','customer_fields_patched','already_identical'].includes(handoff?.result))

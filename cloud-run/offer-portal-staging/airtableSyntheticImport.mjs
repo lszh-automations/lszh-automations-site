@@ -1,3 +1,4 @@
+import {INTERNAL_TEST_PILOT} from './internalTestPilot.mjs';
 // Airtable -> isolated Firestore offer seed, STRICTLY synthetic.
 // An explicit LOCAL emulator gate prevents this module writing to Google Cloud.
 // No Airtable access, mail sending, PDF generation or production Go-Live.
@@ -56,7 +57,7 @@ function chf(v){
   return v;
 }
 // This function is PURE: data-read and dry-run, no writes of any sort.
-export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOURCE.table}={}){
+export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOURCE.table,internalPilotRecordId}={}){
   if(baseId!==SOURCE.base||tableId!==SOURCE.table)reject('source_mismatch');
   if(!record||!REC.test(record.id||'')||!record.cellValuesByFieldId||
      typeof record.cellValuesByFieldId!=='object')reject('source_invalid');
@@ -71,8 +72,13 @@ export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOU
   if(typeof note!=='string'||!/TEST[ _-]*ONLY/i.test(note)||
      !/NO[ _-]*CONTRACT/i.test(note))reject('synthetic_attestation_missing');
   const email=lookupOne(f[SOURCE.email]);
-  if(!/^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)*example\.invalid$/.test(email)||
-      email!==email.toLowerCase())reject('real_recipient_forbidden');
+  const internal=internalPilotRecordId!==undefined;
+  if(internal && (!REC.test(internalPilotRecordId)||record.id!==internalPilotRecordId||
+    number!==INTERNAL_TEST_PILOT.number||email!==INTERNAL_TEST_PILOT.email||
+    choice(f[SOURCE.avvRequired])!=='Nein'||!note.includes(INTERNAL_TEST_PILOT.purpose)))
+    reject('internal_test_pilot_mismatch');
+  if(!internal && (!/^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)*example\.invalid$/.test(email)||
+      email!==email.toLowerCase()))reject('real_recipient_forbidden');
   if(f[SOURCE.terms]!=='TEST_v1.0_RC1')reject('synthetic_terms_version_missing');
   const day=f[SOURCE.validUntil];
   if(typeof day!=='string'||!DAY.test(day)||!Number.isFinite(Date.parse(day))||
@@ -102,12 +108,13 @@ export function mapSyntheticAirtableOffer(record,{baseId=SOURCE.base,tableId=SOU
     tokenHash,status:'sent',approved:true,revision:1,
     termsVersion:'TEST_v1.0_RC1',expiresAt,recipientEmail:email,
     offerNumber:number,
-    details:{company:'LSZH Synthetic Offer (not a contract)',
+    details:{company:internal?INTERNAL_TEST_PILOT.company:'LSZH Synthetic Offer (not a contract)',
       service:label(f[SOURCE.service]),paymentModel:label(f[SOURCE.paymentModel]),
       onceCHF:chf(f[SOURCE.once]),monthlyCHF:chf(f[SOURCE.monthly]),
       ...(avv?{avvVersion:f[SOURCE.avvVersion]}:{})},
     bundle:{avv_required:mode,quote,terms,...(avv?{avv}:{})},
-    source:{kind:'LSZH_SYNTHETIC_ONLY',baseId,tableId,recordId:record.id},
+    source:{kind:'LSZH_SYNTHETIC_ONLY',baseId,tableId,recordId:record.id,
+      ...(internal?{internalPilot:INTERNAL_TEST_PILOT.purpose}:{})},
     downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}
   };
   return item;

@@ -7,6 +7,7 @@ COPY cloud-run/offer-portal-production/package.json ./package.json
 RUN npm install --omit=dev --no-audit --no-fund
 COPY cloud-run/offer-portal-production/*.mjs ./
 COPY cloud-run/offer-portal-staging/portalCore.mjs ../offer-portal-staging/portalCore.mjs
+COPY cloud-run/offer-portal-staging/internalTestPilot.mjs ../offer-portal-staging/internalTestPilot.mjs
 COPY cloud-run/offer-portal-staging/portalHttp.mjs ../offer-portal-staging/portalHttp.mjs
 COPY cloud-run/archive-reader-staging/archiveBundleVerifier.mjs ../archive-reader-staging/archiveBundleVerifier.mjs
 COPY offerte-annehmen/index.html ./offerte-annehmen.html

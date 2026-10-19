@@ -26,6 +26,12 @@ const MAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function fail(reason){const error=Error('customer_offer_'+reason);error.code=reason;throw error;}
 function choice(value){return value && typeof value==='object' && !Array.isArray(value)?value.name:value;}
 function singleLookup(value){
+  // Airtable REST returns a single lookup as an array. The Airtable
+  // connector can instead return linkedRecordIds + valuesByLinkedRecordId.
+  if(Array.isArray(value)){
+    if(value.length!==1||typeof value[0]!=='string')fail('ambiguous_lookup');
+    return value[0].trim();
+  }
   if(!value || typeof value!=='object' || Array.isArray(value) ||
     !Array.isArray(value.linkedRecordIds)||value.linkedRecordIds.length!==1 ||
     !value.valuesByLinkedRecordId)fail('ambiguous_lookup');

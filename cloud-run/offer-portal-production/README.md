@@ -13,16 +13,16 @@ Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien be
 - `productionConfig.mjs` / `index.mjs`: bestehende Offerten-Webseite und Cloud-Portalcode auf eigenem Cloud-Run-Service. Standardmässig AUS; konfigurierter Dienst braucht benannte Firestore-DB, eigene Laufzeitidentität, Geschäftsarchiv-Lesezugriff und final freigegebene Unterlagen.
 - `issueApprovedCustomerLink.mjs`: interner einmaliger Dry-Run und gesondert freizugebende Ausgabe eines persönlichen Links. Keine Kundennachricht.
 
-## Nächste technische Prüfung: Firestore und Airtable (nur lesen)
+## Produktive Lesepfade bestätigt – nächster Meilenstein: erster Pilot
 
-Das geschäftliche Produktionsarchiv wurde am 19.10.2026 vollständig erfolgreich geprüft: Cloud Run Job als Produktionsservicekonto hat beide gesperrten PDFs aus dem korrekten Ordner gelesen, SHA-256 kontrolliert und sich anschliessend entfernt. Nicht wiederholen. Für den **nächsten** Schritt im vorhandenen Cloud-Shell-Checkout:
+Stand 19.10.2026: Drive-Basis-PDFs, `contentRestrictions.readOnly` und tatsächliche PDF-Bytes mit Portal-Dienstkonto **PASS**. Separater temporärer Cloud-Run-Job `lszh-data-read-20261019102338` hat lesenden SDK-Zugriff auf benannte Firestore-DB `lszh-offers` und GET über den produktiven Airtable-PAT auf die Offertentabelle **PASS** bestätigt; keine Schreibvorgänge, kein Mail, Job entfernt. **Diese Basischecks nicht wiederholen.** Der bisherige Befehl dient nur der Dokumentation:
 
 ```bash
 git pull --ff-only
 bash scripts/customer-portal-data-runtime-readonly-once.sh
 ```
 
-Der Check prüft vorab die deaktivierte Kundenannahme, richtige Produktionsrevision und Secret-Referenz; führt genau **einen** temporären Job mit der bestehenden Portal-Image-/Dienstkonto-Identität aus, liest maximal einen Firestore- und Airtable-Datensatz (ohne Daten/IDs auszugeben), schreibt nichts, sendet keine Mail und entfernt den Job. Falls `OFFEN`, nur die konkrete Fehlermeldung auswerten. Der Job selbst stellt keinen Kunden- oder Vertragstest dar.
+Der Check wurde bereits erfolgreich ausgeführt. Als nächstes eine echte vollständig geprüfte Offerte samt finaler PDF im Produktionsarchiv erstellen. Aktuelles Live-CRM: 19 Offerten, **0 gleichzeitig rechtlich und für Echtbetrieb freigegebene**. Bei AVV Ja fehlen konkrete genehmigte Anlagen A/B/C. Bevor echte Verträge angenommen werden, einmal kontrolliert Quellfreigabe → Link → Browser → Firestore-Transaktion → Airtable PATCH → Make-Beleg / Mail testen. Bis dahin das Runtime-Flag `false` lassen; kein Kundenversand und kein produktives Einschalten der Make-Szenarien.
 
 ## Noch konkret nötig vor echter Kundenofferte
 

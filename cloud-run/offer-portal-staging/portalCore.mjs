@@ -116,7 +116,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     !approvedVersion||typeof proofSalt!=='string'||proofSalt.length<16 ||
     typeof syntheticOnly!=='boolean' || typeof productionOnly!=='boolean' ||
     (productionOnly===true && syntheticOnly===true) ||
-    (onAccepted!==undefined && (syntheticOnly!==true || typeof onAccepted!=='function')) ||
+    (onAccepted!==undefined && (!(syntheticOnly===true || productionOnly===true) || typeof onAccepted!=='function')) ||
     (syntheticAcceptRecordId!==undefined &&
       (syntheticOnly!==true || !/^rec[A-Za-z0-9]{14}$/.test(syntheticAcceptRecordId))))
     throw Error('portal_not_configured');
@@ -200,9 +200,10 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
            committed.tokenHash===tokenHash &&
            committed.acceptedAt===now.toISOString() &&
            committed.evidence?.offer_number===offer.offerNumber &&
-           isSyntheticOnly(committed)){
+           ((syntheticOnly && isSyntheticOnly(committed)) ||
+            (productionOnly && isApprovedCustomerOffer(committed)))){
           const handoff=await onAccepted(committed);
-          if(['synthetic_fields_patched','already_identical'].includes(handoff?.result))
+          if(['synthetic_fields_patched','customer_fields_patched','already_identical'].includes(handoff?.result))
             airtableSyncStatus='synced';
         }
       }catch{
@@ -211,7 +212,7 @@ export function createOfferPortal({store,verifyBundle,readPdf,clock=()=>new Date
     }
     // Still no proof PDF, mail, legal approval or Make activation.
     return {ok:true,accepted:true,test_only:!productionOnly,offer_number:offer.offerNumber,
-      confirmation_email_pending:false,
+      confirmation_email_pending:productionOnly && airtableSyncStatus==='synced',
       ...(onAccepted?{airtable_sync_status:airtableSyncStatus}:{})};
   }
   // Documents are never looked up from a caller-supplied Drive ID.

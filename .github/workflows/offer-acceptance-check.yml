@@ -13,6 +13,10 @@ on:
       - 'package.json'
       - 'cloud-run/archive-reader-staging/**'
       - 'cloud-run/offer-portal-staging/**'
+      - 'cloud-run/offer-portal-production/**'
+      - 'cloud-run/Dockerfile.offer-portal-production'
+      - 'test/approvedCustomer*.test.js'
+      - 'test/customer*.test.js'
       - 'cloud-run/offer-portal-preflight/**'
       - 'cloud-run/offer-portal-transaction-smoke/**'
       - 'test/offerPortalStaging.test.js'
@@ -141,6 +145,7 @@ jobs:
           node --check cloud-run/offer-portal-staging/portalHttp.mjs
           node --check cloud-run/offer-portal-staging/stagingConfig.mjs
           node --check cloud-run/offer-portal-staging/index.mjs
+          for source in cloud-run/offer-portal-production/*.mjs; do node --check "$source"; done
           node --check cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs
           node --check cloud-run/offer-portal-staging/temporaryDriveProbe.mjs
           node --check test/temporaryDriveProbe.test.js
@@ -291,3 +296,20 @@ jobs:
           [ "$status" = "503" ]
           grep -Fq '"error":"not_available"' /tmp/lszh-portal-disabled-response
           echo "PASS: Packaged single-origin portal stays disabled; no Cloud API calls"
+      - name: Build customer portal image and check disabled-by-default boot (no deployment)
+        run: |
+          set -euo pipefail
+          docker build -f cloud-run/Dockerfile.offer-portal-production -t lszh-customer-portal:offline-test .
+          cid=$(docker run -d -e PORT=8080 -e LSZH_PORTAL_PRODUCTION_ENABLED=false \
+            -p 127.0.0.1:18083:8080 lszh-customer-portal:offline-test)
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          status=""
+          for attempt in $(seq 1 35); do
+            status=$(curl --max-time 2 -sS -o /tmp/lszh-customer-portal-disabled \
+              -w "%{http_code}" http://127.0.0.1:18083/offerte-annehmen/ 2>/dev/null || true)
+            [ "$status" = "503" ] && break
+            sleep 1
+          done
+          [ "$status" = "503" ]
+          grep -Fq '"error":"not_available"' /tmp/lszh-customer-portal-disabled
+          echo "PASS: Customer portal image builds and refuses all customer traffic unless configured"

@@ -25,13 +25,14 @@ USER_TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
 HTTP="$(curl -sS --max-time 25 -o "$TEMP_DIR/impersonation.json" -w '%{http_code}' \
   -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "X-Goog-User-Project: $PROJECT" \
   --data '{"scope":["https://www.googleapis.com/auth/drive.readonly"],"lifetime":"600s"}' \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$SA:generateAccessToken")"
 unset USER_TOKEN
 if [[ "$HTTP" != 200 ]]; then
   echo "OFFEN: kurzlebiges SA-Drive-Lesetoken nicht erhalten (HTTP $HTTP)."
-  echo "Hinweis: iamcredentials API oder gezieltes serviceAccounts.getAccessToken-Recht prüfen; keine IAM-Änderung vorgenommen."
+  # Only the structured Google error fields: never print request/response auth headers or a token.
+  jq -r 'if .error then "Google-Status: " + (.error.status // "UNBEKANNT"), "Google-Meldung: " + (.error.message // "unbekannt"), (([.error.details[]?.reason] | unique | join(", ")) | if length > 0 then "Google-Grund: " + . else empty end) else "Keine strukturierte Fehlermeldung" end' "$TEMP_DIR/impersonation.json" | cut -c 1-400
+  echo "Keine IAM-Änderung durchgeführt; falls die Rolle gerade erteilt wurde, Propagationszeit berücksichtigen."
   exit 3
 fi
 DRIVE_TOKEN="$(jq -r '.accessToken // empty' "$TEMP_DIR/impersonation.json")"

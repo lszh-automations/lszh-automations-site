@@ -945,10 +945,18 @@ form?.addEventListener('submit',async e=>{
     });
 
     if(!response.ok) throw new Error('HTTP '+response.status);
-
-    form.reset();
-    note.textContent='Vielen Dank. Ihre Anfrage wurde erfolgreich übermittelt.';
-    note.style.color='#9becce';
+    const receipt=await response.json().catch(()=>null);
+    if(response.status===200 && receipt?.confirmed===true){
+      form.reset();
+      note.textContent='Vielen Dank. Ihre Anfrage wurde gespeichert. Wir melden uns persönlich bei Ihnen.';
+      note.style.color='#9becce';
+    }else if(response.status===202 && receipt?.pending===true){
+      // Kein unbestaetigter Erfolg; Formularwerte fuer den Kunden erhalten.
+      note.textContent='Ihre Anfrage wurde an unser System übermittelt. Die Speicherung ist noch nicht bestätigt. Bitte nicht sofort erneut absenden. Bei Fragen kontaktieren Sie uns per E-Mail.';
+      note.style.color='#ffcf8d';
+    }else{
+      throw new Error('unconfirmed_lead_receipt');
+    }
   }catch(error){
     note.textContent='Die Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.';
     note.style.color='#ffaaa8';

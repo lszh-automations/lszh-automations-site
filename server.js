@@ -101,22 +101,43 @@ function readJson(req, maxBytes=MAX_BODY) {
     req.on('error', reject);
   });
 }
+function validateLead(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid_fields');
+  const limits={name:120,company:160,email:254,message:2500,current_process:2500,systems:1200,main_problem:80,frequency:80,desired_result:1600};
+  const value={};
+  for(const [key,limit] of Object.entries(limits)){
+    if(typeof body[key]!=='string' && !(key==='desired_result'&&body[key]===undefined)) throw new Error('invalid_fields');
+    const text=String(body[key]||'').trim();
+    if(text.length>limit||(key!=='desired_result'&&!text))throw new Error('invalid_fields');
+    value[key]=text;
+  }
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value.email))throw new Error('invalid_fields');
+  value.source='LSZH Automations Website';
+  value.submitted_at=new Date().toISOString();
+  return value;
+}
 async function proxy(req, res, envName) {
   if (!sameOrigin(req)) return send(res, 403, JSON.stringify({error:'forbidden'}));
   if (rateLimited(req)) return send(res, 429, JSON.stringify({error:'rate_limited'}));
   const target = process.env[envName];
   if (!target) return send(res, 503, JSON.stringify({error:'not_configured'}));
   try {
-    const payload = await readJson(req);
-    if (payload.website) return send(res, 204, '');
-    delete payload.website;
-    const r = await fetch(target, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(15000)});
-    if (!r.ok) return send(res, 502, JSON.stringify({error:'upstream_failed'}));
-    return send(res, 200, JSON.stringify({ok:true}));
-  } catch (e) {
-    if (e.message === 'too_large') return send(res, 413, JSON.stringify({error:'payload_too_large'}));
-    if (e.message === 'bad_json') return send(res, 400, JSON.stringify({error:'invalid_json'}));
-    return send(res, 502, JSON.stringify({error:'temporary_failure'}));
+    const data=await readJson(req);
+    if(data && typeof data==='object' && data.website) return send(res,204,'');
+    const payload=envName==='MAKE_LEAD_WEBHOOK'?validateLead(data):data;
+    const r=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+    if(!r.ok)return send(res,502,JSON.stringify({error:'upstream_failed'}));
+    let receipt=null;
+    try{receipt=JSON.parse(await r.text());}catch{}
+    if(receipt?.ok===true && /^rec[A-Za-z0-9]{14}$/.test(String(receipt.record_id||'')))
+      return send(res,200,JSON.stringify({ok:true,confirmed:true}));
+    // A webhook acknowledgment is not proof that Airtable stored the lead.
+    return send(res,202,JSON.stringify({ok:true,pending:true}));
+  }catch(e){
+    if(e.message==='too_large')return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json')return send(res,400,JSON.stringify({error:'invalid_json'}));
+    if(e.message==='invalid_fields')return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    return send(res,502,JSON.stringify({error:'temporary_failure'}));
   }
 }
 

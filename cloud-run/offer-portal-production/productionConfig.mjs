@@ -6,7 +6,7 @@ export const CUSTOMER_RUNTIME=Object.freeze({
   serviceEmail:'lszh-offer-portal@lszh-automations.iam.gserviceaccount.com',
   databaseId:'lszh-offers',
   firestoreHost:'firestore.europe-west6.rep.googleapis.com',
-  archiveFolderId:'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in',
+  archiveFolderId:'10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN',
   origin:'https://portal.lszh-automations.ch'
 });
 export function productionConfig(env={}){

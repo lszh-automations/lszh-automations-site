@@ -13,6 +13,17 @@ Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien be
 - `productionConfig.mjs` / `index.mjs`: bestehende Offerten-Webseite und Cloud-Portalcode auf eigenem Cloud-Run-Service. Standardmässig AUS; konfigurierter Dienst braucht benannte Firestore-DB, eigene Laufzeitidentität, Geschäftsarchiv-Lesezugriff und final freigegebene Unterlagen.
 - `issueApprovedCustomerLink.mjs`: interner einmaliger Dry-Run und gesondert freizugebende Ausgabe eines persönlichen Links. Keine Kundennachricht.
 
+## Nächste Prüfung im bestehenden Google Cloud Shell (nur lesen)
+
+Ohne zusätzliche GCP-App-Verbindung kann ChatGPT hier die echten Cloud-Run-/Servicekonto-/Firestore-Ressourcen nicht selbst provisionieren oder auslesen. Im vorhandenen Checkout des Entwicklungsbranches kann der Betreiber ausführen:
+
+```bash
+git fetch origin feature/optional-avv-acceptance-staging-20261014
+git show origin/feature/optional-avv-acceptance-staging-20261014:scripts/customer-pilot-cloud-readiness-readonly.sh | bash
+```
+
+Der Check liest nur den bestehenden GCP-Projektkontext und meldet für Cloud Run, Kunden-Dienstkonto und benannte Firestore-Datenbank **PASS** oder **OFFEN**; er führt keine Änderungen durch und gibt keine Secrets aus. `OFFEN` kann auch fehlende Leserechte bedeuten. Danach genau die fehlenden Ressourcen bereitstellen, statt zu raten.
+
 ## Noch konkret nötig vor echter Kundenofferte
 
 1. **Echte Enddokumente freigeben:** Projektbedingungen-PDF ohne `ENDKONTROLLE_NICHT_VERSENDEN`; bei AVV Ja finale projektspezifische AVV samt Anlagen, tatsächlich eingesetzte Subunternehmer, Datenarten, Regionen, Aufbewahrungs-/Löschfristen. Mit Geschäfts-Drive-IDs und SHA256 in Airtable referenzieren.

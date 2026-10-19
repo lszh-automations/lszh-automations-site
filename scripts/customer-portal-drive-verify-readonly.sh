@@ -8,7 +8,6 @@ umask 077
 PROJECT=lszh-automations
 SA=lszh-offer-portal@lszh-automations.iam.gserviceaccount.com
 FOLDER=10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "LSZH Kundenportal – Geschäfts-Drive PDF-Integrität, nur lesen"
 for bin in gcloud curl jq sha256sum; do
   command -v "$bin" >/dev/null || { echo "BLOCK: $bin fehlt"; exit 2; }
@@ -43,7 +42,6 @@ while IFS='|' read -r label id expected; do
   [[ -n "$id" ]] || continue
   METADATA_HTTP="$(curl -sS --max-time 25 -o "$TEMP_DIR/meta.json" -w '%{http_code}' \
     -H "Authorization: Bearer $DRIVE_TOKEN" \
-    -H "X-Goog-User-Project: $PROJECT" \
     "https://www.googleapis.com/drive/v3/files/$id?fields=id,mimeType,size,sha256Checksum,contentRestrictions,parents,trashed")"
   if [[ "$METADATA_HTTP" != 200 ]]; then
     echo "OFFEN: $label – Drive-Metadaten HTTP $METADATA_HTTP (Servicekonto)"; exit 4
@@ -58,7 +56,6 @@ while IFS='|' read -r label id expected; do
   fi
   MEDIA_HTTP="$(curl -sS --max-time 40 -o "$TEMP_DIR/$id.pdf" -w '%{http_code}' \
     -H "Authorization: Bearer $DRIVE_TOKEN" \
-    -H "X-Goog-User-Project: $PROJECT" \
     "https://www.googleapis.com/drive/v3/files/$id?alt=media")"
   if [[ "$MEDIA_HTTP" != 200 ]]; then
     echo "OFFEN: $label – Original-PDF-Download HTTP $MEDIA_HTTP"; exit 4

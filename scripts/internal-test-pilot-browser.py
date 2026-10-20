@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Authenticated Cloud Shell web-preview bridge for exactly one internal offer.
+"""Authenticated private operator browser bridge for exactly one internal offer.
 The personalized invitation stays server-side, out of URLs, UI and access logs.
 Cloud Run keeps IAM invoker enforcement; this adds no public cloud permission.
 """
-import json, subprocess, urllib.request, urllib.error
+import json, os, subprocess, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from pathlib import Path
 ORIGIN='https://cloud-e2e---lszh-offer-browser-staging-ozx7mp2bka-oa.a.run.app'
 STATE=Path.home()/'.lszh-internal-test-pilot-20261019.json'
+GCLOUD='gcloud.cmd' if os.name=='nt' else 'gcloud'
+HOST='127.0.0.1' if os.name=='nt' else '0.0.0.0'
 class NoRedirect(urllib.request.HTTPRedirectHandler):
  def redirect_request(self,*args,**kwargs):return None
 class Handler(BaseHTTPRequestHandler):
@@ -24,7 +26,7 @@ class Handler(BaseHTTPRequestHandler):
     if state['recordId']!='recR70ZSPynGqA1LS':raise ValueError()
     data['code']=state['code'];body=json.dumps(data).encode()
    else:self.send_error(404);return
-   identity=subprocess.run(['gcloud','auth','print-identity-token','--account=lars@lszh-automations.ch'],capture_output=True,text=True,timeout=30)
+   identity=subprocess.run([GCLOUD,'auth','print-identity-token','--account=lars@lszh-automations.ch'],capture_output=True,text=True,timeout=30)
    if identity.returncode:raise ValueError()
    req=urllib.request.Request(ORIGIN+self.path,data=body,headers={
     'Authorization':'Bearer '+identity.stdout.strip(),'Origin':ORIGIN,'Content-Type':'application/json'})
@@ -43,5 +45,5 @@ class Handler(BaseHTTPRequestHandler):
   except Exception:
    self.send_response(503);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(b'{"error":"temporarily_unavailable"}')
 if __name__=='__main__':
- print('TEST_ONLY browser bridge on Cloud Shell web preview port 8080; no token in URL/logs.',flush=True)
- HTTPServer(('0.0.0.0',8080),Handler).serve_forever()
+ print('TEST_ONLY browser bridge on '+HOST+':8080; no token in URL/logs.',flush=True)
+ HTTPServer((HOST,8080),Handler).serve_forever()

@@ -1,6 +1,6 @@
 # LSZH Automations – Produktionsbereitschaft
 
-Stand: 19.10.2026 (Europe/Zurich). Diese Liste bereitet einen begrenzten Produktivstart vor. Sie ist kein Go-live und erteilt keine Versand-, Vertrags- oder Kundenfreigabe.
+Stand: 20.10.2026 (Europe/Zurich). Diese Liste bereitet einen begrenzten Produktivstart vor. Sie ist kein Go-live und erteilt keine Versand-, Vertrags- oder Kundenfreigabe. **Surface-Übergang:** Windows-Google-Cloud-CLI, Git, Node und Python installiert; vorhandener Build SUCCESS und bisherige Demo 100 % Traffic unabhängig bestätigt. Private Cloud-Shell-Betreiberdatei nicht transferierbar, IAM-Testbedingung abgelaufen, Browserpilot offen. Windows-Pilotskripte im Featurebranch angepasst, kein Deploy, Build, echter Vertragsabschluss oder E-Mail-Versand. Vorhandene Testeinladung verfällt nach der gespeicherten Datenfassung am 21.10.2026 um 00:00 UTC. Einzelheiten im [TEST_ONLY-Runbook](LSZH_INTERNAL_TEST_ONLY_PILOT_20261019.md).
 
 ## Aktueller Stand
 

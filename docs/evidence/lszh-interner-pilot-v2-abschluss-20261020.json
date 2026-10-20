@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "purpose": "LSZH_INTERNAL_V2_COMPLETED_NO_CONTRACT",
+  "date": "2026-10-20",
+  "testOnly": true,
+  "noContract": true,
+  "noInvoice": true,
+  "recordId": "recZzNiq1LLmCOjNT",
+  "offerNumber": "TEST_INTERNAL_LSZH_20261020_V2_NO_CONTRACT",
+  "recipient": "lars@lszh-automations.ch",
+  "person": "Lars Schulthess",
+  "acceptedAt": "2026-10-20T19:47:02.018Z",
+  "independentFirestoreRead": {
+    "executionId": "8621968d598f483c843cee3d84896775",
+    "status": "success",
+    "outputs": {
+      "recordId": "recZzNiq1LLmCOjNT",
+      "purpose": "LSZH_INTERNAL_V2_20261020",
+      "status": "accepted",
+      "number": "TEST_INTERNAL_LSZH_20261020_V2_NO_CONTRACT",
+      "email": "lars@lszh-automations.ch",
+      "name": "Lars Schulthess",
+      "acceptedAt": "2026-10-20T19:47:02.018Z",
+      "evidenceAt": "2026-10-20T19:47:02.018Z",
+      "quoteHash": "318d8dda86272ef95528ac29db2a151c4cd4d7b0eeda18cbb4c7b345930d4c07",
+      "termsHash": "baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279",
+      "quoteId": "1wv1KNPopuFlfztNTxm8i_dl7h7lmDDPR",
+      "termsId": "1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO",
+      "quoteConsent": true,
+      "termsConsent": true,
+      "authorized": true,
+      "avv": false
+    }
+  },
+  "receiptArchive": {
+    "executionId": "aaea573257204a3ab3468ea346a94aba",
+    "status": "success",
+    "outputs": {
+      "id": "1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es",
+      "sha256": "1297742e1a5a460db88df3f8ce9021f1ce1fd4a35c45863216e4ed01a3cf1404",
+      "size": 2961,
+      "readOnly": true
+    }
+  },
+  "mail": {
+    "executionId": "0c7942b03fcb437c804eead08bef26c8",
+    "status": "success",
+    "outputs": {
+      "messageId": "1a15adfcb1200322",
+      "sentAt": "2026-10-20T19:52:58.745Z",
+      "recordId": "recZzNiq1LLmCOjNT"
+    }
+  },
+  "operatorReceiptConfirmation": "Angekommen, alle drei PDFs öffnen",
+  "codeCommit": "dc8d7079b60b6c2570dc967ef6f73444c38b637a",
+  "codeCI": {
+    "workflow_runs": [
+      {
+        "id": 39485900653,
+        "name": "Offer acceptance checks",
+        "status": "completed",
+        "conclusion": "success",
+        "run_number": 827,
+        "jobs_url": "https://api.github.com/repos/lszh-automations/lszh-automations-site/actions/runs/39485900653/jobs",
+        "logs_url": "https://api.github.com/repos/lszh-automations/lszh-automations-site/actions/runs/39485900653/logs",
+        "workflow_id": 383469753
+      },
+      {
+        "id": 39485900947,
+        "name": "G3 canary candidate image (build-only, NO deployment)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_number": 309,
+        "jobs_url": "https://api.github.com/repos/lszh-automations/lszh-automations-site/actions/runs/39485900947/jobs",
+        "logs_url": "https://api.github.com/repos/lszh-automations/lszh-automations-site/actions/runs/39485900947/logs",
+        "workflow_id": 388597978
+      }
+    ]
+  },
+  "states": [
+    {
+      "id": 8079871,
+      "name": "TEST_ONLY – LSZH V2 Annahme unabhängig lesen",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T19:49:33.359Z"
+    },
+    {
+      "id": 8079894,
+      "name": "TEST_ONLY – LSZH V2 Beleg einmalig archivieren",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T19:50:49.362Z"
+    },
+    {
+      "id": 8079921,
+      "name": "TEST_ONLY – LSZH V2 Bestätigung einmalig mit drei PDFs",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T19:52:34.039Z"
+    },
+    {
+      "id": 7940220,
+      "name": "LSZH Pilot – Annahmebeleg & Bestätigung (AVV Nein)",
+      "description": "PRODUKTIVPILOT VORBEREITET – INAKTIV: nur echte, rechtlich und für Echtbetrieb freigegebene Offerten; Gmail an verifizierte Annahme-/Lead-Adresse, Geschäftsarchiv. Erst nach Portal-/Dokumentenfreigabe aktivieren.",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T18:18:49.035Z",
+      "nextScheduledExecution": "2026-10-20T15:14:40.631Z"
+    },
+    {
+      "id": 7965223,
+      "name": "LSZH Pilot – Annahmebeleg & Bestätigung (AVV Ja)",
+      "description": "PRODUKTIVPILOT VORBEREITET – INAKTIV: nur echte, rechtlich und für Echtbetrieb freigegebene Offerten; Gmail an verifizierte Annahme-/Lead-Adresse, Geschäftsarchiv. Erst nach Portal-/Dokumentenfreigabe aktivieren.",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T18:18:57.170Z",
+      "nextScheduledExecution": "2026-10-20T15:25:59.446Z"
+    },
+    {
+      "id": 8078663,
+      "name": "LSZH Betriebsüberwachung – Alarm an lars@lszh-automations.ch",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "active",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T19:02:41.750Z",
+      "nextScheduledExecution": "2026-10-20T20:07:44.049Z"
+    }
+  ],
+  "productionDeployment": false,
+  "customerLaunch": false,
+  "limitations": [
+    "Interner Pilot auf separatem festen Testpfad, keine Kundenfreigabe und kein erster echter Kundenabschluss.",
+    "Native Create-Sperren bleiben dauerhaft erhalten. Kein erneuter Mailversuch; keine Exactly-once-Garantie des Mailanbieters behauptet.",
+    "Lokaler Listener wurde nicht vom Agent beendet; Betreiber kann Ctrl+C verwenden, automatische Laufzeitgrenze 15 Minuten.",
+    "Make-eigene Fehlermail im Outlook-Postfach durch Betreiber separat bestätigt; kein Make-unabhängiger Ausfallmonitor."
+  ]
+}

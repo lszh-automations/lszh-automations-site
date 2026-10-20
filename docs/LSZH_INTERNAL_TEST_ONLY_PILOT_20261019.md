@@ -1,6 +1,11 @@
 # Interner TEST_ONLY-Pilot mit Betreiber-Daten
 
-Stand: 20.10.2026, Europe/Zurich. **Teilweise ausgeführt, kein vollständiger E2E-PASS.** Lokale Windows-Umstellung vorbereitet, aber Browserannahme weiterhin offen.
+Stand: 20.10.2026, Europe/Zurich. **Interner End-to-End-Pilot AVV Nein bestanden; keine Kunden-/Produktionsfreigabe.**
+
+**Abschluss 20.10.2026 – interner TEST_ONLY-Pilot AVV Nein bestanden:** Verlorene Einladung am bestehenden Datensatz `recR70ZSPynGqA1LS` kontrolliert ersetzt; alter Zugang gesperrt, Ablauf unverändert. Bestehenden Build wiederverwendet, private Revision `00010-lars` ohne normalen Traffic erstellt. Browser-Testannahme und unabhängiger Firestore-/Airtable-Abgleich PASS. Make-Lauf `9d725883751c44ff8363e7ae64097991`: 15/15 Module ohne Fehler, Testbeleg im Testarchiv und Airtable. Testmail an die feste Outlook-Adresse; Betreiber bestätigt Eingang und drei lesbare PDF-Anhänge. Testtag und beide temporären Secret-Grants entfernt; Demo 100 %, Produktion false. Make-Konfiguration, Filter und Zeitplan unabhängig mit Sicherung verglichen, wieder inaktiv, 0 unvollständige Ausführungen. Rechtliche/Echtbetriebs-/Versandflags weiter false/leer; kein echter Kundenabschluss. Details: [Prüfbericht 20.10.2026](LSZH_INTERNAL_PILOT_ABSCHLUSS_20261020.md). AVV Ja: vorhandene synthetische Annahme und ursprünglichen Beleg weiterverwendet; Vier-PDF-Mailtest erfolgreich und Eingang/Anhänge vom Betreiber bestätigt. Unerwartete zusätzliche Belegerstellung bereinigt, ursprüngliche Belegreferenz wiederhergestellt, Make wieder inaktiv und exakt zurückgesetzt. Kein neuer AVV-Ja-Browser-/Firestore-Lauf; siehe [AVV-Ja-Versandtest](LSZH_AVV_JA_VERSANDTEST_20261020.md).
+
+Die nachfolgenden Vorbereitungs- und Unterbrechungsabschnitte dokumentieren den historischen Ablauf. Für den aktuellen Abschluss und die Nachweisgrenzen gilt der verlinkte Prüfbericht. Alte Seed-/Release-/Annahme-Schritte nicht erneut ausführen.
+
 
 ## Auftrag und Grenzen
 

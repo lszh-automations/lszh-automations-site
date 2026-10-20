@@ -2,6 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+// Assert shell structure independently of Windows checkout line endings.
+const readShell=file=>fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n');
 const cp=require('node:child_process');
 
 const boot='scripts/offer-browser-cloud-bootstrap.sh';
@@ -20,7 +22,7 @@ test('both Cloud Shell scripts parse safely and use exact isolated staging names
  for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveShapeRelease,driveParentRelease,driveProbeSmoke]){
   const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
   assert.equal(result.status,0,file+': '+result.stderr);
-  const s=fs.readFileSync(file,'utf8');
+  const s=readShell(file);
   assert.match(s,/TEMP="lszh-offer-browser-staging"/);
   if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveShapeRelease && file!==driveParentRelease && file!==driveProbeSmoke)
    assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
@@ -38,7 +40,7 @@ test('both Cloud Shell scripts parse safely and use exact isolated staging names
  }
 });
 test('temp Cloud Run deploy uses IAM, independent identity and hard-off app flags',()=>{
- const s=fs.readFileSync(boot,'utf8');
+ const s=readShell(boot);
  assert.match(s,/gcloud run deploy "\$TEMP"/);
  assert.match(s,/--ingress=all --no-allow-unauthenticated --invoker-iam-check/);
  assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false"/);
@@ -52,7 +54,7 @@ test('temp Cloud Run deploy uses IAM, independent identity and hard-off app flag
   'bootstrap must not grant database/storage permissions');
 });
 test('cleanup refuses to delete unlabelled/active/non-owned services',()=>{
- const s=fs.readFileSync(clean,'utf8');
+ const s=readShell(clean);
  assert.match(s,/labels\.get\("lszh-temporary"\)!="true"/);
  assert.match(s,/env\.get\("LSZH_PORTAL_STAGING_ENABLED"\)!="false"/);
  assert.match(s,/gcloud run services delete "\$TEMP"/);
@@ -61,7 +63,7 @@ test('cleanup refuses to delete unlabelled/active/non-owned services',()=>{
 });
 
 test('failed actAs deployment resumes from EXACT digest without rebuild or wider IAM',()=>{
- const s=fs.readFileSync(resume,'utf8');
+ const s=readShell(resume);
  assert.match(s,/IMAGE_DIGEST="sha256:ba69188de7d71b9410ccc519b0249388d66401a01c20d09bb687932265f71678"/);
  assert.match(s,/\[ "\$ACTUAL_DIGEST" = "\$IMAGE_DIGEST" \]/);
  assert.match(s,/--member="user:\$ACCOUNT"/);
@@ -77,7 +79,7 @@ test('failed actAs deployment resumes from EXACT digest without rebuild or wider
 });
 
 test('network smoke only calls read-only APIs, authenticated proxy and blocked HTTP GET/POST',()=>{
- const s=fs.readFileSync(smoke,'utf8');
+ const s=readShell(smoke);
  assert.match(s,/gcloud run services proxy "\$TEMP"/);
  assert.match(s,/gcloud run services get-iam-policy "\$TEMP"/);
  assert.match(s,/gcloud run services describe "\$TEMP"/);
@@ -91,7 +93,7 @@ test('network smoke only calls read-only APIs, authenticated proxy and blocked H
 });
 
 test('static demo release targets only existing labelled IAM-protected temporary service',()=>{
- const s=fs.readFileSync(demo,'utf8');
+ const s=readShell(demo);
  assert.match(s,/gcloud run deploy "\$TEMP"/);
  assert.match(s,/--ingress=all --no-allow-unauthenticated --invoker-iam-check/);
  assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false,LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true,GOOGLE_CLOUD_PROJECT=lszh-automations"/);
@@ -102,12 +104,12 @@ test('static demo release targets only existing labelled IAM-protected temporary
  assert.doesNotMatch(s,/gcloud run (deploy|services update) "lszh-offer-portal-staging"/);
  assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
  assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
- const cleanup=fs.readFileSync(clean,'utf8');
+ const cleanup=readShell(clean);
  assert.match(cleanup,/env\.get\("LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
 });
 
 test('deployed static-demo smoke remains read-only and blocks all offer APIs',()=>{
- const s=fs.readFileSync(staticSmoke,'utf8');
+ const s=readShell(staticSmoke);
  assert.match(s,/EXPECTED_REVISION="lszh-offer-browser-staging-00002-fkq"/);
  assert.match(s,/gcloud run services proxy "\$TEMP"/);
  assert.match(s,/get-iam-policy "\$TEMP"/);
@@ -125,7 +127,7 @@ test('deployed static-demo smoke remains read-only and blocks all offer APIs',()
 });
 
 test('temporary Drive probe release never deploys to original or grants IAM roles',()=>{
- const s=fs.readFileSync(driveProbeRelease,'utf8');
+ const s=readShell(driveProbeRelease);
  assert.match(s,/offer-cloud-readiness-readonly\.py/);
  assert.match(s,/offer-temp-drive-folder-reader\.py/);
  assert.match(s,/TEMP="lszh-offer-browser-staging"/);
@@ -146,7 +148,7 @@ test('temporary Drive probe release never deploys to original or grants IAM role
 
 
 test('deployed temporary Drive smoke only probes IAM-protected exact revision and never writes',()=>{
- const s=fs.readFileSync(driveProbeSmoke,'utf8');
+ const s=readShell(driveProbeSmoke);
  assert.match(s,/EXPECTED_REVISION="lszh-offer-browser-staging-00003-j2p"/);
  assert.match(s,/TEMP="lszh-offer-browser-staging"/);
  assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
@@ -170,7 +172,7 @@ test('deployed temporary Drive smoke only probes IAM-protected exact revision an
 });
 
 test('diagnostic-only temp deployment pins previous revision and never widens IAM or enables offer API',()=>{
- const s=fs.readFileSync(drivePhaseRelease,'utf8');
+ const s=readShell(drivePhaseRelease);
  assert.match(s,/TEMP="lszh-offer-browser-staging"/);
  assert.match(s,/lszh-offer-browser-staging-00003-j2p/);
  assert.match(s,/lszh-offer-browser-staging:c19d8bb0f514/);
@@ -194,7 +196,7 @@ test('diagnostic-only temp deployment pins previous revision and never widens IA
 
 
 test('phase release child-folder security gate MUST fail closed on Python errors',()=>{
- const full=fs.readFileSync(drivePhaseRelease,'utf8');
+ const full=readShell(drivePhaseRelease);
  const match=full.match(/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" \\\n   --folder "\$FOLDER"; then\n fatal "Business Drive synthetic subfolder verification failed"\nfi/);
  assert.ok(match,'exact fail-closed if/then/fi around the folder checker');
  const guard=match[0];
@@ -216,7 +218,7 @@ test('phase release child-folder security gate MUST fail closed on Python errors
 });
 
 test('folder-shape diagnostic release pinned to 00004 is strictly temporary and fail closed',()=>{
- const src=fs.readFileSync(driveShapeRelease,'utf8');
+ const src=readShell(driveShapeRelease);
  assert.match(src,/TEMP="lszh-offer-browser-staging"/);
  assert.match(src,/lszh-offer-browser-staging-00004-nk6/);
  assert.match(src,/lszh-offer-browser-staging:708dd11a1e37/);
@@ -236,7 +238,7 @@ test('folder-shape diagnostic release pinned to 00004 is strictly temporary and 
 });
 
 test('temporary restricted parent fix release stays fail closed and never grants main archive IAM',()=>{
- const src=fs.readFileSync(driveParentRelease,'utf8');
+ const src=readShell(driveParentRelease);
  assert.match(src,/BEFORE_REV="lszh-offer-browser-staging-00005-grx"/);
  assert.match(src,/BEFORE_IMAGE="[^"]+:baf9ca133b0a"/);
  assert.match(src,/LSZH_PORTAL_STAGING_ENABLED: "false"/);

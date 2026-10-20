@@ -18,6 +18,21 @@ for(const key of Object.keys(env)){
 }
 env.SITE_PRIVATE='false';
 env.NODE_ENV='test';
+
+// Windows uses the installed Git Bash for shell syntax and fail-closed tests.
+// Change only this test child's PATH; never the user's global environment.
+if(process.platform==='win32'){
+  const candidates=[
+    path.join(process.env.ProgramFiles||'C:\\Program Files','Git','bin'),
+    path.join(process.env.LOCALAPPDATA||'','Programs','Git','bin')
+  ];
+  const bashDir=candidates.find(dir=>fs.existsSync(path.join(dir,'bash.exe')));
+  if(bashDir){
+    const pathKey=Object.keys(env).find(key=>key.toLowerCase()==='path')||'PATH';
+    env[pathKey]=bashDir+path.delimiter+(env[pathKey]||'');
+  }
+}
+
 const result=spawnSync(process.execPath,['--test',...tests],{
   cwd:repo,env,stdio:'inherit',shell:false
 });

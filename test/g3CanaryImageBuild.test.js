@@ -52,10 +52,11 @@ test('image audit CLI rejects accidental other arguments and floating image',()=
     assert.equal(j.releaseStatus,'NO_GO');
   }
 });
-test('OCI verifier fails closed on missing, corrupt or unsupported archives',()=>{
-  const py=spawnSync('python3',['scripts/g3-canary-oci-verify.py','/nonexistent/a.tar','/nonexistent/b.tar'],{
+test('OCI verifier fails closed on missing, corrupt or unsupported archives',t=>{
+  const python=process.platform==='win32'?'python':'python3';
+  const py=spawnSync(python,['scripts/g3-canary-oci-verify.py','/nonexistent/a.tar','/nonexistent/b.tar'],{
     cwd:root,encoding:'utf8',timeout:15000});
-  if(py.error&&py.error.code==='ENOENT')return; // Windows dev may lack Python.
+  if(py.error&&py.error.code==='ENOENT')return t.skip('Python interpreter unavailable');
   assert.equal(py.status,2);
   assert.equal(JSON.parse(py.stdout).status,'BLOCKED_INVALID_OR_DIFFERING_OCI');
 });

@@ -86,8 +86,14 @@ export async function sendInternalTestConfirmationOnce({loadFresh,store,sendMail
   deliveryConfirmed:false};
 }
 
-export function createInternalRecoveryStore(db,{enabled=false}={}){
- if(enabled!==true||db?.projectId!==PROJECT||db?.databaseId!==DATABASE||
+export function createInternalRecoveryStore(db,{enabled=false,emulatorOnly=false}={}){
+ // Explicit demo mode cannot fall through to a real Firestore project.
+ const isolatedDemo=emulatorOnly===true&&db?.projectId==='demo-lszh-automations'&&
+  process.env.GCLOUD_PROJECT==='demo-lszh-automations'&&
+  process.env.FIRESTORE_EMULATOR_HOST==='127.0.0.1:8088'&&
+  !process.env.GOOGLE_APPLICATION_CREDENTIALS&&!process.env.K_SERVICE;
+ const intendedProject=emulatorOnly===true?isolatedDemo:db?.projectId===PROJECT;
+ if(enabled!==true||!intendedProject||db?.databaseId!==DATABASE||
  typeof db.runTransaction!=='function'||typeof db.collection!=='function')
   throw Error('explicit_internal_staging_store_required');
  const ref=key=>{

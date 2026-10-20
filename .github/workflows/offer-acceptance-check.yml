@@ -52,6 +52,8 @@ on:
       - 'scripts/g3-readonly-cloud-inventory.mjs'
       - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
+      - 'test/internalReceiptMailRecovery.test.js'
+      - 'test/internalReceiptMailRecovery.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
       - 'cloud-run/Dockerfile.offer-portal-staging'
@@ -137,6 +139,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
           node --check cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs
           node --check test/offerReceiptDocumentHandoff.test.js
+          node --check cloud-run/offer-portal-staging/internalReceiptMailRecovery.mjs
+          node --check test/internalReceiptMailRecovery.emulator.test.js
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
           node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
           node --check cloud-run/offer-portal-staging/syntheticSourceIndex.mjs
@@ -253,7 +257,7 @@ jobs:
             --only firestore \
             --project demo-lszh-automations \
             --config cloud-run/offer-portal-staging/firebase.emulator.json \
-            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js test/offerReceiptProcessingLock.emulator.test.js test/offerSyntheticSourceIndex.emulator.test.js"
+            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js test/offerReceiptProcessingLock.emulator.test.js test/offerSyntheticSourceIndex.emulator.test.js test/internalReceiptMailRecovery.emulator.test.js"
 
   browser-synthetic:
     name: Synthetic customer journey in real Chromium (offline only)

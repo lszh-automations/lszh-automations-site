@@ -94,3 +94,24 @@ test('store defaults off and rejects production database and unrelated projects'
  assert.throws(()=>createInternalRecoveryStore({...fakeDb(),databaseId:'lszh-offers'},{enabled:true}));
  assert.throws(()=>createInternalRecoveryStore({...fakeDb(),projectId:'other'},{enabled:true}));
 });
+
+test('demo emulator opt-in requires exact project, host and no runtime credentials',()=>{
+ const keys=['GCLOUD_PROJECT','FIRESTORE_EMULATOR_HOST','GOOGLE_APPLICATION_CREDENTIALS','K_SERVICE'];
+ const saved=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ try{
+  process.env.GCLOUD_PROJECT='demo-lszh-automations';
+  process.env.FIRESTORE_EMULATOR_HOST='127.0.0.1:8088';
+  delete process.env.GOOGLE_APPLICATION_CREDENTIALS;delete process.env.K_SERVICE;
+  const demo={...fakeDb(),projectId:'demo-lszh-automations'};
+  assert.doesNotThrow(()=>createInternalRecoveryStore(demo,{enabled:true,emulatorOnly:true}));
+  assert.throws(()=>createInternalRecoveryStore(fakeDb(),{enabled:true,emulatorOnly:true}));
+  assert.throws(()=>createInternalRecoveryStore(demo,{enabled:true}));
+  for(const [key,value] of [['GCLOUD_PROJECT','lszh-automations'],
+   ['FIRESTORE_EMULATOR_HOST','external.example:8088'],
+   ['GOOGLE_APPLICATION_CREDENTIALS','must-not-use.json'],['K_SERVICE','cloud-runtime']]){
+   const previous=process.env[key];process.env[key]=value;
+   assert.throws(()=>createInternalRecoveryStore(demo,{enabled:true,emulatorOnly:true}),key);
+   if(previous===undefined)delete process.env[key];else process.env[key]=previous;
+  }
+ }finally{for(const key of keys){if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}}
+});

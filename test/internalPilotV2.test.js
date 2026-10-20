@@ -3,6 +3,20 @@ const assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const code='V'.repeat(48);
+test('V2 preview envelope is accepted by the actual browser request parser',async()=>{
+ const t=await setup();
+ const html=require('node:fs').readFileSync(require('node:path').join(__dirname,'../offerte-annehmen/index.html'),'utf8');
+ const start=html.indexOf('async function request(path,payload){');
+ const end=html.indexOf('\nconst errors=',start);
+ assert.ok(start>0&&end>start);
+ const envelope=await t.v.previewPayload(t.portal,code);
+ const request=require('node:vm').runInNewContext('('+html.slice(start,end)+')',{
+  fetch:async()=>new Response(JSON.stringify(envelope),{status:200,headers:{'Content-Type':'application/json'}})
+ });
+ const response=await request('/api/offer/preview',{code});
+ assert.equal(response.ok,true);assert.equal(response.offer.number,t.doc().offerNumber);
+ assert.equal(response.offer.once,1500);assert.equal(response.offer.test_accept_enabled,true);
+});
 async function setup(){
  const v=await import('../scripts/internal-test-pilot-v2.mjs');
  const {createOfferPortal}=await import('../cloud-run/offer-portal-staging/portalCore.mjs');

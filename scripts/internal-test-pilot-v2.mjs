@@ -67,6 +67,9 @@ export function assertOffer(s,tokenHash){
  if(s.status==='accepted')acceptanceFields(s);
  return s;
 }
+export async function previewPayload(portal,code){
+ return {ok:true,offer:await portal.preview(code)};
+}
 async function main(){
  if(process.argv.slice(2).join(' ')!=='--start'||process.platform!=='win32'||process.env.K_SERVICE||
   process.env.FIRESTORE_EMULATOR_HOST||process.env.GOOGLE_APPLICATION_CREDENTIALS)fail('explicit_clean_local_windows_start_required');
@@ -159,7 +162,7 @@ async function main(){
    if(req.method!=='POST'||req.headers.origin!==origin||!['/api/offer/preview','/api/offer/document','/api/offer/accept'].includes(req.url))return json(403,{error:'unavailable'});
    let input='';for await(const chunk of req){input+=chunk.toString('utf8');if(Buffer.byteLength(input)>12288)throw Error('invalid_request');}
    const b=JSON.parse(input);
-   if(req.url==='/api/offer/preview')return json(200,{offer:await portal.preview(code)});
+   if(req.url==='/api/offer/preview')return json(200,await previewPayload(portal,code));
    if(req.url==='/api/offer/document'){
     const d=await portal.document(code,b.which);res.writeHead(200,{'Content-Type':'application/pdf','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(d.bytes);return;
    }

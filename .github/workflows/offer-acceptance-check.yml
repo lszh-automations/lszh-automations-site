@@ -55,6 +55,8 @@ on:
       - 'test/internalReceiptMailRecovery.test.js'
       - 'test/internalRecoveryProviders.test.js'
       - 'test/internalRecoveryLocal.test.js'
+      - 'test/internalPilotV2.test.js'
+      - 'scripts/internal-test-pilot-v2.mjs'
       - 'scripts/internal-recovery-readonly-check.mjs'
       - 'test/internalReceiptMailRecovery.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
@@ -146,6 +148,8 @@ jobs:
           node --check cloud-run/offer-portal-staging/internalRecoveryOAuth.mjs
           node --check cloud-run/offer-portal-staging/internalRecoveryLocal.mjs
           node --check test/internalRecoveryLocal.test.js
+          node --check scripts/internal-test-pilot-v2.mjs
+          node --check test/internalPilotV2.test.js
           node --check scripts/internal-recovery-readonly-check.mjs
           node --check test/internalRecoveryProviders.test.js
           node --check cloud-run/offer-portal-staging/internalReceiptMailRecovery.mjs

@@ -6,8 +6,15 @@ export const INTERNAL_TEST_PILOT={
   email:'lars.schulthess@outlook.com',
   company:'LSZH Invest GmbH – TEST_ONLY – kein Vertrag'
 };
+export const INTERNAL_TEST_PILOT_V2=Object.freeze({
+  recordId:'recZzNiq1LLmCOjNT',
+  purpose:'LSZH_INTERNAL_V2_20261020',
+  number:'TEST_INTERNAL_LSZH_20261020_V2_NO_CONTRACT',
+  email:'lars@lszh-automations.ch',
+  company:'LSZH Invest GmbH – TEST_ONLY – kein Vertrag'
+});
 export function isInternalTestPilot(offer,recordId){
-  const p=INTERNAL_TEST_PILOT;
+  const p=recordId===INTERNAL_TEST_PILOT_V2.recordId?INTERNAL_TEST_PILOT_V2:INTERNAL_TEST_PILOT;
   return /^rec[A-Za-z0-9]{14}$/.test(recordId||'') &&
     offer?.source?.recordId===recordId &&
     offer.source.internalPilot===p.purpose &&

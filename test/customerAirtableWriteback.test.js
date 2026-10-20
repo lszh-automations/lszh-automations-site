@@ -22,6 +22,10 @@ function fixture(mode='Nein'){
    offer_number:'LSZH-2026-0001',
    accepted_at_utc:'2026-10-19T12:00:00.000Z',
    terms_version:'v1.0',email:'pilot@fictional.example',
+   quote_pdf_sha256:'b'.repeat(64),terms_pdf_sha256:'c'.repeat(64),
+   avv_required:mode==='Ja',
+   avv_pdf_sha256:mode==='Ja'?'d'.repeat(64):null,
+   avv_version:mode==='Ja'?'AVV-PILOT-1.0':null,
    name:'Pilot Testperson',authorized_confirmed:true,
    quote_confirmed:true,terms_confirmed:true,
    avv_confirmed:mode==='Ja'
@@ -35,6 +39,7 @@ function fixture(mode='Nein'){
   'AVV erforderlich':mode,
   'Online-Annahme rechtlich freigegeben':true,
   'Echtbetrieb – kein Test':true,
+  'Versand freigegeben':true,
   'Vertragsunterlagen versendet':true,
   'Lead E-Mail':['pilot@fictional.example'],
   'Online-Annahme Offerten Drive ID':offer.bundle.quote.id,
@@ -80,7 +85,9 @@ test('changed customer email, false legal flag or conflicting acceptance fails c
  for(const change of [
   r=>r.fields['Lead E-Mail']=['different@fictional.example'],
   r=>r.fields['Online-Annahme rechtlich freigegeben']=false,
-  r=>r.fields.Status='Angenommen'
+  r=>r.fields['Versand freigegeben']=false,
+  r=>r.fields.Status='Angenommen',
+  r=>r.fields['Online-Annahme Nachweis']='stale_evidence'
  ]){
   const data=fixture();change(data.record);
   const client={readRecord:async()=>data.record,patchRecord:async()=>{throw Error('must not patch')}};
@@ -93,4 +100,29 @@ test('invalid provider confirmation requires manual reconciliation',async()=>{
  const client={readRecord:async()=>data.record,
   patchRecord:async()=>({id:data.record.id,fields:{Status:'Versendet'}})};
  await assert.rejects(()=>f(data.offer,client),/patch_unconfirmed/);
+});
+
+test('refuses to publish acceptance if evidence PDF hashes differ from approved archive bundle',async()=>{
+ const {executeCustomerAirtableAcceptanceWriteback:f}=await mod();
+ for(const mode of ['Nein','Ja']){
+  for(const field of ['quote_pdf_sha256','terms_pdf_sha256',...(mode==='Ja'?['avv_pdf_sha256','avv_version']:[])]){
+   const data=fixture(mode),record=data.record;
+   data.offer.evidence[field]='tampered';
+   let writes=0;
+   const client={readRecord:async()=>record,patchRecord:async()=>{writes++;throw Error('must_not_patch')}};
+   await assert.rejects(()=>f(data.offer,client),
+    /invalid_accepted_source|avv_changed/);
+   assert.equal(writes,0,mode+' '+field);
+  }
+ }
+});
+test('refuses unexpected AVV evidence when customer did not require AVV',async()=>{
+ const {executeCustomerAirtableAcceptanceWriteback:f}=await mod();
+ const data=fixture('Nein');
+ data.offer.evidence.avv_confirmed=true;
+ let writes=0;
+ await assert.rejects(()=>f(data.offer,{
+  readRecord:async()=>data.record,patchRecord:async()=>{writes++;throw Error('must_not_patch')}
+ }),/unexpected_avv/);
+ assert.equal(writes,0);
 });

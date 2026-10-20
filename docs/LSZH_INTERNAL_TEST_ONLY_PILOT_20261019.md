@@ -1,6 +1,6 @@
 # Interner TEST_ONLY-Pilot mit Betreiber-Daten
 
-Stand: 19.10.2026, Europe/Zurich. **Teilweise ausgeführt, kein vollständiger E2E-PASS.**
+Stand: 20.10.2026, Europe/Zurich. **Teilweise ausgeführt, kein vollständiger E2E-PASS.** Lokale Windows-Umstellung vorbereitet, aber Browserannahme weiterhin offen.
 
 ## Auftrag und Grenzen
 
@@ -26,9 +26,29 @@ Lars Schulthess hat einen ausdrücklich nicht rechtsverbindlichen internen Pilot
 | Make-Abschlusskontrolle | `7835460` ursprüngliche Konfiguration samt harter Generierungssperre wiederhergestellt, Gmail deaktiviert. **Verbundenes Make-Readback am 19.10.2026:** `7835460`, `7940261`, `7940220`, `7965215`, `7965223` alle inaktiv mit 0 unvollständigen Ausführungen. Verbindungen von `7940220` melden `ok`; produktive Kundenfilter unverändert, keine TEST_ONLY-Mailausführung. |
 | Airtable-Abschlusskontrolle | **Unabhängiger verbundener Airtable-Readback am 19.10.2026:** exakt 20 Offerten und 0 Datensätze mit beiden Produktivfreigaben. Pilot `recR70ZSPynGqA1LS` weiter `Entwurf`, AVV `Nein`, Archivstatus `VERIFIZIERT`; Annahmezeit, Beleg und Versandzeitstempel leer. |
 
+## Windows-Surface-Vorbereitung (20.10.2026; keine Cloud-Mutation)
+
+- Betreiber hat Google Cloud CLI 590.0.0, Git 2.55.0, Node 24.20.0 und Python 3.12.10 auf dem Surface installiert. Anmeldung und Projektwahl `lars@lszh-automations.ch` / `lszh-automations` sind bestätigt; Git-Checkout `C:\\Users\\larss\\Projects\\lszh-automations-site`, Branch `feature/optional-avv-acceptance-staging-20261014` sauber.
+- Verfügbarkeits-Readback des **bestehenden** Builds `965c746c-3692-4f05-ac68-fb5ac31cf25d`: SUCCESS. Cloud-Run-Readback auf dem Surface: `lszh-offer-browser-staging-00006-h5w` hat weiterhin 100 % Traffic. Dies sind **nur lesende** Bestätigungen, kein neuer Testlauf.
+- Die Übertragung der bestehenden privaten Betreiberdatei per `gcloud.cmd cloud-shell scp` ist am Start der Cloud-Shell-Maschine mit `The Cloud Shell machine did not start` gescheitert. Der öffentliche SSH-Schlüssel konnte hinterlegt werden; **keine** private JSON-Datei wurde übertragen. Ihr Inhalt darf niemals in Chats, Logs oder GitHub abgelegt werden.
+- Die bestehenden Python- und Node-Skripte wurden im Featurebranch um Windows-Auswahl von `gcloud.cmd` ergänzt. Die Browserbridge bindet unter Windows ausschliesslich `127.0.0.1:8080`. Pilot-CLI verweigert `--seed`, Release-CLI verweigert `--apply`: kein zweiter Token/Seed und kein neuer Build über die Pilotskripte. Unter Linux bleibt die Cloud-Shell-Bridge unverändert verwendbar. **Nur Codeänderungen; kein Windows-E2E-Test und keine neue CI-Freigabe behaupten.**
+- Der vorhandene Firestore-Offer wurde mit `expiresAt=2026-10-21T00:00:00.000Z` angelegt (aus `Gültig bis 21.10.2026`, konservative UTC-Konvertierung im bestehenden Mapper). Das entspricht **21.10.2026 um 02:00 MESZ**. Nach Ablauf keine automatische Verlängerung oder stilles Token-Reissue; erst Zustand und Pilotstrategie prüfen.
+
+**Read-only Einstieg unter Windows nach einem `git pull --ff-only`:**
+
+```powershell
+Set-Location "$HOME\Projects\lszh-automations-site"
+git pull --ff-only
+gcloud.cmd config get-value account
+gcloud.cmd config get-value project
+Test-Path "$HOME\.lszh-internal-test-pilot-20261019.json"
+```
+
+Nur wenn die private Datei **sicher und unverändert** übertragen und ein zulässiges Testfenster vorhanden ist, `node scripts/internal-test-pilot-once.mjs --status` ausführen. Nicht `--seed` aufrufen. Das Testdeployment per `python scripts/internal-test-pilot-release.py --resume-build 965c746c-3692-4f05-ac68-fb5ac31cf25d` bleibt wegen **abgelaufener IAM-Bedingung** gesperrt; keinen Release versuchen, bevor eine neue eng begrenzte Berechtigung ausdrücklich geprüft und autorisiert wurde. Browserbridge wäre dann `python scripts/internal-test-pilot-browser.py` mit lokalem Aufruf `http://127.0.0.1:8080/offerte-annehmen/`. Erst nach Annahme folgt `--readback` und die einzeln gesicherte Make-Strecke.
+
 ## Verbleibender konkreter Blocker
 
-Google Cloud Shell meldete während des Build-/Release-Befehls ein überschrittenes Nutzungslimit. Der serverseitige Build wurde erfolgreich fertig; der lokale Releaseprozess erreichte keine neue Revision und keine Secret-Grants. Die normale Cloud-Konsole war nach erneuter Identitätsbestätigung erreichbar und wurde ausschliesslich zur Statuskontrolle genutzt. Die private Einladung und der geplante authentifizierte Browser-Bridge-Prozess sind in der gesperrten Shell nicht nutzbar. Die aktuellen verbundenen Schnittstellen bieten keinen Zugriff auf die bestehende Cloud-Shell-Sitzung; deren **heutige Wiederverfügbarkeit wurde nicht bestätigt**. Es gab bei der verbundenen Folgeprüfung weder einen Deploy noch einen Acceptance-POST oder Mailversand.
+Google Cloud Shell meldete während des Build-/Release-Befehls ein überschrittenes Nutzungslimit. Der serverseitige Build wurde erfolgreich fertig; der lokale Releaseprozess erreichte keine neue Revision und keine Secret-Grants. Die normale Cloud-Konsole war nach erneuter Identitätsbestätigung erreichbar und wurde ausschliesslich zur Statuskontrolle genutzt. Die private Einladung und der geplante authentifizierte Browser-Bridge-Prozess sind in der gesperrten Shell nicht nutzbar. Die Cloud-Shell-Maschine konnte auch beim Zugriff über die **lokale** Google Cloud CLI am 20.10.2026 nicht gestartet werden. Deshalb ist die private Betreiberdatei weiterhin nicht verfügbar, und die ursprüngliche IAM-Bedingung ist inzwischen abgelaufen. Es gab bei der verbundenen Folgeprüfung weder einen Deploy noch einen Acceptance-POST oder Mailversand.
 
 **Nicht bestanden / nicht ausgeführt:** privater Browserzugang, neue Browser-PDF-Downloads, Browser-Testzustimmungen, angenommener Firestore-/Airtable-Readback, neuer Make-Annahmebeleg und Outlook-Bestätigung für diesen Pilot. Frühere synthetische Erfolge ersetzen diese fehlenden Schritte nicht.
 

@@ -53,6 +53,8 @@ on:
       - 'test/offerSyntheticSourceIndex.emulator.test.js'
       - 'test/offerReceiptProcessingLock.emulator.test.js'
       - 'test/internalReceiptMailRecovery.test.js'
+      - 'test/internalRecoveryProviders.test.js'
+      - 'scripts/internal-recovery-readonly-check.mjs'
       - 'test/internalReceiptMailRecovery.emulator.test.js'
       - 'test/offerPortalDocuments.test.js'
       - 'test-browser/**'
@@ -139,6 +141,9 @@ jobs:
           node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
           node --check cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs
           node --check test/offerReceiptDocumentHandoff.test.js
+          node --check cloud-run/offer-portal-staging/internalRecoveryProviders.mjs
+          node --check scripts/internal-recovery-readonly-check.mjs
+          node --check test/internalRecoveryProviders.test.js
           node --check cloud-run/offer-portal-staging/internalReceiptMailRecovery.mjs
           node --check test/internalReceiptMailRecovery.emulator.test.js
           node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs

@@ -61,6 +61,19 @@ export async function sendInternalTestConfirmationOnce({loadFresh,store,sendMail
  const attemptId=randomUUID();
  const claimed=await store.claim(plan.key,{recordId:input.recordId,attemptId});
  if(!claimed)return stop('attempt_already_reserved_no_automatic_retry');
+ // Recheck fresh authoritative source and PDF bytes after reserving. A completed
+ // or changed source cannot be dispatched using an earlier snapshot.
+ let sendInput;
+ try{
+  sendInput=await loadFresh();
+  const fresh=inspectInternalMailRecovery(sendInput);
+  if(fresh.status!=='READY_FOR_ATOMIC_CLAIM'||fresh.key!==plan.key||fresh.fingerprint!==plan.fingerprint)
+   throw Error('source_changed_after_claim');
+ }catch{
+  try{await store.markAmbiguous(plan.key,attemptId);}catch{}
+  return stop('source_changed_after_claim_manual_reconciliation');
+ }
+
  // A failure anywhere after this durable reservation must not trigger a retry.
  // Providers may have accepted a request even when their response is lost.
  let message;
@@ -68,7 +81,7 @@ export async function sendInternalTestConfirmationOnce({loadFresh,store,sendMail
   message=await sendMail({to:[RECIPIENT],cc:[],bcc:[],
    subject:'TEST_ONLY – vorhandener Annahmebeleg – kein Vertrag',
    text:'Autorisierter interner Funktionstest. Kein Vertrag, keine Zahlungspflicht, kein Kunden-Onboarding.',
-   attachments:input.documents.map(d=>({filename:'TEST_ONLY_'+d.kind+'.pdf',data:d.bytes})),
+   attachments:sendInput.documents.map(d=>({filename:'TEST_ONLY_'+d.kind+'.pdf',data:d.bytes})),
    correlationKey:plan.key});
  }catch{
   // The durable claim already blocks a second send, even if this update fails.

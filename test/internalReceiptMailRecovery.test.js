@@ -115,3 +115,19 @@ test('demo emulator opt-in requires exact project, host and no runtime credentia
   }
  }finally{for(const key of keys){if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}}
 });
+
+test('source changed after durable claim blocks provider and every retry',async()=>{
+ const db=fakeDb(),store=createInternalRecoveryStore(db,{enabled:true});let loads=0,sends=0;
+ const result=await sendInternalTestConfirmationOnce({loadFresh:async()=>{
+  const input=fixture();if(++loads>1)input.sentAt='2026-10-20T15:14:15Z';return input;
+ },store,sendMail:async()=>{sends++;return{id:'must-not-send'};}});
+ assert.equal(result.reason,'source_changed_after_claim_manual_reconciliation');assert.equal(sends,0);
+ assert.equal([...db.docs.values()][0].state,'MANUAL_RECONCILIATION_REQUIRED');
+});
+test('receipt changed after durable claim cannot reuse verified attachment bytes',async()=>{
+ const db=fakeDb(),store=createInternalRecoveryStore(db,{enabled:true});let loads=0;
+ const result=await sendInternalTestConfirmationOnce({loadFresh:async()=>{
+  const input=fixture();if(++loads>1)input.documents.at(-1).id='Z'.repeat(25);return input;
+ },store,sendMail:async()=>assert.fail('must not send changed receipt')});
+ assert.equal(result.reason,'source_changed_after_claim_manual_reconciliation');
+});

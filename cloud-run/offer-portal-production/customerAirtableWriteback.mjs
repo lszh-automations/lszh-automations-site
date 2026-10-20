@@ -20,13 +20,18 @@ function verified(offer,fields){
      ev.offer_number!==offer.offerNumber||
      ev.email!==offer.recipientEmail||
      ev.terms_version!==offer.termsVersion||
-     !['Ja','Nein'].includes(docs?.avv_required))fail('invalid_accepted_source');
+     !['Ja','Nein'].includes(docs?.avv_required)||
+     ev.quote_pdf_sha256!==docs?.quote?.sha256||
+     ev.terms_pdf_sha256!==docs?.terms?.sha256||
+     ev.avv_required!==(docs.avv_required==='Ja'))
+    fail('invalid_accepted_source');
   if(fields.Offertennummer!==offer.offerNumber||
      fields['Online-Annahme Token-Hash']!==offer.tokenHash||
      fields['Projektbedingungen Version']!==offer.termsVersion||
      choice(fields['AVV erforderlich'])!==docs.avv_required||
      fields['Online-Annahme rechtlich freigegeben']!==true||
      fields['Echtbetrieb – kein Test']!==true||
+     fields['Versand freigegeben']!==true||
      fields['Vertragsunterlagen versendet']!==true||
      oneEmail(fields['Lead E-Mail'])!==offer.recipientEmail||
      fields['Online-Annahme Offerten Drive ID']!==docs.quote.id||
@@ -36,11 +41,14 @@ function verified(offer,fields){
     fail('changed_customer_source');
   if(docs.avv_required==='Ja'){
     if(ev.avv_confirmed!==true ||
+       ev.avv_pdf_sha256!==docs.avv?.sha256 ||
+       ev.avv_version!==offer.details?.avvVersion ||
        fields['Online-Annahme AVV Drive ID']!==docs.avv?.id ||
        fields['Online-Annahme AVV-SHA256']!==docs.avv?.sha256 ||
        fields['Online-Annahme AVV-Version']!==offer.details?.avvVersion)
       fail('avv_changed');
-  }else if(fields['Online-Annahme AVV Drive ID']||
+  }else if(ev.avv_confirmed!==false || ev.avv_pdf_sha256!=null ||
+     ev.avv_version!=null || fields['Online-Annahme AVV Drive ID']||
      fields['Online-Annahme AVV-SHA256']||
      fields['Online-Annahme AVV-Version']||
      fields['Online-Annahme AVV ausdrücklich akzeptiert']===true)
@@ -88,6 +96,7 @@ export async function executeCustomerAirtableAcceptanceWriteback(offer,{
      f['Vertragsunterlagen akzeptiert']===true||
      f['Online-Annahme Zeitstempel']||
      f['Online-Annahme E-Mail']||
+     f['Online-Annahme Nachweis']||
      f['Online-Annahme Bestätigung gesendet am']||
      f['Online-Annahme Beleg Drive ID']||
      f['Online-Annahme Bestätigung in Bearbeitung']===true)

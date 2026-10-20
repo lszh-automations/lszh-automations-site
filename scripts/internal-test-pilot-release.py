@@ -79,10 +79,9 @@ def cleanup():
  print('PASS: pilot tag and both temporary secret grants removed; private revision retired without traffic.',flush=True)
 if __name__=='__main__':
  try:
-  if sys.argv[1:] == ['--apply']:apply()
-  elif len(sys.argv)==3 and sys.argv[1]=='--resume-build':apply(sys.argv[2])
+  if len(sys.argv)==3 and sys.argv[1]=='--resume-build':apply(sys.argv[2])
   elif sys.argv[1:] == ['--cleanup']:cleanup()
-  else:raise RuntimeError('use_apply_or_cleanup')
+  else:raise RuntimeError('only_resume_existing_build_or_cleanup_allowed')
  except Exception as e:
   print('STOP:',str(e) if isinstance(e,RuntimeError) else type(e).__name__)
   print('Inspect state before retry; cleanup remains available.');raise SystemExit(1)

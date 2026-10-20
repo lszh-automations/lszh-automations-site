@@ -1,0 +1,537 @@
+{
+  "structure": {
+    "scenario": {
+      "id": 7940220,
+      "name": "LSZH Pilot – Annahmebeleg & Bestätigung (AVV Nein)",
+      "description": "PRODUKTIVPILOT VORBEREITET – INAKTIV: nur echte, rechtlich und für Echtbetrieb freigegebene Offerten; Gmail an verifizierte Annahme-/Lead-Adresse, Geschäftsarchiv. Erst nach Portal-/Dokumentenfreigabe aktivieren.",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "inactive",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T15:14:40.631Z",
+      "nextScheduledExecution": "2026-10-20T15:14:40.631Z"
+    },
+    "trigger": {
+      "moduleId": 1,
+      "module": "airtable:ActionSearchRecords",
+      "kind": "scheduled",
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 900
+      }
+    },
+    "modules": [
+      {
+        "id": 1,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "label": "Bis optionaler AVV-Pfad live getestet: nur AVV=Nein, keine Rechtsfreigabe",
+        "root": "main"
+      },
+      {
+        "id": 3,
+        "module": "google-drive:getAFile",
+        "version": 4,
+        "label": "Archivierte Offerte herunterladen",
+        "follows": 1
+      },
+      {
+        "id": 4,
+        "module": "google-drive:getAFile",
+        "version": 4,
+        "label": "Freigegebene Projektbedingungen herunterladen",
+        "follows": 3
+      },
+      {
+        "id": 10,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Offerten-PDF gehört zum Geschäftsarchiv und ist schreibgeschützt",
+        "follows": 4
+      },
+      {
+        "id": 11,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Bedingungen-PDF gehört zum Geschäftsarchiv und ist schreibgeschützt",
+        "follows": 10
+      },
+      {
+        "id": 2,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Bestätigung beanspruchen – Dubletten verhindern",
+        "follows": 11,
+        "filter": {
+          "name": "Nur genehmigte echte Offerte, passender Empfänger und unveränderte PDFs",
+          "conditions": [
+            [
+              {
+                "a": "{{1.id}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{1.`Online-Annahme E-Mail`}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{3.mimeType}}",
+                "b": "application/pdf",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{4.mimeType}}",
+                "b": "application/pdf",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{3.sha256Checksum}}",
+                "b": "{{1.`Online-Annahme Offerten-SHA256`}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{4.sha256Checksum}}",
+                "b": "{{1.`Online-Annahme Bedingungen-SHA256`}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{3.sha256Checksum}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{4.sha256Checksum}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{10.body.id}}",
+                "b": "{{3.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{11.body.id}}",
+                "b": "{{4.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{10.body.sha256Checksum}}",
+                "b": "{{3.sha256Checksum}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{11.body.sha256Checksum}}",
+                "b": "{{4.sha256Checksum}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{10.body.parents[1]}}",
+                "b": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{11.body.parents[1]}}",
+                "b": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{10.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{11.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{1.`Online-Annahme E-Mail`}}",
+                "b": "{{1.`Lead E-Mail`[1]}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{1.`Online-Annahme rechtlich freigegeben`}}",
+                "b": true,
+                "o": "boolean:equal"
+              },
+              {
+                "a": "{{1.`Echtbetrieb – kein Test`}}",
+                "b": true,
+                "o": "boolean:equal"
+              },
+              {
+                "a": "{{10.body.contentRestrictions[1].readOnly}}",
+                "b": true,
+                "o": "boolean:equal"
+              },
+              {
+                "a": "{{11.body.contentRestrictions[1].readOnly}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 5,
+        "module": "google-docs:createADocument",
+        "version": 1,
+        "label": "Annahmenachweis als Google Doc erstellen",
+        "follows": 2
+      },
+      {
+        "id": 6,
+        "module": "google-docs:exportADocument",
+        "version": 1,
+        "label": "Annahmenachweis als PDF exportieren",
+        "follows": 5
+      },
+      {
+        "id": 7,
+        "module": "google-drive:uploadAFile",
+        "version": 4,
+        "label": "Annahmenachweis-PDF im Geschäftsarchiv STAGING speichern",
+        "follows": 6
+      },
+      {
+        "id": 12,
+        "module": "google-drive:getAFile",
+        "version": 4,
+        "label": "Annahmenachweis-PDF aus Geschäftsarchiv erneut lesen",
+        "follows": 7
+      },
+      {
+        "id": 13,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "STAGING-Annahmenachweis-PDF gegen Änderung sperren",
+        "follows": 12
+      },
+      {
+        "id": 14,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Annahmenachweis: SHA-256, Archivordner und Schreibschutz final prüfen",
+        "follows": 13
+      },
+      {
+        "id": 15,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Nach Archivprüfung Beleg-ID SOFORT speichern – vor E-Mail, für sicheren Wiederanlauf",
+        "follows": 14,
+        "filter": {
+          "name": "Beleg erst nach Archiv- und Hashprüfung speichern",
+          "conditions": [
+            [
+              {
+                "a": "{{13.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{14.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{14.body.id}}",
+                "b": "{{7.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.sha256Checksum}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{14.body.sha256Checksum}}",
+                "b": "{{12.sha256Checksum}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.mimeType}}",
+                "b": "application/pdf",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.parents[1]}}",
+                "b": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.contentRestrictions[1].readOnly}}",
+                "b": "true",
+                "o": "text:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 8,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Annahmebestätigung mit 3 PDFs per E-Mail",
+        "follows": 15,
+        "filter": {
+          "name": "Nur nach archiviertem Beleg, Freigabe und bestätigter Kundenadresse",
+          "conditions": [
+            [
+              {
+                "a": "{{3.data}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{4.data}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{6.data}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{7.id}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{14.body.id}}",
+                "b": "{{7.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.sha256Checksum}}",
+                "b": "{{12.sha256Checksum}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.mimeType}}",
+                "b": "application/pdf",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.parents[1]}}",
+                "b": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{14.body.contentRestrictions[1].readOnly}}",
+                "b": "true",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{13.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{14.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{15.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{15.body.id}}",
+                "b": "{{1.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{15.body.fields.`Online-Annahme Beleg Drive ID`}}",
+                "b": "{{7.id}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{1.`Online-Annahme E-Mail`}}",
+                "b": "{{1.`Lead E-Mail`[1]}}",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{1.`Online-Annahme rechtlich freigegeben`}}",
+                "b": true,
+                "o": "boolean:equal"
+              },
+              {
+                "a": "{{1.`Echtbetrieb – kein Test`}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 9,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Erst nach erfolgreicher Kundenmail Versanddatum setzen und Sperrflag löschen",
+        "follows": 8,
+        "filter": {
+          "name": "Nur nach erfolgreicher E-Mail",
+          "conditions": [
+            [
+              {
+                "a": "{{8.id}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{7.id}}",
+                "o": "exist"
+              }
+            ]
+          ]
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": 11101358,
+        "label": "Lars Schulthess's (lars.schulthess@outlook.com) Airtable Token or Key credentials - MCP",
+        "app": "airtable2",
+        "usedByModules": [
+          1,
+          2,
+          15,
+          9
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11904271,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Google Drive credentials - MCP",
+        "app": "google-drive",
+        "usedByModules": [
+          3,
+          4,
+          10,
+          11,
+          7,
+          12,
+          13,
+          14
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11905001,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Google credentials - MCP",
+        "app": "google",
+        "usedByModules": [
+          5,
+          6
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11904991,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Gmail credentials - MCP",
+        "app": "google-email",
+        "usedByModules": [
+          8
+        ],
+        "status": "ok"
+      }
+    ]
+  },
+  "modifiedModuleConfigs": {
+    "modules": [
+      {
+        "id": 1,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11101358
+          },
+          "mapper": {
+            "base": "appzJiskpAdaR1HEv",
+            "table": "tbljeIUoD7wwKuSmS",
+            "formula": "AND({Status}='Angenommen',{Vertragsunterlagen akzeptiert}=1,{Online-Annahme Zeitstempel}!='',{Online-Annahme Person}!='',{Online-Annahme E-Mail}!='',{Online-Annahme Nachweis}!='',{Online-Annahme Bestätigung gesendet am}='',{Online-Annahme Bestätigung in Bearbeitung}=0,{Online-Annahme Beleg Drive ID}='',{Online-Annahme rechtlich freigegeben}=1,{Echtbetrieb – kein Test}=1,{Projektbedingungen Version}!='',{Online-Annahme Vertragsversion}={Projektbedingungen Version},{Online-Annahme Offerten Drive ID}!='',{Online-Annahme Bedingungen Drive ID}!='',{Online-Annahme Offerten-SHA256}!='',{Online-Annahme Bedingungen-SHA256}!='',LEFT({Offertennummer},5)!='TEST_',LEFT({Offertennummer},5)!='TEST-',{AVV erforderlich}='Nein')",
+            "maxRecords": 1,
+            "useColumnId": false
+          }
+        }
+      },
+      {
+        "id": 2,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11101358
+          },
+          "mapper": {
+            "qs": [],
+            "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/{{1.id}}",
+            "body": "{\"fields\":{\"Online-Annahme Bestätigung in Bearbeitung\":true}}",
+            "method": "PATCH",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 8,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "to": [
+              "{{1.`Online-Annahme E-Mail`}}"
+            ],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<div style=\"font-family:Arial,sans-serif;color:#183049;max-width:620px;margin:auto;line-height:1.65\"><h2>LSZH Automations</h2><p>Guten Tag {{1.`Online-Annahme Person`}}</p><h1 style=\"font-size:24px\">Vielen Dank für Ihre Offertenannahme.</h1><p>Wir bestätigen den Eingang Ihrer Online-Annahme der Offerte <strong>{{1.Offertennummer}}</strong> für {{1.`Lead Firma`[1]}}.</p><p>Im Anhang erhalten Sie die Offerte, die Projektbedingungen und den elektronischen Annahmenachweis.</p><p>Wir melden uns mit den nächsten Schritten zum Kunden-Onboarding. Bei Fragen antworten Sie einfach auf diese E-Mail.</p><p>Freundliche Grüsse<br><strong>LSZH Automations</strong><br>ein Geschäftsbereich der LSZH Invest GmbH</p></div>",
+            "subject": "Ihre Offertenannahme {{1.Offertennummer}} – LSZH Automations",
+            "bodyType": "rawHtml",
+            "attachments": [
+              {
+                "data": "{{3.data}}",
+                "filename": "LSZH_Offerte_{{1.Offertennummer}}.pdf"
+              },
+              {
+                "data": "{{4.data}}",
+                "filename": "LSZH_Projektbedingungen_{{1.`Online-Annahme Vertragsversion`}}.pdf"
+              },
+              {
+                "data": "{{6.data}}",
+                "filename": "LSZH_Annahmenachweis_{{1.Offertennummer}}.pdf"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 9,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11101358
+          },
+          "mapper": {
+            "qs": [],
+            "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/{{1.id}}",
+            "body": "{\"fields\":{\"Online-Annahme Bestätigung gesendet am\":\"{{formatDate(now; \\\"YYYY-MM-DDTHH:mm:ssZ\\\")}}\",\"Online-Annahme Bestätigung in Bearbeitung\":false}}",
+            "method": "PATCH",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

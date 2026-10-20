@@ -1,0 +1,144 @@
+{
+  "result": "CUSTOMER_CONFIRMATION_GATES_PREPARED_INACTIVE",
+  "sourceCommit": "43661d3480b2e07c1bd8c75cb01d31d994e330b1",
+  "ci": {
+    "runId": 39471744324,
+    "allFourJobs": "success",
+    "buildOnlyRunId": 39471744288,
+    "buildOnly": "success"
+  },
+  "reservationValidation": {
+    "scenarioId": 8078273,
+    "first": {
+      "executionId": "1a1df43c22a443f0aaf00bfc576e3e16",
+      "status": "success",
+      "outputs": {
+        "reservation": "projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_customer_confirmation_attempts_v1/TEST_ONLY_CONFIRMATION_RESERVATION_20261020"
+      }
+    },
+    "duplicate": {
+      "executionId": "76620cc8d28142769608c606a8150c08",
+      "status": "error",
+      "error": {
+        "name": "RuntimeError",
+        "message": "[409] Document already exists: projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_customer_confirmation_attempts_v1/TEST_ONLY_CONFIRMATION_RESERVATION_20261020",
+        "module": "google-cloud-firestore:createDocument"
+      }
+    },
+    "database": "lszh-offers-staging",
+    "mailModules": 0
+  },
+  "gateValidation": {
+    "scenarioId": 8078309,
+    "first": {
+      "executionId": "493653a259c44e8e9943b3404c4e8d73",
+      "status": "success",
+      "outputs": {
+        "passed": true
+      }
+    },
+    "cases": [
+      {
+        "name": "claim_nein",
+        "expectedPass": true,
+        "actualPass": true,
+        "executionId": "393477db0c4c43b887985a3c61bbe803"
+      },
+      {
+        "name": "claim_ja",
+        "expectedPass": true,
+        "actualPass": true,
+        "executionId": "f7247a0f939d4c02bf894cb1d0cbbbe5"
+      },
+      {
+        "name": "mail_ja",
+        "expectedPass": true,
+        "actualPass": true,
+        "executionId": "b8ac9d06aa0746c5bb75312287dad579"
+      },
+      {
+        "name": "claim_revoked_dispatch",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "bc303c268adc43528638267032fb5342"
+      },
+      {
+        "name": "mail_revoked_dispatch",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "b5e21ae30e034acd96a2a088fdd0b170"
+      },
+      {
+        "name": "changed_recipient",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "7637728136b545f785d6979675533039"
+      },
+      {
+        "name": "already_sent",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "cda7b13f16e54c9f867f054ad3865582"
+      },
+      {
+        "name": "wrong_receipt",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "556977bfa38744a5b345e324a72ff69d"
+      },
+      {
+        "name": "revoked_legal",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "8d9ea127fdb9463581833ed5757a28cc"
+      },
+      {
+        "name": "contracts_not_sent",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "b3172164b48b41738caa7cb974b15ae1"
+      },
+      {
+        "name": "avv_consent_withdrawn",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "2fe48ad8a52f4fdd9b65a6d246895cbb"
+      },
+      {
+        "name": "changed_accepted_hash",
+        "expectedPass": false,
+        "actualPass": false,
+        "executionId": "419755ba469b49b29488aadba372998c"
+      }
+    ],
+    "providerModules": 0
+  },
+  "productionReservationHasNotExecuted": true,
+  "customerConfirmationScenariosHaveNotRun": true,
+  "customerDataChanged": false,
+  "mailSent": false,
+  "productionDeployment": false,
+  "firstCustomer": "NOT_SELECTED_BY_USER",
+  "finalScenarioStates": [
+    {
+      "id": 7940220,
+      "status": "inactive",
+      "incompleteExecutions": 0
+    },
+    {
+      "id": 7965223,
+      "status": "inactive",
+      "incompleteExecutions": 0
+    },
+    {
+      "id": 8078273,
+      "status": "inactive",
+      "incompleteExecutions": 0
+    },
+    {
+      "id": 8078309,
+      "status": "inactive",
+      "incompleteExecutions": 0
+    }
+  ]
+}

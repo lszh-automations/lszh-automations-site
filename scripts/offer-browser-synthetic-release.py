@@ -7,6 +7,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -28,6 +29,7 @@ SECRETS = {
     "LSZH_PORTAL_PROOF_SALT": "lszh-offer-cloud-e2e-proof-salt",
 }
 ROOT = Path(__file__).resolve().parents[1]
+GCLOUD = "gcloud.cmd" if sys.platform == "win32" else "gcloud"
 
 
 def require(ok, reason):
@@ -45,7 +47,7 @@ def command(args, timeout=90):
 
 
 def cloud(args, timeout=90):
-    raw = command(["gcloud", *args, "--project=" + PROJECT,
+    raw = command([GCLOUD, *args, "--project=" + PROJECT,
                    "--account=" + USER, "--format=json", "--quiet"], timeout)
     try:
         return json.loads(raw) if raw.strip() else {}
@@ -85,7 +87,7 @@ def private_service(s):
 
 
 def check():
-    require(shutil.which("gcloud") and shutil.which("git"), "gcloud_or_git_missing")
+    require(shutil.which(GCLOUD) and shutil.which("git"), "gcloud_or_git_missing")
     command(["git", "cat-file", "-e", SOURCE + "^{commit}"])
     protected_portal()
     s = service(SERVICE)

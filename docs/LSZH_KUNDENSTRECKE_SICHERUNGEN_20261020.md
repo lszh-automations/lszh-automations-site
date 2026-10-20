@@ -28,7 +28,7 @@ Es wurden weder Make-Zeitpläne noch Kunden-Szenarien eingeschaltet. Keine Kunde
 - Isolierter Make-Test `8078273` ohne Mail-/Dokumentmodule: Reservierung in `lszh-offers-staging` erfolgreich angelegt; zweiter Versuch mit gleichem Schlüssel erwartungsgemäss HTTP 409. Dies war ein Wiederholungs-, kein paralleler Live-Lasttest. Die parallelen SDK-Transaktionstests sind separat in CI grün.
 - Make-Test `8078309` enthält nur Start, Filter und Rückgabe; keine externen Provider. Die tatsächlich gespeicherten neuen Bedingungen wurden mit künstlichen Daten getestet: vier zulässige Kombinationen (Reservierung/Mail je AVV Nein/Ja) passieren; neun Änderungen (entzogene Versand-/Rechtsfreigabe, geänderter Empfänger, bereits versendet, falscher Beleg, Unterlagen nicht versendet, fehlende AVV-Zustimmung, geänderter Annahmehash) blockieren. 13 Fälle insgesamt bestanden.
 - Beide Testszenarien abschliessend inaktiv und null unvollständige Ausführungen. Die erwartete 409 bleibt als Testfehler in der Ausführungshistorie sichtbar.
-- Noch nicht bewiesen: produktiver Make-Firestore-Schreibzugriff in `lszh-offers`, vollständiger Erstlauf mit diesen neuen Modulen, Zustellung über die endgültige Kundenstrecke und tatsächliches Fehlerverhalten des Gmail-Moduls nach unbekanntem Provider-Ausgang. Die neue Konfiguration wurde nicht mit Kundendaten ausgeführt. Kein Exactly-once-Zustellversprechen gegenüber Gmail.
+- Aktualisierung: Der produktive Make-Firestore-Schreibzugriff in `lszh-offers` ist inzwischen durch einen isolierten TEST_ONLY-Prüfeintrag bestätigt (siehe Betriebsalarme-Bericht). Noch nicht bewiesen: vollständiger Erstlauf mit diesen neuen Modulen, Zustellung über die endgültige Kundenstrecke und tatsächliches Fehlerverhalten des Gmail-Moduls nach unbekanntem Provider-Ausgang. Die neue Konfiguration wurde nicht mit Kundendaten ausgeführt. Kein Exactly-once-Zustellversprechen gegenüber Gmail.
 - Airtable-Lesen und Gmail-Versand sind keine gemeinsame Transaktion. Die neue Prüfung begrenzt das Zeitfenster, ersetzt aber keine atomare Kopplung zwischen beiden Diensten.
 
 ## Betrieb des ersten begrenzten Piloten
@@ -37,7 +37,7 @@ Verantwortlicher Betreiber: Lars Schulthess. Nach jedem abgeschlossenen Pilotlau
 
 Bei unklarem Gmail-Ausgang zuerst den tatsächlichen Gesendet-Ordner und den zugehörigen Make-Vorgang abgleichen. Keine erneute Ausführung ab Gmail, kein Löschen der Firestore-Reservierung und kein Zurücksetzen des Bearbeitungsflags als automatische Reparatur. Bei Fehlern Kunden-Szenarien ausschalten und den bereits gespeicherten Vertrags-/Annahmenachweis erhalten. Bei Bedarf manuell mit dem Kunden klären; der erste Kundenfall ist ausdrücklich separat freizugeben.
 
-Es wurde keine automatische Alarmierung eingerichtet. Für den ersten begrenzten Pilot ist die begleitete manuelle Kontrolle vorgesehen; vor unbeaufsichtigtem Serienbetrieb muss die Fehlerüberwachung gesondert eingerichtet und geprüft werden.
+Aktualisierung: [Stündliche Betriebsalarmierung](LSZH_BETRIEBSALARME_20261020.md) ist inzwischen aktiv; Empfänger und Testzustellung sind bestätigt. Für den ersten begrenzten Pilot bleibt die begleitete manuelle Kontrolle vorgesehen. Vor unbeaufsichtigtem Serienbetrieb einen unabhängigen Meldeweg bei Ausfall der gemeinsamen Gmail-Verbindung prüfen. Die ursprüngliche Aussage über fehlende Alarmierung ist damit überholt; die übrigen Nachweisgrenzen dieses Berichts bleiben bestehen.
 
 ## Rückfall auf die gesicherte Konfiguration
 

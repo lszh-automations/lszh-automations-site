@@ -1,0 +1,447 @@
+{
+  "structure": {
+    "scenario": {
+      "id": 8078663,
+      "name": "LSZH Betriebsüberwachung – Alarm an lars@lszh-automations.ch",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "active",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-20T19:02:41.750Z",
+      "nextScheduledExecution": "2026-10-20T20:07:44.049Z"
+    },
+    "trigger": {
+      "moduleId": 1,
+      "module": "make:getAScenario",
+      "kind": "scheduled",
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 3600
+      }
+    },
+    "modules": [
+      {
+        "id": 1,
+        "module": "make:getAScenario",
+        "version": 1,
+        "label": "Kundenstrecke AVV Nein: Zustand und offene Ausführungen lesen",
+        "root": "main"
+      },
+      {
+        "id": 2,
+        "module": "builtin:BasicRouter",
+        "version": 1,
+        "follows": 1
+      },
+      {
+        "id": 3,
+        "module": "make:listScenarioLogs",
+        "version": 1,
+        "label": "Nur Fehler der letzten Stunde, höchstens ein Beispiel",
+        "parent": {
+          "moduleId": 2,
+          "kind": "route",
+          "index": 0
+        }
+      },
+      {
+        "id": 7,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Interner Alarm: fehlgeschlagener AVV-Nein-Lauf",
+        "follows": 3,
+        "filter": {
+          "name": "Nur tatsächlicher Laufstatus Fehler",
+          "conditions": [
+            [
+              {
+                "a": "{{3.status}}",
+                "b": 3,
+                "o": "number:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 4,
+        "module": "make:listScenarioLogs",
+        "version": 1,
+        "label": "Nur Fehler der letzten Stunde, höchstens ein Beispiel",
+        "parent": {
+          "moduleId": 2,
+          "kind": "route",
+          "index": 1
+        }
+      },
+      {
+        "id": 8,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Interner Alarm: fehlgeschlagener AVV-Ja-Lauf",
+        "follows": 4,
+        "filter": {
+          "name": "Nur tatsächlicher Laufstatus Fehler",
+          "conditions": [
+            [
+              {
+                "a": "{{4.status}}",
+                "b": 3,
+                "o": "number:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 5,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "label": "Bearbeitung seit mindestens 30 Minuten, kein Versandzeitpunkt, keine TEST/DEMO-Daten",
+        "parent": {
+          "moduleId": 2,
+          "kind": "route",
+          "index": 2
+        }
+      },
+      {
+        "id": 9,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Interner Alarm: Bestätigung seit mindestens 30 Minuten festhängend",
+        "follows": 5,
+        "filter": {
+          "name": "Nur mit tatsächlich gefundener CRM-Record-ID",
+          "conditions": [
+            [
+              {
+                "a": "{{5.id}}",
+                "o": "exist"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 6,
+        "module": "make:getAScenario",
+        "version": 1,
+        "parent": {
+          "moduleId": 2,
+          "kind": "route",
+          "index": 3
+        }
+      },
+      {
+        "id": 10,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Interner Alarm: offene oder blockierte AVV-Ja-Ausführung",
+        "follows": 6,
+        "filter": {
+          "name": "Nur unvollständiger, ungültiger oder blockierter Betrieb",
+          "conditions": [
+            [
+              {
+                "a": "{{6.dlqCount}}",
+                "b": 0,
+                "o": "number:greater"
+              }
+            ],
+            [
+              {
+                "a": "{{6.isinvalid}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ],
+            [
+              {
+                "a": "{{6.iswaiting}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Interner Alarm: offene oder blockierte AVV-Nein-Ausführung",
+        "parent": {
+          "moduleId": 2,
+          "kind": "route",
+          "index": 4
+        },
+        "filter": {
+          "name": "Nur unvollständiger, ungültiger oder blockierter Betrieb",
+          "conditions": [
+            [
+              {
+                "a": "{{1.dlqCount}}",
+                "b": 0,
+                "o": "number:greater"
+              }
+            ],
+            [
+              {
+                "a": "{{1.isinvalid}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ],
+            [
+              {
+                "a": "{{1.iswaiting}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": 11105493,
+        "label": "Lars Schulthess's (lars.schulthess@outlook.com) Make (API key) credentials - MCP",
+        "app": "make",
+        "usedByModules": [
+          1,
+          3,
+          4,
+          6
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11904991,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Gmail credentials - MCP",
+        "app": "google-email",
+        "usedByModules": [
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11101358,
+        "label": "Lars Schulthess's (lars.schulthess@outlook.com) Airtable Token or Key credentials - MCP",
+        "app": "airtable2",
+        "usedByModules": [
+          5
+        ],
+        "status": "ok"
+      }
+    ]
+  },
+  "moduleConfigurations": {
+    "modules": [
+      {
+        "id": 1,
+        "module": "make:getAScenario",
+        "version": 1,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11105493
+          },
+          "mapper": {
+            "scenario": "7940220",
+            "includeCustomProperties": false
+          }
+        }
+      },
+      {
+        "id": 2,
+        "module": "builtin:BasicRouter",
+        "version": 1,
+        "config": {}
+      },
+      {
+        "id": 3,
+        "module": "make:listScenarioLogs",
+        "version": 1,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11105493
+          },
+          "mapper": {
+            "from": "{{formatDate(addHours(now; -1); \"YYYY-MM-DDTHH:mm:ss.SSSZ\"; \"UTC\")}}",
+            "limit": 1,
+            "status": "3",
+            "scenario": "7940220",
+            "showCheckRuns": true
+          }
+        }
+      },
+      {
+        "id": 7,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "cc": [],
+            "to": [
+              "lars@lszh-automations.ch"
+            ],
+            "bcc": [],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<h2>LSZH Betriebsüberwachung</h2><p>Im Kundenszenario 7940220 wurde in der letzten Stunde ein Fehler protokolliert.</p><p>Ausführung: {{3.id}}</p><p><a href=\"https://eu1.make.com/1728770/scenarios/7940220\">Make-Szenario öffnen</a></p><p>Dies ist ein Betriebsalarm, keine Kundenbestätigung. Bitte den Vorgang prüfen; keine Annahme, keinen Beleg und keinen Mailversand blind wiederholen. Bei weiterhin offenen Bearbeitungen kann stündlich eine Erinnerung folgen.</p>",
+            "subject": "LSZH Betriebsalarm – Make-Lauffehler AVV Nein",
+            "bodyType": "rawHtml",
+            "attachments": []
+          }
+        }
+      },
+      {
+        "id": 4,
+        "module": "make:listScenarioLogs",
+        "version": 1,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11105493
+          },
+          "mapper": {
+            "from": "{{formatDate(addHours(now; -1); \"YYYY-MM-DDTHH:mm:ss.SSSZ\"; \"UTC\")}}",
+            "limit": 1,
+            "status": "3",
+            "scenario": "7965223",
+            "showCheckRuns": true
+          }
+        }
+      },
+      {
+        "id": 8,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "cc": [],
+            "to": [
+              "lars@lszh-automations.ch"
+            ],
+            "bcc": [],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<h2>LSZH Betriebsüberwachung</h2><p>Im Kundenszenario 7965223 wurde in der letzten Stunde ein Fehler protokolliert.</p><p>Ausführung: {{4.id}}</p><p><a href=\"https://eu1.make.com/1728770/scenarios/7965223\">Make-Szenario öffnen</a></p><p>Dies ist ein Betriebsalarm, keine Kundenbestätigung. Bitte den Vorgang prüfen; keine Annahme, keinen Beleg und keinen Mailversand blind wiederholen. Bei weiterhin offenen Bearbeitungen kann stündlich eine Erinnerung folgen.</p>",
+            "subject": "LSZH Betriebsalarm – Make-Lauffehler AVV Ja",
+            "bodyType": "rawHtml",
+            "attachments": []
+          }
+        }
+      },
+      {
+        "id": 5,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11101358
+          },
+          "mapper": {
+            "base": "appzJiskpAdaR1HEv",
+            "table": "tbljeIUoD7wwKuSmS",
+            "fields": [
+              "Offertennummer"
+            ],
+            "formula": "AND({Online-Annahme Bestätigung in Bearbeitung}=1,{Online-Annahme Bestätigung gesendet am}='',DATETIME_DIFF(NOW(),LAST_MODIFIED_TIME({Online-Annahme Bestätigung in Bearbeitung}),'minutes')>=30,LEFT(UPPER({Offertennummer}),5)!='TEST_',LEFT(UPPER({Offertennummer}),5)!='TEST-',LEFT(UPPER({Offertennummer}),5)!='DEMO_',LEFT(UPPER({Offertennummer}),5)!='DEMO-')",
+            "maxRecords": 1,
+            "useColumnId": false
+          }
+        }
+      },
+      {
+        "id": 9,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "cc": [],
+            "to": [
+              "lars@lszh-automations.ch"
+            ],
+            "bcc": [],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<h2>LSZH Betriebsüberwachung</h2><p>Mindestens eine Bestätigung ist seit mindestens 30 Minuten in Bearbeitung, ohne gespeicherten Versandzeitpunkt.</p><p>CRM-Record: {{5.id}}</p><p>Dies kann auch nach einer abgefangenen Gmail-Störung auftreten. Bitte alle offenen Bestätigungen im CRM prüfen und den tatsächlichen Gesendet-Ordner abgleichen.</p><p>Dies ist ein Betriebsalarm, keine Kundenbestätigung. Bitte den Vorgang prüfen; keine Annahme, keinen Beleg und keinen Mailversand blind wiederholen. Bei weiterhin offenen Bearbeitungen kann stündlich eine Erinnerung folgen.</p>",
+            "subject": "LSZH Betriebsalarm – Bestätigung benötigt manuelle Prüfung",
+            "bodyType": "rawHtml",
+            "attachments": []
+          }
+        }
+      },
+      {
+        "id": 6,
+        "module": "make:getAScenario",
+        "version": 1,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11105493
+          },
+          "mapper": {
+            "scenario": "7965223",
+            "includeCustomProperties": false
+          }
+        }
+      },
+      {
+        "id": 10,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "cc": [],
+            "to": [
+              "lars@lszh-automations.ch"
+            ],
+            "bcc": [],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<h2>LSZH Betriebsüberwachung</h2><p>Das Kundenszenario 7965223 meldet eine unvollständige Ausführung, eine ungültige Konfiguration oder einen blockierten Lauf.</p><p><a href=\"https://eu1.make.com/1728770/scenarios/7965223\">Make-Szenario öffnen</a></p><p>Dies ist ein Betriebsalarm, keine Kundenbestätigung. Bitte den Vorgang prüfen; keine Annahme, keinen Beleg und keinen Mailversand blind wiederholen. Bei weiterhin offenen Bearbeitungen kann stündlich eine Erinnerung folgen.</p>",
+            "subject": "LSZH Betriebsalarm – AVV-Ja-Szenario benötigt Prüfung",
+            "bodyType": "rawHtml",
+            "attachments": []
+          }
+        }
+      },
+      {
+        "id": 11,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "config": {
+          "parameters": {
+            "__IMTCONN__": 11904991
+          },
+          "mapper": {
+            "cc": [],
+            "to": [
+              "lars@lszh-automations.ch"
+            ],
+            "bcc": [],
+            "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+            "content": "<h2>LSZH Betriebsüberwachung</h2><p>Das Kundenszenario 7940220 meldet eine unvollständige Ausführung, eine ungültige Konfiguration oder einen blockierten Lauf.</p><p><a href=\"https://eu1.make.com/1728770/scenarios/7940220\">Make-Szenario öffnen</a></p><p>Dies ist ein Betriebsalarm, keine Kundenbestätigung. Bitte den Vorgang prüfen; keine Annahme, keinen Beleg und keinen Mailversand blind wiederholen. Bei weiterhin offenen Bearbeitungen kann stündlich eine Erinnerung folgen.</p>",
+            "subject": "LSZH Betriebsalarm – AVV-Nein-Szenario benötigt Prüfung",
+            "bodyType": "rawHtml",
+            "attachments": []
+          }
+        }
+      }
+    ]
+  }
+}

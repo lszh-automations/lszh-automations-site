@@ -1,0 +1,237 @@
+{
+  "result": "OPERATOR_ALARMS_ACTIVE_HOURLY_AND_TEST_RECEIPT_CONFIRMED",
+  "recipient": "lars@lszh-automations.ch",
+  "permissionProbe": {
+    "executionId": "a7fc0b0326704e55827977a6cc3705bd",
+    "status": "success",
+    "outputs": {
+      "reservation": "projects/lszh-automations/databases/lszh-offers/documents/lszh_customer_confirmation_attempts_v1/TEST_ONLY_PERMISSION_PROBE_20261020_NO_CUSTOMER",
+      "createdAt": "2026-10-20T18:29:39.383Z"
+    }
+  },
+  "firstActiveRun": {
+    "execution": {
+      "id": "82118fe006de42d0b159c7a159570e77",
+      "status": "success",
+      "startedAt": "2026-10-20T19:07:46.503Z",
+      "duration": 2670,
+      "operations": 5,
+      "credits": 5
+    },
+    "modules": [
+      {
+        "id": 1,
+        "name": "make: getAScenario",
+        "invocations": 1,
+        "errors": 0,
+        "lastFinishedAt": "2026-10-20T19:07:46.701Z"
+      },
+      {
+        "id": 3,
+        "name": "make: listScenarioLogs",
+        "invocations": 1,
+        "errors": 0,
+        "lastFinishedAt": "2026-10-20T19:07:46.748Z"
+      },
+      {
+        "id": 4,
+        "name": "make: listScenarioLogs",
+        "invocations": 1,
+        "errors": 0,
+        "lastFinishedAt": "2026-10-20T19:07:46.796Z"
+      },
+      {
+        "id": 5,
+        "name": "airtable: ActionSearchRecords",
+        "invocations": 1,
+        "errors": 0,
+        "lastFinishedAt": "2026-10-20T19:07:49.117Z"
+      },
+      {
+        "id": 6,
+        "name": "make: getAScenario",
+        "invocations": 1,
+        "errors": 0,
+        "lastFinishedAt": "2026-10-20T19:07:49.163Z"
+      }
+    ]
+  },
+  "transportTest": {
+    "scenarioId": 8079076,
+    "run": {
+      "executionId": "79e5505bf1eb415f960c5bd14e97a711",
+      "status": "success",
+      "outputs": {
+        "messageId": "1a15ab29c63c964f"
+      }
+    },
+    "userConfirmedReceipt": true
+  },
+  "filterTests": {
+    "scenarioId": 8079107,
+    "passed": 14,
+    "cases": [
+      {
+        "name": "successful_run",
+        "expected": false,
+        "actual": false,
+        "executionId": "08328f4b00dd4889a65a3800c38932d1"
+      },
+      {
+        "name": "warning_is_not_error",
+        "expected": false,
+        "actual": false,
+        "executionId": "a646f5b9d4aa48c6bca6004de6e94f15"
+      },
+      {
+        "name": "failed_run",
+        "expected": true,
+        "actual": true,
+        "executionId": "e7971cb4426b40c2835f608c43541af0"
+      },
+      {
+        "name": "missing_status",
+        "expected": false,
+        "actual": false,
+        "executionId": "153fa8cdf3c844dc82054d63bb778992"
+      },
+      {
+        "name": "normal_state_no",
+        "expected": false,
+        "actual": false,
+        "executionId": "46399d2e3aff48e69fc3f67154f86c93"
+      },
+      {
+        "name": "incomplete_no",
+        "expected": true,
+        "actual": true,
+        "executionId": "ccd81edde7da4e039770753fa9529d30"
+      },
+      {
+        "name": "invalid_no",
+        "expected": true,
+        "actual": true,
+        "executionId": "48d7a8cb159d4a6bbd6d3799152ad1c1"
+      },
+      {
+        "name": "waiting_no",
+        "expected": true,
+        "actual": true,
+        "executionId": "db0055c5300841c9bd97fad61b66baa2"
+      },
+      {
+        "name": "normal_state_yes",
+        "expected": false,
+        "actual": false,
+        "executionId": "fdcffe1aa2d140fdbde5493a3cb33087"
+      },
+      {
+        "name": "incomplete_yes",
+        "expected": true,
+        "actual": true,
+        "executionId": "d9fe79363dcf4e4fb8419c695c8374a7"
+      },
+      {
+        "name": "invalid_yes",
+        "expected": true,
+        "actual": true,
+        "executionId": "2f163c4b7c86459f8a050220a084cb2b"
+      },
+      {
+        "name": "waiting_yes",
+        "expected": true,
+        "actual": true,
+        "executionId": "cfdf5bab7b334d2aa144589c209d0299"
+      },
+      {
+        "name": "stalled_found",
+        "expected": true,
+        "actual": true,
+        "executionId": "b27e0ed4b56442aca6870a8cf53e8e82"
+      },
+      {
+        "name": "no_stalled_record",
+        "expected": false,
+        "actual": false,
+        "executionId": "8fb846040ee6450896508db8877b9664"
+      }
+    ]
+  },
+  "additionalTimeBoundaryTest": {
+    "scenarioId": 8079111,
+    "status": "NOT_EXECUTED_CONNECTOR_SECURITY_FILTER_BLOCKED",
+    "confirmed": false,
+    "securityRestrictionWasNotBypassed": true
+  },
+  "customerDataChanged": false,
+  "customerMailSent": false,
+  "operatorTestMailsSent": 1,
+  "productionDeployment": false,
+  "states": [
+    {
+      "id": 7940220,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 900
+      }
+    },
+    {
+      "id": 7965223,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 900
+      }
+    },
+    {
+      "id": 8078663,
+      "status": "active",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 3600
+      }
+    },
+    {
+      "id": 8078579,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "on-demand"
+      }
+    },
+    {
+      "id": 8079076,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "on-demand"
+      }
+    },
+    {
+      "id": 8079107,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "on-demand"
+      }
+    },
+    {
+      "id": 8079111,
+      "status": "inactive",
+      "incompleteExecutions": 0,
+      "scheduling": {
+        "type": "on-demand"
+      }
+    }
+  ],
+  "limits": [
+    "Alarm delivery shares the business Gmail connection; no independent fallback channel verified.",
+    "Hourly polling with a 30-minute stall threshold; notification may take up to about 90 minutes.",
+    "At most one example per error/stall source per scan; no exactly-once guarantee for alarm notifications.",
+    "No full live first-customer acceptance and confirmation run."
+  ]
+}

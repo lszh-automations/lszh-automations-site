@@ -15,7 +15,16 @@ const ROW=`https://api.airtable.com/v0/${SOURCE.base}/${SOURCE.table}/${RECORD}`
 const STATE=homedir()+'/.lszh-internal-test-pilot-20261019.json';
 const hash=x=>createHash('sha256').update(x).digest('hex');
 function fail(code){throw Error(code);}
-function cloud(...args){try{return execFileSync('gcloud',args,{encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:30000}).trim();}catch{fail('cloud_command_failed');}}
+function cloud(...args){
+ // This script supplies only fixed gcloud arguments; no user input is interpolated.
+ // On Windows, .cmd launchers require a shell. Never print stdout for secret reads.
+ const windows=process.platform==='win32';
+ try{
+  return execFileSync(windows?'gcloud.cmd':'gcloud',args,{
+   encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:30000,shell:windows
+  }).trim();
+ }catch{fail('cloud_command_failed');}
+}
 async function api(url,token,method='GET',body){
  const r=await fetch(url,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
   ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
@@ -29,7 +38,7 @@ function decode(v){
 }
 const mode=process.argv[2];
 try{
- if(!['--seed','--readback','--status'].includes(mode))fail('use_seed_or_readback');
+ if(!['--readback','--status'].includes(mode))fail('only_existing_pilot_status_or_readback_allowed');
  if(cloud('config','get-value','account')!=='lars@lszh-automations.ch')fail('wrong_account');
  const google=cloud('auth','print-access-token');
  const pat=cloud('secrets','versions','access','1','--secret=lszh-offer-cloud-e2e-airtable','--project='+PROJECT);

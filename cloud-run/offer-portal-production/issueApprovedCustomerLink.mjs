@@ -64,7 +64,7 @@ try{
   const registered=await createCustomerOfferStore(db).register(prepared);
   if(registered.result!=='registered')fail('source_already_registered');
   const link=new URL('/offerte-annehmen/',I.origin);
-  link.searchParams.set('code',token);
+  link.hash=new URLSearchParams({code:token}).toString();
   console.log('ISSUE_PASS: Customer offer registered once; NO email sent.');
   console.log('PERSONAL_LINK_DISPLAY_ONCE: '+link.toString());
   console.log('Private link: send only through the approved business email path.');

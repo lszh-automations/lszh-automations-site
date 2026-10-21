@@ -272,3 +272,17 @@ test('TEMP CLOUD-ONLY STATIC DEMO: real Chromium displays existing demo and neve
   await new Promise(resolve=>server.close(resolve));
  }
 });
+
+
+test('fragment invitation keeps bearer out of initial HTTP URL and clears browser history',async({page})=>{
+ const fixture=await localFixture('Nein',{previewOnly:true});
+ const requests=[];page.on('request',r=>requests.push({method:r.method(),url:r.url()}));
+ try{
+  await page.goto(fixture.base+'/offerte-annehmen/#code='+TOKEN);
+  await expect(page.locator('#number')).toHaveText(fixture.offer.offerNumber);
+  expect(page.url()).toBe(fixture.base+'/offerte-annehmen/');
+  expect(requests.filter(r=>r.method==='GET').every(r=>!r.url.includes(TOKEN))).toBe(true);
+  expect(fixture.stats.preview).toBe(1);expect(fixture.stats.accept).toBe(0);
+  await expect(page.locator('#submit')).toBeDisabled();
+ }finally{await fixture.close();}
+});

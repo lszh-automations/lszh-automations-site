@@ -49,7 +49,7 @@ const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
     body:JSON.stringify({fields:{'Online-Annahme Token-Hash':tokenHash}})});
   if(!patch.ok)fail('Token-Hash konnte nicht in Airtable hinterlegt werden');
   const url=new URL('/offerte-annehmen/',site);
-  url.searchParams.set('code',token);
+  url.hash=new URLSearchParams({code:token}).toString();
   // Never write bearer tokens to Airtable, monitoring logs, or a website analytics system.
   console.log('Persönlicher Annahmelink (nur einmal sichtbar):');
   console.log(url.toString());

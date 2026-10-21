@@ -17,11 +17,12 @@ function fakeElement(){
     reportValidity(){return true}
   };
 }
-async function start({avvRequired=false,demo=false,syntheticPreview=false}={}){
+async function start({avvRequired=false,demo=false,syntheticPreview=false,search,hash=''}={}){
   const nodes=new Map(), calls=[];
   const node=id=>{if(!nodes.has(id))nodes.set(id,fakeElement());return nodes.get(id);};
   const code='A'.repeat(40);
-  const location={search:demo?'?demo=1':('?code='+code),pathname:'/offerte-annehmen/'};
+  const location={search:search??(demo?'?demo=1':('?code='+code)),hash,pathname:'/offerte-annehmen/'};
+  const redactions=[];
   const offer={number:'TEST-2026',test_only:syntheticPreview,
     company:'Muster GmbH',service:'Automations-Test',
     once:1000,monthly:99,payment_model:'Test',valid_until:'2099-12-31',
@@ -36,13 +37,13 @@ async function start({avvRequired=false,demo=false,syntheticPreview=false}={}){
     throw Error('Unexpected request '+path);
   };
   const context={document:{getElementById:node},
-    location,history:{replaceState(){}},URLSearchParams,
+    location,history:{replaceState(...args){redactions.push(args)}},URLSearchParams,
     Intl,Number,String,Array,JSON,Promise,
     fetch:fetcher,console,setTimeout,URL,
     Blob};
   vm.runInNewContext(js[0][1],context,{filename:'offerte-annehmen/index.html'});
   await new Promise(resolve=>setImmediate(resolve));
-  return {node,calls,offer};
+  return {node,calls,offer,redactions};
 }
 test('demo mode reveals optional AVV but cannot accept or download',async()=>{
   const s=await start({demo:true,avvRequired:true});
@@ -98,4 +99,24 @@ test('AVV Nein: third PDF hidden; consent optional and payload unasserted',async
   assert.equal(submitted.payload.accept_avv,false);
   assert.equal(submitted.payload.avv_sha256,null);
   assert.equal(submitted.payload.avv_version,null);
+});
+
+
+test('fragment invitation reaches preview by POST and removes bearer from browser history',async()=>{
+ const code='F'.repeat(43),s=await start({search:'',hash:'#code='+code});
+ assert.equal(s.calls.length,1);assert.equal(s.calls[0].path,'/api/offer/preview');
+ assert.equal(s.calls[0].payload.code,code);
+ assert.deepEqual(s.redactions[0],[null,'','/offerte-annehmen/']);
+});
+test('ambiguous invitations never select one bearer or enter demo mode',async()=>{
+ for(const [search,hash] of [['?code='+ 'A'.repeat(40),'#code='+ 'B'.repeat(40)],
+  ['?code='+ 'A'.repeat(40)+'&code='+ 'B'.repeat(40),''],
+  ['?demo=1','#code='+ 'A'.repeat(40)+'&code='+ 'B'.repeat(40)]]){
+  const s=await start({search,hash});assert.equal(s.calls.length,0);assert.equal(s.redactions.length,1);
+ }
+});
+test('fragment invitation cannot be diverted into a demo with query parameters',async()=>{
+ const s=await start({search:'?demo=1',hash:'#code='+ 'F'.repeat(43)});
+ assert.equal(s.calls.length,1);assert.equal(s.calls[0].path,'/api/offer/preview');
+ assert.equal(s.redactions.length,1);
 });

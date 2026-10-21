@@ -22,15 +22,16 @@ const definitions=[
  {key:'mailReserve',module:'datastore:AddRecord',version:1,label:'Mailversuch dauerhaft einmalig reservieren'},
  {key:'receipt',module:'google-cloud-firestore:universal',version:1,label:'Gmail-ID nach erfolgreichem Versand create-only sichern'},
  {key:'mailError',module:'airtable:makeApiCall',version:3,label:'Unklarer Mailausgang: manuelle Prüfung, keine Wiederholung'},
- {key:'commit',module:'builtin:Commit',version:1,label:'Mailreservierung bei Fehler behalten'}
+ {key:'commit',module:'builtin:Commit',version:1,label:'Mailreservierung bei Fehler behalten'},
+ {key:'readSource',module:'airtable:makeApiCall',version:3,label:'Aktuellen CRM-Datensatz einschließlich neuer Prüffelder lesen'}
 ];
 function config(key,ids={}){
  const i=ids;
- if(key==='preflight')return code([{name:'record',value:'{{`1`}}'}],'return preflight({id:input.record.id,fields:input.record},'+JSON.stringify(policy)+');');
+ if(key==='preflight')return code([{name:'row',value:'{{'+i.readSource+'.body}}'}],'return preflight(input.row,'+JSON.stringify(policy)+');');
  if(key==='status')return api(airtable,rowUrl,'PATCH','{{'+i.preflight+'.result.patchBody}}');
  if(key==='terms')return{parameters:drive,mapper:{select:'map',file:C.PILOT.termsId}};
  if(key==='termsMeta')return{parameters:drive,mapper:{url:'/v3/files/'+C.PILOT.termsId,method:'GET',headers:[],qs:[{key:'fields',value:'id,mimeType,size,sha256Checksum,parents,contentRestrictions'}]}};
- if(key==='fresh')return api(airtable,rowUrl);
+ if(key==='fresh'||key==='readSource')return api(airtable,rowUrl);
  if(key==='snapshot')return code([{name:'row',value:'{{'+i.fresh+'.body}}'},{name:'sourceFingerprint',value:'{{'+i.preflight+'.result.fingerprint}}'},{name:'quoteMeta',value:'{{11.body}}'},{name:'quoteBase64',value:'{{base64(9.data)}}'},{name:'termsMeta',value:'{{'+i.termsMeta+'.body}}'},{name:'termsBase64',value:'{{base64('+i.terms+'.data)}}'}],'const out=prepareSnapshot({...input,policy:'+JSON.stringify(policy)+',origin:"https://lszh-crm-offer-links-ozx7mp2bka-oa.a.run.app"});delete out.snapshot;return out;');
  if(key==='firestore')return api({__IMTCONN__:12198232},'/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_links?documentId={{'+i.snapshot+'.result.tokenHash}}','POST','{{'+i.snapshot+'.result.firestoreBody}}');
  if(key==='mailReserve')return{parameters:{datastore:227219},mapper:{key:C.PILOT.purpose+':'+state.recordId+':MAIL_ATTEMPT',overwrite:false}};
@@ -39,14 +40,14 @@ function config(key,ids={}){
  return{};
 }
 if(process.argv[2]==='--definitions'){
- // Detached valid modules are configured and wired in the second atomic save.
- const harmless={preflight:config('preflight'),status:api(airtable,rowUrl),terms:config('terms'),termsMeta:config('termsMeta'),fresh:config('fresh'),snapshot:code([],'return {configured:false};'),firestore:api({__IMTCONN__:12198232},'/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_receipts/'+state.recordId),mailReserve:config('mailReserve'),receipt:api({__IMTCONN__:12198232},'/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_receipts/'+state.recordId),mailError:api(airtable,rowUrl),commit:{}};
- console.log(JSON.stringify(definitions.map(d=>({op:'module_add',module:d.module,version:d.version,label:d.label,root:'orphan',config:harmless[d.key]}))));
+ // Add only while inactive; configure and wire using returned IDs in the next save.
+ const harmless={preflight:code([],'return {configured:false};'),status:api(airtable,rowUrl),terms:config('terms'),termsMeta:config('termsMeta'),fresh:config('fresh'),snapshot:code([],'return {configured:false};'),firestore:api({__IMTCONN__:12198232},'/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_receipts/'+state.recordId),mailReserve:config('mailReserve'),receipt:api({__IMTCONN__:12198232},'/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_receipts/'+state.recordId),mailError:api(airtable,rowUrl),commit:{},readSource:api(airtable,rowUrl)};
+ console.log(JSON.stringify(definitions.map(d=>({op:'module_add',module:d.module,version:d.version,label:d.label,follows:6,config:harmless[d.key]}))));
 }else if(process.argv[2]==='--patch'){
  const ids=JSON.parse(fs.readFileSync(path.join(root,'.crm-cloud-module-ids.json'),'utf8')),ops=[];
  for(const d of definitions)ops.push({op:'module_config_set',moduleId:ids[d.key],config:config(d.key,ids)});
- const sequence=[1,ids.preflight,ids.status,12,2,3,4,7,9,10,11,8,ids.terms,ids.termsMeta,ids.fresh,ids.snapshot,ids.firestore,ids.mailReserve,5,6,ids.receipt];
- for(let n=1;n<sequence.length;n++)ops.push({op:'module_move',moduleId:sequence[n],follows:sequence[n-1]});
+ const sequence=[1,ids.readSource,ids.preflight,ids.status,12,2,3,4,7,9,10,11,8,ids.terms,ids.termsMeta,ids.fresh,ids.snapshot,ids.firestore,ids.mailReserve,5,6,ids.receipt];
+ for(let n=1;n<sequence.length;n++)ops.push({op:'module_move',moduleId:sequence[n],follows:sequence[n-1],filter:{}});
  ops.push({op:'module_move',moduleId:ids.mailError,parent:{moduleId:5,kind:'errorHandler'}},{op:'module_move',moduleId:ids.commit,follows:ids.mailError});
  const original=id=>structuredClone(old.modules.find(m=>m.id===id).config);
  const trigger=original(1);trigger.mapper.formula="AND(RECORD_ID()='"+state.recordId+"',{Offertennummer}='"+C.PILOT.number+"',{Status}='Entwurf',{Schnellaktion}='Für Versand freigeben',NOT({Online-Annahme Offerten Drive ID}),NOT({Echtbetrieb – kein Test}),NOT({Online-Annahme rechtlich freigegeben}))";
@@ -58,11 +59,16 @@ if(process.argv[2]==='--definitions'){
  ops.push({op:'module_config_set',moduleId:5,config:mail});
  ops.push({op:'module_config_set',moduleId:6,config:api(airtable,rowUrl,'PATCH',JSON.stringify({fields:{Status:'Versendet','Versendet am':'{{formatDate(now; "YYYY-MM-DD")}}','Vertragsunterlagen versendet':true,'Online-Annahme Link gesendet am':'{{formatDate(now; "YYYY-MM-DDTHH:mm:ssZ")}}','Online-Annahme Token-Hash':'{{'+ids.snapshot+'.result.tokenHash}}','Online-Annahme Bedingungen Drive ID':C.PILOT.termsId,'Online-Annahme Bedingungen-SHA256':C.PILOT.termsHash,'Versand freigegeben':false,Schnellaktion:null,Versandstatus:'Versandt',Versandfehler:'','Nächster Schritt':'TEST_ONLY Cloud-CRM-Versand bestätigt. Keine Annahme oder Rechnung.'}}))});
  const eq=(a,b,o='text:equal')=>({a,b,o});
- ops.push({op:'filter_set',moduleId:12,filter:{name:'Nur geprüfte feste interne Cloud-Offerte',conditions:[[eq('{{'+ids.preflight+'.result.ok}}',true,'boolean:equal'),eq('{{1.id}}',state.recordId)]]}},
+ ops.push({op:'filter_set',moduleId:ids.status,filter:{name:'Verarbeitete oder laufende Vorgänge nicht überschreiben',conditions:[[eq('{{'+ids.preflight+'.result.shouldWrite}}',true,'boolean:equal')]]}},
+ {op:'filter_set',moduleId:12,filter:{name:'Nur geprüfte feste interne Cloud-Offerte',conditions:[[eq('{{'+ids.preflight+'.result.ok}}',true,'boolean:equal'),eq('{{1.id}}',state.recordId)]]}},
  {op:'filter_set',moduleId:2,filter:{name:'Nur feste interne Adresse und Firma',conditions:[[eq('{{1.`Lead E-Mail`[1]}}',C.PILOT.email),eq('{{1.`Lead Firma`[1]}}',C.PILOT.company)]]}},
  {op:'filter_set',moduleId:5,filter:{name:'Nur bestätigter Snapshot der festen internen Quelle',conditions:[[eq('{{1.id}}',state.recordId),eq('{{'+ids.firestore+'.statusCode}}',200,'number:equal'),{a:'{{'+ids.snapshot+'.result.tokenHash}}',o:'exist'},eq('{{'+ids.preflight+'.result.ok}}',true,'boolean:equal')]]}},
  {op:'filter_set',moduleId:6,filter:{name:'Nur nach bestätigter Gmail-ID',conditions:[[{a:'{{5.id}}',o:'exist'}]]}},
- {op:'module_disabled_set',moduleId:5,disabled:false},{op:'module_disabled_set',moduleId:6,disabled:false},{op:'scheduling_set',scheduling:{type:'indefinitely',interval:60}});
+ {op:'module_disabled_set',moduleId:5,disabled:false},{op:'module_disabled_set',moduleId:6,disabled:false},{op:'scheduling_set',scheduling:{type:'indefinitely',interval:60}},
+ {op:'name_set',name:'LSZH Vertrieb – CRM-Offerte TEST_ONLY Cloud'},{op:'description_set',description:'Cloud-only interner Pilot für '+state.recordId+' an Lars. Pflichtfelder, PDF-Archiv, Firestore-Link, Mailreservierung, CRM-Rückmeldung. Keine Kundenannahme oder Rechnung.'});
+ // Preserve the independent archive guard when rebuilding the full plan.
+ const previous=JSON.parse(fs.readFileSync(path.join(root,'docs/evidence/make-crm-cloud-archive-filter-20261021.json'),'utf8'));
+ ops.push({op:'filter_set',moduleId:8,filter:previous},{op:'filter_set',moduleId:3,filter:{name:'Nur mit Betriebskonfiguration',conditions:[[{a:'{{2.id}}',o:'exist'}]]}});
  console.log(JSON.stringify(ops));
 }else throw Error('explicit_plan_mode_required');
 

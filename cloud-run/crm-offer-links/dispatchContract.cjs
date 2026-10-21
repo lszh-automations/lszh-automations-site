@@ -21,8 +21,12 @@ function offerHtml(f){
  return '<div style="font-family:Arial;color:#152c43;font-size:10pt;line-height:1.25"><p style="color:#b00020;font-weight:bold">TEST_ONLY – interner Versandtest. Kein Vertrag. Keine Rechnung.</p><h1 style="font-size:20pt">LSZH AUTOMATIONS</h1><p>Ein Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG</p><h2 style="font-size:15pt">Offerte '+esc(f.Offertennummer)+'</h2><p>'+esc(f['Lead Firma'][0])+'<br>'+esc(f['Lead Name'][0])+'<br>'+esc(f['Lead Strasse'][0])+'<br>'+esc(f['Lead PLZ'][0])+' '+esc(f['Lead Ort'][0])+'<br>'+esc(f['Lead Land'][0])+'</p>'+section('Leistung',f.Leistung)+section('Ausgangslage',f.Ausgangssituation)+section('Ziel',f.Ziel)+section('Leistungsumfang',f.Leistungsumfang)+section('Beteiligte Systeme',f['Beteiligte Systeme'])+section('Nicht enthalten',f['Nicht enthalten'])+'<hr><p><strong>Einmalig CHF 120 · Monatlich CHF 0</strong></p>'+section('Zahlungsmodell / Zahlungsziel',f.Zahlungsmodell+' / 30 Tage')+section('Gültig bis',f['Gültig bis'])+section('Projektbedingungen / AVV','TEST_v1.0_RC1 / Nein')+'<p>Alle Preise sind interne Testwerte. Keine Annahme oder Zahlung möglich.</p></div>';
 }
 function preflight(row,policy,now){
- try{const f=assertSource(row,policy,now);return{ok:true,fingerprint:fingerprint(f),html:offerHtml(f),patchBody:JSON.stringify({fields:{Versandstatus:'PDF angefordert',Versandfehler:'','Versand freigegeben':true}})};}
- catch{return{ok:false,patchBody:JSON.stringify({fields:{Versandstatus:'Blockiert',Versandfehler:row?.fields?.Versandprüfung!=='BEREIT'?String(row?.fields?.Versandprüfung||'Pflichtfelder prüfen'):'Interne Testbegrenzung oder Quelldaten prüfen','Versand freigegeben':false,Schnellaktion:null}})};}
+ const f=row?.fields;
+ // A queued search may have matched before a previous run completed. Re-read
+ // state wins: never overwrite an in-flight, sent or ambiguous mail outcome.
+ if(row?.id===policy?.recordId&&f&&(f.Status!=='Entwurf'||f.Schnellaktion!=='Für Versand freigeben'||f['Online-Annahme Offerten Drive ID']||f['Online-Annahme Link gesendet am']||['PDF angefordert','Mail reserviert','Manuelle Prüfung','Versandt'].includes(f.Versandstatus)))return{ok:false,shouldWrite:false};
+ try{const f=assertSource(row,policy,now);return{ok:true,shouldWrite:true,fingerprint:fingerprint(f),html:offerHtml(f),patchBody:JSON.stringify({fields:{Versandstatus:'PDF angefordert',Versandfehler:'','Versand freigegeben':true}})};}
+ catch{return{ok:false,shouldWrite:true,patchBody:JSON.stringify({fields:{Versandstatus:'Blockiert',Versandfehler:row?.fields?.Versandprüfung!=='BEREIT'?String(row?.fields?.Versandprüfung||'Pflichtfelder prüfen'):'Interne Testbegrenzung oder Quelldaten prüfen','Versand freigegeben':false,Schnellaktion:null}})};}
 }
 function verifiedPdf(meta,base64,folder){
  const b=Buffer.from(base64||'','base64');

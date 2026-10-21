@@ -30,5 +30,7 @@ Versand am 21.10.2026 um 19:06:54 Schweizer Zeit an lars@lszh-automations.ch, Gm
 
 Anschließend temporären Vorschau-Dienst gelöscht (PUBLIC_TEST_PREVIEW_REMOVED). Make 7835460 deaktiviert; Module 1/3/8/12 vollständig mit gesichertem Stand verglichen und identisch wiederhergestellt, V3-Filter zurückgesetzt, Intervall 900 Sekunden, Module 5/6 deaktiviert und harte Mail-Sperre erhalten. Null unvollständige Ausführungen. Szenario bleibt bewusst inaktiv. Neue Pflichtfeldprüfung und Versandstatus-Felder bleiben erhalten; Feldschema separat gesichert.
 
-Nachgewiesen ist die zusammenhängende interne Bedienkette: CRM-Pflichtfelder → manuelle Freigabe → Make-PDF → geprüftes Archiv → persönlicher Testlink → Mail → CRM-Rückmeldung. Für den dauerhaften Kundenbetrieb fehlt noch die serverseitige Orchestrierung anstelle des temporären Windows-Operators samt dauerhaftem Kundenlink. Die Kundenroute wurde nicht aktiviert; keine Annahme, Rechnung, Buchung oder externe Kundenmail aus diesem Durchlauf.
+Nachgewiesen ist die zusammenhängende interne Bedienkette: CRM-Pflichtfelder → manuelle Freigabe → Make-PDF → geprüftes Archiv → persönlicher Testlink → Mail → CRM-Rückmeldung. Die Kundenroute wurde nicht aktiviert; keine Annahme, Rechnung, Buchung oder externe Kundenmail aus diesem Durchlauf.
+
+Fortsetzung: [CRM-Cloud-Versand](LSZH_CRM_CLOUD_VERSAND_20261021.md) ersetzt die lokale Orchestrierung im nächsten festen internen Pilot durch Make und einen dauerhaft verfügbaren Linkdienst. Dort stehen aktueller Lauf-, Prüf- und Kundenfreigabestand; die frühere Windows-Brücke ist kein offener technischer Zwang mehr.
 

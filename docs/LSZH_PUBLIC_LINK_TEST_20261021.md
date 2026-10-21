@@ -12,13 +12,11 @@ Der Code bleibt ein vertraulicher Bearer-Zugang. Fragmentübergabe schützt vor 
 
 https://portal.lszh-automations.ch/offerte-annehmen/ erneut ohne Zugangscode abgerufen: HTTP 503, Cache-Control no-store, Referrer-Policy no-referrer. Das belegt eine gesperrte öffentliche Route, keine aktive Kundenabnahme. Kein Deployment oder Flagwechsel.
 
-## Konkreter nächster Live-Test
+## Öffentliche Vorschau live abgeschlossen
 
-Eine gesonderte, zeitlich begrenzte TEST_ONLY-Vorschau mit neuer rein fiktiver Fixture, example.invalid-Empfänger, eigenem zufälligem Zugangscode und deaktiviertem Annahme-/Writeback-/Mailpfad vorbereiten. Nicht V3 oder alte angenommene Angebote wiederverwenden. Bestehende Kundenroute nicht freischalten. Keine Produktions-Datenbank oder Kundenunterlagen anbinden.
+Getrennten Dienst lszh-offer-link-preview mit rein fiktiven, gebündelten PDFs und hart gesperrter Annahme erstellt, über HTTPS erfolgreich geprüft und vom Betreiber im Browser bestätigt. Falsche Codes, fremde Origins, AVV-Download und Annahme blockiert. Beide PDF-Bytehashes stimmen. Dienst danach entfernt, Bestandsdienste unverändert und Kundenroute weiter HTTP 503. Kein V3-Reset, keine Mail und keine Datenbank-/CRM-Schreibvorgänge. Release-/Rückbau-Nachweis: [öffentliche TEST_ONLY-Vorschau](LSZH_PUBLIC_PREVIEW_RELEASE_20261021.md).
 
-Vor Bereitstellung die genaue Test-Origin, bestehende Staging-Dienstidentität, feste Testquelle und PDF-Archivpins im Releasepaket festlegen; ausgehend von der vorhandenen Browser-Staging-Architektur. Aktuelle Browser-Pilot-Konfiguration verlangt aktivierte synthetische Annahme und ist deshalb noch nicht als reine öffentliche Vorschau geeignet. Diese Sperre nicht durch Aktivieren der Kundenannahme umgehen. Änderungen und exakten Deploymentplan erst prüfen; keine allgemeine öffentliche Kundenfreigabe daraus ableiten.
-
-Abnahme: sauberer erster GET ohne Bearer in der URL, Vorschau und feste PDFs nur mit gültigem Code, kein API-Zugang mit fehlendem/falschem/mehrdeutigem Code, fremde Origin blockiert, Annahme HTTP 503, keine Firestore-/Airtable-Schreibvorgänge oder Mails. Danach Testzugang sperren und Traffic/Revision/Flags zurücklesen. Keine neue Vertragsannahme erforderlich.
+Die Einschränkung des bisherigen Browser-Staging-Modus wurde nicht verändert. Stattdessen enthält die getrennte Vorschau keine Vertrags-/Daten-/Provideranbindung. Damit ist die öffentliche Vorschau geprüft; ein vollständiger Kunden-Annahme-/Mailweg bleibt separat abnahmepflichtig.
 
 ## Prüfstand
 

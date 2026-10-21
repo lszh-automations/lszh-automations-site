@@ -23,3 +23,14 @@ scripts/public-test-preview-operator.mjs: --build mit unveränderlicher Commit-S
 Cloud-Basis lesend geprüft: bisheriger Browser-Staging-Dienst 100 Prozent auf 00006-h5w; Kundendienst unverändert auf 00005-f2k. Keine weiteren Basis-/V3-Tests wiederholen.
 
 API-Grundlagen: https://docs.cloud.google.com/run/docs/reference/rest/v2/projects.locations.services/create und https://docs.cloud.google.com/build/docs/api/reference/rest/v1/projects.builds .
+
+
+## Live-Abschluss
+
+Build 5eaba22f-c168-420a-ac0e-acfd0e5bbf2b aus Commit 3ae7128ffebf6b96f462c489955717593b1267be erfolgreich. Image-Digest sha256:45ebe7cc02e3879cccc7ab5fe4dce7ce1e5d86c666b5e4bf00e165c7f36dafe0. Separaten Dienst erstellt; kein bestehender Dienst aktualisiert. Zugang war bis 21.10.2026 16:35:36.465 UTC (18:35:36 Schweizer Zeit) begrenzt und wurde vor Ablauf durch Rückbau ungültig.
+
+PUBLIC_PREVIEW_LIVE_PASS: öffentliche HTTPS-Seite HTTP 200 und no-store, richtige fiktive Vorschau/test_only=true/test_accept_enabled=false, zwei PDF-Downloads mit tatsächlichem SHA-256-Abgleich, falscher Code HTTP 404, fremde Origin HTTP 403, AVV-Download HTTP 404, Annahme HTTP 503. Kein POST konnte einen Vertrag annehmen; kein Datenbank- oder Provider-Schreibpfad vorhanden. Link direkt im Betreiberbrowser geöffnet, ohne Codeausgabe. Betreiber bestätigt: **Ja, beide PDFs öffnen; Annahme deaktiviert**.
+
+Anschliessend temporären Dienst anhand festem Namen, Zweck-/Temporary-Labels und ETag entfernt; Cloud-Run-Delete-Operation erfolgreich: PUBLIC_TEST_PREVIEW_REMOVED. Bestandsdienste erneut gelesen: Browser-Staging weiterhin 100 Prozent auf 00006-h5w, neueste bereite Revision unverändert 00010-lars; Kundenportal neueste bereite Revision weiterhin 00005-f2k. Öffentliche Kundenroute weiterhin HTTP 503. Kein Make-Szenario verändert/gestartet, keine Mail, keine neuen IAM-Rollen oder Secrets, keine Firestore-/Airtable-Anlage und keine V3-Wiederholung.
+
+**Nachweisgrenze:** Dies ist die Abnahme eines öffentlichen, codegeschützten Vorschau-/PDF-Pfads mit synthetischen, gebündelten Dokumenten. Kein geschäftlicher Archivzugriff, kein Echtkundenvertrag, keine öffentliche Annahme, kein vollständiger Offertenmail- oder Kunden-Onboarding-Nachweis. Vor echter Kundenannahme fehlen weiterhin kundenbezogene finale Unterlagen, tatsächliche Quellfreigaben und ausdrückliche Pilotfreigabe. Nicht erneut denselben Test starten.

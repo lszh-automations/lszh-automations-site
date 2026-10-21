@@ -14,6 +14,10 @@ on:
       - 'cloud-run/archive-reader-staging/**'
       - 'cloud-run/offer-portal-staging/**'
       - 'cloud-run/offer-portal-production/**'
+      - 'cloud-run/public-test-preview/**'
+      - 'cloud-run/Dockerfile.public-test-preview'
+      - 'test/publicTestPreview.test.js'
+      - 'scripts/public-test-preview-operator.mjs'
       - 'cloud-run/Dockerfile.offer-portal-production'
       - 'scripts/customer-pilot-cloud-bootstrap-disabled.sh'
       - 'hosting/customer-portal/**'
@@ -290,7 +294,7 @@ jobs:
           CI: 'true'
           SITE_PRIVATE: 'true'
           OFFER_ACCEPTANCE_ENABLED: 'false'
-        run: npx playwright test test-browser/offerPortal.browser.spec.cjs --workers=1 --reporter=line
+        run: npx playwright test test-browser --workers=1 --reporter=line
 
   portal-image-offline:
     name: Single-origin staging portal image (build-only, never deploy)

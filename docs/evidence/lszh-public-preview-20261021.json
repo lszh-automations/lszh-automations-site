@@ -1,0 +1,21 @@
+{
+  "testOnly": true,
+  "sourceCommit": "3ae7128ffebf6b96f462c489955717593b1267be",
+  "buildId": "5eaba22f-c168-420a-ac0e-acfd0e5bbf2b",
+  "imageDigest": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-link-preview@sha256:45ebe7cc02e3879cccc7ab5fe4dce7ce1e5d86c666b5e4bf00e165c7f36dafe0",
+  "service": "lszh-offer-link-preview",
+  "origin": "https://lszh-offer-link-preview-ozx7mp2bka-oa.a.run.app",
+  "expiresAt": "2026-10-21T16:35:36.465Z",
+  "liveCheck": "PASS",
+  "verifiedPdfs": 2,
+  "wrongTokenBlocked": true,
+  "crossOriginBlocked": true,
+  "acceptanceHttpStatus": 503,
+  "avvHttpStatus": 404,
+  "operatorConfirmedTwoPdfsAndDisabledAcceptance": true,
+  "serviceRemoved": true,
+  "existingBrowserTrafficUnchanged": true,
+  "customerPortalHttpStatusAfterCleanup": 503,
+  "customerDataWrites": 0,
+  "mailSent": false
+}

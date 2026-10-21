@@ -28,11 +28,12 @@
   "gmailId": "1a15f4ec3fd427d6",
   "sentAt": "2026-10-21T16:32:39.994Z",
   "independentReservationGmailReadback": "PASS",
-  "operatorReceiptConfirmed": false,
+  "operatorReceiptConfirmed": true,
   "pages": [
     1,
     2,
     1
   ],
-  "visualReview": "PASS"
+  "visualReview": "PASS",
+  "operatorConfirmedAllThreePdfsReadable": true
 }

@@ -1,0 +1,233 @@
+{
+  "modules": [
+    {
+      "id": 1,
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "base": "appzJiskpAdaR1HEv",
+          "table": "tbljeIUoD7wwKuSmS",
+          "formula": "AND({Offertennummer}='TEST_MANUELL_20261020_V3_NO_CONTRACT',{Status}='Entwurf',ARRAYJOIN({Lead E-Mail})='lars@lszh-automations.ch',ARRAYJOIN({Lead Firma})='LSZH Invest GmbH – TEST_MANUELL_20261020_V3',FIND('TEST_MANUELL_20261020_V3',{Interne Notiz}&''),NOT({Echtbetrieb – kein Test}),NOT({Online-Annahme rechtlich freigegeben}),NOT({Online-Annahme Offerten Drive ID}))",
+          "maxRecords": 1,
+          "useColumnId": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "base": "appzJiskpAdaR1HEv",
+          "table": "tblYbOEogWvHBGYEL",
+          "formula": "{Konfiguration}='LSZH Automations – Standard'",
+          "maxRecords": 1,
+          "useColumnId": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "google-docs:createADocument",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11905001
+        },
+        "mapper": {
+          "name": "TEST_ONLY – Manueller Durchlauf V3 – kein Vertrag",
+          "footer": false,
+          "header": false,
+          "content": "<div style=\"font-family:Arial;color:#b00020;font-weight:bold;font-size:14pt\">TEST_ONLY – UNVERBINDLICHER INTERNER TEST<br>Kein Vertrag. Keine Rechnung. Alle Preise sind erfundene Testwerte.</div><div style=\"font-family:Arial,Helvetica,sans-serif;color:#152c43;font-size:10pt;line-height:1.38\">\n<div style=\"font-size:17pt;font-weight:700\">LSZH <span style=\"color:#3e76b6;font-size:9pt\">AUTOMATIONS</span></div>\n<div style=\"font-size:8pt;color:#647589\">ein Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG</div>\n<div style=\"margin-top:14px;border-top:1px solid #dbe4ef\"></div>\n<div style=\"margin-top:28px;color:#3e76b6;font-size:8pt;font-weight:700\">OFFERTE {{1.Offertennummer}}</div>\n<div style=\"margin-top:6px;font-size:26pt;font-weight:700;line-height:1.1\">{{1.Leistung}}</div>\n<div style=\"margin-top:9px;font-size:10pt;color:#647589\">Eine passgenaue Lösung für {{1.`Lead Firma`[1]}}</div>\n<div style=\"margin-top:22px;border-top:1px solid #dbe4ef;padding-top:10px\">\n<table style=\"width:100%;border-collapse:collapse;border:0\">\n<tr><td style=\"width:57%;vertical-align:top;border:0;padding:0\">\n<div style=\"font-size:8pt;font-weight:700;color:#3e76b6\">FÜR</div>\n<div style=\"font-weight:700\">{{1.`Lead Firma`[1]}}</div>\n<div>{{1.`Lead Name`[1]}}</div>\n<div>{{1.`Lead Strasse`[1]}}</div>\n<div>{{1.`Lead PLZ`[1]}} {{1.`Lead Ort`[1]}}</div>\n</td><td style=\"vertical-align:top;border:0;padding:0\">\n<div style=\"font-size:8pt;font-weight:700;color:#3e76b6\">ERSTELLT / GÜLTIG BIS</div>\n<div>{{formatDate(now; \"DD.MM.YYYY\")}} / {{formatDate(1.`Gültig bis`; \"DD.MM.YYYY\")}}</div>\n<div style=\"margin-top:8px;font-size:8pt;font-weight:700;color:#3e76b6\">ZAHLUNGSMODELL</div>\n<div>{{1.Zahlungsmodell}}</div>\n</td></tr></table></div>\n<div style=\"margin-top:25px;color:#3e76b6;font-size:8pt;font-weight:700\">01 / AUSGANGSLAGE</div>\n<div style=\"margin-top:6px;font-size:15pt;font-weight:700\">Wo wir ansetzen</div>\n<div style=\"margin-top:8px\">{{1.Ausgangssituation}}</div>\n<div style=\"margin-top:21px;color:#3e76b6;font-size:8pt;font-weight:700\">02 / ZIEL</div>\n<div style=\"margin-top:6px;font-size:15pt;font-weight:700\">Das gewünschte Ergebnis</div>\n<div style=\"margin-top:8px\">{{1.Ziel}}</div>\n<div style=\"margin-top:21px;color:#3e76b6;font-size:8pt;font-weight:700\">03 / LEISTUNGSUMFANG</div>\n<div style=\"margin-top:6px;font-size:15pt;font-weight:700\">Das setzen wir um</div>\n<div style=\"margin-top:8px;white-space:pre-wrap\">{{1.Leistungsumfang}}</div>\n<div style=\"margin-top:15px;font-size:9pt\"><strong>Beteiligte Systeme</strong><br>{{1.`Beteiligte Systeme`}}</div>\n<div style=\"margin-top:10px;font-size:9pt\"><strong>Nicht enthalten</strong><br>{{1.`Nicht enthalten`}}</div>\n<div style=\"margin-top:24px;border-top:1px solid #dbe4ef;padding-top:14px;color:#3e76b6;font-size:8pt;font-weight:700\">04 / INVESTITION</div>\n<table style=\"width:100%;border-collapse:collapse;border:0;margin-top:11px\">\n<tr><td style=\"border:0;vertical-align:top;padding:0\">\n<div style=\"font-size:9pt;color:#647589\">Einmalige Umsetzung</div>\n<div style=\"font-size:19pt;font-weight:700\">CHF {{1.`Einmalig CHF`}}</div>\n</td><td style=\"border:0;vertical-align:top;padding:0;text-align:right\">\n<div style=\"font-size:9pt;color:#647589\">Laufende Betreuung</div>\n<div style=\"font-size:16pt;font-weight:700\">CHF {{1.`Monatlich CHF`}} / Monat</div>\n</td></tr></table>\n<div style=\"margin-top:14px;border-top:1px solid #dbe4ef;padding-top:9px;font-size:8.5pt;color:#647589\">\nZahlungsziel: {{1.`Zahlungsziel Tage`}} Tage · Projektbedingungen: {{1.`Projektbedingungen Version`}} · AVV erforderlich: {{1.`AVV erforderlich`}}.<br>\nDie Make-Organisation gehört Ihrem Unternehmen. Das Make-Abonnement und allfällige Drittanbieter-Kosten sind nicht Bestandteil dieser Preise, soweit nicht ausdrücklich anders vereinbart.\n</div>\n<div style=\"margin-top:17px;font-weight:700\">Wir freuen uns auf die Zusammenarbeit.</div>\n<div style=\"margin-top:5px\">LSZH Automations · LSZH Invest GmbH</div>\n</div>",
+          "folderId": "1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in",
+          "destination": "drive"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "module": "google-docs:exportADocument",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11905001
+        },
+        "mapper": {
+          "document": "{{3.id}}",
+          "mimeType": "application/pdf",
+          "destination": "drive"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "module": "google-drive:uploadAFile",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904271
+        },
+        "mapper": {
+          "data": "{{4.data}}",
+          "select": "map",
+          "convert": false,
+          "filename": "STAGING_Offerte_{{1.Offertennummer}}_ARCHIV.pdf",
+          "folderId": "1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "module": "google-drive:getAFile",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904271
+        },
+        "mapper": {
+          "file": "{{7.id}}",
+          "select": "map"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "module": "google-drive:makeApiCall",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904271
+        },
+        "mapper": {
+          "qs": [
+            {
+              "key": "fields",
+              "value": "id,contentRestrictions"
+            }
+          ],
+          "url": "/v3/files/{{9.id}}",
+          "body": "{\"contentRestrictions\":[{\"readOnly\":true,\"reason\":\"LSZH Offerte: finaler PDF-Beleg. Bitte nicht veraendern.\"}]}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "module": "google-drive:makeApiCall",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904271
+        },
+        "mapper": {
+          "qs": [
+            {
+              "key": "fields",
+              "value": "id,name,mimeType,size,sha256Checksum,md5Checksum,version,contentRestrictions,parents"
+            }
+          ],
+          "url": "/v3/files/{{9.id}}",
+          "method": "GET",
+          "headers": []
+        }
+      }
+    },
+    {
+      "id": 8,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/{{1.id}}",
+          "body": "{\"fields\":{\"Online-Annahme Offerten Drive ID\":\"{{9.id}}\",\"Online-Annahme Offerten-SHA256\":\"{{11.body.sha256Checksum}}\",\"Online-Annahme Offerten-Archivstatus\":\"VERIFIZIERT\",\"Online-Annahme Offerten-Archivprüfung am\":\"{{formatDate(now; \\\"YYYY-MM-DDTHH:mm:ssZ\\\")}}\"}}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "module": "google-email:sendAnEmail",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904991
+        },
+        "mapper": {
+          "to": [
+            "{{1.`Lead E-Mail`[1]}}"
+          ],
+          "from": "\"Lars Schulthess\" <lars@lszh-automations.ch>",
+          "content": "<div style=\"font-family:Arial,Helvetica,sans-serif;background:#ffffff;color:#111827;line-height:1.65\">\n  <div style=\"max-width:620px;margin:0 auto;padding:30px 22px\">\n    <div style=\"padding-bottom:18px;border-bottom:3px solid #5b8cff\">\n      <div style=\"font-size:18px;font-weight:700\">LSZH Automations</div>\n      <div style=\"margin-top:3px;color:#64748b;font-size:11px\">Automation für Schweizer KMU</div>\n    </div>\n\n    <div style=\"padding:34px 0 8px\">\n      <div style=\"color:#5b8cff;font-size:11px;font-weight:700;letter-spacing:1px\">OFFERTE {{1.Offertennummer}}</div>\n      <div style=\"font-size:29px;font-weight:700;line-height:1.15;margin-top:8px\">Ihre Automationslösung ist bereit.</div>\n    </div>\n\n    <p>Guten Tag {{1.`Lead Name`[1]}}</p>\n    <p>wir haben die Lösung für <strong>{{1.`Lead Firma`[1]}}</strong> konkretisiert und in einer kompakten Offerte zusammengefasst.</p>\n    <p>Im Anhang finden Sie den vollständigen Leistungsumfang, die Investition und den vorgesehenen Projektablauf.</p>\n\n    <table style=\"width:100%;border-collapse:collapse;margin:26px 0\">\n      <tr>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;color:#64748b\">Leistung</td>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;text-align:right;font-weight:700\">{{1.Leistung}}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;color:#64748b\">Einmalig</td>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;text-align:right;font-weight:700\">CHF {{1.`Einmalig CHF`}}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;color:#64748b\">Monatlich</td>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;text-align:right;font-weight:700\">CHF {{1.`Monatlich CHF`}}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;color:#64748b\">Gültig bis</td>\n        <td style=\"padding:13px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700\">{{formatDate(1.`Gültig bis`; \"DD.MM.YYYY\")}}</td>\n      </tr>\n    </table>\n\n    <p>Wenn Sie etwas ändern möchten, antworten Sie einfach auf diese Nachricht. Wenn alles passt, können wir danach direkt mit dem strukturierten Onboarding starten.</p>\n\n    <p style=\"margin-top:30px\">Freundliche Grüsse<br><strong>LSZH Automations</strong><br><span style=\"color:#64748b;font-size:12px\">ein Geschäftsbereich der LSZH Invest GmbH</span></p>\n\n    <div style=\"margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:10px\">\n      Rummelmatt 8 · 5610 Wohlen AG · CHE-369.474.125\n    </div>\n  </div>\n</div>",
+          "subject": "Offerte {{1.Offertennummer}} · {{1.`Lead Firma`[1]}} — LSZH Automations",
+          "bodyType": "rawHtml",
+          "attachments": [
+            {
+              "data": "{{9.data}}",
+              "filename": "LSZH_Offerte_{{1.Offertennummer}}.pdf"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/{{1.id}}",
+          "body": "{\"fields\":{\"Status\":\"Versendet\",\"Versendet am\":\"{{formatDate(now; \\\"YYYY-MM-DD\\\")}}\",\"Versand freigegeben\":false,\"Google Doc ID\":\"{{3.id}}\",\"PDF Dateiname\":\"{{1.Offertennummer}}.pdf\",\"Nächstes Offerten-Follow-up\":\"{{formatDate(addDays(now; 3); \\\"YYYY-MM-DDTHH:mm:ssZ\\\")}}\",\"Nächster Schritt\":\"Rückmeldung des Kunden abwarten; interne Wiedervorlage in 3 Tagen.\"}}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 12,
+      "module": "datastore:AddRecord",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "datastore": 227219
+        },
+        "mapper": {
+          "key": "TEST_MANUELL_20261020_V3:PDF",
+          "overwrite": false
+        }
+      }
+    }
+  ]
+}

@@ -32,7 +32,7 @@ Mailfehler schreiben Manuelle Prüfung; die Reservierung bleibt erhalten und der
 - Cloud-Build `37ca99c4-2b67-4b56-a3b8-810f68c646dd`, Quellcommit `7665c9b8ba75316e19e1125c375fcf925cc1cc6b`.
 - Image `europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-offer-links@sha256:32024dbb2dba0bd4bb8fdc711cfee9b714f92dcdbc88e1d6ebb34e0c06a0ac20`.
 - Revision `lszh-crm-offer-links-00001-87d`, min=0/max=1. Linkservice bleibt für die zugesagte Gültigkeit verfügbar.
-- Öffentliche Schutzprüfungen bestanden: Seite 200, falscher Code 404, fremde Origin 403, Annahme 503. Die positive Mail-Link-/Anhangsprüfung durch Lars steht zunächst noch aus.
+- Öffentliche Schutzprüfungen bestanden: Seite 200, falscher Code 404, fremde Origin 403, Annahme 503. Lars bestätigt anschließend beide lesbaren PDF-Anhänge und den funktionierenden Mail-Link mit CHF 120 einmalig / CHF 0 monatlich und deaktivierter Annahme. Seine verspätet erneut gesetzte Schnellaktion wurde am bereits versendeten Datensatz gelöscht; Status Versendet / Versandt und bestehende Archivbindung bleiben erhalten. Kein erneuter Versand und kein erneutes Aktivieren des abgeschlossenen Make-Piloten.
 - Nach Statuskorrektur: 320 Tests, 314 bestanden, 6 übersprungen, 0 Fehler. Vier neue Fälle decken Pflichtfelder/Empfänger/Freigaben, späte Suchergebnisse, unveränderte Quell-/PDF-Bindung sowie reale HTTP-Auslieferung über unabhängige Anfragen und gesperrte Annahme ab.
 - Die Statuskorrektur betrifft Make-Ausführungscode; der schon bereitgestellte Reader verwendet diese Funktion nicht. Reader-Quellcommit und Image bleiben unverändert dokumentiert.
 

@@ -14,5 +14,8 @@
   "dispatchStatus": "Versandt",
   "actionCleared": true,
   "acceptanceEnabled": false,
-  "localRuntimeRequired": false
+  "localRuntimeRequired": false,
+  "userConfirmedAttachmentsAndLink": true,
+  "userConfirmedAcceptanceDisabled": true,
+  "lateRepeatedActionClearedWithoutResend": true
 }

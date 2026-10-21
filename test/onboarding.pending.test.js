@@ -7,8 +7,8 @@ const vm=require('node:vm');
 const html=fs.readFileSync('onboarding/index.html','utf8');
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.equal(scripts.length,1,'one onboarding script expected');
-async function simulate(statusCode){
- const nodes=new Map(), requests=[];
+async function simulate(statusCode,{search,hash=''}={}){
+ const nodes=new Map(), requests=[],redactions=[];
  const element=id=>{
   if(!nodes.has(id)){
    const listeners=new Map(), button={disabled:false,textContent:'Onboarding übermitteln'};
@@ -28,7 +28,7 @@ async function simulate(statusCode){
    yield ['make_invitation_status','Noch nicht gesendet'];
    yield ['project_code',code];}
  }
- const ctx={location:{search:'?code='+code},URLSearchParams,FormData:FormDataMock,
+ const ctx={location:{search:search??('?code='+code),hash,pathname:'/onboarding/'},history:{replaceState(...args){redactions.push(args)}},URLSearchParams,FormData:FormDataMock,
   document:{getElementById:element},
   fetch:async(url,opts)=>{
    requests.push({url,method:opts.method,headers:opts.headers,body:JSON.parse(opts.body)});
@@ -39,7 +39,7 @@ async function simulate(statusCode){
  const cb=form.listeners.get('submit');
  assert.equal(typeof cb,'function');
  await cb({preventDefault(){},currentTarget:form});
- return {form,status:element('status'),requests};
+ return {form,status:element('status'),requests,redactions,projectCode:element('project_code').value};
 }
 test('HTTP 202 is provisional receipt, never completed storage or promised email',async()=>{
  const r=await simulate(202);
@@ -66,4 +66,16 @@ test('HTTP 409 duplicate does not reset form or imply processing success',async(
  assert.equal(r.form.resetCount,0);
  assert.equal(r.form.button.disabled,false);
  assert.equal(r.status.style.color,'#b42318');
+});
+
+
+test('onboarding fragment fills code and clears code plus personal prefill from history',async()=>{
+ const code='ob_12345678-1234-4234-8234-123456789abc';
+ const r=await simulate(202,{search:'',hash:'#code='+code+'&firma=TEST_ONLY'});
+ assert.equal(r.projectCode,code);assert.deepEqual(r.redactions,[[null,'','/onboarding/']]);
+});
+test('ambiguous onboarding code is not selected automatically',async()=>{
+ const code='ob_12345678-1234-4234-8234-123456789abc';
+ const r=await simulate(400,{search:'?code='+code,hash:'#code='+code});
+ assert.equal(r.projectCode,'');assert.equal(r.redactions.length,1);
 });

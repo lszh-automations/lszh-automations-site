@@ -2,6 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LSZH Automations – Kunden-Onboarding</title>
 <style>
@@ -270,9 +272,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <script>
 const params = new URLSearchParams(location.search);
-const code = params.get('code') || '';
-const firma = params.get('firma') || '';
-const projekt = params.get('projekt') || '';
+const fragment = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+const ambiguousCode = params.getAll('code').length > 1 || fragment.getAll('code').length > 1 ||
+  (params.has('code') && fragment.has('code'));
+const code = ambiguousCode ? '' : (fragment.get('code') || params.get('code') || '');
+const firma = fragment.get('firma') || params.get('firma') || '';
+const projekt = fragment.get('projekt') || params.get('projekt') || '';
+// Remove the one-time code and prefill data before any form/network operation.
+history.replaceState(null, '', location.pathname);
 
 document.getElementById('project_code').value = code;
 if (firma) document.getElementById('company').value = firma;

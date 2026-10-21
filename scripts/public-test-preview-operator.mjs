@@ -4,19 +4,20 @@ import {createHmac,createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {windowsVault,createTokenProvider,verifyAccount} from '../cloud-run/offer-portal-staging/internalRecoveryOAuth.mjs';
+import {sendPreviewInvitation,INVITATION_KEY} from './public-test-invitation.mjs';
 import {PREVIEW} from '../cloud-run/public-test-preview/preview.mjs';
 const PROJECT=PREVIEW.project,REGION='europe-west6',SERVICE=PREVIEW.service;
 const ROOT=`projects/${PROJECT}/locations/${REGION}`,SERVICE_URL=`https://run.googleapis.com/v2/${ROOT}/services/${SERVICE}`;
 const STATE=new URL('../.public-preview-state.json',import.meta.url);
 const mode=process.argv[2],revision=process.argv[3];
-const allowed=['--build','--deploy','--check','--open','--cleanup'];
+const allowed=['--build','--deploy','--check','--open','--send-invitation','--cleanup'];
 const fail=s=>{throw Error(s);};
 if(!allowed.includes(mode)||process.platform!=='win32'||process.env.K_SERVICE)fail('operator_mode_required');
 let state;
 try{state=JSON.parse(readFileSync(STATE,'utf8'));}catch{state={};}
 const save=()=>writeFileSync(STATE,JSON.stringify(state,null,2)+'\n');
 const c=windowsVault('load'),getToken=createTokenProvider(c);await verifyAccount(await getToken());
-const code=createHmac('sha256',c.refreshToken).update('LSZH_PUBLIC_PREVIEW_20261021_NO_ACCEPTANCE').digest('base64url');
+const code=createHmac('sha256',c.refreshToken).update('LSZH_PUBLIC_PREVIEW_INVITATION_20261021_NO_ACCEPTANCE').digest('base64url');
 const tokenHash=createHash('sha256').update(code).digest('hex');
 async function api(url,method='GET',body){
  const r=await fetch(url,{method,headers:{Authorization:'Bearer '+await getToken(),'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),redirect:'error',signal:AbortSignal.timeout(30000)});
@@ -45,7 +46,7 @@ try{
  if(mode==='--deploy'){
   if(!state.imageDigest||state.revision!==revision)fail('successful_pinned_build_required');
   if(await optionalService())fail('existing_preview_requires_review');
-  state.expiresAt=new Date(Date.now()+30*60*1000).toISOString();save();
+  state.expiresAt=new Date(Date.now()+30*60*1000).toISOString();state.removed=false;delete state.liveCheck;delete state.invitation;save();
   const env={LSZH_PUBLIC_TEST_PREVIEW_ENABLED:'true',GOOGLE_CLOUD_PROJECT:PROJECT,LSZH_PUBLIC_TEST_ORIGIN:PREVIEW.origin,LSZH_PUBLIC_TEST_TOKEN_HASH:tokenHash,LSZH_PUBLIC_TEST_EXPIRES_AT:state.expiresAt};
   const op=await api(`https://run.googleapis.com/v2/${ROOT}/services?serviceId=${SERVICE}`,'POST',{
    labels:{'lszh-purpose':'public-test-preview','lszh-temporary':'true'},description:'Temporary TEST_ONLY immutable PDF preview; no acceptance or provider clients.',
@@ -63,6 +64,16 @@ try{
   for(const which of ['quote','terms']){const r=await post('/api/offer/document',{code,which});const bytes=Buffer.from(await r.arrayBuffer());if(r.status!==200||createHash('sha256').update(bytes).digest('hex')!==p.offer[which+'_sha256'])fail('pdf_mismatch');}
   if((await post('/api/offer/preview',{code:'X'.repeat(48)})).status!==404||(await post('/api/offer/preview',{code},'https://evil.invalid')).status!==403||(await post('/api/offer/accept',{code})).status!==503||(await post('/api/offer/document',{code,which:'avv'})).status!==404)fail('negative_check_failed');
   state.liveCheck='PASS';save();console.log(JSON.stringify({result:'PUBLIC_PREVIEW_LIVE_PASS',service:SERVICE,verifiedPdfs:2,wrongTokenBlocked:true,crossOriginBlocked:true,acceptanceBlocked:true,noAvv:true,expiresAt:state.expiresAt}));
+ }
+ if(mode==='--send-invitation'){
+  if(state.liveCheck!=='PASS'||state.removed===true||Date.parse(state.expiresAt)<=Date.now())fail('verified_active_preview_required');
+  const s=await optionalService();if(s?.uri!==PREVIEW.origin||s.labels?.['lszh-purpose']!=='public-test-preview')fail('preview_identity_changed');
+  const root='https://firestore.googleapis.com/v1/projects/'+PROJECT+'/databases/lszh-offers-staging/documents/lszh_public_preview_mail_attempts';
+  const result=await sendPreviewInvitation({code,expiresAt:state.expiresAt,
+   reserve:async r=>api(root+'?documentId='+INVITATION_KEY,'POST',{fields:{purpose:{stringValue:r.purpose},status:{stringValue:'ATTEMPT_RESERVED'},tokenHash:{stringValue:r.tokenHash},expiresAt:{timestampValue:r.expiresAt},testOnly:{booleanValue:true}}}),
+   send:async body=>api('https://gmail.googleapis.com/gmail/v1/users/me/messages/send','POST',body),
+   confirm:async r=>{await api(root+'/'+INVITATION_KEY+'?updateMask.fieldPaths=status&updateMask.fieldPaths=gmailId&updateMask.fieldPaths=sentAt','PATCH',{fields:{status:{stringValue:'PROVIDER_CONFIRMED'},gmailId:{stringValue:r.gmailId},sentAt:{timestampValue:new Date().toISOString()}}});}});
+  state.invitation=result;save();console.log(JSON.stringify(result));
  }
  if(mode==='--open'){
   if(state.liveCheck!=='PASS'||Date.parse(state.expiresAt)<=Date.now())fail('live_check_and_valid_window_required');

@@ -1,5 +1,7 @@
 # LSZH Kundenportal – erster produktiver Pilot (Vorbereitung, kein Go-live)
 
+**Aktueller Stand 21.10.2026:** [Kundenversand-Vorbereitung](../../docs/LSZH_KUNDENVERSAND_VORBEREITUNG_20261021.md). Kunden-Dispatch-Vertrag und Make-Plan mit getrennten Vorschau-/Annahmesperren sind implementiert und lokal geprüft. Make hat die neue Szenarioanlage per Cloudflare-403 blockiert; es existiert noch kein gespeicherter Kunden-Dispatch. Kundenportalrevision `00006-pqj` ist mit beiden Schaltern AUS bereitgestellt. Kein Kundenversand oder Vertrag wurde aktiviert. Die folgenden Abschnitte dokumentieren den vorherigen Infrastruktur-/Pilotstand; bereits bestandene Basischecks nicht wiederholen.
+
 Stand: 19.10.2026. Entwicklungsbranch `feature/optional-avv-acceptance-staging-20261014`.
 Ziel: Eine freigegebene KMU-Offerte mit persönlichem Link online annehmen, Nachweis atomar sichern,
 Airtable aktualisieren und danach die bestehenden Make-Bestätigungsszenarien benutzen.

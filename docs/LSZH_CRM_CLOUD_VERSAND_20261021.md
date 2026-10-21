@@ -38,6 +38,8 @@ Mailfehler schreiben Manuelle Prüfung; die Reservierung bleibt erhalten und der
 
 ## Nächste Freigabeschritte für Kunden
 
+Fortsetzung vom 21.10.: [Kundenversand-Vorbereitung](LSZH_KUNDENVERSAND_VORBEREITUNG_20261021.md) enthält den Kunden-Dispatch-Vertrag, den ausgeschalteten Make-Plan und die aktuelle externe Speichersperre. Den internen Bestätigungstest nicht erneut ausführen, um diese Speicherblockierung zu behandeln.
+
 Der Cloud-Durchlauf ist intern begrenzt, kein allgemeiner produktiver Kundenversand. Kundenbetrieb verlangt die Überführung der festen internen Quellprüfung auf das bestehende genehmigte Kundendatenmodell und finale Dokumentversionen, den dauerhaften Kundenlink sowie einen kontrollierten echten Pilotdatensatz. Kein zweiter paralleler Vertriebsprozess nötig: Pflichtfelder und bewusste Schnellaktion bleiben die Bedienung.
 
 OAuth-Dauerbetrieb prüfen: Der Veröffentlichungsstatus des vom Nutzer verwendeten Google-OAuth-Clients ist noch nicht unabhängig bestätigt. Make dokumentiert bei externer App im Status Testing eine wöchentliche Neuautorisierung; einen solchen Client nicht als wartungsfrei bezeichnen. Quelle: https://apps.make.com/google-cloud-firestore . Bestehende Clients/Verbindungen nicht löschen oder ersetzen.

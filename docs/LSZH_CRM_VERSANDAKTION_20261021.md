@@ -21,3 +21,14 @@ Die Testbrücke verwendet bestehende Windows-verschlüsselte Geschäftsanmeldung
 ## Lokale Prüfung vor Live-Lauf
 
 316 Node-Tests: 310 bestanden, 6 übersprungen, 0 Fehler. Neue Fälle prüfen CRM-Feld-/Empfänger-/Freigabesicherheit, Quelländerungen und reale HTTP-Snapshot-PDFs mit Hashgleichheit, falschem Code ohne Snapshot-Lesung und gesperrter Annahme. Live-Ergebnis wird separat dokumentiert. Vorheriges Make-JSON: docs/evidence/make-crm-dispatch-7835460-before-20261021.json.
+
+## Bestätigter Live-Durchlauf am 21.10.2026
+
+Negativtest mit fehlendem Ziel: Bedienaktion erkannt, Versand blockiert, konkrete Fehlermeldung, kein PDF-/Mailversand. Nach Ergänzung BEREIT. Lars speicherte die Schnellaktion; der Operator erkannte sie und setzte PDF angefordert. Automatischer Make-Lauf aa1671249c064d658b00212492585f1a um 19:06:21 Schweizer Zeit: zehn Moduloperationen, keine Fehler, tatsächliche CRM-Offerte erzeugt und archiviert. Keine manuelle scenario_run-Auslösung.
+
+Versand am 21.10.2026 um 19:06:54 Schweizer Zeit an lars@lszh-automations.ch, Gmail-ID 1a15f6e1d37ae10a. Evidenz: crm-dispatch-live-20261021.json. Unabhängiges erneutes Lesen bestätigt Firestore PROVIDER_CONFIRMED, Gmail SENT und exakten Empfänger, Airtable Status Versendet / Versandstatus Versandt, geleerte Schnellaktion und zurückgesetzte Freigabe. PDF aus dem Archiv heruntergeladen; beide Seiten visuell geprüft. Text und Preise lesbar; der Abschnitt „Nicht enthalten“ bricht zwischen Überschrift und Inhalt um. Diesen Vorlagenumbruch vor Kundenfreigabe korrigieren. Lars bestätigt beide lesbaren PDF-Anhänge sowie denselben öffentlichen Link mit CHF 120 einmalig / CHF 0 monatlich und deaktivierter Annahme.
+
+Anschließend temporären Vorschau-Dienst gelöscht (PUBLIC_TEST_PREVIEW_REMOVED). Make 7835460 deaktiviert; Module 1/3/8/12 vollständig mit gesichertem Stand verglichen und identisch wiederhergestellt, V3-Filter zurückgesetzt, Intervall 900 Sekunden, Module 5/6 deaktiviert und harte Mail-Sperre erhalten. Null unvollständige Ausführungen. Szenario bleibt bewusst inaktiv. Neue Pflichtfeldprüfung und Versandstatus-Felder bleiben erhalten; Feldschema separat gesichert.
+
+Nachgewiesen ist die zusammenhängende interne Bedienkette: CRM-Pflichtfelder → manuelle Freigabe → Make-PDF → geprüftes Archiv → persönlicher Testlink → Mail → CRM-Rückmeldung. Für den dauerhaften Kundenbetrieb fehlt noch die serverseitige Orchestrierung anstelle des temporären Windows-Operators samt dauerhaftem Kundenlink. Die Kundenroute wurde nicht aktiviert; keine Annahme, Rechnung, Buchung oder externe Kundenmail aus diesem Durchlauf.
+

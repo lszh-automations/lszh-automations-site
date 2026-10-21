@@ -18,9 +18,15 @@ Make 8092027 Offertenmail und 8091918 Bestätigung bereits aktiv, 15-Minuten-Zei
 
 Start aus Sandbox: windows_private_vault_failed_no_secret_output. Start ausserhalb unter Surface-13-Pro\larss: oauth_request_rejected_token_400. Der Tresor wurde geladen, Token-Erneuerung abgelehnt; genauer Grund unbekannt. Keine Secrets ausgegeben. Kein Cloud-Schreibzugriff, keine Registrierung, Annahme, Mail oder Listener aus diesen Startversuchen.
 
+## Fortschritt nach erneuerter Anmeldung
+
+Am 21.10.2026 wurde die vorhandene Desktop-Client-Datei lokal gefunden, validiert und die Anmeldung durch den Betreiber im Browser erneuert. Alter DPAPI-Tresor bleibt als private, verschlüsselte Sicherung im selben Windows-Verzeichnis erhalten; kein Klartext-Export. LOCAL_RUNTIME_AUTHORIZED bestätigt lars@lszh-automations.ch, bisherige Scopes, keine Mail.
+
+V3-Runner anschliessend unter dem Betreiberkonto gestartet: AUTH, ARCHIVE und READY auf 127.0.0.1:8083 bestätigt. Beide PDF-Inhalte, Hashes, Elternordner und Schreibschutz damit live geprüft. Airtable unabhängig zurückgelesen: Übernommen=true und Token-Hash registriert, noch keine Annahme-, Linkversand-, Beleg- oder Bestätigungsfelder. Browserseite für den Betreiber geöffnet; tatsächliche Prüfung und Testzustimmungen durch den Betreiber stehen aus. Kein Annahme-POST durch den Agenten.
+
 ## Fortsetzung
 
-Im bestehenden Surface-Projekt nach Fast-forward auf diesen Branch: node .\scripts\internal-test-pilot-v3.mjs --start. Vorher muss die bestehende Desktop-OAuth-Geschäftsanmeldung kontrolliert erneuert werden. Client-JSON und Token niemals in Chat oder Git. Der vorhandene --authorize-Modus in cloud-run/offer-portal-staging/internalRecoveryLocal.mjs überschreibt absichtlich keinen vorhandenen Tresor; nicht blind erneut aufrufen oder den Tresor löschen. Bestehenden verschlüsselten Tresor vor einer kontrollierten Erneuerung privat erhalten. Keine neuen Scopes, Make-Verbindungen oder Cloud-IAM-Rechte erforderlich.
+Im bestehenden Surface-Projekt nach Fast-forward auf diesen Branch: node .\scripts\internal-test-pilot-v3.mjs --start. Die Desktop-OAuth-Geschäftsanmeldung ist inzwischen erneuert; nicht nochmals anmelden. Client-JSON und Token niemals in Chat oder Git. Der vorhandene --authorize-Modus in cloud-run/offer-portal-staging/internalRecoveryLocal.mjs überschreibt absichtlich keinen vorhandenen Tresor; nicht blind erneut aufrufen oder den Tresor löschen. Bestehenden verschlüsselten Tresor vor einer kontrollierten Erneuerung privat erhalten. Keine neuen Scopes, Make-Verbindungen oder Cloud-IAM-Rechte erforderlich.
 
 Nach READY http://127.0.0.1:8083/offerte-annehmen/ öffnen, beide PDFs prüfen, getrennte Testzustimmungen und feste Person/Adresse angeben. Registrierung kann das bereits aktive interne Offertenmail-Szenario freigeben. Nach echter Browserannahme Firestore/Airtable unabhängig abgleichen, dann bestehenden einmaligen Make-Beleg-/Bestätigungslauf prüfen. Bei unklarem Ergebnis kein Replay und keine neue Einladung. Nach Abschluss TEST_ONLY-Zeitpläne kontrolliert beenden. Kein Kunden-/Auftrags-Onboarding aktivieren.
 

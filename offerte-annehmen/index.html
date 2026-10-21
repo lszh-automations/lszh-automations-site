@@ -150,6 +150,17 @@ if(o.test_only===true){
     setMessage('Synthetischer Staging-Test: Die Testannahme wird nur technisch protokolliert. Kein Vertrag, keine E-Mail.','');
   }else setMessage('Nur synthetische Testdaten. Hier kann kein Vertrag geschlossen werden.','');
 }
+if(o.accept_enabled===false){
+  button.disabled=true;
+  form.setAttribute('aria-disabled','true');
+  form.querySelectorAll('input').forEach(input=>{input.disabled=true;});
+  if(o.test_only!==true){
+    txt('acceptanceHeading','3. Offerte prüfen');
+    document.getElementById('legalNote').classList.add('hidden');
+    button.textContent='Online-Annahme derzeit nicht verfügbar';
+    setMessage('Sie können die Offerte und alle Unterlagen prüfen. Für die Annahme kontaktieren Sie bitte LSZH Automations.','');
+  }
+}
 }
 async function downloadVerifiedPdf(which){
   if(demo){
@@ -228,7 +239,7 @@ request('/api/offer/preview',{code}).then(d=>showOffer(d.offer)).catch(e=>setMes
 }
 form.addEventListener('submit',async e=>{
 e.preventDefault();
-if(!current||demo||(current.test_only===true && current.test_accept_enabled!==true)||!form.reportValidity())return;
+if(!current||demo||current.accept_enabled===false||(current.test_only===true && current.test_accept_enabled!==true)||!form.reportValidity())return;
 button.disabled=true;button.textContent='Annahme wird sicher gespeichert …';
 setMessage('Bitte schliessen Sie die Seite nicht, bis die Annahme bestätigt wurde.','');
 try{

@@ -20,6 +20,7 @@ test('customer runtime checks service, business Drive, origin, approved version 
  };
  const ready=productionConfig(valid);
  assert.equal(ready.enabled,true);
+ assert.equal(ready.acceptEnabled,true);
  assert.equal(ready.origin,'https://portal.lszh-automations.ch');
  for(const [key,value] of [
   ['K_SERVICE','lszh-offer-browser-staging'],
@@ -30,4 +31,8 @@ test('customer runtime checks service, business Drive, origin, approved version 
   ['LSZH_PORTAL_PROOF_SALT','short'],
   ['LSZH_AIRTABLE_ACCESS_TOKEN','short']
  ])assert.throws(()=>productionConfig({...valid,[key]:value}));
+ const preview=productionConfig({...valid,LSZH_PORTAL_PRODUCTION_ENABLED:'false',LSZH_PORTAL_PREVIEW_ENABLED:'true',LSZH_AIRTABLE_ACCESS_TOKEN:''});
+ assert.equal(preview.enabled,true);
+ assert.equal(preview.acceptEnabled,false);
+ assert.equal(preview.airtableAccessToken,'');
 });

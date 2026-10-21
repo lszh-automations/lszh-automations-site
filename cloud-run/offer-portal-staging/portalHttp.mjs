@@ -118,7 +118,8 @@ export function createOfferPortalHttp({portal,enabled=false,acceptEnabled=true,
       const result=path.endsWith('/preview')?
         await portal.preview(b.code):
         await portal.accept(b.code,b);
-      return send(res,200,{ok:true,...(path.endsWith('/preview')?{offer:result}:result)});
+      return send(res,200,{ok:true,...(path.endsWith('/preview')?
+        {offer:{...result,accept_enabled:acceptEnabled===true}}:result)});
     }catch(err){
       if(['bad_content_type','bad_encoding','oversized','empty','invalid_body'].includes(err.message)
          ||err instanceof SyntaxError)return send(res,400,{error:'invalid_request'});

@@ -10,7 +10,8 @@ export const CUSTOMER_RUNTIME=Object.freeze({
   origin:'https://portal.lszh-automations.ch'
 });
 export function productionConfig(env={}){
-  if(env.LSZH_PORTAL_PRODUCTION_ENABLED!=='true')return {enabled:false};
+  const acceptEnabled=env.LSZH_PORTAL_PRODUCTION_ENABLED==='true';
+  if(!acceptEnabled&&env.LSZH_PORTAL_PREVIEW_ENABLED!=='true')return {enabled:false};
   const I=CUSTOMER_RUNTIME;
   if(env.K_SERVICE!==I.service||
      !/^lszh-offer-portal-\d{5}-[a-z0-9]+$/.test(String(env.K_REVISION||''))||
@@ -31,8 +32,8 @@ export function productionConfig(env={}){
   const pat=String(env.LSZH_AIRTABLE_ACCESS_TOKEN||'');
   if(salt.length<32||salt.length>256||
      /test|fake|example|placeholder/i.test(salt)||
-     pat.length<12||/[\r\n]/.test(pat))
+     (acceptEnabled&&(pat.length<12||/[\r\n]/.test(pat))))
     throw Error('customer_runtime_secrets_missing');
-  return {enabled:true,termsVersion:version,origin:I.origin,
+  return {enabled:true,acceptEnabled,termsVersion:version,origin:I.origin,
     proofSalt:salt,airtableAccessToken:pat};
 }

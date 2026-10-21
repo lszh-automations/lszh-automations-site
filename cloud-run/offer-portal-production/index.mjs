@@ -38,11 +38,12 @@ async function createHandler(){
     readPdf:async(bundle,which)=>readVerifiedArchivePdf(bundle,which,await archiveOptions()),
     approvedVersion:config.termsVersion,proofSalt:config.proofSalt,
     productionOnly:true,
-    onAccepted:createCustomerAirtableCallback({config,fetcher:fetch})
+    onAccepted:config.acceptEnabled?createCustomerAirtableCallback({config,fetcher:fetch}):
+      async()=>{throw Error('customer_acceptance_disabled');}
   });
   const pageHtml=readFileSync(new URL('./offerte-annehmen.html',import.meta.url),'utf8');
   return createOfferPortalHttp({
-    portal,enabled:true,acceptEnabled:true,allowedOrigin:config.origin,pageHtml
+    portal,enabled:true,acceptEnabled:config.acceptEnabled===true,allowedOrigin:config.origin,pageHtml
   });
 }
 http('lszhOfferPortalProduction',async(req,res)=>{

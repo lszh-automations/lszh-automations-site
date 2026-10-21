@@ -18,4 +18,15 @@ Echter Chromium-Test gegen ausschliesslich lokalen künstlichen HTTP-Backend: ta
 
 ## Lokale Prüfung
 
-314 Node-Tests: 308 bestanden, 6 übersprungen, 0 Fehler. Drei neue Versandfälle: ein Provideraufruf nach Reservierung, keine Wiederholung nach unklarem Ergebnis, abgelaufener/zu kurz gültiger Link stoppt vor Reservierung. Zwei Onboarding-Fragmentfälle und ein neuer Chromium-Onboardingtest bestanden. Operator-Syntax geprüft. Live-Mail noch nicht aus den Offline-Ergebnissen ableiten.
+314 Node-Tests: 308 bestanden, 6 übersprungen, 0 Fehler. Drei neue Versandfälle: ein Provideraufruf nach Reservierung, keine Wiederholung nach unklarem Ergebnis, abgelaufener/zu kurz gültiger Link stoppt vor Reservierung. Zwei Onboarding-Fragmentfälle und ein neuer Chromium-Onboardingtest bestanden. Operator-Syntax geprüft. Die nachfolgenden Live-Ergebnisse sind davon getrennt dokumentiert.
+
+
+## Live-Abschluss
+
+Genau eine native Create-Reservierung, ein Gmail-Aufruf und anschliessend bestätigter Versandnachweis: Gmail-ID 1a15f4314043dc5a, Versandzeit 2026-10-21T16:19:54.405Z (18:19:54 Schweizer Zeit), ausschliesslich lars@lszh-automations.ch, zwei TEST_ONLY-PDF-Anhänge und ein neuer öffentlicher Fragmentlink. Die separate Nur-Lesen-Prüfung bestätigt Firestore-Status PROVIDER_CONFIRMED, testOnly=true, Zweck TEST_ONLY_NO_CONTRACT, Gmail-ID, Gmail-SENT-Label und exakten To-Empfänger: INVITATION_RESERVATION_GMAIL_METADATA_VERIFIED. Keine Mailinhalte oder Zugangscodes im Protokoll.
+
+Betreiber bestätigt **Ja, Anhänge und Mail-Link funktionieren**. Damit wurde erstmals in dieser Fortsetzung tatsächlich Mail → öffentlicher Link → PDF-Vorschau geprüft. Annahme bleibt deaktiviert, kein weiterer Zustimmungs-/Annahmelauf. Keine neue V3-Offerte oder Kunden-/Auftragsanlage, kein produktives Onboarding. Nur der feste interne Mailversuch wurde dauerhaft als TEST_ONLY-Nachweis gespeichert.
+
+Nach Prüfung neuen temporären Vorschaudienst anhand Name/Labels/ETag entfernt, PUBLIC_TEST_PREVIEW_REMOVED. Bestand erneut gelesen: Browser-Staging 100 Prozent auf 00006-h5w, neueste bereite Revision unverändert 00010-lars; Kundendienst weiterhin 00005-f2k und öffentliche Kundenroute HTTP 503. Keine Make-Szenarien aktiviert oder geändert, keine Scheduler. Mailreservierung und Buildimage als Nachweise behalten; kein Replay oder erneuter Preview-Start nötig.
+
+**Verbleibende Grenze:** Die öffentliche Vorschau, die interne Offertenmail und V3-Annahme/Bestätigung sind als getrennte Segmente belegt. Das ist kein zusammenhängender öffentlicher Kundenabschluss. Aktuelle kundenbezogene Make-Linkausgabe, tatsächliche öffentliche Kundenannahme, freigegebene Unterlagen und Live-Onboarding mit realem Auftrag bleiben separat freizugeben. Onboarding-Fragmentänderung nur Entwicklungsbranch/lokal geprüft, nicht veröffentlicht. Nächster Entscheidungspunkt: konkreten Pilotkunden und genau eine finale Offerte festlegen; keine weiteren künstlichen Annahmen zur Vervollständigung einer Kundenabnahme.

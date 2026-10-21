@@ -1,0 +1,18 @@
+{
+  "testOnly": true,
+  "noContract": true,
+  "recipient": "lars@lszh-automations.ch",
+  "reservation": "lszh-offers-staging/lszh_public_preview_mail_attempts/LSZH_PUBLIC_PREVIEW_INVITATION_20261021_NO_CONTRACT",
+  "gmailId": "1a15f4314043dc5a",
+  "sentAt": "2026-10-21T16:19:54.405Z",
+  "attachments": 2,
+  "reservationGmailReadback": "PASS",
+  "operatorConfirmedAttachmentsAndMailLink": true,
+  "acceptanceEnabled": false,
+  "onboardingLiveSubmitted": false,
+  "onboardingLocalChromium": "PASS",
+  "previewServiceRemoved": true,
+  "customerPortalHttpStatus": 503,
+  "customerOrOrderCreated": false,
+  "makeScenariosChanged": false
+}

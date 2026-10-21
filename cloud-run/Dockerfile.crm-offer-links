@@ -1,0 +1,8 @@
+FROM node:22-bookworm-slim
+WORKDIR /app
+COPY cloud-run/crm-offer-links/ cloud-run/crm-offer-links/
+COPY cloud-run/offer-portal-staging/portalCore.mjs cloud-run/offer-portal-staging/portalHttp.mjs cloud-run/offer-portal-staging/internalTestPilot.mjs cloud-run/offer-portal-staging/
+COPY offerte-annehmen/index.html offerte-annehmen/index.html
+USER node
+EXPOSE 8080
+CMD ["node", "cloud-run/crm-offer-links/index.mjs"]

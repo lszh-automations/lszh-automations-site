@@ -1,0 +1,31 @@
+{
+  "testOnly": true,
+  "noContract": true,
+  "recordId": "recq58gMPjQPpNHYQ",
+  "acceptedAt": "2026-10-21T11:58:53.342Z",
+  "independentFirestoreAirtableReadback": "PASS",
+  "make": {
+    "scenarioId": 8091918,
+    "executionId": "52a191042f5e4b66bf6f17e736c56d54",
+    "modules": 14,
+    "errors": 0,
+    "gmailCalls": 1,
+    "gmailId": "1a15e5628735ab94",
+    "sentAt": "2026-10-21T12:01:07.000Z",
+    "recipient": "lars@lszh-automations.ch",
+    "attachments": 3
+  },
+  "receipt": {
+    "id": "1sVEheHTnw-35HBZoPTY6DI2WiCp3ewYm",
+    "sha256": "125d749eb5084f5e25df5c421a374082284d5472b0b79a558edbdb6d44a2ed94",
+    "readOnly": true
+  },
+  "operatorConfirmedAllThreePdfs": true,
+  "initialOfferEmailSent": false,
+  "cleanup": {
+    "v3ScenariosInactive": true,
+    "incompleteExecutions": 0,
+    "localListenerStopped": true
+  },
+  "productionEnabled": false
+}

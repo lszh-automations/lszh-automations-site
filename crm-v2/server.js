@@ -69,7 +69,9 @@ async function getUser(req) {
     const ticket=await authClient.verifyIdToken({idToken:match[1],audience:CLIENT_ID});
     const p=ticket.getPayload();
     const email=String(p?.email || '').toLowerCase();
-    if(!p?.email_verified || !ALLOWED.has(email)) return null;
+    // Google must be authoritative for the mailbox; a verified third-party address alone is insufficient.
+    const domain=email.split('@')[1];
+    if(!p?.email_verified || !ALLOWED.has(email) || (domain!=='gmail.com' && p.hd!==domain)) return null;
     return {email};
   } catch { return null; }
 }

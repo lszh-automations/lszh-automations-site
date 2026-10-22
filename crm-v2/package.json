@@ -5,9 +5,12 @@
   "description": "Standalone internes LSZH CRM; keine Änderung am bestehenden Website-Betrieb",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js",
+    "test": "node --test test/*.test.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@google-cloud/firestore": "^7.11.0",
     "google-auth-library": "^9.15.1"

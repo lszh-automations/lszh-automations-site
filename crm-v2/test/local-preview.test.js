@@ -55,6 +55,8 @@ test('stores local changes without touching cloud services',async()=>{
   const patched=await call('PATCH','/api/records/leads/'+id,{status:'Qualifiziert'});
   assert.equal(patched.status,200);
   assert.equal(patched.body.record.status,'Qualifiziert');
+  const linked=await call('GET','/api/records/offerten');
+  assert.equal(linked.body.records.filter(x=>x.leadId===id).length,1);
   const saved=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8'));
   assert.equal(saved.leads.find(x=>x.id===id).status,'Qualifiziert');
 });
@@ -131,15 +133,44 @@ test('repairs only untouched old demo fixtures and preserves user edits',async()
   }
 });
 
-test('an open lead cannot receive a linked offer before qualification',async()=>{
+test('qualification creates exactly one offer and blocks further duplicates',async()=>{
   const invalid=await call('POST','/api/records/offerten',{
     leadId:'test-lead-1',title:'Zu frühe Offerte'
   });
   assert.equal(invalid.status,400);
   assert.match(invalid.body.error,/zuerst qualifizieren/);
-  const valid=await call('POST','/api/records/offerten',{
-    leadId:'test-lead-2',title:'Offerte für qualifizierten Lead'
+  const upgraded=await call('PATCH','/api/records/leads/test-lead-2',{status:'Qualifiziert'});
+  assert.equal(upgraded.status,200);
+  const first=await call('GET','/api/records/offerten');
+  const matching=first.body.records.filter(o=>o.leadId==='test-lead-2');
+  assert.equal(matching.length,1);
+  assert.equal(matching[0].status,'Entwurf');
+  const repeated=await call('PATCH','/api/records/leads/test-lead-2',{status:'Qualifiziert'});
+  assert.equal(repeated.status,200);
+  const second=await call('GET','/api/records/offerten');
+  assert.equal(second.body.records.filter(o=>o.leadId==='test-lead-2').length,1);
+  const duplicate=await call('POST','/api/records/offerten',{
+    leadId:'test-lead-2',title:'Zweite Offerte'
   });
-  assert.equal(valid.status,201);
-  assert.equal(valid.body.record.leadId,'test-lead-2');
+  assert.equal(duplicate.status,400);
+  assert.match(duplicate.body.error,/bereits eine Offerte/);
+});
+test('Won lead produces customer, linked accepted offer and project atomically',async()=>{
+  const step=await call('PATCH','/api/records/leads/test-lead-1',{status:'Qualifiziert'});
+  assert.equal(step.status,200);
+  const won=await call('PATCH','/api/records/leads/test-lead-1',{status:'Gewonnen'});
+  assert.equal(won.status,200);
+  const leads=await call('GET','/api/records/leads');
+  const offers=await call('GET','/api/records/offerten');
+  const customers=await call('GET','/api/records/kunden');
+  const projects=await call('GET','/api/records/projekte');
+  const offer=offers.body.records.find(o=>o.leadId==='test-lead-1');
+  assert.equal(leads.body.records.find(x=>x.id==='test-lead-1').status,'Gewonnen');
+  assert.equal(offer.status,'Angenommen');
+  assert.equal(customers.body.records.filter(x=>x.company==='Muster Sanitär AG').length,1);
+  assert.equal(projects.body.records.filter(x=>x.offerId===offer.id).length,1);
+  const repeat=await call('PATCH','/api/records/leads/test-lead-1',{status:'Gewonnen'});
+  assert.equal(repeat.status,200);
+  const after=await call('GET','/api/records/projekte');
+  assert.equal(after.body.records.filter(x=>x.offerId===offer.id).length,1);
 });

@@ -13,6 +13,12 @@ const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
 const DIR = process.env.LSZH_LOCAL_PREVIEW_DIR ? path.resolve(process.env.LSZH_LOCAL_PREVIEW_DIR) : path.join(__dirname, '.local-preview');
 const FILE = path.join(DIR, 'data.json');
 const UI = path.join(__dirname, 'public', 'index.html');
+const LIVE_BOOT=crypto.randomUUID();
+function liveVersion(){
+  const stat=fs.statSync(UI);
+  // Version changes when HTML changes or Node restarts after server code changes.
+  return LIVE_BOOT+':'+stat.mtimeMs+':'+stat.size;
+}
 const TABLES = ['leads', 'kunden', 'offerten', 'rechnungen', 'projekte'];
 const REQUIRED = {
   leads: ['name', 'company', 'email', 'street', 'postalCode', 'city', 'country'],
@@ -168,6 +174,32 @@ function previewHtml(){
     '<main>\n    <div role="status" style="margin-bottom:20px;padding:13px 17px;border:1px solid #d4aa65;border-radius:12px;background:#392b1b;color:#ffe3ae;font-weight:750">LOKALE TESTVERSION · Nur Beispieldaten · Keine Verbindung zu Firestore, Make oder der öffentlichen Website</div>\n    <div class="head">');
   html=html.replace('Alle neuen Anfragen aus dem Website-Formular.','Lokale Beispieldaten – keine echten Website-Anfragen.');
   html=html.replace('Alle Daten werden serverseitig gespeichert.','Testdaten werden nur auf diesem Computer gespeichert.');
+  if(process.env.LSZH_LIVE_PREVIEW==='1'){
+    const startVersion=JSON.stringify(liveVersion());
+    const reloadClient=String.raw`
+<script>
+(function(){
+  // The live preview runs on localhost only. Never enable these routes in production.
+  let version=START_VERSION;
+  let checking=false;
+  async function checkForChanges(){
+    if(checking)return;
+    checking=true;
+    try {
+      const res=await fetch('/__live/version',{cache:'no-store'});
+      if(!res.ok)throw Error('offline');
+      const data=await res.json();
+      if(data.version!==version){window.location.reload();return;}
+    } catch {
+      // During a Node --watch restart the server is briefly unavailable.
+      // The next successful check will compare against the previous version.
+    } finally { checking=false; }
+  }
+  window.setInterval(checkForChanges,1400);
+})();
+</script>`.replace('START_VERSION',startVersion);
+    html=html.replace('</body>',reloadClient+'</body>');
+  }
   return html;
 }
 async function handle(req,res){
@@ -175,6 +207,8 @@ async function handle(req,res){
   if(req.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html')){
     return reply(res,200,previewHtml(),'text/html; charset=utf-8');
   }
+  if(req.method==='GET'&&url.pathname==='/__live/version'&&process.env.LSZH_LIVE_PREVIEW==='1')
+    return reply(res,200,{version:liveVersion()});
   if(req.method==='GET'&&url.pathname==='/api/config')return reply(res,200,{localDemo:true});
   if(req.method==='GET'&&url.pathname==='/api/me')return reply(res,200,{email:'Lokale Testversion'});
   const parts=url.pathname.split('/').filter(Boolean);

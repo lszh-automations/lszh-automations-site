@@ -266,6 +266,12 @@ async function handle(req,res){
   if(req.method==='POST'&&!id){
     const data=clean(tab,body);
     validate(tab,data);
+    if(tab==='offerten' && data.leadId){
+      const lead=db.leads.find(x=>x.id===data.leadId);
+      if(!lead)throw error('Verknüpfter Lead nicht gefunden');
+      if(lead.status!=='Qualifiziert')
+        throw error('Lead zuerst qualifizieren, bevor eine Offerte erstellt wird');
+    }
     const now=new Date().toISOString();
     const record={...data,id:'local-'+crypto.randomUUID(),status:data.status||STATUSES[tab][0],createdAt:now,updatedAt:now};
     if(tab==='offerten')record.number=String(db.nextOffer++);

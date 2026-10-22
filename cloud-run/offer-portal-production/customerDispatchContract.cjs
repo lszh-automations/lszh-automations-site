@@ -29,7 +29,7 @@ function validateCustomerFields(row,now=new Date()){
  for(const k of ['Leistungsumfang – PDF-Text','Nicht enthalten – PDF-Text'])if(/^(--?|tbd|n\/a)$/i.test(f[k].trim()))reject('placeholder_'+k.replace(/[^A-Za-z]/g,''));
   if(!Number.isInteger(f['Zahlungsziel Tage'])||f['Zahlungsziel Tage']<1||f['Zahlungsziel Tage']>365)reject('payment_days');
  const once=money(f['Einmalig CHF']),monthly=money(f['Monatlich CHF']);if(once+monthly<=0)reject('price');
- if(f['Projektbedingungen Version']!==I.termsVersion||(f['Online-Annahme Bedingungen Drive ID']&&f['Online-Annahme Bedingungen Drive ID']!==I.termsId)||(f['Online-Annahme Bedingungen-SHA256']&&f['Online-Annahme Bedingungen-SHA256']!==I.termsHash))reject('terms');
+ if(![I.termsVersion,'v'+I.termsVersion].includes(f['Projektbedingungen Version'])||(f['Online-Annahme Bedingungen Drive ID']&&f['Online-Annahme Bedingungen Drive ID']!==I.termsId)||(f['Online-Annahme Bedingungen-SHA256']&&f['Online-Annahme Bedingungen-SHA256']!==I.termsHash))reject('terms');
  const expiresAt=swissExpiry(f['Gültig bis']);if(!(now instanceof Date)||!Number.isFinite(+now)||Date.parse(expiresAt)<=+now)reject('expired');
  const avv=f['AVV erforderlich'];if(!['Ja','Nein'].includes(avv))reject('avv_decision');
  if(avv==='Ja'){if(!FILE.test(f['Online-Annahme AVV Drive ID']||'')||[I.avvMasterId,I.termsId].includes(f['Online-Annahme AVV Drive ID'])||!SHA.test(f['Online-Annahme AVV-SHA256']||'')||typeof f['Online-Annahme AVV-Version']!=='string'||f['Online-Annahme AVV-Version'].length<4||f['Online-Annahme AVV-Version'].length>80||/test|draft|entwurf|rc|rahmenvorlage/i.test(f['Online-Annahme AVV-Version']))reject('avv_not_final');}

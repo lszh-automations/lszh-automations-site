@@ -64,13 +64,18 @@ function markWon(db,lead,now,selectedOffer){
 }
 function setLeadStatus(db,lead,status,now){
   if(!LEAD_STATES.includes(status))fail('Unbekannter Lead-Status');
+  if(lead.status==='Gewonnen' && status!=='Gewonnen')
+    fail('Gewonnener Auftrag ist abgeschlossen; für Korrekturen den Auftrag manuell prüfen');
   if(lead.status===status){
     if(status==='Qualifiziert')makeDraft(db,lead,now);
     if(status==='Gewonnen')markWon(db,lead,now);
     return;
   }
   if(status==='Gewonnen'){markWon(db,lead,now);return;}
-  if(status==='Qualifiziert')makeDraft(db,lead,now);
+  if(status==='Qualifiziert'){
+    const draft=makeDraft(db,lead,now);
+    if(draft.status==='Abgelehnt'){draft.status='Entwurf';draft.updatedAt=now;}
+  }
   if(status==='Verloren'){
     for(const offer of linkedOffers(db,lead)){
       if(offer.status!=='Angenommen'){offer.status='Abgelehnt';offer.updatedAt=now;}
@@ -81,9 +86,10 @@ function setLeadStatus(db,lead,status,now){
   if(status==='Kontaktiert')lead.contactedAt=now;
 }
 function setOfferStatus(db,offer,status,now){
+  const lead=offer.leadId?db.leads.find(x=>x.id===offer.leadId):null;
+  if(lead?.status==='Gewonnen' && status!=='Angenommen')
+    fail('Angenommene Offerte gehört zu einem gewonnenen Auftrag');
   offer.status=status;offer.updatedAt=now;
-  if(!offer.leadId)return;
-  const lead=db.leads.find(x=>x.id===offer.leadId);
   if(!lead)return;
   if(status==='Angenommen')markWon(db,lead,now,offer);
   else if(status==='Abgelehnt' && lead.status!=='Gewonnen'){

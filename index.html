@@ -202,6 +202,10 @@ h1 span{
 .contact-points{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
 .contact-points span{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:11px;font-weight:700}
 form{display:grid;gap:16px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.contact-form .form-section{min-width:0;display:grid;gap:16px;padding:22px 22px 24px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.035)}
+.contact-form .form-section-title{margin:0;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.17);color:#f5faff;font-size:18px;font-weight:800;line-height:1.35;letter-spacing:-.01em}
+.contact-form .form-subsection-label{margin:4px 0 -6px;color:#e4edff;font-size:13px;font-weight:700}
+@media(max-width:700px){.contact-form .form-section{padding:18px 14px 20px}}
 label{display:grid;gap:7px;color:rgba(255,255,255,.76);font-size:12px;font-weight:700}.optional{display:inline;color:rgba(255,255,255,.38);font-size:10px;font-weight:600;margin-left:6px}
 input,textarea{width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.12);border-radius:12px;outline:none;background:rgba(255,255,255,.055);color:#fff}
 input::placeholder,textarea::placeholder{color:rgba(255,255,255,.30)}
@@ -835,20 +839,25 @@ select option{color:#111;background:#fff}
       <div class="contact-points"><span>Unverbindlich</span><span>Auf Ihr Problem fokussiert</span><span>Für Schweizer KMU</span></div>
     </div>
     <form id="contactForm" class="contact-form">
-      <div class="field-grid">
+      <div class="form-section" aria-labelledby="contactBusinessTitle">
+        <h3 class="form-section-title" id="contactBusinessTitle">Geschäftliche Angaben</h3>
+        <div class="field-grid">
         <label>Name<input type="text" name="name" placeholder="Max Muster" required></label>
         <label>Firma<input type="text" name="company" placeholder="Muster AG" required></label>
       </div>
       <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required autocomplete="email"></label>
-      <p style="font-weight:650;margin:15px 0 6px">Geschäftsadresse <span class="optional">Optional – für die spätere Offerte</span></p>
+      <p class="form-subsection-label">Geschäftsadresse</p>
       <div class="field-grid">
-        <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180"></label>
-        <label>PLZ<input type="text" name="postal_code" placeholder="5610" autocomplete="postal-code" maxlength="16"></label>
+        <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180" required></label>
+        <label>PLZ<input type="text" name="postal_code" placeholder="5610" autocomplete="postal-code" maxlength="16" required></label>
       </div>
       <div class="field-grid">
-        <label>Ort<input type="text" name="city" placeholder="Wohlen" autocomplete="address-level2" maxlength="120"></label>
-        <label>Land<input type="text" name="country" value="Schweiz" autocomplete="country-name" maxlength="80"></label>
+        <label>Ort<input type="text" name="city" placeholder="Wohlen" autocomplete="address-level2" maxlength="120" required></label>
+        <label>Land<input type="text" name="country" value="Schweiz" autocomplete="country-name" maxlength="80" required></label>
       </div>
+      </div>
+      <div class="form-section" aria-labelledby="contactRequestTitle">
+        <h3 class="form-section-title" id="contactRequestTitle">Anliegen</h3>
       <label>Was möchten Sie automatisieren oder verbessern?
         <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
       </label>
@@ -887,6 +896,7 @@ select option{color:#111;background:#fff}
       <label>Was wäre für Sie die ideale Lösung? <span class="optional">Optional</span>
         <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Neue Anfragen automatisch erfassen, bestätigen und dem richtigen Mitarbeiter zuweisen."></textarea>
       </label>
+      </div>
       <button class="btn btn-primary full" type="submit">Anfrage senden</button>
       <p id="formNote" class="form-note">Ihre Angaben werden sicher an LSZH Automations übermittelt.</p>
 
@@ -1027,7 +1037,7 @@ const legalTexts={
     <p>Datenschutzanfragen können an <a href="mailto:datenschutz@lszh-automations.ch">datenschutz@lszh-automations.ch</a> oder postalisch an die oben genannte Adresse gerichtet werden.</p>
 
     <h3>2. Welche Daten wir über diese Website bearbeiten</h3>
-    <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, eine freiwillig angegebene Geschäftsadresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
+    <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, die Geschäftsadresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
     <p>Wir verwenden diese Angaben ausschliesslich zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit.</p>
 
     <h3>3. Eingesetzte Dienstleister</h3>

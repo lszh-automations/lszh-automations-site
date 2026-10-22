@@ -121,7 +121,14 @@ test('Accepted offer lets user convert one lead into one customer',async()=>{
 });
 test('Accepted offer for an existing customer does not create duplicates',()=>{
   const {app,records,byId,counts}=start();
-  records.offerten[0].status='Angenommen';
+  records.kunden.push({
+    id:'customer2',company:'Muster Sanitär AG',
+    email:'max.muster@example.com'
+  });
+  records.offerten.push({
+    id:'offer2',leadId:'test-lead-1',status:'Angenommen',
+    number:'1001',createdAt:'2026-10-23T00:00:00Z'
+  });
   app.state.records=records;
   app.navigateTo('leads',records.leads[0]);
   assert.ok(byId('leadDetailActions').children.some(x=>x.textContent==='Kunde öffnen'));
@@ -134,4 +141,27 @@ test('No accepted offer means no premature conversion action',()=>{
   const names=byId('leadDetailActions').children.map(x=>x.textContent);
   assert.ok(!names.includes('Als Kunde übernehmen'));
   assert.ok(names.includes('Offerte vorbereiten'));
+});
+
+test('Lead status can be changed directly without creating an offer',async()=>{
+  const {app,records,byId,counts}=start();
+  app.state.records=records;
+  app.navigateTo('leads',records.leads[0]);
+  assert.equal(records.offerten.some(x=>x.leadId==='test-lead-1'),false);
+  const label=byId('leadDetailBody').children[0].children[0];
+  const select=label.children.find(x=>x.tag==='select');
+  assert.ok(select,'Status dropdown exists in lead details');
+  assert.equal(select.value,'Neu');
+  select.value='In Prüfung';
+  await select.listeners.change();
+  assert.equal(records.leads[0].status,'In Prüfung');
+  assert.equal(counts().leadPatches,1);
+  assert.equal(records.offerten.some(x=>x.leadId==='test-lead-1'),false);
+});
+test('Muster Sanitär opens with no pre-created offer',()=>{
+  const {app,records,byId}=start();
+  app.state.records=records;
+  app.navigateTo('leads',records.leads[0]);
+  assert.ok(!byId('leadDetailBody').children.some(x=>x.children[0]?.textContent==='Offerte'));
+  assert.ok(byId('leadDetailActions').children.some(x=>x.textContent==='Qualifizieren'));
 });

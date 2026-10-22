@@ -100,7 +100,7 @@ function reconcileDemoFixtures(data){
   const invoice=data.rechnungen.find(x=>x.id==='test-invoice-1');
   const project=data.projekte.find(x=>x.id==='test-project-1');
   const lead=data.leads.find(x=>x.id==='test-lead-1');
-  const pristine=lead && lead.status==='Neu' &&
+  const pristine=lead && ['Neu','In Prüfung'].includes(lead.status) &&
     customer?.company==='Muster Sanitär AG' &&
     customer.contactName==='Max Muster' && customer.email==='max.muster@example.com' &&
     customer.street==='Musterstrasse 12' && customer.postalCode==='5610' &&

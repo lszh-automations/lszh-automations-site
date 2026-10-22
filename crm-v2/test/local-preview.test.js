@@ -69,3 +69,22 @@ test('continues local offer numbering from 1001',async()=>{
   assert.equal(r.status,201);
   assert.equal(r.body.record.number,'1001');
 });
+
+test('live mode exposes a version endpoint and browser self-reload, demo mode does not',async()=>{
+  process.env.LSZH_LIVE_PREVIEW='1';
+  try{
+    const page=await call('GET','/');
+    assert.equal(page.status,200);
+    assert.match(page.body,/\/__live\/version/);
+    assert.match(page.body,/window\.location\.reload\(\)/);
+    const a=await call('GET','/__live/version');
+    const b=await call('GET','/__live/version');
+    assert.equal(a.status,200);
+    assert.equal(b.status,200);
+    assert.equal(a.body.version,b.body.version);
+  }finally{
+    delete process.env.LSZH_LIVE_PREVIEW;
+  }
+  const hidden=await call('GET','/__live/version');
+  assert.equal(hidden.status,404);
+});

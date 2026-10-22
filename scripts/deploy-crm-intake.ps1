@@ -27,7 +27,7 @@ if($accountEmails -notcontains $serviceAccount){
 }else{
   Write-Host "CRM-Dienstkonto bereits vorhanden."
 }
-& gcloud.cmd projects add-iam-policy-binding $Project --member "serviceAccount:$serviceAccount" --role roles/datastore.user --quiet | Out-Null
+& gcloud.cmd projects add-iam-policy-binding $Project --member "serviceAccount:$serviceAccount" --role roles/datastore.user --condition=None --quiet | Out-Null
 if($LASTEXITCODE -ne 0){throw "Firestore-Berechtigung fehlgeschlagen"}
 # Likewise, use a successful list operation instead of a failing 'describe'.
 # Never print the secret value. This is safe to rerun after a partial deploy.
@@ -54,7 +54,7 @@ if(-not $hasSecret){
   if($LASTEXITCODE -ne 0){throw "Schlüssel konnte nicht gelesen werden"}
 }
 Set-Clipboard -Value $intakeSecret -ErrorAction Stop
-& gcloud.cmd secrets add-iam-policy-binding $secretName --project $Project --member "serviceAccount:$serviceAccount" --role roles/secretmanager.secretAccessor --quiet | Out-Null
+& gcloud.cmd secrets add-iam-policy-binding $secretName --project $Project --member "serviceAccount:$serviceAccount" --role roles/secretmanager.secretAccessor --condition=None --quiet | Out-Null
 if($LASTEXITCODE -ne 0){throw "Secret-Berechtigung fehlgeschlagen"}
 & gcloud.cmd run deploy $service --source $source --region $Region --project $Project --allow-unauthenticated --service-account $serviceAccount --memory 512Mi --max-instances 2 --update-secrets ("CRM_INGEST_SECRET={0}:latest" -f $secretName) --quiet
 if($LASTEXITCODE -ne 0){throw "Cloud-Run-Deployment fehlgeschlagen"}

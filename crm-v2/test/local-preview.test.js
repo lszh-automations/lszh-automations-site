@@ -88,3 +88,43 @@ test('live mode exposes a version endpoint and browser self-reload, demo mode do
   const hidden=await call('GET','/__live/version');
   assert.equal(hidden.status,404);
 });
+
+test('repairs only untouched old demo fixtures and preserves user edits',async()=>{
+  const file=path.join(tmp,'data.json');
+  const saved=fs.readFileSync(file,'utf8');
+  function previousFixture(){
+    const fixture=require('../local-preview').seedData();
+    const customer=fixture.kunden[0];
+    Object.assign(customer,{
+      company:'Muster Sanitär AG',contactName:'Max Muster',
+      email:'max.muster@example.com',street:'Musterstrasse 12',
+      postalCode:'5610',city:'Wohlen',country:'Schweiz'
+    });
+    fixture.offerten[0].leadId='test-lead-1';
+    fixture.offerten[0].title='TEST: Offertenautomation';
+    return fixture;
+  }
+  try{
+    const legacy=previousFixture();
+    fs.writeFileSync(file,JSON.stringify(legacy));
+    const result=await call('GET','/api/records/offerten');
+    assert.equal(result.status,200);
+    assert.equal(result.body.records[0].leadId,'');
+    const migrated=JSON.parse(fs.readFileSync(file,'utf8'));
+    assert.equal(migrated.demoFixtureRevision,2);
+    assert.equal(migrated.kunden[0].company,'Demo Büro AG');
+    assert.equal(migrated.leads[0].company,'Muster Sanitär AG');
+    assert.equal(migrated.offerten.length,1);
+    // A user-customized example must NOT be silently overwritten.
+    const custom=previousFixture();
+    custom.offerten[0].title='Kundenofferte – von mir bearbeitet';
+    fs.writeFileSync(file,JSON.stringify(custom));
+    const protectedResult=await call('GET','/api/records/offerten');
+    assert.equal(protectedResult.status,200);
+    assert.equal(protectedResult.body.records[0].title,custom.offerten[0].title);
+    assert.equal(protectedResult.body.records[0].leadId,'test-lead-1');
+    assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).demoFixtureRevision,undefined);
+  }finally{
+    fs.writeFileSync(file,saved);
+  }
+});

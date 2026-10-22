@@ -52,7 +52,10 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
 .lead-dialog{width:min(740px,calc(100vw - 30px))}
 .lead-detail-body{padding:22px 24px;max-height:min(60vh,590px);overflow:auto}
-.lead-status{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.lead-status{display:flex;align-items:end;gap:15px;margin-bottom:22px;flex-wrap:wrap}
+.lead-status-label{display:grid;gap:6px;color:#9caabd;font-size:11px;font-weight:700}
+.lead-status-select{min-width:180px;border:1px solid #547695;border-radius:9px;background:#172c42;color:#f0f8ff;padding:10px 12px;font-size:13px;font-weight:700}
+.lead-status-select:focus-visible{outline:2px solid #8bc7f2;outline-offset:2px}
 .lead-status-hint{color:var(--muted);font-size:12px}
 .lead-detail-group{margin:22px 0 0}
 .lead-detail-group h3{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#a3c7e7;margin:0 0 10px}
@@ -465,8 +468,35 @@ function renderLeadDetail(lead){
   const body=$('leadDetailBody'),actions=$('leadDetailActions');
   body.replaceChildren();actions.replaceChildren();
   const status=el('div','lead-status');
-  status.append(el('span','badge'+(lead.status==='Qualifiziert'?' success':''),lead.status||'Neu'));
-  status.append(el('span','lead-status-hint','Eine Anfrage – ein klarer nächster Schritt.'));
+  const statusLabel=el('label','lead-status-label','Status');
+  const statusSelect=el('select','lead-status-select');
+  statusSelect.setAttribute('aria-label','Lead-Status ändern');
+  for(const value of statuses.leads){
+    const option=el('option','',value);
+    option.value=value;
+    statusSelect.append(option);
+  }
+  statusSelect.value=lead.status||'Neu';
+  statusSelect.addEventListener('change',async()=>{
+    if(statusSelect.value===lead.status)return;
+    const previous=lead.status||'Neu';
+    statusSelect.disabled=true;
+    $('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify({status:statusSelect.value})
+      });
+      await loadAll();
+      const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
+      if(updated)renderLeadDetail(updated);
+    }catch(err){
+      statusSelect.value=previous;
+      $('leadDetailError').textContent='Status konnte nicht gespeichert werden: '+err.message;
+      $('leadDetailError').hidden=false;
+    }finally{statusSelect.disabled=false;}
+  });
+  statusLabel.append(statusSelect);
+  status.append(statusLabel,el('span','lead-status-hint','Änderungen werden direkt gespeichert.'));
   body.append(status);
   detailGroup(body,'Geschäftliche Angaben',[
     ['Firma',lead.company],['Ansprechpartner',lead.name],

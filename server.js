@@ -112,6 +112,13 @@ async function proxy(req, res, envName) {
     delete payload.website;
     const r = await fetch(target, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(15000)});
     if (!r.ok) return send(res, 502, JSON.stringify({error:'upstream_failed'}));
+    // A Make HTTP 200 can acknowledge a queued webhook without persisting the lead.
+    // Only the Airtable-created record receipt from WebhookRespond confirms success.
+    let receipt=null;
+    try { receipt=JSON.parse(await r.text()); } catch {}
+    if(receipt?.ok!==true || typeof receipt.record_id!=='string' ||
+       !/^rec[A-Za-z0-9]{14}$/.test(receipt.record_id))
+      return send(res, 502, JSON.stringify({error:'storage_not_confirmed'}));
     return send(res, 200, JSON.stringify({ok:true}));
   } catch (e) {
     if (e.message === 'too_large') return send(res, 413, JSON.stringify({error:'payload_too_large'}));

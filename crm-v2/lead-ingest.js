@@ -27,10 +27,10 @@ function prepareWebsiteLead(payload) {
     name:field(payload,'name',180,true),
     company:field(payload,'company',180,true),
     email:field(payload,'email',254,true).toLowerCase(),
-    street:field(payload,'street',180),
-    postalCode:field(payload,'postal_code',16),
-    city:field(payload,'city',120),
-    country:field(payload,'country',80),
+    street:field(payload,'street',180,true),
+    postalCode:field(payload,'postal_code',16,true),
+    city:field(payload,'city',120,true),
+    country:field(payload,'country',80,true),
     message:field(payload,'message',4000,true),
     currentProcess:field(payload,'current_process',4000,true),
     systems:field(payload,'systems',2000,true),
@@ -39,7 +39,6 @@ function prepareWebsiteLead(payload) {
     desiredResult:field(payload,'desired_result',4000)
   };
   if(!emailPattern.test(lead.email)) throw Object.assign(new Error('invalid_email'),{status:400});
-  if(!lead.country) lead.country='Schweiz';
   const payloadHash=crypto.createHash('sha256').update(JSON.stringify(lead)).digest('hex');
   return {id:'web_'+requestId.replace(/-/g,''),data:lead,payloadHash};
 }

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>LSZH CRM – Intern</title>
+<style>
+:root{color-scheme:dark;--bg:#090e17;--panel:#111925;--panel2:#172231;--border:#273243;--muted:#9caabd;--text:#edf3fa;--accent:#8bc7f2;--green:#67d1ae}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.layout{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+aside{background:#0d1520;border-right:1px solid var(--border);padding:28px 17px;display:flex;flex-direction:column;gap:34px}
+.brand{display:flex;align-items:center;gap:12px;padding:0 9px}
+.mark{background:linear-gradient(135deg,#66d2e5,#7791f5);color:#08121c;width:37px;height:37px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:20px}
+.brand strong{display:block;font-size:17px;letter-spacing:.025em}.brand small{color:var(--muted);letter-spacing:.12em;font-size:10px}
+.nav-caption{padding:0 13px;color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+nav{display:grid;gap:5px}nav button{width:100%;display:flex;align-items:center;gap:12px;background:transparent;color:#b5c4d5;border:1px solid transparent;border-radius:11px;text-align:left;padding:11px 13px}
+nav button.active{background:#1a2d43;color:#eff8ff;border-color:#2d4b67}nav button:hover{background:#192535}
+.nav-icon{font-size:18px;width:22px;text-align:center} .aside-bottom{margin-top:auto;color:var(--muted);font-size:12px;padding:10px;border-top:1px solid var(--border)}
+main{padding:30px clamp(20px,4vw,66px);max-width:1600px;width:100%;margin:0 auto}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:29px}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
+h1{font-size:clamp(28px,3.4vw,39px);letter-spacing:-.04em;line-height:1.15;margin:7px 0}h2{font-size:22px;letter-spacing:-.02em;margin:0}
+.sub{color:var(--muted);margin:0}.identity{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.btn{padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:650}
+.btn.primary{background:#a4d4f4;border-color:#a4d4f4;color:#091724}.btn:hover{filter:brightness(1.08)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;margin-bottom:28px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:16px}
+.kpi strong{font-size:29px;letter-spacing:-.045em;display:block;margin:3px 0}.kpi span{font-size:12px;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:15px;overflow:hidden}
+.toolbar{padding:22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.toolbar p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.search{background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;min-width:235px}
+.scroll{overflow:auto;width:100%}table{border-collapse:collapse;width:100%;min-width:700px}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.09em;background:#111a27}
+th,td{padding:15px 18px;border-top:1px solid var(--border)}td{font-size:13px}td:first-child{font-weight:650}
+.badge{background:#233348;color:#c4dcf4;padding:5px 9px;border-radius:99px;font-weight:650;font-size:11px;display:inline-block}
+.badge.success{background:#15362c;color:#90e5c2}.badge.dim{background:#272d39;color:#c0c5cf}
+.link-btn{border:0;background:transparent;color:var(--accent);padding:3px 0;font-weight:650}
+.empty{text-align:center;padding:68px 22px;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:5px}
+.login{margin:12vh auto;max-width:420px;border:1px solid var(--border);border-radius:18px;background:var(--panel);padding:36px}
+.login h2{margin:8px 0 12px}.login p{color:var(--muted)}.login .hint{font-size:12px;margin:22px 0 0}
+#error{color:#ffa9a5;min-height:20px;font-size:13px}
+dialog{border:1px solid #3b4a5c;background:#111b29;color:var(--text);border-radius:16px;width:min(580px,calc(100vw - 30px));padding:0;box-shadow:0 28px 80px #0009}
+dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+#editorForm{padding:22px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;max-height:70vh;overflow:auto}
+.field{display:flex;flex-direction:column;gap:6px;color:#c8d3e2;font-size:12px;font-weight:650}
+.field.wide{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+.visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+@media(max-width:1050px){.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:720px){.layout{display:block}aside{padding:14px;gap:13px}.brand{padding:0 4px}nav{display:flex;overflow:auto}.nav-caption,.aside-bottom{display:none}nav button{white-space:nowrap;min-width:max-content}main{padding:22px 14px}.kpis{grid-template-columns:repeat(2,1fr)}.toolbar{padding:16px}.search{width:100%}#editorForm{grid-template-columns:1fr}.field{grid-column:1/-1}}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<div id="signin" class="login">
+  <div class="eyebrow">LSZH AUTOMATIONS / INTERNAL</div>
+  <h2>Willkommen im CRM</h2>
+  <p>Interner Zugang für berechtigte Mitarbeitende. Kundeninformationen sind erst nach Anmeldung sichtbar.</p>
+  <div id="googleButton"></div>
+  <p id="error" role="alert"></p>
+  <p class="hint">V2 – separates System. Keine Airtable-Daten werden automatisch übernommen.</p>
+</div>
+<div id="workspace" class="layout" hidden>
+  <aside>
+    <div class="brand"><div class="mark">L</div><div><strong>LSZH</strong><small>AUTOMATIONS CRM</small></div></div>
+    <div><div class="nav-caption">Register</div><nav id="nav" aria-label="CRM Register">
+      <button data-tab="leads" class="active"><span class="nav-icon">◈</span>Website Leads</button>
+      <button data-tab="kunden"><span class="nav-icon">◎</span>Kunden</button>
+      <button data-tab="offerten"><span class="nav-icon">▤</span>Offerten</button>
+      <button data-tab="rechnungen"><span class="nav-icon">▣</span>Rechnungen</button>
+      <button data-tab="projekte"><span class="nav-icon">◇</span>Projekte</button>
+    </nav></div>
+    <div class="aside-bottom">LSZH CRM V2 · Interner Betrieb<br>Alle Daten werden serverseitig gespeichert.</div>
+  </aside>
+  <main>
+    <div class="head">
+      <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Website Leads</h1><p id="pageDesc" class="sub"></p></div>
+      <div class="identity"><span id="who"></span><button class="btn" id="logout">Abmelden</button></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <section class="panel">
+      <div class="toolbar">
+        <div><h2 id="listTitle">Website Leads</h2><p id="listHint"></p></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px"><input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button></div>
+      </div>
+      <div id="tableArea"></div>
+    </section>
+  </main>
+</div>
+<dialog id="editor">
+  <div class="modal-head"><h2 id="editorTitle">Eintrag</h2><button class="btn" id="close" type="button" aria-label="Schliessen">✕</button></div>
+  <form id="editorForm"><div class="form-actions"><button class="btn" id="cancel" type="button">Abbrechen</button><button class="btn primary" id="save" type="submit">Speichern</button></div></form>
+</dialog>
+<script>
+'use strict';
+const definitions={
+  leads:{title:'Website Leads',description:'Alle neuen Anfragen aus dem Website-Formular.',fields:[
+    ['name','Name','text'],['company','Firma','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['message','Anfrage','textarea'],['currentProcess','Heutiger Ablauf','textarea'],['systems','Beteiligte Systeme','textarea'],['mainProblem','Grösstes Problem','text'],['frequency','Häufigkeit','text'],['desiredResult','Gewünschtes Ergebnis','textarea'],['status','Status','status']
+  ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['status','Status']]},
+  kunden:{title:'Kunden',description:'Stammdaten deiner Geschäftskunden.',fields:[
+    ['company','Firma','text'],['contactName','Ansprechpartner','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['notes','Notizen','textarea'],['status','Status','status']
+  ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
+  offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
+    ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Bezeichnung','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
+  ],columns:[['number','Nr.'],['title','Offerte'],['customerId','Kunde'],['oneTimeCHF','Einmalig CHF'],['status','Status']]},
+  rechnungen:{title:'Rechnungen',description:'Rechnungsentwürfe und Zahlungsstatus; noch kein Versand oder Swiss QR.',fields:[
+    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['amountCHF','Betrag CHF','number'],['dueDate','Fällig am','date'],['status','Status','status']
+  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['status','Status']]},
+  projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
+    ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
+  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['status','Status']]}
+};
+const statuses={leads:['Neu','In Prüfung','Qualifiziert','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
+const order=['leads','kunden','offerten','rechnungen','projekte'];
+const state={token:'',tab:'leads',records:{},editing:null};
+const $=id=>document.getElementById(id);
+function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
+async function api(path,options={}) {
+  const r=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{'Authorization':'Bearer '+state.token}:{}),...(options.headers||{})}});
+  const result=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(result.error || 'HTTP '+r.status);
+  return result;
+}
+function titleOf(table,record) {return (record && (record.company || record.title || record.name || record.number)) || '–';}
+function resolveRef(key,value) {
+  const refs={leadId:'leads',customerId:'kunden',projectId:'projekte',offerId:'offerten'};
+  const match=(state.records[refs[key]]||[]).find(x=>x.id===value);
+  return match?titleOf(refs[key],match):(value||'–');
+}
+function valueText(key,value) {
+  if(key==='customerId'||key==='leadId'||key==='projectId'||key==='offerId')return resolveRef(key,value);
+  if(value==null||value==='')return '–';
+  if(key==='amountCHF'||key==='oneTimeCHF'||key==='monthlyCHF')return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(value);
+  return String(value);
+}
+function renderKpis() {
+  $('kpis').replaceChildren();
+  for(const table of order){
+    const item=el('div','kpi');item.append(el('span','',definitions[table].title),el('strong','',String((state.records[table]||[]).length)));
+    $('kpis').append(item);
+  }
+}
+function render() {
+  const d=definitions[state.tab];
+  $('pageTitle').textContent=d.title;$('pageDesc').textContent=d.description;$('listTitle').textContent=d.title;
+  $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
+  document.querySelectorAll('#nav button').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===state.tab));
+  renderKpis();
+  const needle=$('search').value.toLocaleLowerCase('de-CH');
+  const records=(state.records[state.tab]||[]).filter(record=>JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle));
+  const area=$('tableArea');area.replaceChildren();
+  if(!records.length){
+    const empty=el('div','empty');
+    empty.append(el('strong','',needle?'Keine passenden Einträge':'Noch keine Einträge'),el('div','',needle?'Versuche einen anderen Suchbegriff.':'Lege den ersten Datensatz über „Neu erfassen“ an.'));
+    area.append(empty);return;
+  }
+  const wrap=el('div','scroll'),table=el('table'),thead=el('thead'),tr=el('tr');
+  for(const col of d.columns)tr.append(el('th','',col[1]));
+  tr.append(el('th','','Aktion'));thead.append(tr);table.append(thead);
+  const tbody=el('tbody');
+  for(const rec of records) {
+    const row=el('tr');
+    for(const [key] of d.columns) {
+      const td=el('td');
+      if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      else td.textContent=valueText(key,rec[key]);
+      row.append(td);
+    }
+    const td=el('td'),edit=el('button','link-btn','Bearbeiten');
+    edit.type='button';edit.addEventListener('click',()=>openEditor(rec));td.append(edit);row.append(td);tbody.append(row);
+  }
+  table.append(tbody);wrap.append(table);area.append(wrap);
+}
+function makeField(key,label,type,value) {
+  const wrap=el('label','field'+(type==='textarea'?' wide':'')),caption=el('span','',label);wrap.append(caption);
+  let control;
+  if(type==='textarea')control=el('textarea');
+  else if(type==='status'||order.includes(type)){
+    control=el('select');
+    const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
+      {value:'',label:'Nicht zugeordnet'},
+      ...(state.records[type]||[]).map(r=>({value:r.id,label:titleOf(type,r)}))
+    ];
+    for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
+  } else {control=el('input');control.type=type==='date'?'date':type==='number'?'number':type==='email'?'email':'text';
+    if(type==='number'){control.step='0.01';control.min='0';}
+  }
+  control.name=key;
+  control.value=value==null?'':String(value);
+  if(['company','name','email','title','description'].includes(key)){
+    if((state.tab==='leads' && ['name','company','email'].includes(key))||
+       (state.tab==='kunden' && key==='company')||
+       (state.tab==='offerten' && key==='title')||
+       (state.tab==='rechnungen' && key==='description')||
+       (state.tab==='projekte' && key==='title'))control.required=true;
+  }
+  wrap.append(control);return wrap;
+}
+function openEditor(record=null) {
+  state.editing=record;
+  $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
+  const form=$('editorForm');
+  form.replaceChildren();
+  for(const [key,label,type] of definitions[state.tab].fields)form.append(makeField(key,label,type,record?.[key]));
+  const actions=el('div','form-actions');
+  const cancel=el('button','btn','Abbrechen');cancel.type='button';cancel.addEventListener('click',()=>$('editor').close());
+  const save=el('button','btn primary','Speichern');save.type='submit';save.id='save';
+  actions.append(cancel,save);form.append(actions);
+  $('editor').showModal();
+}
+async function loadAll(){
+  const results=await Promise.all(order.map(x=>api('/api/records/'+x)));
+  order.forEach((x,i)=>state.records[x]=results[i].records);
+  render();
+}
+async function signedIn(token){
+  state.token=token;
+  try {
+    const me=await api('/api/me');
+    $('who').textContent=me.email;
+    await loadAll();
+    $('signin').hidden=true;$('workspace').hidden=false;$('error').textContent='';
+  }catch(err){state.token='';$('error').textContent='Anmeldung fehlgeschlagen: '+err.message;}
+}
+async function initialise(){
+  try{
+    const config=await api('/api/config');
+    for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
+    if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
+    google.accounts.id.initialize({client_id:config.clientId,callback:res=>signedIn(res.credential)});
+    google.accounts.id.renderButton($('googleButton'),{theme:'filled_black',size:'large',text:'signin_with',width:290});
+  }catch(err){$('error').textContent='CRM noch nicht eingerichtet: '+err.message;}
+}
+$('nav').addEventListener('click',event=>{
+  const tab=event.target.closest('[data-tab]')?.dataset.tab;
+  if(!tab||!definitions[tab])return;
+  state.tab=tab;$('search').value='';render();
+});
+$('search').addEventListener('input',render);
+$('add').addEventListener('click',()=>openEditor());
+$('close').addEventListener('click',()=>$('editor').close());
+$('editorForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=$('editorForm'),data=Object.fromEntries(new FormData(form).entries());
+  for(const [key,,type] of definitions[state.tab].fields)if(type==='number')data[key]=data[key]===''?null:Number(data[key]);
+  const save=form.querySelector('button[type="submit"]');save.disabled=true;save.textContent='Speichere …';
+  try{
+    await api('/api/records/'+state.tab+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{method:state.editing?'PATCH':'POST',body:JSON.stringify(data)});
+    $('editor').close();await loadAll();
+  }catch(err){window.alert('Speichern fehlgeschlagen: '+err.message);}
+  finally{save.disabled=false;save.textContent='Speichern';}
+});
+$('logout').addEventListener('click',()=>{
+  state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
+  google.accounts.id.disableAutoSelect();$('error').textContent='';
+});
+initialise();
+</script>
+</body>
+</html>

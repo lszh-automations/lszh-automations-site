@@ -1,6 +1,9 @@
 # Deploy only the CRM V2 backend for the website form. No production website cutover.
 param([string]$Project="lszh-automations",[string]$Region="europe-west6")
-$ErrorActionPreference="Stop"
+# Windows PowerShell 5.1 treats gcloud's stderr (even progress/warnings) as
+# NativeCommandError when ErrorActionPreference=Stop. Check LASTEXITCODE for
+# every native gcloud call instead; explicit throw keeps real failures fatal.
+$ErrorActionPreference="Continue"
 if(-not (Get-Command gcloud.cmd -ErrorAction SilentlyContinue)){throw "Google Cloud SDK fehlt."}
 $service="lszh-crm-v2"
 $secretName="lszh-crm-v2-intake"
@@ -50,7 +53,7 @@ if(-not $hasSecret){
   $intakeSecret=(& gcloud.cmd secrets versions access latest --secret $secretName --project $Project).Trim()
   if($LASTEXITCODE -ne 0){throw "Schlüssel konnte nicht gelesen werden"}
 }
-Set-Clipboard -Value $intakeSecret
+Set-Clipboard -Value $intakeSecret -ErrorAction Stop
 & gcloud.cmd secrets add-iam-policy-binding $secretName --project $Project --member "serviceAccount:$serviceAccount" --role roles/secretmanager.secretAccessor --quiet | Out-Null
 if($LASTEXITCODE -ne 0){throw "Secret-Berechtigung fehlgeschlagen"}
 & gcloud.cmd run deploy $service --source $source --region $Region --project $Project --allow-unauthenticated --service-account $serviceAccount --memory 512Mi --max-instances 2 --update-secrets ("CRM_INGEST_SECRET={0}:latest" -f $secretName) --quiet

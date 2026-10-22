@@ -58,7 +58,7 @@ function originAllowed(req) {
   if(!origin) return true;
   try {
     const host=String(req.headers.host || '');
-    const scheme=(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const scheme=String(req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http')).split(',')[0].trim();
     return new URL(origin).origin === scheme+'://'+host;
   } catch { return false; }
 }

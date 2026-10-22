@@ -2,7 +2,35 @@
 
 Diese Vorschau bietet **dieselbe Oberfläche mit fünf Registern** wie das CRM V2, speichert aber **ausschliesslich lokale Beispieldaten**. Kein Google-Login, keine Firestore-Zugangsdaten, kein Make, kein Render. Die produktive Website und das echte CRM bleiben unverändert.
 
-## Start auf Windows Surface (PowerShell)
+## Live-Vorschau mit automatischem GitHub-Abgleich (empfohlen)
+
+Einmalig auf dem Surface in PowerShell (im Verzeichnis des bestehenden GitHub-Projekts):
+
+```powershell
+cd C:\Users\larss\Projects\lszh-automations-site
+git fetch origin
+git switch feature/crm-local-preview-20261023
+git pull --ff-only
+cd crm-v2
+node live-preview.js
+```
+
+Dann `http://127.0.0.1:8765` öffnen und den Tab stehen lassen. Der Launcher:
+
+- fragt **alle 20 Sekunden** den fest definierten GitHub-Branch `feature/crm-local-preview-20261023` ab,
+- übernimmt **nur Fast-Forward-Updates**, niemals Force-Resets,
+- lässt ungespeicherte bzw. lokal geänderte getrackte Dateien unangetastet und pausiert dann die Übernahme,
+- startet den Node-Vorschauserver bei Codeänderungen automatisch neu,
+- prüft im Browser etwa **alle 1,4 Sekunden** auf neue Versionen und lädt den offenen CRM-Tab automatisch neu,
+- behält alle Testdaten in `crm-v2/.local-preview/data.json` bei, auch über Updates/Neustarts.
+
+`node live-preview.js` benötigt **nur Node.js und Git**, die auf deinem Surface bereits eingerichtet wurden; keine npm-Installation. Falls `npm.cmd` verwendet wird, funktioniert alternativ `npm.cmd run live`.
+
+**Beenden:** `Strg + C` im PowerShell-Fenster. Das Fenster muss während der Live-Vorschau offen bleiben und das Surface darf nicht im Ruhezustand sein. Diese Version erzeugt keinen Windows-Autostartdienst. Für Änderungen des Launchers `live-preview.js` selbst ist unter Umständen ein einmaliger Neustart des Befehls nötig.
+
+**Falls sich die Änderungen nicht übernehmen lassen:** Prüfen mit `git status`. Bei lokalen Änderungen oder auseinanderlaufender Git-Historie pausiert die Automatik vorsichtshalber und überschreibt keine Dateien. Die Vorschau bleibt dann mit dem vorhandenen Stand nutzbar.
+
+## Start auf Windows Surface (PowerShell) – einfache Vorschau ohne Auto-Sync
 
 Aus dem bereits vorhandenen Repository-Verzeichnis:
 

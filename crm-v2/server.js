@@ -8,6 +8,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const {OAuth2Client} = require('google-auth-library');
 const {Firestore} = require('@google-cloud/firestore');
+const {saveWebsiteLead} = require('./lead-ingest');
 
 const PORT = Number(process.env.PORT || 8080);
 const CLIENT_ID = String(process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
@@ -141,6 +142,18 @@ async function handle(req,res) {
   }
   if(req.method==='GET' && pathname==='/api/config') {
     return response(res,ready()?200:503,ready()?{clientId:CLIENT_ID}:{error:'not_configured'});
+  }
+  if(req.method==='POST' && pathname==='/api/internal/website-leads') {
+    // Only our website backend knows this secret. It must never be embedded in HTML or JS.
+    const secret=String(process.env.CRM_INGEST_SECRET || '');
+    if(secret.length<32) return response(res,503,{error:'intake_not_configured'});
+    const authorization=String(req.headers.authorization || '');
+    const supplied=authorization.startsWith('Bearer ')?authorization.slice(7):'';
+    const a=Buffer.from(secret),b=Buffer.from(supplied);
+    if(a.length!==b.length || !crypto.timingSafeEqual(a,b)) return response(res,401,{error:'unauthorized'});
+    const input=await readBody(req);
+    const result=await saveWebsiteLead(db,input);
+    return response(res,result.created?201:200,{ok:true,confirmed:true,recordId:result.id,created:result.created});
   }
   if(!pathname.startsWith('/api/')) return response(res,404,{error:'not_found'});
   if(!ready()) return response(res,503,{error:'not_configured'});

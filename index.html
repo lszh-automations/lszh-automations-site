@@ -935,7 +935,8 @@ form?.addEventListener('submit',async e=>{
 
   const payload=Object.fromEntries(new FormData(form).entries());
   payload.source='LSZH Automations Website';
-  payload.submitted_at=new Date().toISOString();
+  // Retain the same request identity if the network fails and the customer retries.
+  payload.submitted_at=form.dataset.leadSubmittedAt || (form.dataset.leadSubmittedAt=new Date().toISOString());
 
   try{
     const response=await fetch('/api/lead',{
@@ -947,6 +948,7 @@ form?.addEventListener('submit',async e=>{
     if(!response.ok) throw new Error('HTTP '+response.status);
 
     form.reset();
+    delete form.dataset.leadSubmittedAt;
     note.textContent='Vielen Dank. Ihre Anfrage wurde erfolgreich übermittelt.';
     note.style.color='#9becce';
   }catch(error){

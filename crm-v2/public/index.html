@@ -52,6 +52,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
 
 /* CRM V2 command center */
+.dashboard-intro-wrapper{margin-bottom:20px}
 .dashboard-area{display:grid;gap:18px}
 .dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
 .dash-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;min-width:0;overflow:hidden}
@@ -137,6 +138,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Dashboard</h1><p id="pageDesc" class="sub"></p></div>
       <div class="identity"><span id="who"></span><button class="btn" id="logout">Abmelden</button></div>
     </div>
+    <div id="dashboardIntro" class="dashboard-intro-wrapper" hidden></div>
     <div class="kpis" id="kpis"></div>
     <div id="dashboardArea" class="dashboard-area"></div>
     <section class="panel" id="recordsPanel" hidden>
@@ -272,7 +274,8 @@ function renderDashboard(){
     el('p','','Anfragen priorisieren, offene Vorgänge finden und finanzielle Werte einordnen.')
   );
   const stamp=el('span','dash-meta','Stand: '+new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()));
-  intro.append(introText,stamp);area.append(intro);
+  intro.append(introText,stamp);
+  $('dashboardIntro').replaceChildren(intro);
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
@@ -352,6 +355,7 @@ function render(){
   $('pageTitle').textContent=d.title;
   $('pageDesc').textContent=d.description;
   $('recordsPanel').hidden=dashboard;
+  $('dashboardIntro').hidden=!dashboard;
   $('dashboardArea').hidden=!dashboard;
   document.querySelectorAll('#nav button').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===state.tab));
   renderKpis();

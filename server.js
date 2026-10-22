@@ -101,22 +101,39 @@ function readJson(req, maxBytes=MAX_BODY) {
     req.on('error', reject);
   });
 }
-async function proxy(req, res, envName) {
-  if (!sameOrigin(req)) return send(res, 403, JSON.stringify({error:'forbidden'}));
-  if (rateLimited(req)) return send(res, 429, JSON.stringify({error:'rate_limited'}));
-  const target = process.env[envName];
-  if (!target) return send(res, 503, JSON.stringify({error:'not_configured'}));
+async function handleWebsiteLead(req,res) {
+  if(!sameOrigin(req)) return send(res,403,JSON.stringify({error:'forbidden'}));
+  if(rateLimited(req)) return send(res,429,JSON.stringify({error:'rate_limited'}));
+  const target=String(process.env.CRM_LEAD_INGEST_URL || '');
+  const secret=String(process.env.CRM_INGEST_SECRET || '');
+  if(!target.startsWith('https://') || secret.length<32)
+    return send(res,503,JSON.stringify({error:'crm_intake_not_configured'}));
   try {
-    const payload = await readJson(req);
-    if (payload.website) return send(res, 204, '');
+    const payload=await readJson(req);
+    if(!payload || typeof payload!=='object' || Array.isArray(payload))
+      return send(res,400,JSON.stringify({error:'invalid_fields'}));
+    if(payload.website) return send(res,204,'');
     delete payload.website;
-    const r = await fetch(target, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(15000)});
-    if (!r.ok) return send(res, 502, JSON.stringify({error:'upstream_failed'}));
-    return send(res, 200, JSON.stringify({ok:true}));
-  } catch (e) {
-    if (e.message === 'too_large') return send(res, 413, JSON.stringify({error:'payload_too_large'}));
-    if (e.message === 'bad_json') return send(res, 400, JSON.stringify({error:'invalid_json'}));
-    return send(res, 502, JSON.stringify({error:'temporary_failure'}));
+    // Older website versions may not yet supply a submission ID.
+    if(!payload.submission_id) payload.submission_id=crypto.randomUUID();
+    const remote=await fetch(target,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+secret},
+      body:JSON.stringify(payload),
+      signal:AbortSignal.timeout(15000)
+    });
+    let answer=null;
+    try {answer=await remote.json();} catch {}
+    if(remote.status===400 || remote.status===409)
+      return send(res,remote.status,JSON.stringify({error:answer?.error || 'invalid_fields'}));
+    if(!remote.ok || answer?.ok!==true || answer?.confirmed!==true ||
+       typeof answer?.recordId!=='string' || !/^web_[0-9a-f]{32}$/.test(answer.recordId))
+      return send(res,502,JSON.stringify({error:'crm_storage_unconfirmed'}));
+    return send(res,200,JSON.stringify({ok:true,confirmed:true,recordId:answer.recordId}));
+  } catch(err) {
+    if(err.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(err.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    return send(res,502,JSON.stringify({error:'crm_temporarily_unavailable'}));
   }
 }
 
@@ -721,7 +738,7 @@ const server=http.createServer(async (req,res)=>{
     }
   }
 
-  if (req.method==='POST' && pathname==='/api/lead') return proxy(req,res,'MAKE_LEAD_WEBHOOK');
+  if (req.method==='POST' && pathname==='/api/lead') return handleWebsiteLead(req,res);
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);

@@ -30,6 +30,18 @@ Dann `http://127.0.0.1:8765` öffnen und den Tab stehen lassen. Der Launcher:
 
 **Falls sich die Änderungen nicht übernehmen lassen:** Prüfen mit `git status`. Bei lokalen Änderungen oder auseinanderlaufender Git-Historie pausiert die Automatik vorsichtshalber und überschreibt keine Dateien. Die Vorschau bleibt dann mit dem vorhandenen Stand nutzbar.
 
+## CRM-Arbeitsprinzip: möglichst einfach
+
+Ein Lead soll in der täglichen Arbeit nur einen nächsten sinnvollen Schritt zeigen:
+
+1. **Neu / In Prüfung:** Lead öffnen und mit einem Klick **Qualifizieren**.
+2. **Qualifiziert:** **Offerte vorbereiten** öffnet einen vorausgefüllten Entwurf. Es wird noch **nichts gespeichert oder versendet**, bis die Offerte im Editor explizit gespeichert wird.
+3. **Offerte vorhanden:** **Offerte öffnen**, Status bei Bedarf manuell ändern.
+4. **Offerte angenommen:** **Als Kunde übernehmen** kopiert Kontakt und Geschäftsadresse in den Kundenstamm. Bei bereits vorhandenem Kunden steht stattdessen **Kunde öffnen**.
+5. **Bearbeiten:** Die vollständigen Felder bleiben jederzeit über eine zweite, unaufdringliche Aktion zugänglich.
+
+Das CRM soll keine unnötigen Klicks, automatischen E-Mails, Verrechnungen oder komplexen Workflows erzeugen. Die neue Lead-Detailansicht ist zunächst nur in der lokalen Testvorschau enthalten. Kundendubletten werden in der Vorschau anhand E-Mail oder Firmenname vermieden. Für eine spätere produktive Übernahme ist die serverseitige, atomare Dublettenprüfung separat zu behandeln.
+
 ## Start auf Windows Surface (PowerShell) – einfache Vorschau ohne Auto-Sync
 
 Aus dem bereits vorhandenen Repository-Verzeichnis:

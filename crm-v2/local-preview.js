@@ -84,8 +84,8 @@ function seedData() {
         amountCHF:199,dueDate:'',status:'Entwurf',createdAt:t,updatedAt:t}
     ],
     projekte: [
-      {id:'test-project-1',customerId:'test-customer-1',offerId:'test-offer-1',
-        title:'TEST: Musterprojekt',description:'Nur für die lokale CRM-Vorschau.',
+      {id:'test-project-1',customerId:'test-customer-1',offerId:'',
+        title:'TEST: Bestehendes Kundenprojekt',description:'Nur für die lokale CRM-Vorschau.',
         dueDate:'',status:'Geplant',createdAt:t,updatedAt:t}
     ]
   };
@@ -125,6 +125,8 @@ function reconcileDemoFixtures(data){
   });
   offer.leadId='';
   offer.title='TEST: Büroautomation';
+  project.offerId='';
+  project.title='TEST: Bestehendes Kundenprojekt';
   data.demoFixtureRevision=2;
   save(data);
   console.log('Lokale Testdaten einmalig bereinigt: Muster Sanitär hat keine vorab erzeugte Offerte mehr.');

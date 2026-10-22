@@ -680,6 +680,8 @@ async function handleSecureSubmit(req,res) {
 function staticFile(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
+  // CRM V2 runs on an independent service and must not be served by the public website.
+  if (pathname === '/crm-v2' || pathname.startsWith('/crm-v2/')) return send(res,404,'Not found','text/plain');
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
   if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';

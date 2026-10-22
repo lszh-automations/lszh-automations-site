@@ -194,19 +194,170 @@ function valueText(key,value) {
   if(key==='amountCHF'||key==='oneTimeCHF'||key==='monthlyCHF')return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(value);
   return String(value);
 }
-function renderKpis() {
-  $('kpis').replaceChildren();
+function formatCHF(value){
+  return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
+}
+function dashboardStats(records){
+  // Calculate only from loaded CRM data. Do not treat open offers as revenue.
+  const leads=records.leads||[];
+  const offers=records.offerten||[];
+  const invoices=records.rechnungen||[];
+  const projects=records.projekte||[];
+  const openOffers=offers.filter(x=>['Entwurf','Bereit','Versendet'].includes(x.status));
+  const paidInvoices=invoices.filter(x=>x.status==='Bezahlt');
+  const money=value=>Number.isFinite(Number(value))?Math.max(0,Number(value)):0;
+  return {
+    newLeads:leads.filter(x=>x.status==='Neu').length,
+    openOffers:openOffers.length,
+    openInvoices:invoices.filter(x=>x.status==='Offen').length,
+    openInvoiceAmount:invoices.filter(x=>x.status==='Offen').reduce((n,x)=>n+money(x.amountCHF),0),
+    activeProjects:projects.filter(x=>['Geplant','In Arbeit','Wartet auf Kunde'].includes(x.status)).length,
+    waitingProjects:projects.filter(x=>x.status==='Wartet auf Kunde').length,
+    paidAmount:paidInvoices.reduce((n,x)=>n+money(x.amountCHF),0),
+    openOfferVolume:openOffers.reduce((n,x)=>n+money(x.oneTimeCHF),0),
+    acceptedMonthly:offers.filter(x=>x.status==='Angenommen').reduce((n,x)=>n+money(x.monthlyCHF),0),
+    leadCount:leads.length
+  };
+}
+function navigateTo(tab,record){
+  state.tab=tab;
+  $('search').value='';
+  render();
+  if(record)openEditor(record);
+}
+function dashboardPanel(title,description){
+  const panel=el('section','dash-panel'),head=el('div','dash-panel-header');
+  const heading=el('div');
+  heading.append(el('h2','',title),el('p','',description));
+  head.append(heading);
+  const body=el('div','dash-panel-body');
+  panel.append(head,body);
+  return {panel,body};
+}
+function renderKpis(){
+  const container=$('kpis');container.replaceChildren();
+  if(state.tab==='dashboard'){
+    const stats=dashboardStats(state.records);
+    const items=[
+      {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
+      {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
+      {title:'Offene Rechnungen',value:formatCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Zahlung(en) offen',tab:'rechnungen'},
+      {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'},
+      {title:'Zahlungseingänge',value:formatCHF(stats.paidAmount),note:'Als bezahlt markierte Rechnungen',tab:'rechnungen'}
+    ];
+    for(const item of items){
+      const card=el('button','kpi dash-kpi');
+      card.type='button';
+      card.setAttribute('aria-label',item.title+': '+item.value+'. '+definitions[item.tab].title+' öffnen');
+      const top=el('div','dash-kpi-top');
+      top.append(el('span','',item.title),el('span','dash-kpi-arrow','↗'));
+      card.append(top,el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));
+      card.addEventListener('click',()=>navigateTo(item.tab));
+      container.append(card);
+    }
+    return;
+  }
   for(const table of order){
     const item=el('div','kpi');item.append(el('span','',definitions[table].title),el('strong','',String((state.records[table]||[]).length)));
-    $('kpis').append(item);
+    container.append(item);
   }
 }
-function render() {
-  const d=definitions[state.tab];
-  $('pageTitle').textContent=d.title;$('pageDesc').textContent=d.description;$('listTitle').textContent=d.title;
-  $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
+function renderDashboard(){
+  const area=$('dashboardArea');area.replaceChildren();
+  const stats=dashboardStats(state.records);
+  const intro=el('div','dash-intro'),introText=el('div');
+  introText.append(
+    el('span','eyebrow','DEIN LSZH COCKPIT'),
+    el('strong','','Alles Wichtige auf einen Blick'),
+    el('p','','Anfragen priorisieren, offene Vorgänge finden und finanzielle Werte einordnen.')
+  );
+  const stamp=el('span','dash-meta','Stand: '+new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()));
+  intro.append(introText,stamp);area.append(intro);
+  const upper=el('div','dash-grid');
+  const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
+  const priorities=[
+    {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
+    {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
+    {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
+    {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'}
+  ].filter(x=>x.n>0);
+  if(!priorities.length){
+    const empty=el('div','dash-empty');
+    empty.append(el('strong','','Keine offenen Aufgaben aus diesen Kategorien'),el('span','','Neue Leads, offene Offerten und Rechnungen erscheinen hier automatisch.'));
+    tasks.body.append(empty);
+  }
+  for(const task of priorities){
+    const button=el('button','dash-task');button.type='button';
+    const icon=el('span','dash-task-icon',task.icon);
+    const content=el('span','dash-task-content');
+    content.append(el('strong','',task.n+' × '+task.title),el('small','',task.description));
+    button.append(icon,content,el('span','dash-task-next','Ansehen →'));
+    button.addEventListener('click',()=>navigateTo(task.tab));
+    tasks.body.append(button);
+  }
+  const recent=dashboardPanel('Aktuelle Website-Leads','Die zuletzt erfassten Anfragen.');
+  const recentLeads=[...(state.records.leads||[])]
+    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,4);
+  if(!recentLeads.length){
+    const empty=el('div','dash-empty');
+    empty.append(el('strong','','Noch keine Leads vorhanden'),el('span','','Neue Anfragen erscheinen hier nach der Erfassung.'));
+    recent.body.append(empty);
+  }
+  for(const lead of recentLeads){
+    const button=el('button','dash-lead');button.type='button';
+    const details=el('span','dash-lead-info');
+    details.append(el('strong','',lead.company||lead.name||'Unbenannter Lead'));
+    const secondary=[lead.name,lead.city].filter(Boolean).join(' · ');
+    details.append(el('small','',secondary||'Website-Anfrage'));
+    const side=el('span','dash-lead-side');
+    side.append(el('span','badge'+(lead.status==='Qualifiziert'?' success':''),lead.status||'–'),el('span','dash-open','Öffnen →'));
+    button.append(details,side);
+    button.addEventListener('click',()=>navigateTo('leads',lead));
+    recent.body.append(button);
+  }
+  upper.append(tasks.panel,recent.panel);
+  const lower=el('div','dash-grid');
+  const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
+  const stages=['Neu','In Prüfung','Qualifiziert','Verloren'];
+  for(let i=0;i<stages.length;i++){
+    const count=(state.records.leads||[]).filter(x=>x.status===stages[i]).length;
+    const row=el('div','dash-pipeline-row');
+    const track=el('div','dash-pipeline-track'),fill=el('div','dash-pipeline-fill stage-'+i);
+    fill.style.width=(stats.leadCount?Math.round(100*count/stats.leadCount):0)+'%';
+    track.append(fill);
+    row.append(el('span','dash-pipeline-label',stages[i]),track,el('strong','dash-pipeline-value',String(count)));
+    pipeline.body.append(row);
+  }
+  const finance=dashboardPanel('Finanzübersicht','Werte in CHF, aus dem aktuellen Status der Datensätze.');
+  const financeRows=[
+    ['Offenes Offertenvolumen',formatCHF(stats.openOfferVolume)],
+    ['Monatlich aus angenommenen Offerten',formatCHF(stats.acceptedMonthly)],
+    ['Bezahlte Rechnungen',formatCHF(stats.paidAmount)]
+  ];
+  const financeList=el('div','dash-finance');
+  for(const [label,value] of financeRows){
+    const row=el('div','dash-finance-item');
+    row.append(el('span','',label),el('strong','',value));financeList.append(row);
+  }
+  finance.body.append(financeList,el('p','dash-finance-note',
+    'Offertenvolumen ist kein Umsatz. Die Monatszahl summiert vereinbarte Monatsbeträge, nicht tatsächliche Zahlungen. Es werden maximal 200 Datensätze je Register geladen.'));
+  lower.append(pipeline.panel,finance.panel);
+  area.append(upper,lower);
+}
+function render(){
+  const dashboard=state.tab==='dashboard';
+  const d=dashboard
+    ?{title:'Dashboard',description:'Dein Arbeitsplatz für Leads, Offerten, Rechnungen und Projekte.'}
+    :definitions[state.tab];
+  $('pageTitle').textContent=d.title;
+  $('pageDesc').textContent=d.description;
+  $('recordsPanel').hidden=dashboard;
+  $('dashboardArea').hidden=!dashboard;
   document.querySelectorAll('#nav button').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===state.tab));
   renderKpis();
+  if(dashboard){renderDashboard();return;}
+  $('listTitle').textContent=d.title;
+  $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
   const needle=$('search').value.toLocaleLowerCase('de-CH');
   const records=(state.records[state.tab]||[]).filter(record=>JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle));
   const area=$('tableArea');area.replaceChildren();
@@ -294,8 +445,8 @@ async function initialise(){
 }
 $('nav').addEventListener('click',event=>{
   const tab=event.target.closest('[data-tab]')?.dataset.tab;
-  if(!tab||!definitions[tab])return;
-  state.tab=tab;$('search').value='';render();
+  if(!tab||(tab!=='dashboard'&&!definitions[tab]))return;
+  navigateTo(tab);
 });
 $('search').addEventListener('input',render);
 $('add').addEventListener('click',()=>openEditor());

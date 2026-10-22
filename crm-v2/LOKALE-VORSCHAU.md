@@ -30,21 +30,30 @@ Dann `http://127.0.0.1:8765` öffnen und den Tab stehen lassen. Der Launcher:
 
 **Falls sich die Änderungen nicht übernehmen lassen:** Prüfen mit `git status`. Bei lokalen Änderungen oder auseinanderlaufender Git-Historie pausiert die Automatik vorsichtshalber und überschreibt keine Dateien. Die Vorschau bleibt dann mit dem vorhandenen Stand nutzbar.
 
-## CRM-Arbeitsprinzip: möglichst einfach
+## Feste Lead-Status und Aktionen
 
-Ein Lead soll in der täglichen Arbeit nur einen nächsten sinnvollen Schritt zeigen:
+Wir verwenden ausschliesslich fünf Lead-Status:
 
-- In der Lead-Detailansicht ist der **Status direkt per Auswahlfeld** zwischen «Neu», «In Prüfung», «Qualifiziert» und «Verloren» änderbar. Änderungen werden nach Auswahl gespeichert; bei einem Fehler wird der alte Wert wiederhergestellt.
-- Eine Offerte mit einer konkreten Lead-Verknüpfung kann lokal erst erstellt werden, wenn der Lead **Qualifiziert** ist. Eine Offerte für einen bereits bestehenden Kunden ohne Lead-Verknüpfung bleibt möglich.
-- **Korrigierte Testdaten:** «Muster Sanitär AG» startet als neuer Lead **ohne** Offerte oder Bestandskunden-Verknüpfung. Die ursprüngliche Demo-Offerte und das Projekt gehören stattdessen zu einem unabhängigen fiktiven Bestandskunden «Demo Büro AG». Beim ersten Zugriff werden nur die nachweislich unveränderten alten Demo-Einträge automatisch bereinigt. Manuell veränderte Beispiele werden niemals überschrieben.
+| Status | Bedeutung | Auswirkung |
+| --- | --- | --- |
+| **Neu** | Neuer Website-Lead; noch nicht bearbeitet | Nach 24 h im Status Neu genau eine interne Erinnerung vorsehen |
+| **Kontaktiert** | Kunde wurde bereits kontaktiert | Noch keine Offerte |
+| **Qualifiziert** | Kunde eignet sich für eine Offerte | **Sofort** automatisch genau eine bearbeitbare Offerte im Status Entwurf anlegen (fortlaufende Nummer) |
+| **Gewonnen** | Kunde hat seine Offerte angenommen | Verknüpfte Offerte auf Angenommen, Kundenstamm übernehmen und Projekt anlegen |
+| **Verloren** | Kunde ungeeignet oder Offerte endgültig abgelehnt | Noch offene verknüpfte Offerte auf Abgelehnt, kein Kunde oder Projekt erstellen |
 
-1. **Neu / In Prüfung:** Lead öffnen und mit einem Klick **Qualifizieren**.
-2. **Qualifiziert:** **Offerte vorbereiten** öffnet einen vorausgefüllten Entwurf. Es wird noch **nichts gespeichert oder versendet**, bis die Offerte im Editor explizit gespeichert wird.
-3. **Offerte vorhanden:** **Offerte öffnen**, Status bei Bedarf manuell ändern.
-4. **Offerte angenommen:** **Als Kunde übernehmen** kopiert Kontakt und Geschäftsadresse in den Kundenstamm. Bei bereits vorhandenem Kunden steht stattdessen **Kunde öffnen**.
-5. **Bearbeiten:** Die vollständigen Felder bleiben jederzeit über eine zweite, unaufdringliche Aktion zugänglich.
+Der Status wird in der Lead-Detailansicht direkt über ein Auswahlfeld gespeichert.
+Die Schaltfläche darunter zeigt jeweils **nur den nächsten logischen Schritt**. Unter Offerten bleibt der erzeugte Entwurf vollständig bearbeitbar, ohne automatischen Versand.
 
-Das CRM soll keine unnötigen Klicks, automatischen E-Mails, Verrechnungen oder komplexen Workflows erzeugen. Die neue Lead-Detailansicht ist zunächst nur in der lokalen Testvorschau enthalten. Kundendubletten werden in der Vorschau anhand E-Mail oder Firmenname vermieden. Für eine spätere produktive Übernahme ist die serverseitige, atomare Dublettenprüfung separat zu behandeln.
+**Keine Dubletten:** Eine erneute Qualifizierung legt keine zweite Offerte an. Wiederholtes Gewonnen erstellt keinen zweiten Kunden oder ein zweites Projekt. Eine bereits angenommene Offerte bzw. ein gewonnener Auftrag kann nicht versehentlich durch Zurückstufen des Status aufgehoben werden. Eine angenommene Offerte kann ebenfalls direkt den Lead auf Gewonnen stellen; die Daten werden im lokalen JSON gemeinsam persistiert.
+
+### 24-Stunden-Erinnerung
+
+Die lokale Vorschau prüft ungefähr jede Minute, ob ein Lead **24 Stunden nach Erfassung noch auf Neu** steht. Pro Lead wird höchstens ein Eintrag in einer **internen Test-Benachrichtigungsliste** erzeugt, auch nach Neustarts. Im Dashboard wird diese als "24h-Erinnerungen (Vorschau)" kenntlich gemacht. API: `GET /api/reminders`.
+
+**Wichtig:** Die lokale Vorschau versendet **keine echten E-Mails**. Für produktive interne E-Mails brauchen wir eine festgelegte Empfängeradresse, einen Maildienst (z. B. über Google Workspace) und einen unabhängig vom Surface laufenden Scheduler mit zuverlässigem Einmalversand. Diese Integration ist noch nicht freigegeben oder implementiert. Keine externen Kunden-E-Mails, Rechnungen oder Vertragsannahmen werden durch die Testversion ausgelöst.
+
+Bestehende lokale Datensätze bleiben erhalten. Alte `In Prüfung`-Status werden in der Lead-Ansicht als **bisheriger Status** angezeigt, bis sie manuell einer der fünf neuen Kategorien zugeordnet werden. Bereits qualifizierte Leads, für die noch keine Offerte existiert, bekommen einmalig einen verknüpften Test-Entwurf beim Laden. Historische unberührte Beispiel-Falschzuordnungen werden wie bisher nur unter den strengen Demo-Migrationsbedingungen korrigiert.
 
 ## Start auf Windows Surface (PowerShell) – einfache Vorschau ohne Auto-Sync
 

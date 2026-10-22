@@ -81,7 +81,7 @@ export function mapApprovedCustomerOffer(record,{
      f[K.avvAccepted]===true||f[K.acceptedAt])fail('not_eligible');
   if(typeof termsVersion!=='string'||!termsVersion||
      /test|rc|draft|entwurf/i.test(termsVersion)||
-     f[K.termsVersion]!==termsVersion)fail('terms_not_final');
+     ![termsVersion,'v'+termsVersion].includes(f[K.termsVersion]))fail('terms_not_final');
   if(!(now instanceof Date)||Number.isNaN(now.valueOf()))fail('clock_invalid');
   const expiresAt=endOfSwissDay(f[K.validUntil]);
   if(Date.parse(expiresAt)<now.getTime())fail('offer_expired');

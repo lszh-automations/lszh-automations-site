@@ -34,6 +34,10 @@ Dann `http://127.0.0.1:8765` öffnen und den Tab stehen lassen. Der Launcher:
 
 Ein Lead soll in der täglichen Arbeit nur einen nächsten sinnvollen Schritt zeigen:
 
+- In der Lead-Detailansicht ist der **Status direkt per Auswahlfeld** zwischen «Neu», «In Prüfung», «Qualifiziert» und «Verloren» änderbar. Änderungen werden nach Auswahl gespeichert; bei einem Fehler wird der alte Wert wiederhergestellt.
+- Eine Offerte mit einer konkreten Lead-Verknüpfung kann lokal erst erstellt werden, wenn der Lead **Qualifiziert** ist. Eine Offerte für einen bereits bestehenden Kunden ohne Lead-Verknüpfung bleibt möglich.
+- **Korrigierte Testdaten:** «Muster Sanitär AG» startet als neuer Lead **ohne** Offerte oder Bestandskunden-Verknüpfung. Die ursprüngliche Demo-Offerte und das Projekt gehören stattdessen zu einem unabhängigen fiktiven Bestandskunden «Demo Büro AG». Beim ersten Zugriff werden nur die nachweislich unveränderten alten Demo-Einträge automatisch bereinigt. Manuell veränderte Beispiele werden niemals überschrieben.
+
 1. **Neu / In Prüfung:** Lead öffnen und mit einem Klick **Qualifizieren**.
 2. **Qualifiziert:** **Offerte vorbereiten** öffnet einen vorausgefüllten Entwurf. Es wird noch **nichts gespeichert oder versendet**, bis die Offerte im Editor explizit gespeichert wird.
 3. **Offerte vorhanden:** **Offerte öffnen**, Status bei Bedarf manuell ändern.

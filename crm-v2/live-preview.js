@@ -36,9 +36,10 @@ async function syncBranch(){
     const upstream=await git(['rev-parse',REMOTE]);
     const currentCommit=await git(['rev-parse','HEAD']);
     if(upstream===currentCommit){lastWarning='';return;}
-    // Never overwrite local changes. Untracked files that are not ignored also
-    // cause a pause; tracked changes remain safe.
-    const changed=await git(['status','--porcelain','--untracked-files=normal']);
+    // Never overwrite local edits to tracked files. Untracked files such as
+    // a locally generated package-lock.json are left alone: Git's merge refuses
+    // any incoming file that would overwrite them.
+    const changed=await git(['status','--porcelain','--untracked-files=no']);
     if(changed){
       const warning='Auto-Sync pausiert: Lokale Git-Änderungen vorhanden. '+
         'Prüfen mit "git status". Es wird nichts überschrieben.';

@@ -68,14 +68,14 @@ function seedData() {
       }
     ],
     kunden: [
-      {id:'test-customer-1',company:'Muster Sanitär AG',contactName:'Max Muster',
-        email:'max.muster@example.com',street:'Musterstrasse 12',
-        postalCode:'5610',city:'Wohlen',country:'Schweiz',notes:'TESTDATENSATZ',
+      {id:'test-customer-1',company:'Demo Büro AG',contactName:'Eva Beispiel',
+        email:'eva.demo@example.com',street:'Demostrasse 3',
+        postalCode:'5000',city:'Aarau',country:'Schweiz',notes:'TESTDATENSATZ',
         status:'Aktiv',createdAt:t,updatedAt:t}
     ],
     offerten: [
-      {id:'test-offer-1',number:'1000',leadId:'test-lead-1',customerId:'test-customer-1',
-        title:'TEST: Offertenautomation',description:'TESTENTWURF – keine echte Kundenofferte.',
+      {id:'test-offer-1',number:'1000',leadId:'',customerId:'test-customer-1',
+        title:'TEST: Büroautomation',description:'TESTENTWURF – keine echte Kundenofferte.',
         oneTimeCHF:1200,monthlyCHF:199,validUntil:'',status:'Entwurf',createdAt:t,updatedAt:t}
     ],
     rechnungen: [
@@ -90,6 +90,46 @@ function seedData() {
     ]
   };
 }
+// One-time fixture repair: old preview versions linked a demo offer/customer to
+// an unqualified Muster Sanitär lead. Only update the four ORIGINAL, untouched
+// demo fixtures; any user edits or new entries remain intact.
+function reconcileDemoFixtures(data){
+  if(data.demoFixtureRevision===2)return data;
+  const customer=data.kunden.find(x=>x.id==='test-customer-1');
+  const offer=data.offerten.find(x=>x.id==='test-offer-1');
+  const invoice=data.rechnungen.find(x=>x.id==='test-invoice-1');
+  const project=data.projekte.find(x=>x.id==='test-project-1');
+  const lead=data.leads.find(x=>x.id==='test-lead-1');
+  const pristine=lead && lead.status==='Neu' &&
+    customer?.company==='Muster Sanitär AG' &&
+    customer.contactName==='Max Muster' && customer.email==='max.muster@example.com' &&
+    customer.street==='Musterstrasse 12' && customer.postalCode==='5610' &&
+    customer.city==='Wohlen' && customer.country==='Schweiz' &&
+    customer.status==='Aktiv' && customer.notes==='TESTDATENSATZ' &&
+    offer?.leadId==='test-lead-1' && offer.customerId==='test-customer-1' &&
+    offer.number==='1000' && offer.title==='TEST: Offertenautomation' &&
+    offer.description==='TESTENTWURF – keine echte Kundenofferte.' &&
+    offer.oneTimeCHF===1200 && offer.monthlyCHF===199 && offer.status==='Entwurf' &&
+    invoice?.customerId==='test-customer-1' && invoice.id==='test-invoice-1' &&
+    invoice.status==='Entwurf' && invoice.amountCHF===199 &&
+    project?.customerId==='test-customer-1' && project.offerId==='test-offer-1' &&
+    project.status==='Geplant' && project.title==='TEST: Musterprojekt' &&
+    !data.offerten.some(x=>x.id!=='test-offer-1' && x.leadId==='test-lead-1') &&
+    !data.offerten.some(x=>x.id!=='test-offer-1' && x.customerId==='test-customer-1') &&
+    !data.rechnungen.some(x=>x.id!=='test-invoice-1' && x.customerId==='test-customer-1') &&
+    !data.projekte.some(x=>x.id!=='test-project-1' && x.customerId==='test-customer-1');
+  if(!pristine)return data; // Never change user-modified fixtures.
+  Object.assign(customer,{
+    company:'Demo Büro AG',contactName:'Eva Beispiel',email:'eva.demo@example.com',
+    street:'Demostrasse 3',postalCode:'5000',city:'Aarau',country:'Schweiz'
+  });
+  offer.leadId='';
+  offer.title='TEST: Büroautomation';
+  data.demoFixtureRevision=2;
+  save(data);
+  console.log('Lokale Testdaten einmalig bereinigt: Muster Sanitär hat keine vorab erzeugte Offerte mehr.');
+  return data;
+}
 function store() {
   if(!fs.existsSync(FILE)) {
     fs.mkdirSync(DIR,{recursive:true,mode:0o700});
@@ -100,7 +140,7 @@ function store() {
   const data=JSON.parse(fs.readFileSync(FILE,'utf8'));
   if(data.version!==1 || TABLES.some(k=>!Array.isArray(data[k])))
     throw new Error('Lokale CRM-Testdatei hat ein unbekanntes Format; sie wurde nicht überschrieben.');
-  return data;
+  return reconcileDemoFixtures(data);
 }
 function save(data) {
   fs.mkdirSync(DIR,{recursive:true,mode:0o700});

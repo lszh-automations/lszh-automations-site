@@ -13,15 +13,28 @@ if($LASTEXITCODE -ne 0){throw "Google Cloud Projekt nicht gesetzt"}
 if($LASTEXITCODE -ne 0){throw "Cloud APIs fehlen"}
 & gcloud.cmd firestore databases describe --database="(default)" --project $Project --format="value(name)" | Out-Null
 if($LASTEXITCODE -ne 0){throw "Firestore (default) existiert nicht"}
-& gcloud.cmd iam service-accounts describe $serviceAccount --project $Project --format="value(email)" 2>$null | Out-Null
-if($LASTEXITCODE -ne 0){
+# Avoid 'describe' for a not-yet-created account: its expected NOT_FOUND is
+# surfaced as a terminating NativeCommandError in Windows PowerShell 5.1.
+$accountEmails=@(& gcloud.cmd iam service-accounts list --project $Project --format="value(email)")
+if($LASTEXITCODE -ne 0){throw "Dienstkonten konnten nicht aufgelistet werden (Berechtigungen pruefen)"}
+if($accountEmails -notcontains $serviceAccount){
+  Write-Host "CRM-Dienstkonto fehlt: wird jetzt erstellt."
   & gcloud.cmd iam service-accounts create lszh-crm-v2 --display-name "LSZH CRM V2" --project $Project
   if($LASTEXITCODE -ne 0){throw "Dienstkonto konnte nicht erstellt werden"}
+}else{
+  Write-Host "CRM-Dienstkonto bereits vorhanden."
 }
 & gcloud.cmd projects add-iam-policy-binding $Project --member "serviceAccount:$serviceAccount" --role roles/datastore.user --quiet | Out-Null
 if($LASTEXITCODE -ne 0){throw "Firestore-Berechtigung fehlgeschlagen"}
-& gcloud.cmd secrets describe $secretName --project $Project --format="value(name)" 2>$null | Out-Null
-if($LASTEXITCODE -ne 0){
+# Likewise, use a successful list operation instead of a failing 'describe'.
+# Never print the secret value. This is safe to rerun after a partial deploy.
+$secretNames=@(& gcloud.cmd secrets list --project $Project --format="value(name)")
+if($LASTEXITCODE -ne 0){throw "Secret Manager konnte nicht aufgelistet werden (Berechtigungen pruefen)"}
+$hasSecret=@($secretNames | Where-Object {
+  $_ -eq $secretName -or $_ -eq ("projects/$Project/secrets/$secretName")
+}).Count -gt 0
+if(-not $hasSecret){
+  Write-Host "CRM-Verbindungsschluessel fehlt: wird jetzt erstellt."
   $bytes=New-Object byte[] 48
   $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
   try{$rng.GetBytes($bytes)}finally{$rng.Dispose()}
@@ -33,6 +46,7 @@ if($LASTEXITCODE -ne 0){
     if($LASTEXITCODE -ne 0){throw "Secret Manager konnte den Schlüssel nicht speichern"}
   }finally{Remove-Item $tmp -ErrorAction SilentlyContinue}
 }else{
+  Write-Host "CRM-Verbindungsschluessel bereits vorhanden; wird wiederverwendet."
   $intakeSecret=(& gcloud.cmd secrets versions access latest --secret $secretName --project $Project).Trim()
   if($LASTEXITCODE -ne 0){throw "Schlüssel konnte nicht gelesen werden"}
 }

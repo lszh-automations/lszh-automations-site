@@ -50,6 +50,62 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field.wide{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+
+/* CRM V2 command center */
+.dashboard-area{display:grid;gap:18px}
+.dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
+.dash-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;min-width:0;overflow:hidden}
+.dash-panel-header{padding:22px 24px 17px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border)}
+.dash-panel-header h2{font-size:18px;line-height:1.3;letter-spacing:-.02em}
+.dash-panel-header p{font-size:12px;line-height:1.45;color:var(--muted);margin:5px 0 0}
+.dash-panel-body{padding:13px 24px 22px}
+.dash-intro{padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #2d4660;border-radius:16px;background:linear-gradient(120deg,rgba(31,59,87,.68),rgba(18,31,48,.75))}
+.dash-intro strong{display:block;font-size:18px;letter-spacing:-.02em;margin:2px 0}
+.dash-intro p{color:#b2c3d8;margin:3px 0 0;font-size:12px}
+.dash-meta{padding:9px 12px;border:1px solid #39546f;border-radius:99px;color:#c9e9fb;font-size:11px;white-space:nowrap}
+.kpi.dash-kpi{width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.kpi.dash-kpi:hover{background:#192737;border-color:#40627e;transform:translateY(-2px)}
+.kpi.dash-kpi:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.dash-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dash-kpi-arrow{color:#81c9ef;font-size:17px}
+.kpi.dash-kpi strong{font-size:clamp(23px,2.2vw,30px);white-space:nowrap}
+.dash-kpi-note{display:block;color:#819ab3;font-size:11px;line-height:1.35}
+.dash-task,.dash-lead{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--text);padding:14px 12px;cursor:pointer}
+.dash-task + .dash-task,.dash-lead + .dash-lead{border-top:1px solid var(--border);border-top-left-radius:0;border-top-right-radius:0}
+.dash-task:hover,.dash-lead:hover{background:#1c2b3e;border-color:#304b68}
+.dash-task strong,.dash-lead strong{display:block;font-size:13px;line-height:1.35}
+.dash-task small,.dash-lead small{display:block;color:var(--muted);font-size:11px;margin-top:5px;line-height:1.45}
+.dash-task-icon{flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:#abdbfb;background:#203a52;font-size:17px;font-weight:800}
+.dash-task-content{flex:1;min-width:0}
+.dash-task-next{font-size:11px;font-weight:700;color:#9ed9fb;white-space:nowrap}
+.dash-lead-info{min-width:0}
+.dash-lead-side{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.dash-open{font-size:11px;color:#9ed9fb;font-weight:700}
+.dash-empty{padding:22px 8px;color:var(--muted);font-size:13px}
+.dash-empty strong{display:block;color:var(--text);font-size:15px;margin-bottom:6px}
+.dash-pipeline-row{display:grid;grid-template-columns:104px minmax(0,1fr) 25px;align-items:center;gap:12px;margin:15px 0}
+.dash-pipeline-label{font-size:12px;color:#c9d7e5;white-space:nowrap}
+.dash-pipeline-track{height:9px;border-radius:20px;background:#202e3e;overflow:hidden}
+.dash-pipeline-fill{height:100%;border-radius:20px;background:#81bff4;min-width:0}
+.dash-pipeline-fill.stage-1{background:#7aa7e5}.dash-pipeline-fill.stage-2{background:#64cfaa}.dash-pipeline-fill.stage-3{background:#7d8799}
+.dash-pipeline-value{font-size:12px;font-weight:700;text-align:right}
+.dash-finance{display:grid;gap:0}
+.dash-finance-item{padding:13px 0;display:flex;align-items:baseline;justify-content:space-between;gap:15px;border-bottom:1px solid var(--border)}
+.dash-finance-item:last-child{border-bottom:0}
+.dash-finance-item span{color:#b8c9dc;font-size:12px}
+.dash-finance-item strong{font-size:17px;letter-spacing:-.025em;white-space:nowrap}
+.dash-finance-note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}
+@media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
+@media(max-width:700px){
+ .dashboard-area{gap:12px}.dash-grid{gap:12px}
+ .dash-intro{padding:18px;align-items:flex-start;flex-direction:column}
+ .dash-panel-header{padding:19px 18px 13px}.dash-panel-body{padding:10px 13px 18px}
+ .dash-task,.dash-lead{padding:13px 7px}
+ .dash-task-next,.dash-open{display:none}
+ .dash-pipeline-row{grid-template-columns:86px minmax(0,1fr) 22px;gap:9px}
+ .kpi.dash-kpi strong{font-size:23px}
+}
+
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:720px){.layout{display:block}aside{padding:14px;gap:13px}.brand{padding:0 4px}nav{display:flex;overflow:auto}.nav-caption,.aside-bottom{display:none}nav button{white-space:nowrap;min-width:max-content}main{padding:22px 14px}.kpis{grid-template-columns:repeat(2,1fr)}.toolbar{padding:16px}.search{width:100%}#editorForm{grid-template-columns:1fr}.field{grid-column:1/-1}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -66,8 +122,9 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 <div id="workspace" class="layout" hidden>
   <aside>
     <div class="brand"><div class="mark">L</div><div><strong>LSZH</strong><small>AUTOMATIONS CRM</small></div></div>
-    <div><div class="nav-caption">Register</div><nav id="nav" aria-label="CRM Register">
-      <button data-tab="leads" class="active"><span class="nav-icon">◈</span>Website Leads</button>
+    <div><div class="nav-caption">Arbeitsbereich</div><nav id="nav" aria-label="CRM Navigation">
+      <button data-tab="dashboard" class="active"><span class="nav-icon">▦</span>Dashboard</button>
+      <button data-tab="leads"><span class="nav-icon">◈</span>Website Leads</button>
       <button data-tab="kunden"><span class="nav-icon">◎</span>Kunden</button>
       <button data-tab="offerten"><span class="nav-icon">▤</span>Offerten</button>
       <button data-tab="rechnungen"><span class="nav-icon">▣</span>Rechnungen</button>
@@ -77,11 +134,12 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   </aside>
   <main>
     <div class="head">
-      <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Website Leads</h1><p id="pageDesc" class="sub"></p></div>
+      <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Dashboard</h1><p id="pageDesc" class="sub"></p></div>
       <div class="identity"><span id="who"></span><button class="btn" id="logout">Abmelden</button></div>
     </div>
     <div class="kpis" id="kpis"></div>
-    <section class="panel">
+    <div id="dashboardArea" class="dashboard-area"></div>
+    <section class="panel" id="recordsPanel" hidden>
       <div class="toolbar">
         <div><h2 id="listTitle">Website Leads</h2><p id="listHint"></p></div>
         <div style="display:flex;flex-wrap:wrap;gap:10px"><input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button></div>
@@ -115,7 +173,7 @@ const definitions={
 };
 const statuses={leads:['Neu','In Prüfung','Qualifiziert','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'leads',records:{},editing:null};
+const state={token:'',tab:'dashboard',records:{},editing:null};
 const $=id=>document.getElementById(id);
 function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
 async function api(path,options={}) {

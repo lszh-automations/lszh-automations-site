@@ -289,6 +289,8 @@ async function handle(req,res){
       if(!lead)throw error('Verknüpfter Lead nicht gefunden');
       if(lead.status!=='Qualifiziert')
         throw error('Lead zuerst qualifizieren, bevor eine Offerte erstellt wird');
+      if(linkedOffers(db,lead).length)
+        throw error('Für diesen Lead existiert bereits eine Offerte');
     }
     const now=new Date().toISOString();
     const requestedStatus=data.status||STATUSES[tab][0];
@@ -318,9 +320,11 @@ async function handle(req,res){
       if(lead.status!=='Qualifiziert' && lead.status!=='Gewonnen')
         throw error('Lead zuerst qualifizieren, bevor eine Offerte zugeordnet wird');
     }
+    const requestedStatus=Object.hasOwn(updates,'status')?updates.status:null;
+    if(tab==='leads')delete updates.status; // preserve prior state for transition side effects
     Object.assign(record,updates,{updatedAt:now});
-    if(tab==='leads' && Object.hasOwn(updates,'status'))setLeadStatus(db,record,updates.status,now);
-    if(tab==='offerten' && Object.hasOwn(updates,'status'))setOfferStatus(db,record,updates.status,now);
+    if(tab==='leads' && requestedStatus!==null)setLeadStatus(db,record,requestedStatus,now);
+    if(tab==='offerten' && requestedStatus!==null)setOfferStatus(db,record,requestedStatus,now);
     save(db);
     return reply(res,200,{record});
   }

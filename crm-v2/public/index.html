@@ -552,8 +552,8 @@ function makeField(key,label,type,value) {
   }
   control.name=key;
   control.value=value==null?(key==='country'?'Schweiz':''):String(value);
-  if(['company','name','email','title','description'].includes(key)){
-    if((state.tab==='leads' && ['name','company','email'].includes(key))||
+  if(['company','name','email','street','postalCode','city','country','title','description'].includes(key)){
+    if((state.tab==='leads' && ['name','company','email','street','postalCode','city','country'].includes(key))||
        (state.tab==='kunden' && key==='company')||
        (state.tab==='offerten' && key==='title')||
        (state.tab==='rechnungen' && key==='description')||

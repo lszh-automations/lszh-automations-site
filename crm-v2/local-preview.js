@@ -10,7 +10,7 @@ const crypto = require('node:crypto');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
-const DIR = path.join(__dirname, '.local-preview');
+const DIR = process.env.LSZH_LOCAL_PREVIEW_DIR ? path.resolve(process.env.LSZH_LOCAL_PREVIEW_DIR) : path.join(__dirname, '.local-preview');
 const FILE = path.join(DIR, 'data.json');
 const UI = path.join(__dirname, 'public', 'index.html');
 const TABLES = ['leads', 'kunden', 'offerten', 'rechnungen', 'projekte'];
@@ -161,6 +161,9 @@ function previewHtml(){
   html=html.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>','');
   html=html.replace(loginAnchor,loginAnchor+"\n    if(config.localDemo){await signedIn('local-demo');return;}");
   html=html.replace(logoutAnchor,"window.google?.accounts?.id?.disableAutoSelect?.();");
+  html=html.replace("state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;","window.location.reload();return;");
+  html=html.replace('<button class="btn" id="logout">Abmelden</button>','<button class="btn" id="logout">Neu laden</button>');
+  html=html.replace('<title>LSZH CRM – Intern</title>','<title>LSZH CRM – Lokale Testversion</title>');
   html=html.replace('<main>\n    <div class="head">',
     '<main>\n    <div role="status" style="margin-bottom:20px;padding:13px 17px;border:1px solid #d4aa65;border-radius:12px;background:#392b1b;color:#ffe3ae;font-weight:750">LOKALE TESTVERSION · Nur Beispieldaten · Keine Verbindung zu Firestore, Make oder der öffentlichen Website</div>\n    <div class="head">');
   html=html.replace('Alle neuen Anfragen aus dem Website-Formular.','Lokale Beispieldaten – keine echten Website-Anfragen.');

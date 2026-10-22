@@ -115,6 +115,8 @@ test('repairs only untouched old demo fixtures and preserves user edits',async()
     assert.equal(migrated.kunden[0].company,'Demo Büro AG');
     assert.equal(migrated.leads[0].company,'Muster Sanitär AG');
     assert.equal(migrated.offerten.length,1);
+    assert.equal(migrated.projekte[0].offerId,'');
+    assert.equal(migrated.projekte[0].customerId,'test-customer-1');
     // A user-customized example must NOT be silently overwritten.
     const custom=previousFixture();
     custom.offerten[0].title='Kundenofferte – von mir bearbeitet';

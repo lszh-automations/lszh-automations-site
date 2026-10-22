@@ -27,7 +27,7 @@ function verified(offer,fields){
     fail('invalid_accepted_source');
   if(fields.Offertennummer!==offer.offerNumber||
      fields['Online-Annahme Token-Hash']!==offer.tokenHash||
-     fields['Projektbedingungen Version']!==offer.termsVersion||
+     ![offer.termsVersion,'v'+offer.termsVersion].includes(fields['Projektbedingungen Version'])||
      choice(fields['AVV erforderlich'])!==docs.avv_required||
      fields['Online-Annahme rechtlich freigegeben']!==true||
      fields['Echtbetrieb – kein Test']!==true||

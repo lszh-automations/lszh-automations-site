@@ -247,7 +247,10 @@ function navigateTo(tab,record){
   state.tab=tab;
   $('search').value='';
   render();
-  if(record)openEditor(record);
+  if(record){
+    if(tab==='leads')openLeadDetail(record);
+    else openEditor(record);
+  }
 }
 function dashboardPanel(title,description){
   const panel=el('section','dash-panel'),head=el('div','dash-panel-header');
@@ -405,9 +408,133 @@ function render(){
       row.append(td);
     }
     const td=el('td'),edit=el('button','link-btn','Bearbeiten');
-    edit.type='button';edit.addEventListener('click',()=>openEditor(rec));td.append(edit);row.append(td);tbody.append(row);
+    edit.type='button';
+    if(state.tab==='leads'){
+      edit.textContent='Öffnen';
+      edit.addEventListener('click',()=>openLeadDetail(rec));
+    }else edit.addEventListener('click',()=>openEditor(rec));
+    td.append(edit);row.append(td);tbody.append(row);
   }
   table.append(tbody);wrap.append(table);area.append(wrap);
+}
+
+function leadOffers(leadId){
+  return (state.records.offerten||[]).filter(x=>x.leadId===leadId)
+    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+}
+function leadCustomer(lead){
+  const normalized=x=>String(x||'').trim().toLocaleLowerCase('de-CH');
+  return (state.records.kunden||[]).find(c=>
+    (lead.email&&normalized(c.email)===normalized(lead.email))||
+    (lead.company&&normalized(c.company)===normalized(lead.company)));
+}
+function detailGroup(root,title,fields){
+  const group=el('section','lead-detail-group');
+  group.append(el('h3','',title));
+  const grid=el('div','lead-detail-grid');
+  for(const [label,value] of fields){
+    const cell=el('div','lead-detail-cell');
+    cell.append(el('span','lead-detail-label',label),
+      el('div','lead-detail-value',value==null||String(value).trim()===''?'–':String(value)));
+    grid.append(cell);
+  }
+  group.append(grid);root.append(group);
+}
+function detailAction(container,label,callback,primary=false){
+  const button=el('button','btn'+(primary?' primary':''));
+  button.type='button';button.textContent=label;
+  button.addEventListener('click',async()=>{
+    button.disabled=true;
+    $('leadDetailError').hidden=true;
+    try{await callback();}
+    catch(err){
+      $('leadDetailError').textContent='Aktion fehlgeschlagen: '+err.message;
+      $('leadDetailError').hidden=false;
+    }finally{button.disabled=false;}
+  });
+  container.append(button);
+}
+function openLeadDetail(record){
+  const lead=(state.records.leads||[]).find(x=>x.id===record.id)||record;
+  $('leadDetail').showModal();
+  renderLeadDetail(lead);
+}
+function renderLeadDetail(lead){
+  $('leadDetailTitle').textContent=lead.company||lead.name||'Lead';
+  $('leadDetailError').hidden=true;
+  const body=$('leadDetailBody'),actions=$('leadDetailActions');
+  body.replaceChildren();actions.replaceChildren();
+  const status=el('div','lead-status');
+  status.append(el('span','badge'+(lead.status==='Qualifiziert'?' success':''),lead.status||'Neu'));
+  status.append(el('span','lead-status-hint','Eine Anfrage – ein klarer nächster Schritt.'));
+  body.append(status);
+  detailGroup(body,'Geschäftliche Angaben',[
+    ['Firma',lead.company],['Ansprechpartner',lead.name],
+    ['E-Mail',lead.email],['Geschäftsadresse',
+      [lead.street,[lead.postalCode,lead.city].filter(Boolean).join(' '),lead.country].filter(Boolean).join('\n')]
+  ]);
+  detailGroup(body,'Anliegen',[
+    ['Wunsch',lead.message],['Heutiger Ablauf',lead.currentProcess],
+    ['Eingesetzte Systeme',lead.systems],['Grösstes Problem',lead.mainProblem],
+    ['Häufigkeit',lead.frequency],['Gewünschtes Ergebnis',lead.desiredResult]
+  ]);
+  const offers=leadOffers(lead.id);
+  const accepted=offers.find(o=>o.status==='Angenommen');
+  const existingCustomer=leadCustomer(lead);
+  const offer=offers[0];
+  if(offer){
+    detailGroup(body,'Offerte',[
+      ['Nummer',offer.number],['Status',offer.status],
+      ['Bezeichnung',offer.title]
+    ]);
+  }
+  if(accepted&&existingCustomer){
+    detailAction(actions,'Kunde öffnen',()=>{
+      $('leadDetail').close();
+      navigateTo('kunden',existingCustomer);
+    },true);
+  }else if(accepted&&!existingCustomer){
+    detailAction(actions,'Als Kunde übernehmen',async()=>{
+      const customer={
+        company:lead.company,contactName:lead.name,email:lead.email,
+        street:lead.street,postalCode:lead.postalCode,city:lead.city,
+        country:lead.country,notes:'Übernommen aus Website-Lead',status:'Aktiv'
+      };
+      await api('/api/records/kunden',{method:'POST',body:JSON.stringify(customer)});
+      await loadAll();
+      const created=leadCustomer(lead);
+      $('leadDetail').close();
+      navigateTo('kunden',created);
+    },true);
+  }else if(offer){
+    detailAction(actions,'Offerte öffnen',()=>{
+      $('leadDetail').close();
+      navigateTo('offerten',offer);
+    },true);
+  }else if(lead.status==='Qualifiziert'){
+    detailAction(actions,'Offerte vorbereiten',()=>{
+      $('leadDetail').close();
+      navigateTo('offerten');
+      openEditor(null,{
+        leadId:lead.id,title:'Automation für '+(lead.company||lead.name),
+        description:lead.message||'',status:'Entwurf'
+      });
+    },true);
+  }else if(lead.status==='Neu'||lead.status==='In Prüfung'){
+    detailAction(actions,'Qualifizieren',async()=>{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify({status:'Qualifiziert'})
+      });
+      await loadAll();
+      const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
+      if(updated)renderLeadDetail(updated);
+    },true);
+  }
+  detailAction(actions,'Bearbeiten',()=>{
+    $('leadDetail').close();
+    navigateTo('leads');
+    openEditor(lead);
+  });
 }
 function makeField(key,label,type,value) {
   const wrap=el('label','field'+(type==='textarea'?' wide':'')),caption=el('span','',label);wrap.append(caption);
@@ -434,12 +561,13 @@ function makeField(key,label,type,value) {
   }
   wrap.append(control);return wrap;
 }
-function openEditor(record=null) {
+function openEditor(record=null,draft=null) {
   state.editing=record;
   $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
   const form=$('editorForm');
   form.replaceChildren();
-  for(const [key,label,type] of definitions[state.tab].fields)form.append(makeField(key,label,type,record?.[key]));
+  for(const [key,label,type] of definitions[state.tab].fields)
+    form.append(makeField(key,label,type,record?.[key] ?? draft?.[key]));
   const actions=el('div','form-actions');
   const cancel=el('button','btn','Abbrechen');cancel.type='button';cancel.addEventListener('click',()=>$('editor').close());
   const save=el('button','btn primary','Speichern');save.type='submit';save.id='save';
@@ -477,6 +605,7 @@ $('nav').addEventListener('click',event=>{
 $('search').addEventListener('input',render);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
+$('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
 $('editorForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=$('editorForm'),data=Object.fromEntries(new FormData(form).entries());

@@ -104,6 +104,8 @@ test('repairs only untouched old demo fixtures and preserves user edits',async()
     });
     fixture.offerten[0].leadId='test-lead-1';
     fixture.offerten[0].title='TEST: Offertenautomation';
+    fixture.projekte[0].offerId='test-offer-1';
+    fixture.projekte[0].title='TEST: Musterprojekt';
     return fixture;
   }
   try{

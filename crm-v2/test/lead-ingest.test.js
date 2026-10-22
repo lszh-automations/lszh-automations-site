@@ -45,10 +45,14 @@ test('rejects missing mandatory data and bad email',()=>{
   assert.throws(()=>prepareWebsiteLead({...sample(),message:''}),/missing_message/);
   assert.throws(()=>prepareWebsiteLead({...sample(),submission_id:'not-a-uuid'}),/invalid_submission_id/);
 });
-test('validates optional field types and maximum lengths',()=>{
+test('requires all business address fields and enforces length limits',()=>{
   assert.throws(()=>prepareWebsiteLead({...sample(),street:{nested:1}}),/invalid_street/);
   assert.throws(()=>prepareWebsiteLead({...sample(),postal_code:'A'.repeat(17)}),/too_long_postal_code/);
-  assert.equal(prepareWebsiteLead({...sample(),country:''}).data.country,'Schweiz');
+  for(const key of ['street','postal_code','city','country']){
+    assert.throws(()=>prepareWebsiteLead({...sample(),[key]:''}),new RegExp('missing_'+key));
+    const missing=sample();delete missing[key];
+    assert.throws(()=>prepareWebsiteLead(missing),new RegExp('missing_'+key));
+  }
 });
 test('persists one lead and confirms retry without duplication',async()=>{
   const {db,documents}=fakeDb();

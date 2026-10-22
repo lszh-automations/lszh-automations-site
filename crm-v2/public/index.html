@@ -50,6 +50,19 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field.wide{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+.lead-dialog{width:min(740px,calc(100vw - 30px))}
+.lead-detail-body{padding:22px 24px;max-height:min(60vh,590px);overflow:auto}
+.lead-status{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.lead-status-hint{color:var(--muted);font-size:12px}
+.lead-detail-group{margin:22px 0 0}
+.lead-detail-group h3{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#a3c7e7;margin:0 0 10px}
+.lead-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.lead-detail-cell{min-width:0;padding:13px 15px;border-radius:10px;background:#172231;border:1px solid #293b50}
+.lead-detail-label{display:block;color:#9caabd;font-size:11px;margin-bottom:5px}
+.lead-detail-value{font-size:13px;color:#eff6ff;white-space:pre-wrap;overflow-wrap:anywhere}
+.lead-detail-actions{border-top:1px solid var(--border);padding:20px 24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.lead-detail-error{padding:0 24px 20px;margin:0;color:#ffb6ad;font-size:13px}
+@media(max-width:700px){.lead-detail-grid{grid-template-columns:1fr}.lead-detail-body{padding:16px}.lead-detail-actions{padding:16px;justify-content:stretch}.lead-detail-actions .btn{flex:1}}
 
 /* CRM V2 command center */
 .dashboard-intro-wrapper{margin-bottom:20px}
@@ -153,6 +166,15 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 <dialog id="editor">
   <div class="modal-head"><h2 id="editorTitle">Eintrag</h2><button class="btn" id="close" type="button" aria-label="Schliessen">✕</button></div>
   <form id="editorForm"><div class="form-actions"><button class="btn" id="cancel" type="button">Abbrechen</button><button class="btn primary" id="save" type="submit">Speichern</button></div></form>
+</dialog>
+<dialog id="leadDetail" class="lead-dialog" aria-labelledby="leadDetailTitle">
+  <div class="modal-head">
+    <div><span class="eyebrow">WEBSITE-ANFRAGE</span><h2 id="leadDetailTitle">Lead</h2></div>
+    <button class="btn" id="leadDetailClose" type="button" aria-label="Schliessen">✕</button>
+  </div>
+  <div id="leadDetailBody" class="lead-detail-body"></div>
+  <div class="lead-detail-actions" id="leadDetailActions"></div>
+  <p id="leadDetailError" class="lead-detail-error" role="alert" hidden></p>
 </dialog>
 <script>
 'use strict';

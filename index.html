@@ -839,7 +839,16 @@ select option{color:#111;background:#fff}
         <label>Name<input type="text" name="name" placeholder="Max Muster" required></label>
         <label>Firma<input type="text" name="company" placeholder="Muster AG" required></label>
       </div>
-      <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required></label>
+      <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required autocomplete="email"></label>
+      <p style="font-weight:650;margin:15px 0 6px">Geschäftsadresse <span class="optional">Optional – für die spätere Offerte</span></p>
+      <div class="field-grid">
+        <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180"></label>
+        <label>PLZ<input type="text" name="postal_code" placeholder="5610" autocomplete="postal-code" maxlength="16"></label>
+      </div>
+      <div class="field-grid">
+        <label>Ort<input type="text" name="city" placeholder="Wohlen" autocomplete="address-level2" maxlength="120"></label>
+        <label>Land<input type="text" name="country" value="Schweiz" autocomplete="country-name" maxlength="80"></label>
+      </div>
       <label>Was möchten Sie automatisieren oder verbessern?
         <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
       </label>
@@ -1013,7 +1022,7 @@ const legalTexts={
     <p>Datenschutzanfragen können an <a href="mailto:datenschutz@lszh-automations.ch">datenschutz@lszh-automations.ch</a> oder postalisch an die oben genannte Adresse gerichtet werden.</p>
 
     <h3>2. Welche Daten wir über diese Website bearbeiten</h3>
-    <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
+    <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, eine freiwillig angegebene Geschäftsadresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
     <p>Wir verwenden diese Angaben ausschliesslich zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit.</p>
 
     <h3>3. Eingesetzte Dienstleister</h3>

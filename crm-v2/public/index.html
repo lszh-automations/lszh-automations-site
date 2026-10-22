@@ -574,7 +574,9 @@ function makeField(key,label,type,value) {
     control=el('select');
     const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
-      ...(state.records[type]||[]).map(r=>({value:r.id,label:titleOf(type,r)}))
+      ...(state.records[type]||[])
+        .filter(r=>type!=='leads'||state.tab!=='offerten'||r.status==='Qualifiziert'||r.id===value)
+        .map(r=>({value:r.id,label:titleOf(type,r)}))
     ];
     for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
   } else {control=el('input');control.type=type==='date'?'date':type==='number'?'number':type==='email'?'email':'text';

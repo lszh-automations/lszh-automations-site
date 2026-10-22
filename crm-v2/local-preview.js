@@ -7,6 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const {LEAD_STATES,linkedOffers,makeDraft,setLeadStatus,setOfferStatus,queueReminderPreviews}=require('./lead-lifecycle');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
@@ -35,7 +36,7 @@ const FIELDS = {
   projekte: ['customerId','offerId','title','description','dueDate','status']
 };
 const STATUSES = {
-  leads: ['Neu','In Prüfung','Qualifiziert','Verloren'],
+  leads: LEAD_STATES,
   kunden: ['Aktiv','Inaktiv'],
   offerten: ['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],
   rechnungen: ['Entwurf','Offen','Bezahlt','Storniert'],
@@ -64,7 +65,7 @@ function seedData() {
         message:'TEST: Termine besser organisieren.',
         currentProcess:'TEST: Buchungen per Telefon.',systems:'Kalender',
         mainProblem:'Fehlende Übersicht',frequency:'Mehrmals täglich',
-        desiredResult:'Terminübersicht',status:'Qualifiziert',createdAt:t,updatedAt:t
+        desiredResult:'Terminübersicht',status:'Kontaktiert',createdAt:t,updatedAt:t
       }
     ],
     kunden: [
@@ -142,7 +143,18 @@ function store() {
   const data=JSON.parse(fs.readFileSync(FILE,'utf8'));
   if(data.version!==1 || TABLES.some(k=>!Array.isArray(data[k])))
     throw new Error('Lokale CRM-Testdatei hat ein unbekanntes Format; sie wurde nicht überschrieben.');
-  return reconcileDemoFixtures(data);
+  const ready=reconcileDemoFixtures(data);
+  let additions=0;
+  const now=new Date().toISOString();
+  for(const lead of ready.leads){
+    if(lead.status==='Qualifiziert' && !linkedOffers(ready,lead).length){
+      makeDraft(ready,lead,now);
+      additions++;
+    }
+  }
+  additions+=queueReminderPreviews(ready,now);
+  if(additions)save(ready);
+  return ready;
 }
 function save(data) {
   fs.mkdirSync(DIR,{recursive:true,mode:0o700});
@@ -253,6 +265,10 @@ async function handle(req,res){
     return reply(res,200,{version:liveVersion()});
   if(req.method==='GET'&&url.pathname==='/api/config')return reply(res,200,{localDemo:true});
   if(req.method==='GET'&&url.pathname==='/api/me')return reply(res,200,{email:'Lokale Testversion'});
+  if(req.method==='GET'&&url.pathname==='/api/reminders'){
+    const db=store();
+    return reply(res,200,{reminders:db.reminderPreviews||[],mode:'preview_only_not_sent'});
+  }
   const parts=url.pathname.split('/').filter(Boolean);
   if(parts[0]!=='api'||parts[1]!=='records'||parts.length>4||!TABLES.includes(parts[2]))
     return reply(res,404,{error:'Nicht gefunden'});
@@ -275,10 +291,15 @@ async function handle(req,res){
         throw error('Lead zuerst qualifizieren, bevor eine Offerte erstellt wird');
     }
     const now=new Date().toISOString();
-    const record={...data,id:'local-'+crypto.randomUUID(),status:data.status||STATUSES[tab][0],createdAt:now,updatedAt:now};
+    const requestedStatus=data.status||STATUSES[tab][0];
+    const record={...data,id:'local-'+crypto.randomUUID(),status:STATUSES[tab][0],createdAt:now,updatedAt:now};
     if(tab==='offerten')record.number=String(db.nextOffer++);
     if(tab==='rechnungen')record.number='RE-'+String(db.nextInvoice++);
-    db[tab].push(record);save(db);
+    db[tab].push(record);
+    if(tab==='leads')setLeadStatus(db,record,requestedStatus,now);
+    else if(tab==='offerten')setOfferStatus(db,record,requestedStatus,now);
+    else record.status=requestedStatus;
+    save(db);
     return reply(res,201,{record});
   }
   if(req.method==='PATCH'&&id){
@@ -286,9 +307,21 @@ async function handle(req,res){
     if(idx<0)return reply(res,404,{error:'Eintrag nicht gefunden'});
     const updates=clean(tab,body);
     if(!Object.keys(updates).length)throw error('Keine Änderung');
-    const record={...db[tab][idx],...updates,updatedAt:new Date().toISOString()};
-    validate(tab,record);
-    db[tab][idx]=record;save(db);
+    const now=new Date().toISOString();
+    const record=db[tab][idx];
+    const merged={...record,...updates,updatedAt:now};
+    validate(tab,merged);
+    // Apply the linked status transition to all local records before one save.
+    if(tab==='offerten' && Object.hasOwn(updates,'leadId') && updates.leadId){
+      const lead=db.leads.find(x=>x.id===updates.leadId);
+      if(!lead)throw error('Verknüpfter Lead nicht gefunden');
+      if(lead.status!=='Qualifiziert' && lead.status!=='Gewonnen')
+        throw error('Lead zuerst qualifizieren, bevor eine Offerte zugeordnet wird');
+    }
+    Object.assign(record,updates,{updatedAt:now});
+    if(tab==='leads' && Object.hasOwn(updates,'status'))setLeadStatus(db,record,updates.status,now);
+    if(tab==='offerten' && Object.hasOwn(updates,'status'))setOfferStatus(db,record,updates.status,now);
+    save(db);
     return reply(res,200,{record});
   }
   return reply(res,405,{error:'Methode nicht erlaubt'});
@@ -307,6 +340,10 @@ if(require.main===module) {
     console.error('Lokale CRM-Vorschau konnte nicht starten:',err.message);
     process.exitCode=1;
   });
+  // When no browser is open, overdue new leads are still queued in the LOCAL
+  // preview outbox. Real mail delivery is intentionally not implemented.
+  const timer=setInterval(()=>{try{store();}catch(e){console.error('CRM test reminder:',e.message)}},60000);
+  timer.unref();
   server.listen(PORT,HOST,()=>{
     console.log('LSZH CRM – LOKALE TESTVERSION');
     console.log('Öffnen: http://'+HOST+':'+PORT);

@@ -1,0 +1,577 @@
+[
+  {
+    "id": 1,
+    "module": "scenario-service:StartSubscenario",
+    "version": 2,
+    "root": "main",
+    "config": {
+      "parameters": {},
+      "mapper": {}
+    }
+  },
+  {
+    "id": 2,
+    "module": "airtable:makeApiCall",
+    "version": 3,
+    "follows": 1,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11101358
+      },
+      "mapper": {
+        "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recZzNiq1LLmCOjNT",
+        "method": "GET"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "module": "google-cloud-firestore:getDocument",
+    "version": 1,
+    "follows": 2,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 12158299
+      },
+      "mapper": {
+        "input_type": "manual",
+        "full_path": "projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_staging_offers_v1/6c2b8c51cc88d19973ebea329f035de04fa866925b3c331b28555481438143b1"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "module": "google-drive:getAFile",
+    "version": 4,
+    "follows": 3,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "select": "map",
+        "file": "1wv1KNPopuFlfztNTxm8i_dl7h7lmDDPR",
+        "formatDocuments": "application/pdf",
+        "formatSpreadsheets": "application/pdf",
+        "formatPresentations": "application/pdf",
+        "formatDrawings": "application/pdf"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "module": "google-drive:getAFile",
+    "version": 4,
+    "follows": 4,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "select": "map",
+        "file": "1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO",
+        "formatDocuments": "application/pdf",
+        "formatSpreadsheets": "application/pdf",
+        "formatPresentations": "application/pdf",
+        "formatDrawings": "application/pdf"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "module": "google-drive:getAFile",
+    "version": 4,
+    "follows": 5,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "select": "map",
+        "file": "1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es",
+        "formatDocuments": "application/pdf",
+        "formatSpreadsheets": "application/pdf",
+        "formatPresentations": "application/pdf",
+        "formatDrawings": "application/pdf"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "module": "google-drive:makeApiCall",
+    "version": 4,
+    "follows": 6,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "url": "/v3/files/1wv1KNPopuFlfztNTxm8i_dl7h7lmDDPR",
+        "method": "GET",
+        "qs": [
+          {
+            "key": "fields",
+            "value": "id,mimeType,size,sha256Checksum,parents,contentRestrictions"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 8,
+    "module": "google-drive:makeApiCall",
+    "version": 4,
+    "follows": 7,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "url": "/v3/files/1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO",
+        "method": "GET",
+        "qs": [
+          {
+            "key": "fields",
+            "value": "id,mimeType,size,sha256Checksum,parents,contentRestrictions"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 9,
+    "module": "google-drive:makeApiCall",
+    "version": 4,
+    "follows": 8,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904271
+      },
+      "mapper": {
+        "url": "/v3/files/1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es",
+        "method": "GET",
+        "qs": [
+          {
+            "key": "fields",
+            "value": "id,mimeType,size,sha256Checksum,parents,contentRestrictions"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 10,
+    "module": "airtable:makeApiCall",
+    "version": 3,
+    "follows": 9,
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11101358
+      },
+      "mapper": {
+        "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recZzNiq1LLmCOjNT",
+        "method": "GET"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "module": "google-cloud-firestore:createDocument",
+    "version": 1,
+    "follows": 10,
+    "filter": {
+      "name": "Nur exakt bestätigter interner Test, unveränderte drei PDFs, keine Kundenfreigabe",
+      "conditions": [
+        [
+          {
+            "a": "{{10.body.id}}",
+            "b": "recZzNiq1LLmCOjNT",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.Offertennummer}}",
+            "b": "TEST_INTERNAL_LSZH_20261020_V2_NO_CONTRACT",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.Status}}",
+            "b": "Angenommen",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.`Online-Annahme E-Mail`}}",
+            "b": "lars@lszh-automations.ch",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.`Online-Annahme Person`}}",
+            "b": "Lars Schulthess",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.`Online-Annahme Zeitstempel`}}",
+            "b": "2026-10-20T19:47:02.018Z",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.`Online-Annahme Beleg Drive ID`}}",
+            "b": "1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.source.recordId}}",
+            "b": "recZzNiq1LLmCOjNT",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.source.internalPilot}}",
+            "b": "LSZH_INTERNAL_V2_20261020",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.status}}",
+            "b": "accepted",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.email}}",
+            "b": "lars@lszh-automations.ch",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.acceptedAt}}",
+            "b": "2026-10-20T19:47:02.018Z",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.quote_pdf_sha256}}",
+            "b": "318d8dda86272ef95528ac29db2a151c4cd4d7b0eeda18cbb4c7b345930d4c07",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.terms_pdf_sha256}}",
+            "b": "baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{10.body.fields.`Online-Annahme Bestätigung gesendet am`}}",
+            "o": "notexist"
+          },
+          {
+            "a": "{{10.body.fields.Übernommen}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{ifempty(10.body.fields.`Echtbetrieb – kein Test`; false)}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{ifempty(10.body.fields.`Online-Annahme rechtlich freigegeben`; false)}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{ifempty(10.body.fields.`Versand freigegeben`; false)}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{ifempty(10.body.fields.`Vertragsunterlagen versendet`; false)}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{ifempty(10.body.fields.`Online-Annahme Bestätigung in Bearbeitung`; false)}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.quote_confirmed}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.terms_confirmed}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.authorized_confirmed}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{3.fields.evidence.avv_required}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{10.body.fields.Kunde}}",
+            "o": "notexist"
+          },
+          {
+            "a": "{{10.body.fields.Auftrag}}",
+            "o": "notexist"
+          },
+          {
+            "a": "{{7.body.id}}",
+            "b": "1wv1KNPopuFlfztNTxm8i_dl7h7lmDDPR",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{7.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{7.body.sha256Checksum}}",
+            "b": "318d8dda86272ef95528ac29db2a151c4cd4d7b0eeda18cbb4c7b345930d4c07",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{7.body.parents[1]}}",
+            "b": "10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{7.body.contentRestrictions[1].readOnly}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{4.sha256Checksum}}",
+            "b": "318d8dda86272ef95528ac29db2a151c4cd4d7b0eeda18cbb4c7b345930d4c07",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{4.data}}",
+            "o": "exist"
+          },
+          {
+            "a": "{{8.body.id}}",
+            "b": "1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{8.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{8.body.sha256Checksum}}",
+            "b": "baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{8.body.parents[1]}}",
+            "b": "10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{8.body.contentRestrictions[1].readOnly}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{5.sha256Checksum}}",
+            "b": "baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{5.data}}",
+            "o": "exist"
+          },
+          {
+            "a": "{{9.body.id}}",
+            "b": "1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{9.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{9.body.sha256Checksum}}",
+            "b": "1297742e1a5a460db88df3f8ce9021f1ce1fd4a35c45863216e4ed01a3cf1404",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{9.body.parents[1]}}",
+            "b": "10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{9.body.contentRestrictions[1].readOnly}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{6.sha256Checksum}}",
+            "b": "1297742e1a5a460db88df3f8ce9021f1ce1fd4a35c45863216e4ed01a3cf1404",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{6.data}}",
+            "o": "exist"
+          }
+        ]
+      ]
+    },
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 12158299
+      },
+      "mapper": {
+        "input_type": "manual",
+        "full_path": "projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_internal_pilot_v2_mail_attempts",
+        "documentId": "recZzNiq1LLmCOjNT",
+        "fields": [
+          {
+            "fieldName": "purpose",
+            "valueType": "stringValue",
+            "value": "LSZH_INTERNAL_V2_MAIL_ONCE_NO_CONTRACT"
+          },
+          {
+            "fieldName": "recordId",
+            "valueType": "stringValue",
+            "value": "recZzNiq1LLmCOjNT"
+          },
+          {
+            "fieldName": "recipient",
+            "valueType": "stringValue",
+            "value": "lars@lszh-automations.ch"
+          },
+          {
+            "fieldName": "state",
+            "valueType": "stringValue",
+            "value": "RESERVED_NO_AUTOMATIC_RETRY"
+          },
+          {
+            "fieldName": "testOnly",
+            "valueType": "booleanValue",
+            "value": true
+          },
+          {
+            "fieldName": "receiptId",
+            "valueType": "stringValue",
+            "value": "1eRsrktam4-ocYHWmMN657DDK_Dm6T1Es"
+          },
+          {
+            "fieldName": "receiptSha256",
+            "valueType": "stringValue",
+            "value": "1297742e1a5a460db88df3f8ce9021f1ce1fd4a35c45863216e4ed01a3cf1404"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 12,
+    "module": "google-email:sendAnEmail",
+    "version": 4,
+    "follows": 11,
+    "filter": {
+      "name": "Nur nach eigener atomarer Testreservierung",
+      "conditions": [
+        [
+          {
+            "a": "{{11.name}}",
+            "b": "projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_internal_pilot_v2_mail_attempts/recZzNiq1LLmCOjNT",
+            "o": "text:equal"
+          }
+        ]
+      ]
+    },
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11904991
+      },
+      "mapper": {
+        "to": [
+          "lars@lszh-automations.ch"
+        ],
+        "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+        "cc": [],
+        "bcc": [],
+        "subject": "TEST_ONLY – LSZH Invest GmbH – Testannahme V2 – kein Vertrag",
+        "bodyType": "rawHtml",
+        "content": "<p>Hallo Lars</p><p>Die interne Testofferte <b>TEST_INTERNAL_LSZH_20261020_V2_NO_CONTRACT</b> wurde am 20.10.2026 um 21:47:02 Schweizer Zeit technisch bestätigt.</p><p><b>TEST_ONLY: kein Vertrag, keine Rechnung und keine Zahlung.</b> Die Beträge von CHF 1’500 einmalig und CHF 99 monatlich sind erfundene Testwerte.</p><p>Im Anhang: Testofferte, Testbedingungen und der unabhängig abgeglichene Testannahmebeleg. Keine AVV im internen Testpfad.</p><p>LSZH Automations</p>",
+        "attachments": [
+          {
+            "filename": "TEST_ONLY_Offerte_V2.pdf",
+            "data": "{{4.data}}"
+          },
+          {
+            "filename": "TEST_ONLY_Bedingungen_RC1.pdf",
+            "data": "{{5.data}}"
+          },
+          {
+            "filename": "TEST_ONLY_Annahmebeleg_V2.pdf",
+            "data": "{{6.data}}"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 13,
+    "module": "builtin:Commit",
+    "version": 1,
+    "parent": {
+      "moduleId": 12,
+      "kind": "errorHandler"
+    },
+    "label": "Bei unklarem Gmail-Ausgang stoppen; Reservierung behalten, nie automatisch wiederholen",
+    "config": {}
+  },
+  {
+    "id": 14,
+    "module": "airtable:makeApiCall",
+    "version": 3,
+    "follows": 12,
+    "filter": {
+      "name": "Nur bestätigte Gmail-Nachrichten-ID",
+      "conditions": [
+        [
+          {
+            "a": "{{12.id}}",
+            "o": "exist"
+          }
+        ]
+      ]
+    },
+    "config": {
+      "parameters": {
+        "__IMTCONN__": 11101358
+      },
+      "mapper": {
+        "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recZzNiq1LLmCOjNT",
+        "method": "PATCH",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": "{\"fields\":{\"Online-Annahme Bestätigung gesendet am\":\"{{formatDate(now; \\\"YYYY-MM-DDTHH:mm:ss.SSSZ\\\"; \\\"UTC\\\")}}\"}}"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "module": "scenario-service:ReturnData",
+    "version": 2,
+    "follows": 14,
+    "config": {
+      "parameters": {},
+      "mapper": {
+        "messageId": "{{12.id}}",
+        "sentAt": "{{14.body.fields.`Online-Annahme Bestätigung gesendet am`}}",
+        "recordId": "{{14.body.id}}"
+      }
+    }
+  }
+]

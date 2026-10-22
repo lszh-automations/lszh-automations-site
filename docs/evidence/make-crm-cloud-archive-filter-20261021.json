@@ -1,0 +1,45 @@
+{
+  "name": "Nur archiviertes Geschäfts-STAGING-PDF mit gleichem SHA-256 und Schreibschutz",
+  "conditions": [
+    [
+      {
+        "a": "{{1.id}}",
+        "o": "exist"
+      },
+      {
+        "a": "{{9.id}}",
+        "b": "{{11.body.id}}",
+        "o": "text:equal"
+      },
+      {
+        "a": "{{9.sha256Checksum}}",
+        "b": "{{11.body.sha256Checksum}}",
+        "o": "text:equal"
+      },
+      {
+        "a": "{{11.body.sha256Checksum}}",
+        "o": "exist"
+      },
+      {
+        "a": "{{11.body.mimeType}}",
+        "b": "application/pdf",
+        "o": "text:equal"
+      },
+      {
+        "a": "{{11.body.contentRestrictions[1].readOnly}}",
+        "b": "true",
+        "o": "text:equal"
+      },
+      {
+        "a": "{{10.statusCode}}",
+        "b": 200,
+        "o": "number:equal"
+      },
+      {
+        "a": "{{11.body.parents[1]}}",
+        "b": "1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in",
+        "o": "text:equal"
+      }
+    ]
+  ]
+}

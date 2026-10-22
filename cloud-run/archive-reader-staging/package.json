@@ -1,0 +1,11 @@
+{
+  "name": "lszh-archive-reader-staging",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0"
+  }
+}

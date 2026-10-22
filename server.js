@@ -71,7 +71,7 @@ function send(res, code, body, type='application/json; charset=utf-8') {
   const headers={
     'Content-Type': type,
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': res.getHeader('Referrer-Policy') || 'strict-origin-when-cross-origin',
     'X-Frame-Options': 'DENY',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
   };
@@ -112,6 +112,13 @@ async function proxy(req, res, envName) {
     delete payload.website;
     const r = await fetch(target, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:AbortSignal.timeout(15000)});
     if (!r.ok) return send(res, 502, JSON.stringify({error:'upstream_failed'}));
+    // A Make HTTP 200 can acknowledge a queued webhook without persisting the lead.
+    // Only the Airtable-created record receipt from WebhookRespond confirms success.
+    let receipt=null;
+    try { receipt=JSON.parse(await r.text()); } catch {}
+    if(receipt?.ok!==true || typeof receipt.record_id!=='string' ||
+       !/^rec[A-Za-z0-9]{14}$/.test(receipt.record_id))
+      return send(res, 502, JSON.stringify({error:'storage_not_confirmed'}));
     return send(res, 200, JSON.stringify({ok:true}));
   } catch (e) {
     if (e.message === 'too_large') return send(res, 413, JSON.stringify({error:'payload_too_large'}));
@@ -677,38 +684,54 @@ async function handleSecureSubmit(req,res) {
   }
 }
 
+// Public assets MUST be explicitly allowlisted: Render secret files are also
+// placed into the service root on native runtimes. Never serve files by path join.
+const PUBLIC_STATIC_PAGES = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/robots.txt', 'robots.txt'],
+  ['/onboarding', 'onboarding/index.html'],
+  ['/onboarding/', 'onboarding/index.html'],
+  ['/onboarding/index.html', 'onboarding/index.html'],
+  ['/make-start', 'make-start/index.html'],
+  ['/make-start/', 'make-start/index.html'],
+  ['/make-start/index.html', 'make-start/index.html'],
+  ['/offerte-annehmen', 'offerte-annehmen/index.html'],
+  ['/offerte-annehmen/', 'offerte-annehmen/index.html'],
+  ['/offerte-annehmen/index.html', 'offerte-annehmen/index.html'],
+  ['/secure', 'secure/index.html'],
+  ['/secure/', 'secure/index.html'],
+  ['/secure/index.html', 'secure/index.html'],
+  ['/secure-admin', 'secure-admin/index.html'],
+  ['/secure-admin/', 'secure-admin/index.html'],
+  ['/secure-admin/index.html', 'secure-admin/index.html']
+]);
 function staticFile(req, res) {
   let pathname;
-  try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
-  if (pathname === '/') pathname = '/index.html';
-  if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
-  if (pathname === '/offerte-annehmen' || pathname === '/offerte-annehmen/') pathname = '/offerte-annehmen/index.html';
-  if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
-  if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
-  if (pathname.startsWith('/offerte-annehmen/')) {
+  try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); }
+  catch { return send(res,400,'Bad request','text/plain'); }
+  const relative=PUBLIC_STATIC_PAGES.get(pathname);
+  if(!relative) return send(res,404,'Not found','text/plain');
+  if(relative.startsWith('offerte-annehmen/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  if (pathname.startsWith('/secure/')) {
+  if(relative.startsWith('secure/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  if (pathname.startsWith('/secure-admin/')) {
+  if(relative.startsWith('secure-admin/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   }
-  let file = path.normalize(path.join(ROOT, pathname));
-  if (!file.startsWith(ROOT)) return send(res,403,'Forbidden','text/plain');
-  fs.stat(file, (err, st) => {
-    if (!err && st.isDirectory()) file = path.join(file,'index.html');
-    fs.readFile(file, (e, data) => {
-      if (e) return send(res,404,'Not found','text/plain');
-      send(res,200,data,mime[path.extname(file).toLowerCase()] || 'application/octet-stream');
-    });
+  const file=path.join(ROOT,relative);
+  fs.readFile(file,(error,data)=>{
+    if(error) return send(res,404,'Not found','text/plain');
+    send(res,200,data,mime[path.extname(file).toLowerCase()] || 'application/octet-stream');
   });
 }
 const offerAcceptance = require('./offerAcceptance')({send,readJson,sameOrigin,rateLimited,clientIp});
@@ -718,11 +741,24 @@ const server=http.createServer(async (req,res)=>{
   catch { return send(res,400,'Bad request','text/plain; charset=utf-8'); }
   const pathname=urlObj.pathname;
   const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
+  // Synthetic design-only demo. Allow standard UTM tracking added by
+  // link providers, but never offer codes, preview tokens or API requests.
+  const demoQuery=[...urlObj.searchParams];
+  const demoParamsValid=demoQuery.length<=6 &&
+    urlObj.searchParams.getAll('demo').length===1 &&
+    demoQuery.every(([key,value])=>
+      (key==='demo' && value==='1') ||
+      (/^utm_(?:source|medium|campaign|content|term)$/.test(key) && value.length<=160));
+  const publicDemo=process.env.NODE_ENV==='staging' &&
+    process.env.OFFER_ACCEPTANCE_ENABLED==='false' &&
+    req.method==='GET' &&
+    pathname==='/offerte-annehmen/' &&
+    demoParamsValid;
 
   if(sitePrivate) {
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     res.setHeader('Cache-Control','no-store');
-    if(!hasPreviewAccess(req,res,urlObj)) {
+    if(!publicDemo && !hasPreviewAccess(req,res,urlObj)) {
       return send(res,503,'LSZH Automations ist vorübergehend nicht öffentlich verfügbar.','text/plain; charset=utf-8');
     }
   }
@@ -744,4 +780,14 @@ const server=http.createServer(async (req,res)=>{
   if (req.method==='GET' || req.method==='HEAD') return staticFile(req,res);
   return send(res,405,JSON.stringify({error:'method_not_allowed'}));
 });
-server.listen(PORT, ()=>console.log(`LSZH Automations listening on ${PORT}`));
+server.listen(PORT, ()=>{
+  console.log(`LSZH Automations listening on ${PORT}`);
+  if(process.env.NODE_ENV==='staging' &&
+     process.env.SITE_PRIVATE==='true' &&
+     process.env.OFFER_ACCEPTANCE_ENABLED!=='true' &&
+     process.env.LSZH_STAGING_ARCHIVE_SMOKE==='true'){
+    // Read-only proof of actual service-account access; never a public endpoint.
+    void require('./archiveStagingSmoke')().catch(()=>
+      console.error('LSZH_STAGING_ARCHIVE_READER_CHECK: FAIL'));
+  }
+});

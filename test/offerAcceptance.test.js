@@ -6,6 +6,7 @@ const token='A'.repeat(43);
 const H='a'.repeat(64), K='b'.repeat(64);
 const baseRecord={id:'recABCDEFGHIJKLMN',fields:{
   Status:'Versendet',
+  'AVV erforderlich':'Nein',
   'Online-Annahme rechtlich freigegeben':true,
   Offertennummer:'TEST-001',
   'Vertragsunterlagen versendet':true,
@@ -41,6 +42,7 @@ function initEnv() {
   process.env.OFFER_AIRTABLE_PAT='fake-test-token';
   process.env.OFFER_PROOF_SALT='fake-test-salt';
   process.env.OFFER_DRIVE_SA_B64='fake-base64-creds';
+  process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID='1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in';
   process.env.OFFER_CONFIRMATION_WEBHOOK='https://example.net/make-hook';
 }
 const original=global.fetch;
@@ -77,7 +79,7 @@ test('reject if client confirms a different document hash',async()=>{
   global.fetch=async()=>Response.json({records:[baseRecord]});
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:'c'.repeat(64),terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:'c'.repeat(64),terms_sha256:K};
     await api.accept(req,r);return r;
   });
   assert.equal(res.code,409);
@@ -102,7 +104,7 @@ test('store audit fields before dispatching confirmation webhook',async()=>{
   };
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
     await api.accept(req,r);return r;
   });
   assert.equal(res.code,200);
@@ -140,7 +142,7 @@ test('block acceptance before Airtable PATCH if archived hash does not match',as
   };
   const res=await make(async(api,req,r)=>{
     req.body={code:token,name:'Test Person',email:'test@example.com',
-      authorized:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
+      authorized:true,accept_quote:true,accept_terms:true,quote_sha256:H,terms_sha256:K};
     await api.accept(req,r);return r;
   },{verify:async()=>false});
   assert.equal(res.code,409);

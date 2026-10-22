@@ -1,0 +1,18 @@
+{
+  "result": "CUSTOMER_PORTAL_DISABLED_IMAGE_VERIFIED",
+  "sourceRevision": "4348cd2d8a4d9f859489a87031651577095dbc33",
+  "imageDigest": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-offer-portal@sha256:85e8edf96a0f329ce9227dd8634a98dd8ac79cc3033d42b8c0c5908564eea2d4",
+  "buildId": "da2ec9db-74fb-4ba5-b2a4-45cc29d24df4",
+  "readyRevision": "projects/lszh-automations/locations/europe-west6/services/lszh-offer-portal/revisions/lszh-offer-portal-00006-pqj",
+  "previousRevision": "projects/lszh-automations/locations/europe-west6/services/lszh-offer-portal/revisions/lszh-offer-portal-00005-f2k",
+  "traffic": [
+    {
+      "type": "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST",
+      "percent": 100
+    }
+  ],
+  "previewEnabled": false,
+  "acceptanceEnabled": false,
+  "publicStatus": 503,
+  "serviceIdentityUnchanged": true
+}

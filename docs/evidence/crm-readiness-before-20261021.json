@@ -1,0 +1,37 @@
+{
+  "tables": [
+    {
+      "tableId": "tbljeIUoD7wwKuSmS",
+      "fields": [
+        {
+          "id": "fldu2wHZrueXLW2YC",
+          "type": "formula",
+          "config": {
+            "isValid": true,
+            "formula": "IF(AND(\n{fld2XdyW6ZE4XlSz3}='Entwurf',\n{fldM2gGMhQKonLACU}=1,\nOR({fldvtGMbHGeQGBrnl}>0,{fldYboIZUI70VNUlw}>0),\n{fldQrdZE4KwlvbkJf}!='',\n{fld5YaoIeYLE1MZFW}!='',\n{fld1Db5o6KzrakKBh}>0,\n{fldl0MMMOh95Y7N1q}!='',\n{fldkvLOuDmQoSCjuI}!='',\n{fldOZcNcm2PQwP7Rt}!='Prüfen',\nARRAYJOIN({flduZx5dzgpMfyXDu})!='',\nARRAYJOIN({fldQ5YsR0IPhhuMgN})!='',\nARRAYJOIN({fldssTmsVDGjIW9HN})!='',\nARRAYJOIN({fldtTaoRrXRFjvFun})!='',\nARRAYJOIN({fld3PnrOzshvnPxE7})!=''\n),'JA','')",
+            "referencedFieldIds": [
+              "fld2XdyW6ZE4XlSz3",
+              "fldM2gGMhQKonLACU",
+              "fldvtGMbHGeQGBrnl",
+              "fldYboIZUI70VNUlw",
+              "fldQrdZE4KwlvbkJf",
+              "fld5YaoIeYLE1MZFW",
+              "fld1Db5o6KzrakKBh",
+              "fldl0MMMOh95Y7N1q",
+              "fldkvLOuDmQoSCjuI",
+              "fldOZcNcm2PQwP7Rt",
+              "flduZx5dzgpMfyXDu",
+              "fldQ5YsR0IPhhuMgN",
+              "fldssTmsVDGjIW9HN",
+              "fldtTaoRrXRFjvFun",
+              "fld3PnrOzshvnPxE7"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

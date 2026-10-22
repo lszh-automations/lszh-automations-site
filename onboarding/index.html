@@ -2,6 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LSZH Automations – Kunden-Onboarding</title>
 <style>
@@ -270,9 +272,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <script>
 const params = new URLSearchParams(location.search);
-const code = params.get('code') || '';
-const firma = params.get('firma') || '';
-const projekt = params.get('projekt') || '';
+const fragment = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+const ambiguousCode = params.getAll('code').length > 1 || fragment.getAll('code').length > 1 ||
+  (params.has('code') && fragment.has('code'));
+const code = ambiguousCode ? '' : (fragment.get('code') || params.get('code') || '');
+const firma = fragment.get('firma') || params.get('firma') || '';
+const projekt = fragment.get('projekt') || params.get('projekt') || '';
+// Remove the one-time code and prefill data before any form/network operation.
+history.replaceState(null, '', location.pathname);
 
 document.getElementById('project_code').value = code;
 if (firma) document.getElementById('company').value = firma;
@@ -313,7 +320,7 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     if (!response.ok) {const error = new Error('HTTP '+response.status); error.status = response.status; throw error;}
 
     form.reset();
-    status.textContent = response.status===202 ? 'Vielen Dank. Ihre Angaben wurden zur Verarbeitung entgegengenommen. Sie erhalten eine Bestätigung per E-Mail, sobald das Onboarding abgeschlossen ist. Bitte senden Sie das Formular nicht erneut ab.' : 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
+    status.textContent = response.status===202 ? 'Vielen Dank. Ihre Angaben wurden zur Verarbeitung entgegengenommen. Die abschliessende Speicherung ist noch nicht bestätigt. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen können Sie LSZH Automations kontaktieren.' : 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
     status.style.color = '#16794b';
   } catch (err) {
     status.textContent = err.status===409 ? 'Dieses Onboarding wurde bereits eingereicht oder wird gerade verarbeitet. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';

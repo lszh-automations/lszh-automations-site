@@ -1,0 +1,258 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+// Assert shell structure independently of Windows checkout line endings.
+const readShell=file=>fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n');
+const cp=require('node:child_process');
+
+const boot='scripts/offer-browser-cloud-bootstrap.sh';
+const clean='scripts/offer-browser-cloud-cleanup.sh';
+const resume='scripts/offer-browser-cloud-resume.sh';
+const smoke='scripts/offer-browser-cloud-smoke.sh';
+const demo='scripts/offer-browser-static-demo-release.sh';
+const staticSmoke='scripts/offer-browser-static-demo-smoke.sh';
+const driveProbeRelease='scripts/offer-temp-drive-probe-release.sh';
+const drivePhaseRelease='scripts/offer-temp-drive-phase-release.sh';
+const driveShapeRelease='scripts/offer-temp-drive-folder-shape-release.sh';
+const driveParentRelease='scripts/offer-temp-drive-restricted-parent-release.sh';
+const driveProbeSmoke='scripts/offer-temp-drive-probe-smoke.sh';
+
+test('both Cloud Shell scripts parse safely and use exact isolated staging names',()=>{
+ for(const file of [boot,clean,resume,smoke,demo,staticSmoke,driveProbeRelease,drivePhaseRelease,driveShapeRelease,driveParentRelease,driveProbeSmoke]){
+  const result=cp.spawnSync('bash',['-n',file],{encoding:'utf8',timeout:3000});
+  assert.equal(result.status,0,file+': '+result.stderr);
+  const s=readShell(file);
+  assert.match(s,/TEMP="lszh-offer-browser-staging"/);
+  if(file!==smoke && file!==demo && file!==staticSmoke && file!==driveProbeRelease && file!==drivePhaseRelease && file!==driveShapeRelease && file!==driveParentRelease && file!==driveProbeSmoke)
+   assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
+  else if(file===smoke || file===staticSmoke || file===driveProbeSmoke)
+   assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
+  else if(file===driveProbeRelease || file===drivePhaseRelease || file===driveShapeRelease || file===driveParentRelease || file===driveShapeRelease)
+   assert.match(s,/SA="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
+  else
+   assert.match(s,/SA_EMAIL="lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com"/);
+  assert.match(s,/offer-cloud-readiness-readonly\.py/);
+  assert.doesNotMatch(s,/--allow-unauthenticated\b(?!\s)/,
+    'must never allow anonymous access');
+  assert.doesNotMatch(s,/--no-invoker-iam-check/,
+    'must not disable Cloud Run Invoker validation');
+ }
+});
+test('temp Cloud Run deploy uses IAM, independent identity and hard-off app flags',()=>{
+ const s=readShell(boot);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/--ingress=all --no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false"/);
+ assert.match(s,/--min-instances=0 --max-instances=1/);
+ assert.match(s,/--labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true"/);
+ assert.match(s,/gcloud run services add-iam-policy-binding "\$TEMP"/);
+ assert.match(s,/--member="user:\$ACCOUNT" --role="roles\/run\.invoker"/);
+ assert.doesNotMatch(s,/gcloud run (services update|services replace|deploy) "\$ORIGINAL"/);
+ assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding "\$ORIGINAL"/);
+ assert.doesNotMatch(s,/roles\/datastore\.user|roles\/storage\.admin/,
+  'bootstrap must not grant database/storage permissions');
+});
+test('cleanup refuses to delete unlabelled/active/non-owned services',()=>{
+ const s=readShell(clean);
+ assert.match(s,/labels\.get\("lszh-temporary"\)!="true"/);
+ assert.match(s,/env\.get\("LSZH_PORTAL_STAGING_ENABLED"\)!="false"/);
+ assert.match(s,/gcloud run services delete "\$TEMP"/);
+ assert.match(s,/gcloud iam service-accounts delete "\$SA_EMAIL"/);
+ assert.doesNotMatch(s,/gcloud run services delete "\$ORIGINAL"/);
+});
+
+test('failed actAs deployment resumes from EXACT digest without rebuild or wider IAM',()=>{
+ const s=readShell(resume);
+ assert.match(s,/IMAGE_DIGEST="sha256:ba69188de7d71b9410ccc519b0249388d66401a01c20d09bb687932265f71678"/);
+ assert.match(s,/\[ "\$ACTUAL_DIGEST" = "\$IMAGE_DIGEST" \]/);
+ assert.match(s,/--member="user:\$ACCOUNT"/);
+ assert.match(s,/--role="roles\/iam.serviceAccountUser"/);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false"/);
+ assert.match(s,/--labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true"/);
+ assert.match(s,/gcloud run services add-iam-policy-binding "\$TEMP"/);
+ assert.doesNotMatch(s,/gcloud builds submit|gcloud iam service-accounts create/);
+ assert.doesNotMatch(s,/gcloud projects add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud run deploy "\$ORIGINAL"/);
+});
+
+test('network smoke only calls read-only APIs, authenticated proxy and blocked HTTP GET/POST',()=>{
+ const s=readShell(smoke);
+ assert.match(s,/gcloud run services proxy "\$TEMP"/);
+ assert.match(s,/gcloud run services get-iam-policy "\$TEMP"/);
+ assert.match(s,/gcloud run services describe "\$TEMP"/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.match(s,/\[ "\$STATUS" = "503" \]/);
+ assert.match(s,/--data '\{"code":"SYNTHETIC_NOT_VALID"\}'/);
+ assert.doesNotMatch(s,/gcloud run deploy|gcloud builds submit|gcloud run services update/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services (delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
+});
+
+test('static demo release targets only existing labelled IAM-protected temporary service',()=>{
+ const s=readShell(demo);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/--ingress=all --no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/--set-env-vars="LSZH_PORTAL_STAGING_ENABLED=false,LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED=true,GOOGLE_CLOUD_PROJECT=lszh-automations"/);
+ assert.match(s,/--labels="lszh-purpose=offer-browser-smoke,lszh-temporary=true"/);
+ assert.match(s,/gcloud run services get-iam-policy "\$TEMP"/);
+ assert.match(s,/lszh-offer-browser-staging-00001-7kx/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.doesNotMatch(s,/gcloud run (deploy|services update) "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
+ const cleanup=readShell(clean);
+ assert.match(cleanup,/env\.get\("LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
+});
+
+test('deployed static-demo smoke remains read-only and blocks all offer APIs',()=>{
+ const s=readShell(staticSmoke);
+ assert.match(s,/EXPECTED_REVISION="lszh-offer-browser-staging-00002-fkq"/);
+ assert.match(s,/gcloud run services proxy "\$TEMP"/);
+ assert.match(s,/get-iam-policy "\$TEMP"/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED"\)=="false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED"\)=="true"/);
+ assert.match(s,/connect-src 'none'/);
+ assert.match(s,/form-action 'none'/);
+ assert.match(s,/MUSTER-2026-001/);
+ assert.match(s,/for route in '\/api\/offer\/preview' '\/api\/offer\/document' '\/api\/offer\/accept'/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.doesNotMatch(s,/gcloud (run deploy|builds submit|run services update|run services delete|projects add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
+});
+
+test('temporary Drive probe release never deploys to original or grants IAM roles',()=>{
+ const s=readShell(driveProbeRelease);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.match(s,/offer-temp-drive-folder-reader\.py/);
+ assert.match(s,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(s,/lszh-offer-browser-staging-00002-fkq/);
+ assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED: "true"/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_PROBE_FOLDER: "\$FOLDER"/);
+ assert.match(s,/--min-instances=0 --max-instances=1/);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/lszh-purpose=offer-browser-smoke,lszh-temporary=true/);
+ assert.doesNotMatch(s,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud run services update-traffic "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud (iam service-accounts add-iam-policy-binding|run services add-iam-policy-binding|projects add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud firestore|gcloud run jobs/);
+});
+
+
+test('deployed temporary Drive smoke only probes IAM-protected exact revision and never writes',()=>{
+ const s=readShell(driveProbeSmoke);
+ assert.match(s,/EXPECTED_REVISION="lszh-offer-browser-staging-00003-j2p"/);
+ assert.match(s,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(s,/lszh-offer-browser-tmp@lszh-automations\.iam\.gserviceaccount\.com/);
+ assert.match(s,/gcloud run services proxy "\$TEMP"/);
+ assert.match(s,/gcloud run services get-iam-policy "\$TEMP"/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED"\)=="false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED"\)=="true"/);
+ assert.match(s,/\/_lszh\/synthetic-drive-check/);
+ assert.match(s,/PASS_SYNTHETIC_ARCHIVE_READ_ONLY/);
+ assert.match(s,/verifiedFiles":4/);
+ assert.match(s,/connect-src 'none'/);
+ assert.match(s,/form-action 'none'/);
+ assert.match(s,/--data '\{"code":"SYNTHETIC_INVALID_NOT_A_TOKEN"\}'/);
+ assert.match(s,/expected 200/);
+ assert.match(s,/\[ "\$STATUS" = "503" \]/);
+ assert.doesNotMatch(s,/gcloud (run deploy|builds submit|run services update|run services delete|projects add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud iam service-accounts (create|delete|add-iam-policy-binding)/);
+ assert.doesNotMatch(s,/gcloud run services (add-iam-policy-binding|set-iam-policy)/);
+ assert.doesNotMatch(s,/gcloud auth print-identity-token|Authorization: Bearer/);
+});
+
+test('diagnostic-only temp deployment pins previous revision and never widens IAM or enables offer API',()=>{
+ const s=readShell(drivePhaseRelease);
+ assert.match(s,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(s,/lszh-offer-browser-staging-00003-j2p/);
+ assert.match(s,/lszh-offer-browser-staging:c19d8bb0f514/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(s,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(s,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(s,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED: "true"/);
+ assert.match(s,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(s,/gcloud run deploy "\$TEMP"/);
+ assert.match(s,/offer-cloud-readiness-readonly\.py/);
+ assert.match(s,/offer-temp-drive-child-readonly-check\.py/);
+ assert.match(s,/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" /);
+ assert.match(s,/fatal "Business Drive synthetic subfolder verification failed"/);
+ assert.doesNotMatch(s,/<<'PY' \|\|/);
+ assert.match(s,/--min-instances=0 --max-instances=1/);
+ assert.doesNotMatch(s,/lszh-offer-browser-staging-00002-fkq/);
+ assert.doesNotMatch(s,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(s,/gcloud projects add-iam-policy-binding|gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(s,/gcloud firestore|gcloud run jobs/);
+});
+
+
+test('phase release child-folder security gate MUST fail closed on Python errors',()=>{
+ const full=readShell(drivePhaseRelease);
+ const match=full.match(/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" \\\n   --folder "\$FOLDER"; then\n fatal "Business Drive synthetic subfolder verification failed"\nfi/);
+ assert.ok(match,'exact fail-closed if/then/fi around the folder checker');
+ const guard=match[0];
+ const shell=(pythonResult)=>'set -euo pipefail\n'+
+  'ROOT=/test/repo; FOLDER=1SYNTHETIC_FAKE_FOLDER_12345678\n'+
+  'python3(){ return '+pythonResult+'; }\n'+
+  'fatal(){ printf "BLOCKED_BY_GUARD\\n"; exit 1; }\n'+
+  guard+'\n'+
+  'echo UNSAFE_CHECK_PASS\n';
+ for(const failCode of [1,2,127]){
+  const blocked=cp.spawnSync('bash',['-c',shell(failCode)],{encoding:'utf8',timeout:2000});
+  assert.equal(blocked.status,1,'unexpected shell exit for failure='+failCode);
+  assert.match(blocked.stdout,/BLOCKED_BY_GUARD/);
+  assert.doesNotMatch(blocked.stdout,/UNSAFE_CHECK_PASS/);
+ }
+ const success=cp.spawnSync('bash',['-c',shell(0)],{encoding:'utf8',timeout:2000});
+ assert.equal(success.status,0);
+ assert.match(success.stdout,/UNSAFE_CHECK_PASS/);
+});
+
+test('folder-shape diagnostic release pinned to 00004 is strictly temporary and fail closed',()=>{
+ const src=readShell(driveShapeRelease);
+ assert.match(src,/TEMP="lszh-offer-browser-staging"/);
+ assert.match(src,/lszh-offer-browser-staging-00004-nk6/);
+ assert.match(src,/lszh-offer-browser-staging:708dd11a1e37/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(src,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(src,/LSZH_OFFER_TEMP_BROWSER_DEMO_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(src,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(src,/offer-cloud-readiness-readonly\.py/);
+ assert.match(src,/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py" \\\n   --folder "\$FOLDER"; then\n fatal "Business Drive synthetic subfolder verification failed"\nfi/);
+ assert.match(src,/gcloud run deploy "\$TEMP"/);
+ assert.doesNotMatch(src,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(src,/gcloud (projects add-iam-policy-binding|run services add-iam-policy-binding)/);
+ assert.doesNotMatch(src,/lszh-offer-browser-staging-00003-j2p/);
+ assert.doesNotMatch(src,/<<'PY' \|\|/);
+ assert.doesNotMatch(src,/gcloud firestore|gcloud run jobs/);
+});
+
+test('temporary restricted parent fix release stays fail closed and never grants main archive IAM',()=>{
+ const src=readShell(driveParentRelease);
+ assert.match(src,/BEFORE_REV="lszh-offer-browser-staging-00005-grx"/);
+ assert.match(src,/BEFORE_IMAGE="[^"]+:baf9ca133b0a"/);
+ assert.match(src,/LSZH_PORTAL_STAGING_ENABLED: "false"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_PROBE_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_DRIVE_DIAGNOSTICS_ENABLED: "true"/);
+ assert.match(src,/LSZH_OFFER_TEMP_BUSINESS_FOLDER_PREFLIGHT: "true"/);
+ assert.match(src,/--no-allow-unauthenticated --invoker-iam-check/);
+ assert.match(src,/offer-temp-drive-child-readonly-check\.py/);
+ const checks=src.match(/if ! python3 "\$ROOT\/scripts\/offer-temp-drive-child-readonly-check\.py"/g)||[];
+ assert.equal(checks.length,2,'must reverify business owner/root before build AND deployment');
+ assert.match(src,/gcloud run deploy "\$TEMP"/);
+ assert.doesNotMatch(src,/gcloud run deploy "lszh-offer-portal-staging"/);
+ assert.doesNotMatch(src,/gcloud projects add-iam-policy-binding|gcloud run services add-iam-policy-binding/);
+ assert.doesNotMatch(src,/gcloud iam service-accounts add-iam-policy-binding/);
+ assert.doesNotMatch(src,/--allow-unauthenticated(?!-)/);
+ assert.doesNotMatch(src,/lszh-offer-browser-staging-00004-nk6/);
+});

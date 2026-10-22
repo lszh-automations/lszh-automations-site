@@ -1,0 +1,39 @@
+{
+  "purpose": "INTERNAL_EIGENAUFTRAG_DOCUMENT_PACKAGE",
+  "recordId": "INT-EA-20261021-001",
+  "recipient": "lars@lszh-automations.ch",
+  "amountCHF": 120,
+  "monthlyCHF": 0,
+  "externalReceivable": false,
+  "booked": false,
+  "paymentRecorded": false,
+  "accepted": false,
+  "documents": [
+    {
+      "file": "01_Offerte_INT-OFF-20261021-001.pdf",
+      "sha256": "c699667c54cf2dd7c232e4a65fe8c5068ba89ad81512ef2b230ab45cf40963c0",
+      "bytes": 3479
+    },
+    {
+      "file": "02_Projektvereinbarung_INT-PV-20261021-001.pdf",
+      "sha256": "18cb74a8e1c53f3f718ead26ebac6e1fd5958847d55a105eecc186a9ea9255dd",
+      "bytes": 5563
+    },
+    {
+      "file": "03_Rechnung_INT-RE-20261021-001.pdf",
+      "sha256": "022fc96f7ab3d91cbd01a6e87a5c880f878b77eab34d63dac45298212210e9ed",
+      "bytes": 3525
+    }
+  ],
+  "gmailId": "1a15f4ec3fd427d6",
+  "sentAt": "2026-10-21T16:32:39.994Z",
+  "independentReservationGmailReadback": "PASS",
+  "operatorReceiptConfirmed": true,
+  "pages": [
+    1,
+    2,
+    1
+  ],
+  "visualReview": "PASS",
+  "operatorConfirmedAllThreePdfsReadable": true
+}

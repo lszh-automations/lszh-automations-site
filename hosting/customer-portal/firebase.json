@@ -1,0 +1,42 @@
+{
+  "hosting": {
+    "site": "lszh-automations-portal",
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow, noarchive"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "no-referrer"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/offerte-annehmen/**",
+        "run": {
+          "serviceId": "lszh-offer-portal",
+          "region": "europe-west6"
+        }
+      },
+      {
+        "source": "/api/offer/**",
+        "run": {
+          "serviceId": "lszh-offer-portal",
+          "region": "europe-west6"
+        }
+      }
+    ]
+  }
+}

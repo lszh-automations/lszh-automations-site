@@ -1,0 +1,21 @@
+{
+  "result": "CLOUD_CRM_RECEIPT_GMAIL_SNAPSHOT_VERIFIED",
+  "recordId": "recHXC36zyG8o3he3",
+  "gmailId": "1a15f82ec7bb0ef7",
+  "recipient": "lars@lszh-automations.ch",
+  "sentAt": "2026-10-21T17:29:39Z",
+  "expiresAt": "2026-10-28T17:29:34.728Z",
+  "sourceFingerprint": "09cb8ea7c92846b047324f6a63082329ba0714f78ae965ae03843e04f94031fe",
+  "quoteId": "13e6qhLuMR-K0RLrrAinV_2cCBtUW4eUL",
+  "quoteHash": "5886d5ec0e1af414c9f9a0555636b483efa970d0bdb7b441bf7fe835e24e4b39",
+  "termsId": "1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO",
+  "termsHash": "baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279",
+  "crmStatus": "Versendet",
+  "dispatchStatus": "Versandt",
+  "actionCleared": true,
+  "acceptanceEnabled": false,
+  "localRuntimeRequired": false,
+  "userConfirmedAttachmentsAndLink": true,
+  "userConfirmedAcceptanceDisabled": true,
+  "lateRepeatedActionClearedWithoutResend": true
+}

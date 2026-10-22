@@ -1,0 +1,72 @@
+{
+  "tables": [
+    {
+      "tableId": "tbljeIUoD7wwKuSmS",
+      "fields": [
+        {
+          "id": "fldu2wHZrueXLW2YC",
+          "type": "formula",
+          "config": {
+            "isValid": true,
+            "formula": "IF(AND({fld2XdyW6ZE4XlSz3}='Entwurf',{fldM2gGMhQKonLACU}=1,{fldvs8ymhJoYBqHFm}='BEREIT'),'JA','')",
+            "referencedFieldIds": [
+              "fld2XdyW6ZE4XlSz3",
+              "fldM2gGMhQKonLACU",
+              "fldvs8ymhJoYBqHFm"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldvs8ymhJoYBqHFm",
+          "type": "formula",
+          "config": {
+            "isValid": true,
+            "formula": "IF({fld2XdyW6ZE4XlSz3}!='Entwurf','Status: '&{fld2XdyW6ZE4XlSz3},IF(AND({fldNluaFeT1mWGMJY}!='',{fldnx2HPMJlyOaPyN}!='',{fldl0w6l3QoBKorJ0}!='',{fldaQaPuQp8J7vq8C}!='',{fldQrdZE4KwlvbkJf}!='',{fldI9TFP9D3lZRdsK}!='',{fldBRMjtW4QKogbsr}!='',AND({fldvtGMbHGeQGBrnl}>=0,{fldYboIZUI70VNUlw}>=0,OR({fldvtGMbHGeQGBrnl}>0,{fldYboIZUI70VNUlw}>0)),{fld5YaoIeYLE1MZFW}!='',{fld1Db5o6KzrakKBh}>0,AND({fldl0MMMOh95Y7N1q}!='',NOT(IS_BEFORE({fldl0MMMOh95Y7N1q},TODAY()))),{fldkvLOuDmQoSCjuI}!='',OR({fldOZcNcm2PQwP7Rt}='Nein',AND({fldOZcNcm2PQwP7Rt}='Ja',{fldojDAkMfvjJycme}!='',REGEX_MATCH({fldbhBi71Jmr6g9Uk}&'','^[a-f0-9]{64}$'),{fld4cMFAPuSfLjz2B}!='')),COUNTA({fldLWovRzZmxG2h0N})=1,ARRAYJOIN({fldZDij0YpvnqFgPO})!='',ARRAYJOIN({fldF75rVxlthajkph})!='',REGEX_MATCH(ARRAYJOIN({flduZx5dzgpMfyXDu}),'^[^ @,;]+@[^ @,;]+[.][^ @,;]+$'),ARRAYJOIN({fldQ5YsR0IPhhuMgN})!='',ARRAYJOIN({fldssTmsVDGjIW9HN})!='',ARRAYJOIN({fldtTaoRrXRFjvFun})!='',ARRAYJOIN({fld3PnrOzshvnPxE7})!=''),'BEREIT','Fehlt / prüfen: '&IF({fldNluaFeT1mWGMJY}!='','','Offertennummer; ')&IF({fldnx2HPMJlyOaPyN}!='','','Leistung; ')&IF({fldl0w6l3QoBKorJ0}!='','','Ausgangssituation; ')&IF({fldaQaPuQp8J7vq8C}!='','','Ziel; ')&IF({fldQrdZE4KwlvbkJf}!='','','Leistungsumfang; ')&IF({fldI9TFP9D3lZRdsK}!='','','Nicht enthalten; ')&IF({fldBRMjtW4QKogbsr}!='','','Beteiligte Systeme; ')&IF(AND({fldvtGMbHGeQGBrnl}>=0,{fldYboIZUI70VNUlw}>=0,OR({fldvtGMbHGeQGBrnl}>0,{fldYboIZUI70VNUlw}>0)),'','Preis; ')&IF({fld5YaoIeYLE1MZFW}!='','','Zahlungsmodell; ')&IF({fld1Db5o6KzrakKBh}>0,'','Zahlungsziel; ')&IF(AND({fldl0MMMOh95Y7N1q}!='',NOT(IS_BEFORE({fldl0MMMOh95Y7N1q},TODAY()))),'','Gültig bis (heute oder später); ')&IF({fldkvLOuDmQoSCjuI}!='','','Projektbedingungen Version; ')&IF(OR({fldOZcNcm2PQwP7Rt}='Nein',AND({fldOZcNcm2PQwP7Rt}='Ja',{fldojDAkMfvjJycme}!='',REGEX_MATCH({fldbhBi71Jmr6g9Uk}&'','^[a-f0-9]{64}$'),{fld4cMFAPuSfLjz2B}!='')),'','AVV-Entscheid und ggf. finale AVV; ')&IF(COUNTA({fldLWovRzZmxG2h0N})=1,'','genau ein Lead; ')&IF(ARRAYJOIN({fldZDij0YpvnqFgPO})!='','','Firma; ')&IF(ARRAYJOIN({fldF75rVxlthajkph})!='','','Kontaktname; ')&IF(REGEX_MATCH(ARRAYJOIN({flduZx5dzgpMfyXDu}),'^[^ @,;]+@[^ @,;]+[.][^ @,;]+$'),'','eindeutige E-Mail; ')&IF(ARRAYJOIN({fldQ5YsR0IPhhuMgN})!='','','Strasse; ')&IF(ARRAYJOIN({fldssTmsVDGjIW9HN})!='','','PLZ; ')&IF(ARRAYJOIN({fldtTaoRrXRFjvFun})!='','','Ort; ')&IF(ARRAYJOIN({fld3PnrOzshvnPxE7})!='','','Land; ')))",
+            "referencedFieldIds": [
+              "fld2XdyW6ZE4XlSz3",
+              "fldNluaFeT1mWGMJY",
+              "fldnx2HPMJlyOaPyN",
+              "fldl0w6l3QoBKorJ0",
+              "fldaQaPuQp8J7vq8C",
+              "fldQrdZE4KwlvbkJf",
+              "fldI9TFP9D3lZRdsK",
+              "fldBRMjtW4QKogbsr",
+              "fldvtGMbHGeQGBrnl",
+              "fldYboIZUI70VNUlw",
+              "fld5YaoIeYLE1MZFW",
+              "fld1Db5o6KzrakKBh",
+              "fldl0MMMOh95Y7N1q",
+              "fldkvLOuDmQoSCjuI",
+              "fldOZcNcm2PQwP7Rt",
+              "fldojDAkMfvjJycme",
+              "fldbhBi71Jmr6g9Uk",
+              "fld4cMFAPuSfLjz2B",
+              "fldLWovRzZmxG2h0N",
+              "fldZDij0YpvnqFgPO",
+              "fldF75rVxlthajkph",
+              "flduZx5dzgpMfyXDu",
+              "fldQ5YsR0IPhhuMgN",
+              "fldssTmsVDGjIW9HN",
+              "fldtTaoRrXRFjvFun",
+              "fld3PnrOzshvnPxE7"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldnblRAjeQ75i4fz",
+          "type": "singleLineText"
+        },
+        {
+          "id": "fldUC2Oax3PoMqUDs",
+          "type": "multilineText"
+        }
+      ]
+    }
+  ]
+}

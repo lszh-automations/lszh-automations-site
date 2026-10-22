@@ -50,7 +50,7 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 <section class="card">
 <div class="kicker">LSZH INVEST GMBH · WOHLen (AG)</div>
 <h1>Ihre Offerte. In Ruhe entscheiden.</h1>
-<p>Prüfen Sie vor einer verbindlichen Annahme zuerst die Offerte und die dazugehörigen Projektbedingungen. Ihre Make-Organisation bleibt Eigentum Ihres Unternehmens.</p>
+<p>Prüfen Sie vor einer verbindlichen Annahme alle angezeigten Vertragsunterlagen. Falls für Ihr Projekt eine Auftragsbearbeitungsvereinbarung (AVV) erforderlich ist, wird sie als drittes Dokument angezeigt. Ihre Make-Organisation bleibt Eigentum Ihres Unternehmens.</p>
 <div id="message" class="banner" role="status" aria-live="polite">Bitte öffnen Sie den persönlichen Link aus Ihrer Offerten-E-Mail.</div>
 <div id="review" class="hidden">
 <div class="summary">
@@ -65,23 +65,31 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 <h2>1. Dokumente herunterladen und prüfen</h2>
 <a id="quotePdf" class="doc" href="#" download><span><strong>Offerte als PDF</strong><small>Leistungsumfang, Preise und Zahlungsmodell</small></span><i>↗</i></a>
 <a id="termsPdf" class="doc" href="#" download><span><strong>Projektbedingungen als PDF</strong><small id="termsVersion"></small></span><i>↗</i></a>
+<div id="avvSection" class="hidden">
+<a id="avvPdf" class="doc" href="#" download><span><strong>Auftragsbearbeitungsvereinbarung (AVV) als PDF</strong><small id="avvVersion"></small></span><i>↗</i></a>
+<p class="note">Die AVV einschliesslich ihrer Anlagen ergänzt die Projektbedingungen für die vereinbarte Bearbeitung von Personendaten. Prüfen Sie auch dieses Dokument vor der Annahme.</p>
+</div>
 <h2>2. Wer nimmt die Offerte an?</h2>
 <form id="acceptForm">
 <label class="field" for="person">Vor- und Nachname</label>
 <input id="person" type="text" maxlength="120" minlength="4" autocomplete="name" required placeholder="Vor- und Nachname">
 <label class="field" for="email">Geschäftliche E-Mail-Adresse der Offertenempfängerin / des Offertenempfängers</label>
 <input id="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@unternehmen.ch">
-<h2>3. Verbindliche Bestätigung</h2>
+<h2 id="acceptanceHeading">3. Verbindliche Bestätigung</h2>
 <label class="check"><input id="authorized" type="checkbox" required><span>Ich bin berechtigt, für das oben genannte Unternehmen diese Offerte anzunehmen.</span></label>
-<label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Offerte und die Projektbedingungen der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie als Bestandteil des Vertrags.</span></label>
+<label class="check"><input id="quoteConsent" type="checkbox" required><span>Ich habe die Offerte mit Leistungsumfang, Preisen und Zahlungsbedingungen zur Kenntnis nehmen können und nehme sie verbindlich an.</span></label>
+<label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Projektbedingungen in der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie ausdrücklich als Vertragsbestandteil.</span></label>
+<div id="avvConsentSection" class="hidden">
+<label class="check"><input id="avvConsent" type="checkbox"><span>Ich habe die zusätzlich angezeigte AVV einschliesslich der Anlagen in der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie ausdrücklich für das Unternehmen.</span></label>
+</div>
 <button id="submit" type="submit">Offerte verbindlich annehmen</button>
-<p class="note">Mit diesem Klick nehmen Sie die oben bezeichnete Offerte für Ihr Unternehmen verbindlich an. Vorher können Sie Ihre Eingaben noch ändern. Die Zustimmung mit Dokumentversion und Zeitpunkt wird protokolliert.</p>
+<p class="note" id="legalNote">Mit diesem Klick nehmen Sie die oben bezeichnete Offerte für Ihr Unternehmen verbindlich an. Vorher können Sie Ihre Eingaben noch ändern. Die Zustimmung mit Dokumentversion und Zeitpunkt wird protokolliert.</p>
 </form>
 </div>
 <div id="completed" class="hidden" role="status" aria-live="polite">
-<h2>Vielen Dank – Ihre Annahme wurde gespeichert.</h2>
+<h2 id="completedTitle">Vielen Dank – Ihre Annahme wurde gespeichert.</h2>
 <p id="receipt"></p>
-<p>Sie erhalten eine elektronische Bestätigung an die angegebene Geschäftsadresse. Falls sie ausbleibt, wenden Sie sich bitte an <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a>.</p>
+<p id="emailFollowup">Sie erhalten eine elektronische Bestätigung an die angegebene Geschäftsadresse. Falls sie ausbleibt, wenden Sie sich bitte an <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a>.</p>
 </div>
 </section>
 <footer>LSZH Automations · Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8, 5610 Wohlen AG · <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></footer>
@@ -90,15 +98,23 @@ footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
 (function(){
 'use strict';
 const params=new URLSearchParams(location.search);
+// Fragments stay in the browser and are never part of the initial HTTP request.
+const fragment=new URLSearchParams((location.hash||'').replace(/^#/,''));
+const linkHasCode=params.has('code')||fragment.has('code');
+const ambiguousCode=params.getAll('code').length>1||fragment.getAll('code').length>1||
+  (params.has('code')&&fragment.has('code'));
+if(fragment.has('code')&&!ambiguousCode)params.set('code',fragment.get('code'));
+if(ambiguousCode)params.delete('code');
 const code=params.get('code')||'';
-const demo=params.get('demo')==='1';
+const demo=params.get('demo')==='1'&&!linkHasCode;
 const message=document.getElementById('message');
 const form=document.getElementById('acceptForm');
 const button=document.getElementById('submit');
 const review=document.getElementById('review');
 const completed=document.getElementById('completed');
 let current=null;
-history.replaceState(null,'',location.pathname);
+// Keep the public synthetic demo URL bookmarkable; redact real offer links.
+if(!demo) history.replaceState(null,'',location.pathname);
 function setMessage(value,kind){message.textContent=value;message.className='banner'+(kind?' '+kind:'');message.classList.remove('hidden');}
 function money(value){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(Number(value)||0);}
 function txt(id,value){document.getElementById(id).textContent=String(value??'');}
@@ -110,8 +126,41 @@ txt('payment',o.payment_model);
 const date=String(o.valid_until||'').split('-');
 txt('validUntil',date.length===3?date[2]+'.'+date[1]+'.'+date[0]:o.valid_until);
 txt('termsVersion','Vertragsversion '+o.terms_version);
+const showAvv=o.avv_required===true;
+document.getElementById('avvSection').classList.toggle('hidden',!showAvv);
+document.getElementById('avvConsentSection').classList.toggle('hidden',!showAvv);
+const avvConsent=document.getElementById('avvConsent');
+avvConsent.checked=false;
+avvConsent.required=showAvv;
+if(showAvv)txt('avvVersion','AVV-Version '+o.avv_version);
 review.classList.remove('hidden');
 message.classList.add('hidden');
+if(o.test_only===true){
+  const testAccept=o.test_accept_enabled===true && !demo;
+  txt('acceptanceHeading',testAccept?
+    '3. Synthetische Testannahme – kein Vertrag':
+    '3. Testvorschau – keine verbindliche Annahme');
+  document.getElementById('legalNote').classList.add('hidden');
+  button.textContent=testAccept?'Testannahme speichern – kein Vertrag':
+    'Annahme im Staging deaktiviert';
+  button.disabled=!testAccept;
+  if(testAccept){
+    document.getElementById('quoteConsent').closest('label').querySelector('span')
+      .textContent='Ich bestätige ausschliesslich die fiktive Testofferte ohne Vertragsschluss.';
+    setMessage('Synthetischer Staging-Test: Die Testannahme wird nur technisch protokolliert. Kein Vertrag, keine E-Mail.','');
+  }else setMessage('Nur synthetische Testdaten. Hier kann kein Vertrag geschlossen werden.','');
+}
+if(o.accept_enabled===false){
+  button.disabled=true;
+  form.setAttribute('aria-disabled','true');
+  form.querySelectorAll('input').forEach(input=>{input.disabled=true;});
+  if(o.test_only!==true){
+    txt('acceptanceHeading','3. Offerte prüfen');
+    document.getElementById('legalNote').classList.add('hidden');
+    button.textContent='Online-Annahme derzeit nicht verfügbar';
+    setMessage('Sie können die Offerte und alle Unterlagen prüfen. Für die Annahme kontaktieren Sie bitte LSZH Automations.','');
+  }
+}
 }
 async function downloadVerifiedPdf(which){
   if(demo){
@@ -119,7 +168,7 @@ async function downloadVerifiedPdf(which){
     return;
   }
   if(!current || !/^[A-Za-z0-9_-]{32,80}$/.test(code))return;
-  const link=document.getElementById(which==='quote'?'quotePdf':'termsPdf');
+  const link=document.getElementById(which==='quote'?'quotePdf':which==='terms'?'termsPdf':'avvPdf');
   link.setAttribute('aria-busy','true');
   try{
     const r=await fetch('/api/offer/document',{
@@ -134,7 +183,8 @@ async function downloadVerifiedPdf(which){
     if(blob.type!=='application/pdf'||blob.size<8)throw new Error('archive_unavailable');
     const objectUrl=URL.createObjectURL(blob);
     const name=(which==='quote'?'LSZH_Offerte_'+current.number:
-      'LSZH_Projektbedingungen_'+current.terms_version).replace(/[^A-Za-z0-9_.-]/g,'_');
+      which==='terms'?'LSZH_Projektbedingungen_'+current.terms_version:
+      'LSZH_AVV_'+current.avv_version).replace(/[^A-Za-z0-9_.-]/g,'_');
     const anchor=document.createElement('a');
     anchor.href=objectUrl;anchor.download=name+'.pdf';
     document.body.appendChild(anchor);
@@ -144,7 +194,7 @@ async function downloadVerifiedPdf(which){
     setMessage(errors[error.message]||errors.archive_unavailable,'error');
   }finally{link.removeAttribute('aria-busy');}
 }
-for(const [id,which] of [['quotePdf','quote'],['termsPdf','terms']]){
+for(const [id,which] of [['quotePdf','quote'],['termsPdf','terms'],['avvPdf','avv']]){
   document.getElementById(id).addEventListener('click',e=>{
     e.preventDefault();downloadVerifiedPdf(which);
   });
@@ -163,17 +213,22 @@ document_changed:'Die Dokumente wurden zwischenzeitlich geändert. Bitte laden S
 archive_changed:'Die archivierten Dokumente stimmen nicht mehr mit den vereinbarten Versionen überein. Bitte kontaktieren Sie uns.',
 archive_unavailable:'Die gesicherten Dokumente sind vorübergehend nicht abrufbar. Bitte kontaktieren Sie uns.',
 email_mismatch:'Bitte verwenden Sie die E-Mail-Adresse, an welche die Offerte verschickt wurde.',
-consent_required:'Bitte bestätigen Sie beide Erklärungen.',
+consent_required:'Bitte bestätigen Sie Ihre Berechtigung sowie die Offerte und die Projektbedingungen einzeln.',
+avv_consent_required:'Bitte bestätigen Sie die AVV separat, nachdem Sie diese heruntergeladen und geprüft haben.',
+avv_document_changed:'Die AVV-Datei oder ihre Version wurde geändert. Bitte fordern Sie eine aktualisierte Offerte an.',
+unexpected_avv_consent:'Für diese Offerte ist keine AVV vorgesehen. Bitte laden Sie das Formular erneut.',
 invalid_identity:'Bitte überprüfen Sie Ihren Namen und Ihre geschäftliche E-Mail-Adresse.',
 already_processing:'Ihre Annahme wird bereits verarbeitet.',
 rate_limited:'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
 temporarily_unavailable:'Die Verbindung ist derzeit gestört. Bitte versuchen Sie es später erneut oder kontaktieren Sie uns.'
 };
 if(demo){
-showOffer({number:'MUSTER-2026-001',company:'Muster KMU AG',service:'Automatisierter Anfrageprozess',
-once:1490,monthly:149,payment_model:'50 % bei Auftrag / 50 % nach Abnahme',
-valid_until:'2026-11-30',terms_version:'ENTWURF – nicht freigegeben',
-quote_sha256:'',terms_sha256:''});
+showOffer({number:'OFF-TEST-AVV-20261018-001',company:'Mustercoiffeur TEST GmbH',
+service:'Fiktiver Coiffeur-Termin- und Erinnerungsprozess',
+once:1490,monthly:149,payment_model:'Nur synthetischer Test – keine Zahlung',
+valid_until:'2026-11-30',terms_version:'v1.0 RC1 – Kundenfassung in Endkontrolle',
+quote_sha256:'',terms_sha256:'',avv_required:true,
+avv_version:'TEST_ONLY_AVV_v0.9_RC1',avv_sha256:''});
 setMessage('Nur eine unverbindliche Designvorschau. Es wird kein Vertrag abgeschlossen.','');
 button.disabled=true;
 }else if(!/^[A-Za-z0-9_-]{32,80}$/.test(code)){
@@ -184,7 +239,7 @@ request('/api/offer/preview',{code}).then(d=>showOffer(d.offer)).catch(e=>setMes
 }
 form.addEventListener('submit',async e=>{
 e.preventDefault();
-if(!current||demo||!form.reportValidity())return;
+if(!current||demo||current.accept_enabled===false||(current.test_only===true && current.test_accept_enabled!==true)||!form.reportValidity())return;
 button.disabled=true;button.textContent='Annahme wird sicher gespeichert …';
 setMessage('Bitte schliessen Sie die Seite nicht, bis die Annahme bestätigt wurde.','');
 try{
@@ -192,16 +247,28 @@ const result=await request('/api/offer/accept',{
 code,name:document.getElementById('person').value,
 email:document.getElementById('email').value,
 authorized:document.getElementById('authorized').checked,
+accept_quote:document.getElementById('quoteConsent').checked,
 accept_terms:document.getElementById('terms').checked,
-quote_sha256:current.quote_sha256,terms_sha256:current.terms_sha256
+quote_sha256:current.quote_sha256,terms_sha256:current.terms_sha256,
+accept_avv:current.avv_required===true && document.getElementById('avvConsent').checked,
+avv_sha256:current.avv_required===true?current.avv_sha256:null,
+avv_version:current.avv_required===true?current.avv_version:null
 });
 review.classList.add('hidden');message.classList.add('hidden');
 completed.classList.remove('hidden');
-txt('receipt','Offerte '+result.offer_number+' wurde verbindlich angenommen und protokolliert.'+
-(result.confirmation_email_pending?' Der Versand der E-Mail-Bestätigung wird noch verarbeitet.':''));
+if(result.test_only===true){
+  // A synthetic result is not a legally binding agreement or email promise.
+  txt('completedTitle','Synthetischer Test abgeschlossen – kein Vertrag');
+  txt('receipt','Die Testofferte '+String(result.offer_number||'')+
+    ' wurde nur in der isolierten Testumgebung verarbeitet.');
+  document.getElementById('emailFollowup').classList.add('hidden');
+}else{
+  txt('receipt','Offerte '+result.offer_number+' wurde verbindlich angenommen und protokolliert.'+
+  (result.confirmation_email_pending?' Der Versand der E-Mail-Bestätigung wird noch verarbeitet.':''));
+}
 }catch(err){
 setMessage(errors[err.message]||errors.temporarily_unavailable,'error');
-button.disabled=false;button.textContent='Offerte verbindlich annehmen';
+button.disabled=false;button.textContent=current?.test_only===true?'Testannahme speichern – kein Vertrag':'Offerte verbindlich annehmen';
 }
 });
 })();

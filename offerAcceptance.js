@@ -19,7 +19,9 @@ module.exports = function createOfferAcceptance(deps) {
       && version.length > 0 && !/entwurf|draft|0\.9/i.test(version)
       && Boolean(process.env.OFFER_AIRTABLE_PAT)
       && Boolean(process.env.OFFER_PROOF_SALT)
-      && Boolean(process.env.OFFER_DRIVE_SA_B64);
+      && (Boolean(process.env.OFFER_DRIVE_SA_B64) ||
+          process.env.OFFER_DRIVE_SA_FILE==='/etc/secrets/lszh-archive-reader.json')
+      && /^[A-Za-z0-9_-]{20,100}$/.test(String(process.env.OFFER_DRIVE_ARCHIVE_FOLDER_ID||''));
   }
   function reply(res, status, data) {
     return send(res, status, JSON.stringify(data));
@@ -75,6 +77,16 @@ module.exports = function createOfferAcceptance(deps) {
       && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Offerten Drive ID'] || ''))
       && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme Bedingungen Drive ID'] || ''))
       && Boolean(f['Online-Annahme Link gesendet am'])
+      && (f['AVV erforderlich']==='Ja' || f['AVV erforderlich']==='Nein')
+      && (f['AVV erforderlich']==='Ja'
+        ? (HASH_RE.test(String(f['Online-Annahme AVV-SHA256']||''))
+           && /^[A-Za-z0-9_-]{20,100}$/.test(String(f['Online-Annahme AVV Drive ID']||''))
+           && String(f['Online-Annahme AVV-Version']||'').trim().length>=4
+           && f['Online-Annahme AVV ausdrücklich akzeptiert']!==true)
+        : (!f['Online-Annahme AVV Drive ID'] &&
+           !f['Online-Annahme AVV-SHA256'] &&
+           !f['Online-Annahme AVV-Version'] &&
+           f['Online-Annahme AVV ausdrücklich akzeptiert']!==true))
       && typeof f.Offertennummer === 'string' && f.Offertennummer.length > 0;
   }
   function first(value) {
@@ -92,7 +104,10 @@ module.exports = function createOfferAcceptance(deps) {
       valid_until:f['Gültig bis'],
       terms_version:f['Projektbedingungen Version'],
       quote_sha256:f['Online-Annahme Offerten-SHA256'],
-      terms_sha256:f['Online-Annahme Bedingungen-SHA256']
+      terms_sha256:f['Online-Annahme Bedingungen-SHA256'],
+      avv_required:f['AVV erforderlich']==='Ja',
+      avv_version:f['AVV erforderlich']==='Ja' ? f['Online-Annahme AVV-Version'] : null,
+      avv_sha256:f['AVV erforderlich']==='Ja' ? f['Online-Annahme AVV-SHA256'] : null
     };
   }
   function allowed(req,res) {
@@ -127,7 +142,7 @@ module.exports = function createOfferAcceptance(deps) {
       if (!TOKEN_RE.test(code)) return reply(res,404,{error:'invalid_or_expired'});
       if(name.length < 4 || name.length > 120 || email.length>254 || !EMAIL_RE.test(email))
         return reply(res,400,{error:'invalid_identity'});
-      if(b.authorized !== true || b.accept_terms !== true)
+      if(b.authorized !== true || b.accept_quote !== true || b.accept_terms !== true)
         return reply(res,400,{error:'consent_required'});
       hash=sha(code);
       if(inFlight.has(hash)) return reply(res,409,{error:'already_processing'});
@@ -138,6 +153,14 @@ module.exports = function createOfferAcceptance(deps) {
       const f=record.fields, offer=display(record);
       if(b.quote_sha256 !== offer.quote_sha256 || b.terms_sha256 !== offer.terms_sha256)
         return reply(res,409,{error:'document_changed'});
+      if(offer.avv_required){
+        if(b.accept_avv!==true)
+          return reply(res,400,{error:'avv_consent_required'});
+        if(b.avv_sha256!==offer.avv_sha256 || b.avv_version!==offer.avv_version)
+          return reply(res,409,{error:'avv_document_changed'});
+      }else if(b.accept_avv===true || b.avv_sha256 || b.avv_version){
+        return reply(res,400,{error:'unexpected_avv_consent'});
+      }
       // The invitation is a bearer capability, not an identity verification.
       // Require the email address to match the address to which the quote was sent.
       const addressee=first(f['Lead E-Mail']).trim().toLowerCase();
@@ -150,7 +173,11 @@ module.exports = function createOfferAcceptance(deps) {
         terms_version:offer.terms_version,
         quote_pdf_sha256:offer.quote_sha256,
         terms_pdf_sha256:offer.terms_sha256,
-        authorized_confirmed:true, terms_confirmed:true,
+        avv_required:offer.avv_required,
+        avv_version:offer.avv_required?offer.avv_version:null,
+        avv_pdf_sha256:offer.avv_required?offer.avv_sha256:null,
+        avv_explicitly_confirmed:offer.avv_required ? true : false,
+        authorized_confirmed:true, quote_confirmed:true, terms_confirmed:true,
         ip_pseudonym:sha(process.env.OFFER_PROOF_SALT + ':' + clientIp(req)),
         user_agent:String(req.headers['user-agent']||'').slice(0,200)
       };
@@ -163,7 +190,8 @@ module.exports = function createOfferAcceptance(deps) {
           'Online-Annahme Person':name,
           'Online-Annahme E-Mail':email,
           'Online-Annahme Vertragsversion':offer.terms_version,
-          'Online-Annahme Nachweis':JSON.stringify(evidence)
+          'Online-Annahme Nachweis':JSON.stringify(evidence),
+          'Online-Annahme AVV ausdrücklich akzeptiert':offer.avv_required
         }
       };
       const r=await fetch(urlFor(record.id),{
@@ -187,10 +215,12 @@ module.exports = function createOfferAcceptance(deps) {
       const b=await readJson(req);
       const code=typeof b.code==='string'?b.code:'';
       const which=b.which;
-      if(!TOKEN_RE.test(code)||!['quote','terms'].includes(which))
+      if(!TOKEN_RE.test(code)||!['quote','terms','avv'].includes(which))
         return reply(res,404,{error:'invalid_or_expired'});
       const record=await findOfferByToken(code);
       if(!record||!eligible(record))
+        return reply(res,404,{error:'invalid_or_expired'});
+      if(which==='avv' && record.fields['AVV erforderlich']!=='Ja')
         return reply(res,404,{error:'invalid_or_expired'});
       if(!await archiveVerifier.verify(record.fields))
         return reply(res,409,{error:'archive_changed'});
@@ -198,7 +228,8 @@ module.exports = function createOfferAcceptance(deps) {
       const f=record.fields;
       const basename=(which==='quote'
         ? 'LSZH_Offerte_'+f.Offertennummer
-        : 'LSZH_Projektbedingungen_'+f['Projektbedingungen Version'])
+        : which==='terms' ? 'LSZH_Projektbedingungen_'+f['Projektbedingungen Version']
+          : 'LSZH_AVV_'+f['Online-Annahme AVV-Version'])
         .replace(/[^A-Za-z0-9_.-]/g,'_').slice(0,100);
       res.writeHead(200,{
         'Content-Type':'application/pdf',

@@ -1,0 +1,598 @@
+{
+  "capturePhase": "verified active configuration before completed-pilot pause; final scenario state inactive",
+  "scenario": {
+    "scenario": {
+      "id": 7835460,
+      "name": "LSZH Vertrieb – CRM-Offerte TEST_ONLY Cloud",
+      "description": "Cloud-only interner Pilot für recHXC36zyG8o3he3 an Lars. Pflichtfelder, PDF-Archiv, Firestore-Link, Mailreservierung, CRM-Rückmeldung. Keine Kundenannahme oder Rechnung.",
+      "teamId": 1728770,
+      "folderId": 390626,
+      "status": "active",
+      "isLockedForEditing": false,
+      "isWaitingOnIncompleteExecutions": false,
+      "incompleteExecutions": 0,
+      "lastEdit": "2026-10-21T17:31:19.774Z",
+      "nextScheduledExecution": "2026-10-21T17:34:23.596Z"
+    },
+    "trigger": {
+      "moduleId": 1,
+      "module": "airtable:ActionSearchRecords",
+      "kind": "scheduled",
+      "scheduling": {
+        "type": "indefinitely",
+        "interval": 60
+      }
+    },
+    "modules": [
+      {
+        "id": 1,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "label": "Versandbereite Offerten",
+        "root": "main"
+      },
+      {
+        "id": 24,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Aktuellen CRM-Datensatz einschließlich neuer Prüffelder lesen",
+        "follows": 1
+      },
+      {
+        "id": 13,
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "label": "CRM-Pflichtfelder und feste interne Quelle prüfen",
+        "follows": 24
+      },
+      {
+        "id": 14,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Versandstatus oder konkrete Blockierung speichern",
+        "follows": 13,
+        "filter": {
+          "name": "Verarbeitete oder laufende Vorgänge nicht überschreiben",
+          "conditions": [
+            [
+              {
+                "a": "{{13.result.shouldWrite}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 12,
+        "module": "datastore:AddRecord",
+        "version": 1,
+        "label": "TEST_ONLY V3 – PDF-Erzeugung einmalig reservieren",
+        "follows": 14,
+        "filter": {
+          "name": "Nur geprüfte feste interne Cloud-Offerte",
+          "conditions": [
+            [
+              {
+                "a": "{{13.result.ok}}",
+                "b": true,
+                "o": "boolean:equal"
+              },
+              {
+                "a": "{{1.id}}",
+                "b": "recHXC36zyG8o3he3",
+                "o": "text:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "module": "airtable:ActionSearchRecords",
+        "version": 3,
+        "label": "Betriebskonfiguration laden",
+        "follows": 12,
+        "filter": {
+          "name": "Nur feste interne Adresse und Firma",
+          "conditions": [
+            [
+              {
+                "a": "{{1.`Lead E-Mail`[1]}}",
+                "b": "lars@lszh-automations.ch",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{1.`Lead Firma`[1]}}",
+                "b": "LSZH Invest GmbH – TEST_CRM_CLOUD_20261021",
+                "o": "text:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 3,
+        "module": "google-docs:createADocument",
+        "version": 1,
+        "label": "Entwurf in Geschäfts-STAGING erzeugen (kein Versand)",
+        "follows": 2
+      },
+      {
+        "id": 4,
+        "module": "google-docs:exportADocument",
+        "version": 1,
+        "label": "Offerte als PDF exportieren",
+        "follows": 3
+      },
+      {
+        "id": 7,
+        "module": "google-drive:uploadAFile",
+        "version": 4,
+        "label": "Offerten-PDF im Geschäftsarchiv STAGING speichern",
+        "follows": 4
+      },
+      {
+        "id": 9,
+        "module": "google-drive:getAFile",
+        "version": 4,
+        "label": "Gespeicherte PDF erneut lesen + Drive-SHA256 prüfen",
+        "follows": 7
+      },
+      {
+        "id": 10,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Archiv-PDF gegen Änderungen sperren (Drive Content Restriction)",
+        "follows": 9
+      },
+      {
+        "id": 11,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Drive-PDF-SHA256 und Schreibschutz nochmals auslesen",
+        "follows": 10
+      },
+      {
+        "id": 8,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "PDF-Archiv-ID in Offerte sichern (STAGING)",
+        "follows": 11
+      },
+      {
+        "id": 15,
+        "module": "google-drive:getAFile",
+        "version": 4,
+        "label": "Finale TEST-Bedingungen erneut aus Drive lesen",
+        "follows": 8
+      },
+      {
+        "id": 16,
+        "module": "google-drive:makeApiCall",
+        "version": 4,
+        "label": "Hash, Ordner und Schreibschutz der TEST-Bedingungen lesen",
+        "follows": 15
+      },
+      {
+        "id": 17,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "CRM unmittelbar vor Linkausgabe erneut lesen",
+        "follows": 16
+      },
+      {
+        "id": 18,
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "label": "Quellfingerabdruck und PDF-Bytes prüfen; zufälligen Link erzeugen",
+        "follows": 17
+      },
+      {
+        "id": 19,
+        "module": "google-cloud-firestore:universal",
+        "version": 1,
+        "label": "Unveränderlichen Link-Snapshot create-only speichern",
+        "follows": 18
+      },
+      {
+        "id": 20,
+        "module": "datastore:AddRecord",
+        "version": 1,
+        "label": "Mailversuch dauerhaft einmalig reservieren",
+        "follows": 19
+      },
+      {
+        "id": 5,
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "label": "Offerte an Kunden senden",
+        "follows": 20,
+        "filter": {
+          "name": "Nur bestätigter Snapshot der festen internen Quelle",
+          "conditions": [
+            [
+              {
+                "a": "{{1.id}}",
+                "b": "recHXC36zyG8o3he3",
+                "o": "text:equal"
+              },
+              {
+                "a": "{{19.statusCode}}",
+                "b": 200,
+                "o": "number:equal"
+              },
+              {
+                "a": "{{18.result.tokenHash}}",
+                "o": "exist"
+              },
+              {
+                "a": "{{13.result.ok}}",
+                "b": true,
+                "o": "boolean:equal"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 22,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Unklarer Mailausgang: manuelle Prüfung, keine Wiederholung",
+        "parent": {
+          "moduleId": 5,
+          "kind": "errorHandler"
+        }
+      },
+      {
+        "id": 23,
+        "module": "builtin:Commit",
+        "version": 1,
+        "label": "Mailreservierung bei Fehler behalten",
+        "follows": 22
+      },
+      {
+        "id": 6,
+        "module": "airtable:makeApiCall",
+        "version": 3,
+        "label": "Offertenversand markieren",
+        "follows": 5,
+        "filter": {
+          "name": "Nur nach bestätigter Gmail-ID",
+          "conditions": [
+            [
+              {
+                "a": "{{5.id}}",
+                "o": "exist"
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "id": 21,
+        "module": "google-cloud-firestore:universal",
+        "version": 1,
+        "label": "Gmail-ID nach erfolgreichem Versand create-only sichern",
+        "follows": 6
+      }
+    ],
+    "connections": [
+      {
+        "id": 11101358,
+        "label": "Lars Schulthess's (lars.schulthess@outlook.com) Airtable Token or Key credentials - MCP",
+        "app": "airtable2",
+        "usedByModules": [
+          1,
+          24,
+          14,
+          2,
+          8,
+          17,
+          22,
+          6
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11905001,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Google credentials - MCP",
+        "app": "google",
+        "usedByModules": [
+          3,
+          4
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11904271,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Google Drive credentials - MCP",
+        "app": "google-drive",
+        "usedByModules": [
+          7,
+          9,
+          10,
+          11,
+          15,
+          16
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 12198232,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Google Custom credentials - MCP",
+        "app": "google-custom",
+        "usedByModules": [
+          19,
+          21
+        ],
+        "status": "ok"
+      },
+      {
+        "id": 11904991,
+        "label": "Lars Schulthess's (lars@lszh-automations.ch) Gmail credentials - MCP",
+        "app": "google-email",
+        "usedByModules": [
+          5
+        ],
+        "status": "ok"
+      }
+    ]
+  },
+  "verifiedModules": [
+    {
+      "id": 1,
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "base": "appzJiskpAdaR1HEv",
+          "table": "tbljeIUoD7wwKuSmS",
+          "formula": "AND(RECORD_ID()='recHXC36zyG8o3he3',{Offertennummer}='TEST_CRM_CLOUD_20261021_NO_CONTRACT',{Status}='Entwurf',{Schnellaktion}='Für Versand freigeben',NOT({Online-Annahme Offerten Drive ID}),NOT({Echtbetrieb – kein Test}),NOT({Online-Annahme rechtlich freigegeben}))",
+          "maxRecords": 1,
+          "useColumnId": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "module": "code:ExecuteCode",
+      "version": 1,
+      "config": {
+        "parameters": {},
+        "mapper": {
+          "input": [
+            {
+              "name": "row",
+              "value": "{{24.body}}"
+            }
+          ],
+          "language": "javascript",
+          "inputFormat": "editor",
+          "codeEditorJavascript": "'use strict';\n// Shared by the Make code modules and the read-only link service.\n// This rollout accepts only an explicitly configured internal pilot record.\nconst {createHash,randomBytes}=require('node:crypto');\nconst PILOT=Object.freeze({number:'TEST_CRM_CLOUD_20261021_NO_CONTRACT',company:'LSZH Invest GmbH – TEST_CRM_CLOUD_20261021',email:'lars@lszh-automations.ch',purpose:'TEST_ONLY_CRM_CLOUD_20261021',termsId:'1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO',termsHash:'baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279',quoteFolder:'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in',termsFolder:'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko'});\nconst SOURCE_KEYS=['Offerte','Offertennummer','Lead','Lead E-Mail','Lead Firma','Lead Name','Lead Strasse','Lead PLZ','Lead Ort','Lead Land','Leistung','Ausgangssituation','Ziel','Leistungsumfang','Nicht enthalten','Beteiligte Systeme','Einmalig CHF','Monatlich CHF','Zahlungsmodell','Zahlungsziel Tage','Gültig bis','Projektbedingungen Version','AVV erforderlich'];\nconst sha=x=>createHash('sha256').update(x).digest('hex');\nfunction fingerprint(f){return sha(JSON.stringify(SOURCE_KEYS.map(k=>[k,f[k]??null])));}\nfunction assertSource(row,policy,now=new Date()){\n const f=row?.fields;\n if(!/^rec[A-Za-z0-9]{14}$/.test(policy?.recordId||'')||!/^rec[A-Za-z0-9]{14}$/.test(policy?.leadId||'')||row?.id!==policy.recordId||!f||f.Offertennummer!==PILOT.number||f.Status!=='Entwurf'||f.Schnellaktion!=='Für Versand freigeben'||f.Versandprüfung!=='BEREIT'||JSON.stringify(f.Lead)!==JSON.stringify([policy.leadId])||JSON.stringify(f['Lead E-Mail'])!==JSON.stringify([PILOT.email])||JSON.stringify(f['Lead Firma'])!==JSON.stringify([PILOT.company])||f.Übernommen!==true||!String(f['Interne Notiz']||'').includes(PILOT.purpose)||f['AVV erforderlich']!=='Nein'||f['Projektbedingungen Version']!=='TEST_v1.0_RC1')throw Error('pilot_source_rejected');\n for(const k of ['Echtbetrieb – kein Test','Online-Annahme rechtlich freigegeben','Vertragsunterlagen akzeptiert','Vertragsunterlagen versendet'])if(f[k])throw Error('pilot_release_rejected');\n for(const k of ['Kunde','Auftrag','Online-Annahme Zeitstempel','Online-Annahme Link gesendet am'])if(f[k]?.length)throw Error('pilot_already_processed');\n for(const k of SOURCE_KEYS.filter(k=>!['Lead','Einmalig CHF','Monatlich CHF','Zahlungsziel Tage'].includes(k))){const v=f[k];if(Array.isArray(v)?v.length!==1||!String(v[0]??'').trim():typeof v!=='string'||!v.trim()||v.length>6000)throw Error('pilot_required_fields');}\n if(f['Einmalig CHF']!==120||(f['Monatlich CHF']||0)!==0||f['Zahlungsziel Tage']!==30||!/^\\d{4}-\\d{2}-\\d{2}$/.test(f['Gültig bis'])||Date.parse(f['Gültig bis']+'T23:59:59Z')<+now)throw Error('pilot_values_rejected');\n return f;\n}\nfunction offerHtml(f){\n const esc=x=>String(x??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n const section=(title,text)=>'<p style=\"margin:10px 0;font-size:10pt\"><strong>'+esc(title)+'</strong><br>'+esc(text).replace(/\\n/g,'<br>')+'</p>';\n return '<div style=\"font-family:Arial;color:#152c43;font-size:10pt;line-height:1.25\"><p style=\"color:#b00020;font-weight:bold\">TEST_ONLY – interner Versandtest. Kein Vertrag. Keine Rechnung.</p><h1 style=\"font-size:20pt\">LSZH AUTOMATIONS</h1><p>Ein Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG</p><h2 style=\"font-size:15pt\">Offerte '+esc(f.Offertennummer)+'</h2><p>'+esc(f['Lead Firma'][0])+'<br>'+esc(f['Lead Name'][0])+'<br>'+esc(f['Lead Strasse'][0])+'<br>'+esc(f['Lead PLZ'][0])+' '+esc(f['Lead Ort'][0])+'<br>'+esc(f['Lead Land'][0])+'</p>'+section('Leistung',f.Leistung)+section('Ausgangslage',f.Ausgangssituation)+section('Ziel',f.Ziel)+section('Leistungsumfang',f.Leistungsumfang)+section('Beteiligte Systeme',f['Beteiligte Systeme'])+section('Nicht enthalten',f['Nicht enthalten'])+'<hr><p><strong>Einmalig CHF 120 · Monatlich CHF 0</strong></p>'+section('Zahlungsmodell / Zahlungsziel',f.Zahlungsmodell+' / 30 Tage')+section('Gültig bis',f['Gültig bis'])+section('Projektbedingungen / AVV','TEST_v1.0_RC1 / Nein')+'<p>Alle Preise sind interne Testwerte. Keine Annahme oder Zahlung möglich.</p></div>';\n}\nfunction preflight(row,policy,now){\n const f=row?.fields;\n // A queued search may have matched before a previous run completed. Re-read\n // state wins: never overwrite an in-flight, sent or ambiguous mail outcome.\n if(row?.id===policy?.recordId&&f&&(f.Status!=='Entwurf'||f.Schnellaktion!=='Für Versand freigeben'||f['Online-Annahme Offerten Drive ID']||f['Online-Annahme Link gesendet am']||['PDF angefordert','Mail reserviert','Manuelle Prüfung','Versandt'].includes(f.Versandstatus)))return{ok:false,shouldWrite:false};\n try{const f=assertSource(row,policy,now);return{ok:true,shouldWrite:true,fingerprint:fingerprint(f),html:offerHtml(f),patchBody:JSON.stringify({fields:{Versandstatus:'PDF angefordert',Versandfehler:'','Versand freigegeben':true}})};}\n catch{return{ok:false,shouldWrite:true,patchBody:JSON.stringify({fields:{Versandstatus:'Blockiert',Versandfehler:row?.fields?.Versandprüfung!=='BEREIT'?String(row?.fields?.Versandprüfung||'Pflichtfelder prüfen'):'Interne Testbegrenzung oder Quelldaten prüfen','Versand freigegeben':false,Schnellaktion:null}})};}\n}\nfunction verifiedPdf(meta,base64,folder){\n const b=Buffer.from(base64||'','base64');\n if(!/^[A-Za-z0-9_-]{20,100}$/.test(meta?.id||'')||meta.mimeType!=='application/pdf'||!meta.contentRestrictions?.some(x=>x.readOnly===true)||meta.parents?.length!==1||meta.parents[0]!==folder||b.length<8||b.length>250000||b.length!==Number(meta.size)||!b.subarray(0,5).equals(Buffer.from('%PDF-'))||sha(b)!==meta.sha256Checksum)throw Error('pilot_archive_rejected');\n return {id:meta.id,sha256:meta.sha256Checksum,base64:b.toString('base64')};\n}\nfunction prepareSnapshot({row,policy,sourceFingerprint,quoteMeta,quoteBase64,termsMeta,termsBase64,origin,now=new Date()}){\n const f=assertSource(row,policy,now);\n if(fingerprint(f)!==sourceFingerprint||origin!=='https://lszh-crm-offer-links-ozx7mp2bka-oa.a.run.app')throw Error('pilot_source_changed');\n const quote=verifiedPdf(quoteMeta,quoteBase64,PILOT.quoteFolder),terms=verifiedPdf(termsMeta,termsBase64,PILOT.termsFolder);\n if(terms.id!==PILOT.termsId||terms.sha256!==PILOT.termsHash||f['Online-Annahme Offerten Drive ID']!==quote.id||f['Online-Annahme Offerten-SHA256']!==quote.sha256||f['Online-Annahme Offerten-Archivstatus']!=='VERIFIZIERT')throw Error('pilot_archive_binding_rejected');\n const code=randomBytes(32).toString('base64url'),tokenHash=sha(code),expiresAt=new Date(Math.min(+now+7*86400000,Date.parse(f['Gültig bis']+'T23:59:59Z'))).toISOString();\n const snapshot={purpose:PILOT.purpose,testOnly:true,recordId:policy.recordId,createdAt:now.toISOString(),expiresAt,sourceFingerprint,\n  offer:{tokenHash,status:'sent',approved:true,revision:1,termsVersion:'TEST_v1.0_RC1',expiresAt,recipientEmail:'synthetic@example.invalid',offerNumber:PILOT.number,details:{company:PILOT.company,service:f.Leistung,onceCHF:120,monthlyCHF:0,paymentModel:f.Zahlungsmodell},bundle:{avv_required:'Nein',quote:{id:quote.id,sha256:quote.sha256},terms:{id:terms.id,sha256:terms.sha256}},source:{kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',tableId:'tbljeIUoD7wwKuSmS',recordId:policy.recordId},downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}},documents:{quote:{base64:quote.base64},terms:{base64:terms.base64}}};\n return {tokenHash,expiresAt,link:origin+'/offerte-annehmen/#code='+code,firestoreBody:JSON.stringify({fields:{snapshotJSON:{stringValue:JSON.stringify(snapshot)}}}),snapshot};\n}\nfunction validateSnapshot(s,hash,recordId,now=new Date()){\n if(s?.purpose!==PILOT.purpose||s.testOnly!==true||s.recordId!==recordId||s.offer?.tokenHash!==hash||s.offer?.offerNumber!==PILOT.number||s.offer?.source?.recordId!==recordId||s.offer?.recipientEmail!=='synthetic@example.invalid'||s.offer?.details?.company!==PILOT.company||s.offer.details.onceCHF!==120||s.offer.details.monthlyCHF!==0||s.offer?.expiresAt!==s.expiresAt||!Number.isFinite(Date.parse(s.createdAt))||Date.parse(s.createdAt)>+now+60000||!Number.isFinite(Date.parse(s.expiresAt))||Date.parse(s.expiresAt)<=+now||Date.parse(s.expiresAt)>Date.parse(s.createdAt)+7*86400000||s.offer.bundle?.avv_required!=='Nein'||s.offer.bundle.terms?.id!==PILOT.termsId||s.offer.bundle.terms.sha256!==PILOT.termsHash)throw Error('pilot_snapshot_rejected');\n for(const which of ['quote','terms']){const bytes=Buffer.from(s.documents?.[which]?.base64||'','base64');if(bytes.length<8||bytes.length>250000||!bytes.subarray(0,5).equals(Buffer.from('%PDF-'))||sha(bytes)!==s.offer.bundle[which].sha256)throw Error('pilot_snapshot_bytes_rejected');}\n return s;\n}\n\nreturn preflight(input.row,{\"recordId\":\"recHXC36zyG8o3he3\",\"leadId\":\"recgQ8Crrd3sY0oFu\"});"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recHXC36zyG8o3he3",
+          "body": "{{13.result.patchBody}}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 24,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recHXC36zyG8o3he3",
+          "method": "GET",
+          "headers": []
+        }
+      }
+    },
+    {
+      "id": 18,
+      "module": "code:ExecuteCode",
+      "version": 1,
+      "config": {
+        "parameters": {},
+        "mapper": {
+          "input": [
+            {
+              "name": "row",
+              "value": "{{17.body}}"
+            },
+            {
+              "name": "sourceFingerprint",
+              "value": "{{13.result.fingerprint}}"
+            },
+            {
+              "name": "quoteMeta",
+              "value": "{{11.body}}"
+            },
+            {
+              "name": "quoteBase64",
+              "value": "{{base64(9.data)}}"
+            },
+            {
+              "name": "termsMeta",
+              "value": "{{16.body}}"
+            },
+            {
+              "name": "termsBase64",
+              "value": "{{base64(15.data)}}"
+            }
+          ],
+          "language": "javascript",
+          "inputFormat": "editor",
+          "codeEditorJavascript": "'use strict';\n// Shared by the Make code modules and the read-only link service.\n// This rollout accepts only an explicitly configured internal pilot record.\nconst {createHash,randomBytes}=require('node:crypto');\nconst PILOT=Object.freeze({number:'TEST_CRM_CLOUD_20261021_NO_CONTRACT',company:'LSZH Invest GmbH – TEST_CRM_CLOUD_20261021',email:'lars@lszh-automations.ch',purpose:'TEST_ONLY_CRM_CLOUD_20261021',termsId:'1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO',termsHash:'baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279',quoteFolder:'1A9jx7DzCWHQJxvxxeWTj4HCh-hbVm0in',termsFolder:'10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko'});\nconst SOURCE_KEYS=['Offerte','Offertennummer','Lead','Lead E-Mail','Lead Firma','Lead Name','Lead Strasse','Lead PLZ','Lead Ort','Lead Land','Leistung','Ausgangssituation','Ziel','Leistungsumfang','Nicht enthalten','Beteiligte Systeme','Einmalig CHF','Monatlich CHF','Zahlungsmodell','Zahlungsziel Tage','Gültig bis','Projektbedingungen Version','AVV erforderlich'];\nconst sha=x=>createHash('sha256').update(x).digest('hex');\nfunction fingerprint(f){return sha(JSON.stringify(SOURCE_KEYS.map(k=>[k,f[k]??null])));}\nfunction assertSource(row,policy,now=new Date()){\n const f=row?.fields;\n if(!/^rec[A-Za-z0-9]{14}$/.test(policy?.recordId||'')||!/^rec[A-Za-z0-9]{14}$/.test(policy?.leadId||'')||row?.id!==policy.recordId||!f||f.Offertennummer!==PILOT.number||f.Status!=='Entwurf'||f.Schnellaktion!=='Für Versand freigeben'||f.Versandprüfung!=='BEREIT'||JSON.stringify(f.Lead)!==JSON.stringify([policy.leadId])||JSON.stringify(f['Lead E-Mail'])!==JSON.stringify([PILOT.email])||JSON.stringify(f['Lead Firma'])!==JSON.stringify([PILOT.company])||f.Übernommen!==true||!String(f['Interne Notiz']||'').includes(PILOT.purpose)||f['AVV erforderlich']!=='Nein'||f['Projektbedingungen Version']!=='TEST_v1.0_RC1')throw Error('pilot_source_rejected');\n for(const k of ['Echtbetrieb – kein Test','Online-Annahme rechtlich freigegeben','Vertragsunterlagen akzeptiert','Vertragsunterlagen versendet'])if(f[k])throw Error('pilot_release_rejected');\n for(const k of ['Kunde','Auftrag','Online-Annahme Zeitstempel','Online-Annahme Link gesendet am'])if(f[k]?.length)throw Error('pilot_already_processed');\n for(const k of SOURCE_KEYS.filter(k=>!['Lead','Einmalig CHF','Monatlich CHF','Zahlungsziel Tage'].includes(k))){const v=f[k];if(Array.isArray(v)?v.length!==1||!String(v[0]??'').trim():typeof v!=='string'||!v.trim()||v.length>6000)throw Error('pilot_required_fields');}\n if(f['Einmalig CHF']!==120||(f['Monatlich CHF']||0)!==0||f['Zahlungsziel Tage']!==30||!/^\\d{4}-\\d{2}-\\d{2}$/.test(f['Gültig bis'])||Date.parse(f['Gültig bis']+'T23:59:59Z')<+now)throw Error('pilot_values_rejected');\n return f;\n}\nfunction offerHtml(f){\n const esc=x=>String(x??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n const section=(title,text)=>'<p style=\"margin:10px 0;font-size:10pt\"><strong>'+esc(title)+'</strong><br>'+esc(text).replace(/\\n/g,'<br>')+'</p>';\n return '<div style=\"font-family:Arial;color:#152c43;font-size:10pt;line-height:1.25\"><p style=\"color:#b00020;font-weight:bold\">TEST_ONLY – interner Versandtest. Kein Vertrag. Keine Rechnung.</p><h1 style=\"font-size:20pt\">LSZH AUTOMATIONS</h1><p>Ein Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG</p><h2 style=\"font-size:15pt\">Offerte '+esc(f.Offertennummer)+'</h2><p>'+esc(f['Lead Firma'][0])+'<br>'+esc(f['Lead Name'][0])+'<br>'+esc(f['Lead Strasse'][0])+'<br>'+esc(f['Lead PLZ'][0])+' '+esc(f['Lead Ort'][0])+'<br>'+esc(f['Lead Land'][0])+'</p>'+section('Leistung',f.Leistung)+section('Ausgangslage',f.Ausgangssituation)+section('Ziel',f.Ziel)+section('Leistungsumfang',f.Leistungsumfang)+section('Beteiligte Systeme',f['Beteiligte Systeme'])+section('Nicht enthalten',f['Nicht enthalten'])+'<hr><p><strong>Einmalig CHF 120 · Monatlich CHF 0</strong></p>'+section('Zahlungsmodell / Zahlungsziel',f.Zahlungsmodell+' / 30 Tage')+section('Gültig bis',f['Gültig bis'])+section('Projektbedingungen / AVV','TEST_v1.0_RC1 / Nein')+'<p>Alle Preise sind interne Testwerte. Keine Annahme oder Zahlung möglich.</p></div>';\n}\nfunction preflight(row,policy,now){\n const f=row?.fields;\n // A queued search may have matched before a previous run completed. Re-read\n // state wins: never overwrite an in-flight, sent or ambiguous mail outcome.\n if(row?.id===policy?.recordId&&f&&(f.Status!=='Entwurf'||f.Schnellaktion!=='Für Versand freigeben'||f['Online-Annahme Offerten Drive ID']||f['Online-Annahme Link gesendet am']||['PDF angefordert','Mail reserviert','Manuelle Prüfung','Versandt'].includes(f.Versandstatus)))return{ok:false,shouldWrite:false};\n try{const f=assertSource(row,policy,now);return{ok:true,shouldWrite:true,fingerprint:fingerprint(f),html:offerHtml(f),patchBody:JSON.stringify({fields:{Versandstatus:'PDF angefordert',Versandfehler:'','Versand freigegeben':true}})};}\n catch{return{ok:false,shouldWrite:true,patchBody:JSON.stringify({fields:{Versandstatus:'Blockiert',Versandfehler:row?.fields?.Versandprüfung!=='BEREIT'?String(row?.fields?.Versandprüfung||'Pflichtfelder prüfen'):'Interne Testbegrenzung oder Quelldaten prüfen','Versand freigegeben':false,Schnellaktion:null}})};}\n}\nfunction verifiedPdf(meta,base64,folder){\n const b=Buffer.from(base64||'','base64');\n if(!/^[A-Za-z0-9_-]{20,100}$/.test(meta?.id||'')||meta.mimeType!=='application/pdf'||!meta.contentRestrictions?.some(x=>x.readOnly===true)||meta.parents?.length!==1||meta.parents[0]!==folder||b.length<8||b.length>250000||b.length!==Number(meta.size)||!b.subarray(0,5).equals(Buffer.from('%PDF-'))||sha(b)!==meta.sha256Checksum)throw Error('pilot_archive_rejected');\n return {id:meta.id,sha256:meta.sha256Checksum,base64:b.toString('base64')};\n}\nfunction prepareSnapshot({row,policy,sourceFingerprint,quoteMeta,quoteBase64,termsMeta,termsBase64,origin,now=new Date()}){\n const f=assertSource(row,policy,now);\n if(fingerprint(f)!==sourceFingerprint||origin!=='https://lszh-crm-offer-links-ozx7mp2bka-oa.a.run.app')throw Error('pilot_source_changed');\n const quote=verifiedPdf(quoteMeta,quoteBase64,PILOT.quoteFolder),terms=verifiedPdf(termsMeta,termsBase64,PILOT.termsFolder);\n if(terms.id!==PILOT.termsId||terms.sha256!==PILOT.termsHash||f['Online-Annahme Offerten Drive ID']!==quote.id||f['Online-Annahme Offerten-SHA256']!==quote.sha256||f['Online-Annahme Offerten-Archivstatus']!=='VERIFIZIERT')throw Error('pilot_archive_binding_rejected');\n const code=randomBytes(32).toString('base64url'),tokenHash=sha(code),expiresAt=new Date(Math.min(+now+7*86400000,Date.parse(f['Gültig bis']+'T23:59:59Z'))).toISOString();\n const snapshot={purpose:PILOT.purpose,testOnly:true,recordId:policy.recordId,createdAt:now.toISOString(),expiresAt,sourceFingerprint,\n  offer:{tokenHash,status:'sent',approved:true,revision:1,termsVersion:'TEST_v1.0_RC1',expiresAt,recipientEmail:'synthetic@example.invalid',offerNumber:PILOT.number,details:{company:PILOT.company,service:f.Leistung,onceCHF:120,monthlyCHF:0,paymentModel:f.Zahlungsmodell},bundle:{avv_required:'Nein',quote:{id:quote.id,sha256:quote.sha256},terms:{id:terms.id,sha256:terms.sha256}},source:{kind:'LSZH_SYNTHETIC_ONLY',baseId:'appzJiskpAdaR1HEv',tableId:'tbljeIUoD7wwKuSmS',recordId:policy.recordId},downstream:{airtable:'disabled',proofPdf:'disabled',email:'disabled'}},documents:{quote:{base64:quote.base64},terms:{base64:terms.base64}}};\n return {tokenHash,expiresAt,link:origin+'/offerte-annehmen/#code='+code,firestoreBody:JSON.stringify({fields:{snapshotJSON:{stringValue:JSON.stringify(snapshot)}}}),snapshot};\n}\nfunction validateSnapshot(s,hash,recordId,now=new Date()){\n if(s?.purpose!==PILOT.purpose||s.testOnly!==true||s.recordId!==recordId||s.offer?.tokenHash!==hash||s.offer?.offerNumber!==PILOT.number||s.offer?.source?.recordId!==recordId||s.offer?.recipientEmail!=='synthetic@example.invalid'||s.offer?.details?.company!==PILOT.company||s.offer.details.onceCHF!==120||s.offer.details.monthlyCHF!==0||s.offer?.expiresAt!==s.expiresAt||!Number.isFinite(Date.parse(s.createdAt))||Date.parse(s.createdAt)>+now+60000||!Number.isFinite(Date.parse(s.expiresAt))||Date.parse(s.expiresAt)<=+now||Date.parse(s.expiresAt)>Date.parse(s.createdAt)+7*86400000||s.offer.bundle?.avv_required!=='Nein'||s.offer.bundle.terms?.id!==PILOT.termsId||s.offer.bundle.terms.sha256!==PILOT.termsHash)throw Error('pilot_snapshot_rejected');\n for(const which of ['quote','terms']){const bytes=Buffer.from(s.documents?.[which]?.base64||'','base64');if(bytes.length<8||bytes.length>250000||!bytes.subarray(0,5).equals(Buffer.from('%PDF-'))||sha(bytes)!==s.offer.bundle[which].sha256)throw Error('pilot_snapshot_bytes_rejected');}\n return s;\n}\n\nconst out=prepareSnapshot({...input,policy:{\"recordId\":\"recHXC36zyG8o3he3\",\"leadId\":\"recgQ8Crrd3sY0oFu\"},origin:\"https://lszh-crm-offer-links-ozx7mp2bka-oa.a.run.app\"});delete out.snapshot;return out;"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "module": "google-cloud-firestore:universal",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 12198232
+        },
+        "mapper": {
+          "qs": [],
+          "url": "/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_links?documentId={{18.result.tokenHash}}",
+          "body": "{{18.result.firestoreBody}}",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 20,
+      "module": "datastore:AddRecord",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "datastore": 227219
+        },
+        "mapper": {
+          "key": "TEST_ONLY_CRM_CLOUD_20261021:recHXC36zyG8o3he3:MAIL_ATTEMPT",
+          "overwrite": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "module": "google-email:sendAnEmail",
+      "version": 4,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11904991
+        },
+        "mapper": {
+          "cc": [],
+          "to": [
+            "lars@lszh-automations.ch"
+          ],
+          "bcc": [],
+          "from": "\"LSZH Automations\" <info@lszh-automations.ch>",
+          "content": "<h2>Interner Test aus deiner CRM-Freigabe</h2><p>CHF 120 einmalig, CHF 0 monatlich. Kein Vertrag. Keine Rechnung.</p><p><a href=\"{{18.result.link}}\">Offerte und TEST-Bedingungen öffnen</a></p><p>Annahme deaktiviert. Link sieben Tage, höchstens bis zum Ablauf der Offerte gültig.</p>",
+          "subject": "TEST_ONLY – Cloud-CRM-Offerte – kein Vertrag",
+          "bodyType": "rawHtml",
+          "attachments": [
+            {
+              "data": "{{9.data}}",
+              "filename": "TEST_ONLY_Offerte_Cloud.pdf"
+            },
+            {
+              "data": "{{15.data}}",
+              "filename": "TEST_ONLY_Projektbedingungen.pdf"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recHXC36zyG8o3he3",
+          "body": "{\"fields\":{\"Status\":\"Versendet\",\"Versendet am\":\"{{formatDate(now; \\\"YYYY-MM-DD\\\")}}\",\"Vertragsunterlagen versendet\":true,\"Online-Annahme Link gesendet am\":\"{{formatDate(now; \\\"YYYY-MM-DDTHH:mm:ssZ\\\")}}\",\"Online-Annahme Token-Hash\":\"{{18.result.tokenHash}}\",\"Online-Annahme Bedingungen Drive ID\":\"1yPtsWTeEUclniKFWRM81EHEUMnu1E9nO\",\"Online-Annahme Bedingungen-SHA256\":\"baec0946db9b892da86e4009ade769863d5087d8961e16940d0dda420d1bf279\",\"Versand freigegeben\":false,\"Schnellaktion\":null,\"Versandstatus\":\"Versandt\",\"Versandfehler\":\"\",\"Nächster Schritt\":\"TEST_ONLY Cloud-CRM-Versand bestätigt. Keine Annahme oder Rechnung.\"}}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 21,
+      "module": "google-cloud-firestore:universal",
+      "version": 1,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 12198232
+        },
+        "mapper": {
+          "qs": [],
+          "url": "/v1/projects/lszh-automations/databases/lszh-offers-staging/documents/lszh_crm_cloud_receipts?documentId=recHXC36zyG8o3he3",
+          "body": "{\"fields\":{\"status\":{\"stringValue\":\"PROVIDER_CONFIRMED\"},\"gmailId\":{\"stringValue\":\"{{5.id}}\"},\"tokenHash\":{\"stringValue\":\"{{18.result.tokenHash}}\"},\"sentAt\":{\"timestampValue\":\"{{formatDate(now; \\\"YYYY-MM-DDTHH:mm:ssZ\\\")}}\"}}}",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 22,
+      "module": "airtable:makeApiCall",
+      "version": 3,
+      "config": {
+        "parameters": {
+          "__IMTCONN__": 11101358
+        },
+        "mapper": {
+          "qs": [],
+          "url": "v0/appzJiskpAdaR1HEv/tbljeIUoD7wwKuSmS/recHXC36zyG8o3he3",
+          "body": "{\"fields\":{\"Versandstatus\":\"Manuelle Prüfung\",\"Versandfehler\":\"Gmail-Ausgang unklar; Mailversuch reserviert. Nicht erneut freigeben.\",\"Versand freigegeben\":false,\"Schnellaktion\":null}}",
+          "method": "PATCH",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 23,
+      "module": "builtin:Commit",
+      "version": 1,
+      "config": {}
+    }
+  ]
+}

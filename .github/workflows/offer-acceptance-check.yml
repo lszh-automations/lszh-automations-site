@@ -5,10 +5,94 @@ on:
       - 'offerAcceptance.js'
       - 'offerArchiveVerifier.js'
       - 'test/offerAcceptance.test.js'
+      - 'test/offerAcceptance.avv.test.js'
+      - 'test/offerAcceptance.ui.test.js'
       - 'test/offerArchiveVerifier.test.js'
       - 'server.js'
       - 'offerte-annehmen/index.html'
       - 'package.json'
+      - 'cloud-run/archive-reader-staging/**'
+      - 'cloud-run/offer-portal-staging/**'
+      - 'cloud-run/offer-portal-production/**'
+      - 'cloud-run/public-test-preview/**'
+      - 'cloud-run/Dockerfile.public-test-preview'
+      - 'test/publicTestPreview.test.js'
+      - 'scripts/public-test-preview-operator.mjs'
+      - 'scripts/public-test-invitation.mjs'
+      - 'test/publicTestInvitation.test.js'
+      - 'onboarding/**'
+      - 'test/onboarding.pending.test.js'
+      - 'cloud-run/Dockerfile.offer-portal-production'
+      - 'scripts/customer-pilot-cloud-bootstrap-disabled.sh'
+      - 'hosting/customer-portal/**'
+      - 'scripts/customer-portal-hosting-readiness-readonly.sh'
+      - 'test/approvedCustomer*.test.js'
+      - 'test/customer*.test.js'
+      - 'cloud-run/offer-portal-preflight/**'
+      - 'cloud-run/offer-portal-transaction-smoke/**'
+      - 'test/offerPortalStaging.test.js'
+      - 'test/offerPortalHttp.test.js'
+      - 'test/offerPortalFramework.integration.test.cjs'
+      - 'test/offerPortalConfig.test.js'
+      - 'test/firestoreEmulator.integration.test.js'
+      - 'test/offerPortalEndToEnd.emulator.test.js'
+      - 'test/offerPortalImporter.test.js'
+      - 'test/offerPortalAirtableE2E.emulator.test.js'
+      - 'test/offerReceiptRecoveryReview.test.js'
+      - 'test/offerReceiptArchiveReconciliation.test.js'
+      - 'test/offerReceiptUploadContract.test.js'
+      - 'test/offerReceiptDocumentHandoff.test.js'
+      - 'test/offerCloudSyntheticSeedOnce.test.js'
+      - 'scripts/offer-cloud-synthetic-seed-once.mjs'
+      - 'test/offerReceiptProcessingLock.test.js'
+      - 'test/offerReceiptMakeReservationContract.test.js'
+      - 'test/offerSyntheticSourceIndex.test.js'
+      - 'test/offerSyntheticMakeCallerAuth.test.js'
+      - 'test/offerSyntheticPubsubReviewTransport.test.js'
+      - 'test/offerSyntheticPubsubIamPreflight.test.js'
+      - 'test/g3ReadonlyCloudInventory.test.js'
+      - 'test/g3ReadonlyServiceAgentRole.test.js'
+      - 'scripts/g3-readonly-service-agent-role.mjs'
+      - 'scripts/g3-staging-bootstrap.mjs'
+      - 'test/g3StagingBootstrap.test.js'
+      - 'test/g3CanaryReceiver.test.js'
+      - 'cloud-run/g3-review-staging/**'
+      - 'scripts/g3-readonly-cloud-inventory.mjs'
+      - 'test/offerSyntheticSourceIndex.emulator.test.js'
+      - 'test/offerReceiptProcessingLock.emulator.test.js'
+      - 'test/internalReceiptMailRecovery.test.js'
+      - 'test/internalRecoveryProviders.test.js'
+      - 'test/internalRecoveryLocal.test.js'
+      - 'test/internalPilotV2.test.js'
+      - 'scripts/internal-test-pilot-v2.mjs'
+      - 'scripts/internal-recovery-readonly-check.mjs'
+      - 'test/internalReceiptMailRecovery.emulator.test.js'
+      - 'test/offerPortalDocuments.test.js'
+      - 'test-browser/**'
+      - 'cloud-run/Dockerfile.offer-portal-staging'
+      - 'scripts/offer-cloud-readiness-readonly.py'
+      - 'scripts/offer-iam-hierarchy-readonly.py'
+      - 'scripts/offer-business-drive-readonly-verify.py'
+      - 'scripts/offer-business-drive-provider-sha-diagnose.py'
+      - 'scripts/offer-temp-drive-folder-reader.py'
+      - 'scripts/offer-temp-drive-probe-release.sh'
+      - 'scripts/offer-temp-drive-phase-release.sh'
+      - 'scripts/offer-temp-drive-folder-shape-release.sh'
+      - 'scripts/offer-temp-drive-restricted-parent-release.sh'
+      - 'scripts/offer-temp-drive-child-readonly-check.py'
+      - 'scripts/offer-temp-drive-probe-smoke.sh'
+      - 'test/temporaryDriveProbe.test.js'
+      - 'scripts/offer-browser-cloud-bootstrap.sh'
+      - 'scripts/offer-browser-cloud-cleanup.sh'
+      - 'scripts/offer-browser-cloud-resume.sh'
+      - 'scripts/offer-browser-cloud-smoke.sh'
+      - 'scripts/offer-browser-static-demo-release.sh'
+      - 'scripts/offer-browser-static-demo-smoke.sh'
+      - 'test/temporaryBrowserDemo.test.js'
+      - 'scripts/offerSyntheticPdfFixtures.mjs'
+      - 'test/offerSyntheticPdfFixtures.test.js'
+      - 'test/offerBrowserCloudScript.test.js'
+      - 'test/cloudRunArchiveBundle.test.js'
       - '.github/workflows/offer-acceptance-check.yml'
   workflow_dispatch:
 permissions:
@@ -21,6 +105,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Read-only Cloud Run baseline offline negatives (no GCP account)
+        run: |
+          python3 -m py_compile scripts/offer-cloud-readiness-readonly.py
+          python3 scripts/offer-cloud-readiness-readonly.py --self-test
+          python3 -m py_compile scripts/offer-iam-hierarchy-readonly.py
+          python3 scripts/offer-iam-hierarchy-readonly.py --self-test
+          python3 -m py_compile scripts/offer-business-drive-readonly-verify.py
+          python3 scripts/offer-business-drive-readonly-verify.py --self-test
+          python3 -m py_compile scripts/offer-business-drive-provider-sha-diagnose.py
+          python3 scripts/offer-business-drive-provider-sha-diagnose.py --self-test
+          python3 -m py_compile scripts/offer-temp-drive-folder-reader.py
+          python3 scripts/offer-temp-drive-folder-reader.py --self-test
+          python3 -m py_compile scripts/offer-temp-drive-child-readonly-check.py
+          python3 scripts/offer-temp-drive-child-readonly-check.py --self-test
+          bash -n scripts/offer-browser-cloud-bootstrap.sh
+          bash -n scripts/customer-pilot-cloud-bootstrap-disabled.sh
+          bash -n scripts/customer-portal-hosting-readiness-readonly.sh
+          bash -n scripts/offer-browser-cloud-cleanup.sh
+          bash -n scripts/offer-browser-cloud-resume.sh
+          bash -n scripts/offer-browser-cloud-smoke.sh
+          bash -n scripts/offer-browser-static-demo-release.sh
+          bash -n scripts/offer-browser-static-demo-smoke.sh
+          bash -n scripts/offer-temp-drive-probe-release.sh
+          bash -n scripts/offer-temp-drive-phase-release.sh
+          bash -n scripts/offer-temp-drive-folder-shape-release.sh
+          bash -n scripts/offer-temp-drive-restricted-parent-release.sh
+          bash -n scripts/offer-temp-drive-probe-smoke.sh
       - name: Syntax checks
         run: |
           node --check server.js
@@ -29,6 +140,78 @@ jobs:
           node --check scripts/issue-offer-link.js
           node --check test/offerAcceptance.test.js
           node --check test/offerArchiveVerifier.test.js
+          node --check test/offerAcceptance.http.test.js
+          node --check test/support/offer-http-mock.cjs
+          node --check archiveStagingSmoke.js
+          node --check cloud-run/archive-reader-staging/index.js
+          node --check cloud-run/archive-reader-staging/archiveBundleVerifier.mjs
+          node --check cloud-run/offer-portal-staging/portalCore.mjs
+          node --check cloud-run/offer-portal-staging/firestoreOfferStore.mjs
+          node --check cloud-run/offer-portal-staging/receiptRecoveryReview.mjs
+          node --check cloud-run/offer-portal-staging/receiptArchiveReconciliation.mjs
+          node --check cloud-run/offer-portal-staging/receiptUploadContract.mjs
+          node --check cloud-run/offer-portal-staging/receiptDocumentHandoff.mjs
+          node --check test/offerReceiptDocumentHandoff.test.js
+          node --check cloud-run/offer-portal-staging/internalRecoveryProviders.mjs
+          node --check cloud-run/offer-portal-staging/internalRecoveryOAuth.mjs
+          node --check cloud-run/offer-portal-staging/internalRecoveryLocal.mjs
+          node --check test/internalRecoveryLocal.test.js
+          node --check scripts/internal-test-pilot-v2.mjs
+          node --check test/internalPilotV2.test.js
+          node --check scripts/internal-recovery-readonly-check.mjs
+          node --check test/internalRecoveryProviders.test.js
+          node --check cloud-run/offer-portal-staging/internalReceiptMailRecovery.mjs
+          node --check test/internalReceiptMailRecovery.emulator.test.js
+          node --check cloud-run/offer-portal-staging/receiptProcessingLock.mjs
+          node --check cloud-run/offer-portal-staging/receiptMakeReservationContract.mjs
+          node --check cloud-run/offer-portal-staging/syntheticSourceIndex.mjs
+          node --check cloud-run/offer-portal-staging/syntheticMakeCallerAuth.mjs
+          node --check cloud-run/offer-portal-staging/syntheticPubsubReviewTransport.mjs
+          node --check cloud-run/offer-portal-staging/syntheticPubsubIamPreflight.mjs
+          node --check scripts/g3-readonly-cloud-inventory.mjs
+          node --check scripts/g3-readonly-service-agent-role.mjs
+          node --check scripts/g3-staging-bootstrap.mjs
+          node --check cloud-run/g3-review-staging/index.mjs
+          node --check cloud-run/offer-portal-staging/portalHttp.mjs
+          node --check cloud-run/offer-portal-staging/stagingConfig.mjs
+          node --check cloud-run/offer-portal-staging/index.mjs
+          for source in cloud-run/offer-portal-production/*.mjs; do node --check "$source"; done
+          node --check cloud-run/offer-portal-staging/temporaryBrowserDemo.mjs
+          node --check cloud-run/offer-portal-staging/temporaryDriveProbe.mjs
+          node --check test/temporaryDriveProbe.test.js
+          node --check test/temporaryBrowserDemo.test.js
+          node --check scripts/offerSyntheticPdfFixtures.mjs
+          node --check scripts/offer-cloud-synthetic-seed-once.mjs
+          node --check test/offerCloudSyntheticSeedOnce.test.js
+          node --check test/offerSyntheticPdfFixtures.test.js
+          node --check cloud-run/offer-portal-preflight/index.js
+          node --check cloud-run/offer-portal-transaction-smoke/index.js
+          node --check cloud-run/offer-portal-transaction-smoke/transactionTest.mjs
+          node --check test/offerPortalConfig.test.js
+          node --check test/firestoreEmulator.integration.test.js
+          node --check test/offerPortalEndToEnd.emulator.test.js
+          node --check cloud-run/offer-portal-staging/airtableSyntheticImport.mjs
+          node --check test/offerPortalImporter.test.js
+          node --check test/offerPortalAirtableE2E.emulator.test.js
+          node --check test/offerReceiptRecoveryReview.test.js
+          node --check test/offerReceiptArchiveReconciliation.test.js
+          node --check test/offerReceiptUploadContract.test.js
+          node --check test/offerReceiptProcessingLock.test.js
+          node --check test/offerReceiptMakeReservationContract.test.js
+          node --check test/offerSyntheticSourceIndex.test.js
+          node --check test/offerSyntheticMakeCallerAuth.test.js
+          node --check test/offerSyntheticPubsubReviewTransport.test.js
+          node --check test/offerSyntheticPubsubIamPreflight.test.js
+          node --check test/g3ReadonlyCloudInventory.test.js
+          node --check test/g3ReadonlyServiceAgentRole.test.js
+          node --check test/g3StagingBootstrap.test.js
+          node --check test/g3CanaryReceiver.test.js
+          node --check test/offerSyntheticSourceIndex.emulator.test.js
+          node --check test/offerReceiptProcessingLock.emulator.test.js
+          node --check test/offerPortalDocuments.test.js
+          node --check test/offerPortalHttp.test.js
+          node --check test/offerPortalStaging.test.js
+          node --check scripts/run-tests-safely.js
       - name: Browser page script syntax
         run: |
           node - <<'NODE'
@@ -41,3 +224,122 @@ jobs:
           NODE
       - name: Unit tests
         run: npm test
+
+      - name: Offline rollback package deployability test
+        working-directory: cloud-run/offer-portal-preflight
+        env:
+          # Prevent startup from contacting metadata, Drive, or Firestore.
+          K_SERVICE: offline-preflight-unit-test
+          GOOGLE_CLOUD_PROJECT: demo-offline-never-deploy
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --ignore-scripts
+          node --check index.js
+          ./node_modules/.bin/functions-framework --target=lszhPortalPreflight --source=index.js --port=18080 > /tmp/lszh-readonly-boot.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          result=""
+          for attempt in $(seq 1 30); do
+            result=$(curl -sS --max-time 2 -o /tmp/lszh-readonly-body -w "%{http_code}" "http://127.0.0.1:18080/anything" 2>/dev/null || true)
+            if [ "$result" = "503" ]; then break; fi
+            sleep 1
+          done
+          if [ "$result" != "503" ]; then
+            echo "Readonly preflight boot failure (local only)"
+            sed -n '1,25p' /tmp/lszh-readonly-boot.log
+            exit 1
+          fi
+          grep -Fq '"error":"staging_disabled"' /tmp/lszh-readonly-body
+          echo "PASS: rollback source installed, server booted, and all requests return 503; no cloud credentials used"
+
+  firestore-emulator:
+    name: Synthetic named Firestore transactions (emulator only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install isolated portal SDK dependencies
+        run: npm install --prefix cloud-run/offer-portal-staging --no-audit --no-fund --ignore-scripts
+      - name: Real Functions Framework JSON-body regression (no cloud)
+        run: node --test test/offerPortalFramework.integration.test.cjs
+      - name: Run local emulator transaction contention tests
+        env:
+          CI: 'true'
+          GCLOUD_PROJECT: demo-lszh-automations
+        run: |
+          npx --yes firebase-tools@15.16.0 emulators:exec \
+            --only firestore \
+            --project demo-lszh-automations \
+            --config cloud-run/offer-portal-staging/firebase.emulator.json \
+            "node --test test/firestoreEmulator.integration.test.js test/offerPortalEndToEnd.emulator.test.js test/offerPortalImporter.test.js test/offerPortalAirtableE2E.emulator.test.js test/offerReceiptProcessingLock.emulator.test.js test/offerSyntheticSourceIndex.emulator.test.js test/internalReceiptMailRecovery.emulator.test.js"
+
+  browser-synthetic:
+    name: Synthetic customer journey in real Chromium (offline only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Playwright test dependency (not production)
+        run: npm install --no-save --no-audit --no-fund --ignore-scripts @playwright/test@1.56.1
+      - name: Install headless Chromium on CI runner
+        run: npx playwright install --with-deps chromium
+      - name: Verify synthetic design and both AVV journeys
+        env:
+          CI: 'true'
+          SITE_PRIVATE: 'true'
+          OFFER_ACCEPTANCE_ENABLED: 'false'
+        run: npx playwright test test-browser --workers=1 --reporter=line
+
+  portal-image-offline:
+    name: Single-origin staging portal image (build-only, never deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build exact staging portal package from repository root
+        run: docker build -f cloud-run/Dockerfile.offer-portal-staging -t lszh-offer-portal:offline-test .
+      - name: Verify bundled HTML and disabled-by-default HTTP behavior
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint node lszh-offer-portal:offline-test \
+            -e "const fs=require('node:fs');const assert=require('node:assert/strict');const html=fs.readFileSync('/app/offer-portal-staging/offerte-annehmen.html','utf8');assert.match(html,/Ihre Offerte/);assert.match(html,/demo=1|const demo/);console.log('PASS: Existing customer HTML packaged');"
+          cid=$(docker run -d -e PORT=8080 -e LSZH_PORTAL_STAGING_ENABLED=false \
+            -p 127.0.0.1:18082:8080 lszh-offer-portal:offline-test)
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          status=""
+          for attempt in $(seq 1 35); do
+            status=$(curl --max-time 2 -sS -o /tmp/lszh-portal-disabled-response \
+              -w "%{http_code}" http://127.0.0.1:18082/offerte-annehmen/ 2>/dev/null || true)
+            [ "$status" = "503" ] && break
+            sleep 1
+          done
+          [ "$status" = "503" ]
+          grep -Fq '"error":"not_available"' /tmp/lszh-portal-disabled-response
+          echo "PASS: Packaged single-origin portal stays disabled; no Cloud API calls"
+      - name: Build customer portal image and check disabled-by-default boot (no deployment)
+        run: |
+          set -euo pipefail
+          docker build -f cloud-run/Dockerfile.offer-portal-production -t lszh-customer-portal:offline-test .
+          cid=$(docker run -d -e PORT=8080 -e LSZH_PORTAL_PRODUCTION_ENABLED=false \
+            -p 127.0.0.1:18083:8080 lszh-customer-portal:offline-test)
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          status=""
+          for attempt in $(seq 1 35); do
+            status=$(curl --max-time 2 -sS -o /tmp/lszh-customer-portal-disabled \
+              -w "%{http_code}" http://127.0.0.1:18083/offerte-annehmen/ 2>/dev/null || true)
+            [ "$status" = "503" ] && break
+            sleep 1
+          done
+          [ "$status" = "503" ]
+          grep -Fq '"error":"not_available"' /tmp/lszh-customer-portal-disabled
+          echo "PASS: Customer portal image builds and refuses all customer traffic unless configured"

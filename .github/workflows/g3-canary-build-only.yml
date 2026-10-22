@@ -1,0 +1,394 @@
+name: G3 canary candidate image (build-only, NO deployment)
+
+on:
+  pull_request:
+    paths:
+      - 'cloud-run/g3-review-staging/**'
+      - 'scripts/g3-canary-image-plan.mjs'
+      - 'scripts/g3-canary-oci-verify.py'
+      - 'scripts/g3-canary-security-review.mjs'
+      - 'scripts/g3-canary-provenance-correlation.mjs'
+      - 'scripts/g3-upstream-base-review.mjs'
+      - 'scripts/g3-signed-artifact-verify-readonly.sh'
+      - 'scripts/g3-registry-readback-shape-offline.mjs'
+      - 'test/g3RegistryReadbackShape.test.js'
+      - 'scripts/g3-zlib-candidate-integrity.mjs'
+      - 'test/g3ZlibCandidateIntegrity.test.js'
+      - 'test/g3ZlibExperimentalBuild.test.js'
+      - 'scripts/g3-zlib-oci-diff-diagnose.py'
+      - 'test/g3SignedArtifactVerify.test.js'
+      - 'test/g3UpstreamBaseReview.test.js'
+      - 'test/g3CanaryProvenance.test.js'
+      - 'test/g3CanarySecurityReview.test.js'
+      - 'test/g3CanaryImageBuild.test.js'
+      - '.github/workflows/g3-canary-build-only.yml'
+  workflow_dispatch:
+
+# This job has no Google Cloud, packages, tokens, write API, or Docker push steps.
+permissions:
+  contents: read
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, observed run 39146988139
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4, observed run 39146988139
+        with:
+          node-version: '22'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Offline source-policy and deny tests (before Docker)
+        run: |
+          set -euo pipefail
+          node --check scripts/g3-canary-image-plan.mjs
+          node --check cloud-run/g3-review-staging/index.mjs
+          python3 -m py_compile scripts/g3-canary-oci-verify.py scripts/g3-zlib-oci-diff-diagnose.py
+          node --check scripts/g3-canary-security-review.mjs
+          node --check scripts/g3-canary-provenance-correlation.mjs
+          node --check scripts/g3-upstream-base-review.mjs
+          node --check scripts/g3-registry-readback-shape-offline.mjs
+          node --check scripts/g3-zlib-candidate-integrity.mjs
+          bash -n scripts/g3-signed-artifact-verify-readonly.sh
+          node --test test/g3CanaryImageBuild.test.js test/g3CanaryReceiver.test.js test/g3CanarySecurityReview.test.js test/g3CanaryProvenance.test.js test/g3UpstreamBaseReview.test.js test/g3SignedArtifactVerify.test.js test/g3RegistryReadbackShape.test.js test/g3ZlibCandidateIntegrity.test.js test/g3ZlibExperimentalBuild.test.js
+          node scripts/g3-canary-image-plan.mjs
+
+      - name: Verify fixed candidate base SHA lock (Docker Hub read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="$(node -e '
+            const lock=require("./cloud-run/g3-review-staging/base-image.candidate.json");
+            if(lock.schemaVersion!==1||lock.kind!=="LSZH_G3_CANDIDATE_NODE_BASE_V1"||
+               lock.platform!=="linux/amd64"||lock.reviewStatus!=="UNREVIEWED"||
+               lock.releaseStatus!=="NO_GO"||lock.canPublish!==false||lock.canDeploy!==false)
+              process.exit(2);
+            process.stdout.write(lock.image);
+          ')"
+          node scripts/g3-canary-image-plan.mjs "--base-image=$base" > g3-image-inputs.json
+          # Verify the locked digest exists, NOT that it is security approved.
+          docker buildx imagetools inspect "$base" >/dev/null
+          echo "G3_CANARY_BASE_IMAGE=$base" >> "$GITHUB_ENV"
+          echo "Candidate base SHA LOCKED across CI runs: $base"
+          echo "Not security-reviewed, not deploy-approved"
+
+      - name: Two isolated, network-disabled build steps produce OCI candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g3-canary-candidate
+          for i in 1 2; do
+            docker buildx build \
+              --file cloud-run/g3-review-staging/Dockerfile \
+              --platform linux/amd64 \
+              --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+              --build-arg SOURCE_DATE_EPOCH=0 \
+              --network none --no-cache \
+              --provenance=false --sbom=false \
+              --output "type=oci,dest=g3-canary-candidate/image-${i}.oci.tar,oci-mediatypes=true,rewrite-timestamp=true" \
+              cloud-run/g3-review-staging
+          done
+
+      - name: Independently SHA-verify OCI layers and compare both builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/g3-canary-oci-verify.py \
+            g3-canary-candidate/image-1.oci.tar \
+            g3-canary-candidate/image-2.oci.tar | tee g3-image-oci-report.json
+          sha256sum g3-canary-candidate/image-1.oci.tar g3-canary-candidate/image-2.oci.tar \
+            > g3-candidate-tar-sha256.txt
+          echo "These hashes are LOCAL OCI artifacts; they are NOT Artifact Registry image digests."
+          echo "NO_GO: container scan, independent source/base review and approved registry digest are still missing."
+
+      - name: Build-only container smoke, network disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --file cloud-run/g3-review-staging/Dockerfile \
+            --platform linux/amd64 \
+            --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --network none --no-cache --provenance=false --sbom=false \
+            --load -t lszh-g3-canary:offline-review cloud-run/g3-review-staging
+          # Runtime smoke checks the same build recipe; scanning is bound to
+          # the SHA-verified OCI archive below rather than this separate load.
+          test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-canary:offline-review)" = node
+          docker run --rm --network none --entrypoint node lszh-g3-canary:offline-review -e '
+            const fs=require("node:fs");
+            for(const p of ["/usr/local/lib/node_modules/npm",
+              "/usr/local/lib/node_modules/corepack",
+              "/usr/local/bin/npm","/usr/local/bin/npx","/usr/local/bin/corepack"]){
+              if(fs.existsSync(p))throw Error("unused_node_package_manager_remains");
+            }
+            console.log("PASS: runtime has Node, but no npm or corepack toolchain");
+          '
+          cid="$(docker run --detach --network none --read-only \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e PORT=8080 lszh-g3-canary:offline-review)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 20); do
+            if docker exec "$cid" node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(r.status!==200)process.exit(1)}).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec "$cid" node --input-type=module -e '
+            import assert from "node:assert/strict";
+            const base="http://127.0.0.1:8080";
+            const fixture={schemaVersion:1,syntheticOnly:true,fixtureId:"LSZH_G3_CANARY_NO_CONTRACT_20261018"};
+            const message={data:Buffer.from(JSON.stringify(fixture)).toString("base64"),
+              messageId:"123456789001",publishTime:"2026-10-18T15:00:00Z",
+              attributes:{kind:"LSZH_G3_PRIVATE_PUSH_CANARY_V1",schema:"1"}};
+            const body={subscription:"projects/lszh-automations/subscriptions/lszh-g3-review-staging",message};
+            const post=async b=>fetch(base+"/g3-review",{method:"POST",
+              headers:{"content-type":"application/json"},body:JSON.stringify(b)});
+            assert.equal((await post(body)).status,204);
+            assert.equal((await post({...body,customerEmail:"not-an-email"})).status,503);
+            assert.equal((await fetch(base+"/offerte-annehmen/")).status,404);
+            console.log("PASS: network-isolated real container, canary-only ACK");
+          '
+
+      - name: Extract ONLY the SHA-verified OCI archive for exact-byte scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p g3-canary-candidate/verified-oci
+          tar -xf g3-canary-candidate/image-1.oci.tar -C g3-canary-candidate/verified-oci
+          test -f g3-canary-candidate/verified-oci/index.json
+          test -f g3-canary-candidate/verified-oci/oci-layout
+          echo "PASS: Trivy input is OCI layout extracted from independently SHA-verified candidate"
+
+      - name: Trivy local image vulnerability scan (no registry push or Cloud auth)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          input: g3-canary-candidate/verified-oci
+          scanners: vuln
+          vuln-type: 'os,library'
+          format: json
+          output: g3-trivy.json
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+          ignore-unfixed: false
+          exit-code: '0'
+          cache: 'false'
+          version: 'v0.74.0'
+
+      - name: CycloneDX SBOM of same local image (no publishing)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          input: g3-canary-candidate/verified-oci
+          scanners: vuln
+          format: cyclonedx
+          output: g3-sbom.cdx.json
+          skip-setup-trivy: true
+          cache: 'false'
+          version: 'v0.74.0'
+
+      - name: Parse CVE review and hash unsigned candidate evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/g3-canary-security-review.mjs \
+            g3-trivy.json g3-sbom.cdx.json \
+            g3-image-oci-report.json g3-image-inputs.json \
+            | tee g3-security-review.json
+          # Never label this security check PASS while HIGH/CRITICAL CVEs remain.
+          node -e '
+            const fs=require("node:fs");
+            const report=JSON.parse(fs.readFileSync("g3-security-review.json","utf8"));
+            if(report.releaseStatus!=="NO_GO"||report.canPublish!==false||
+               report.canDeploy!==false||
+               report.status!=="SCAN_AND_SBOM_RECORDED_NO_HIGH_CRITICAL"||
+               (report.counts.HIGH+report.counts.CRITICAL)!==0){
+              console.error("BLOCKED_G3_HIGH_CRITICAL_CVE_REVIEW");
+              process.exit(2);
+            }
+            console.log("PASS: local CVE gate HIGH=0 and CRITICAL=0; release still NO_GO");
+          '
+          echo "NO_GO: a successful local scan is not a signature or deployment approval."
+
+      - name: Correlate raw build, source and scan evidence without any signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/g3-canary-provenance-correlation.mjs \
+            g3-image-inputs.json g3-image-oci-report.json \
+            g3-security-review.json g3-trivy.json g3-sbom.cdx.json \
+            | tee g3-provenance-correlation.json
+          echo "PASS: self-reported checkout-correlated hashes (NOT signed provenance, NO_GO)"
+
+      - name: Read-only upstream Node Alpine base digest and zlib advisory
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_sha="$(docker buildx imagetools inspect docker.io/library/node:22-alpine --format '{{.Manifest.Digest}}')"
+          [[ "$candidate_sha" =~ ^sha256:[a-f0-9]{64}$ ]]
+          candidate="docker.io/library/node:22-alpine@$candidate_sha"
+          if [ "$candidate" != "$G3_CANARY_BASE_IMAGE" ]; then
+            # Advisory only. No Docker pull/run, build, lock change, signing or push.
+            trivy image --quiet --scanners vuln --vuln-type os,library \
+              --platform linux/amd64 --format json \
+              --output g3-upstream-base-trivy.json "$candidate"
+          fi
+          node scripts/g3-upstream-base-review.mjs \
+            "$G3_CANARY_BASE_IMAGE" "$candidate" g3-upstream-base-trivy.json \
+            | tee g3-upstream-base-review.json
+          echo "NO_GO: candidate digest is information only, never promoted"
+
+      - name: Read-only Alpine zlib patched package SHA reconnaissance
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Research only: do not install, copy into images, push or update locks.
+          # Official Alpine 3.24 amd64 package; version fixed by filename.
+          url="https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/zlib-1.3.2-r1.apk"
+          curl --fail --location --silent --show-error --proto '=https' \
+            --tlsv1.2 --max-time 20 --retry 2 "$url" \
+            --output "${RUNNER_TEMP}/g3-zlib-patched.apk"
+          test "$(wc -c < "${RUNNER_TEMP}/g3-zlib-patched.apk")" -gt 10000
+          test "$(wc -c < "${RUNNER_TEMP}/g3-zlib-patched.apk")" -lt 200000
+          echo "Candidate patch package byte SHA-256 (unverified publisher signature):"
+          sha256sum "${RUNNER_TEMP}/g3-zlib-patched.apk"
+          node scripts/g3-zlib-candidate-integrity.mjs \
+            "${RUNNER_TEMP}/g3-zlib-patched.apk" \
+            | tee g3-zlib-patch-integrity.json
+
+          # Verify the package signature using Alpine's trusted signing keys
+          # already shipped in the immutable SHA-pinned official Node base.
+          # No package installation, internet in container or key import.
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --mount "type=bind,src=${RUNNER_TEMP}/g3-zlib-patched.apk,dst=/tmp/zlib-1.3.2-r1.apk,readonly" \
+            --entrypoint /sbin/apk "$G3_CANARY_BASE_IMAGE" \
+            --no-network verify /tmp/zlib-1.3.2-r1.apk
+          echo "PASS: Alpine apk signature verified using pinned base trust store"
+          echo "NO_GO: not independently fingerprinted publisher keys; no install or release."
+
+      - name: Build two isolated PATCHED experiment OCI images (never canonical)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The zlib file was byte-hashed AND verified by Alpine apk above.
+          # Experiment Dockerfile and build-context are separate from canonical.
+          context="${RUNNER_TEMP}/g3-zlib-experimental-context"
+          mkdir -p "$context"
+          cp cloud-run/g3-review-staging/index.mjs "$context/index.mjs"
+          cp "${RUNNER_TEMP}/g3-zlib-patched.apk" "$context/zlib-1.3.2-r1.apk"
+          for i in 1 2; do
+            docker buildx build \
+              --file cloud-run/g3-review-staging/Dockerfile.zlib-experiment \
+              --platform linux/amd64 \
+              --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+              --build-arg SOURCE_DATE_EPOCH=0 \
+              --network none --no-cache --provenance=false --sbom=false \
+              --output "type=oci,dest=${RUNNER_TEMP}/g3-zlib-experiment-${i}.oci.tar,oci-mediatypes=true,rewrite-timestamp=true" \
+              "$context"
+          done
+          if ! python3 scripts/g3-canary-oci-verify.py \
+            "${RUNNER_TEMP}/g3-zlib-experiment-1.oci.tar" \
+            "${RUNNER_TEMP}/g3-zlib-experiment-2.oci.tar" \
+            | tee g3-zlib-experiment-oci-report.json; then
+            python3 scripts/g3-zlib-oci-diff-diagnose.py \
+              "${RUNNER_TEMP}/g3-zlib-experiment-1.oci.tar" \
+              "${RUNNER_TEMP}/g3-zlib-experiment-2.oci.tar" \
+              | tee g3-zlib-experiment-difference.json
+            echo "BLOCKED_PATCHED_OCI_NOT_REPRODUCIBLE"
+            exit 2
+          fi
+          echo "NO_GO: local OCI candidate only; never pushed or deployed."
+
+      - name: Verify patched runtime behavior and CVEs (still NOT released)
+        shell: bash
+        run: |
+          set -euo pipefail
+          context="${RUNNER_TEMP}/g3-zlib-experimental-context"
+          docker buildx build \
+            --file cloud-run/g3-review-staging/Dockerfile.zlib-experiment \
+            --platform linux/amd64 \
+            --build-arg "BASE_IMAGE=$G3_CANARY_BASE_IMAGE" \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --network none --no-cache --provenance=false --sbom=false \
+            --load --tag lszh-g3-zlib:EXPERIMENT-NO-GO "$context"
+          test "$(docker image inspect --format '{{.Config.User}}' lszh-g3-zlib:EXPERIMENT-NO-GO)" = node
+          installed="$(docker run --rm --network none --read-only \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --entrypoint /sbin/apk lszh-g3-zlib:EXPERIMENT-NO-GO -v info | grep "^zlib-")"
+          test "$installed" = "zlib-1.3.2-r1" || {
+            echo "BLOCKED_EXPERIMENT_WRONG_ZLIB_VERSION"
+            exit 2
+          }
+          cid="$(docker run --detach --network none --read-only \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e PORT=8080 lszh-g3-zlib:EXPERIMENT-NO-GO)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 20); do
+            if docker exec "$cid" node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(r.status!==200)process.exit(1)}).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec "$cid" node --input-type=module -e '
+            import assert from "node:assert/strict";
+            const b="http://127.0.0.1:8080";
+            const fixture={schemaVersion:1,syntheticOnly:true,fixtureId:"LSZH_G3_CANARY_NO_CONTRACT_20261018"};
+            const body={subscription:"projects/lszh-automations/subscriptions/lszh-g3-review-staging",
+              message:{data:Buffer.from(JSON.stringify(fixture)).toString("base64"),
+                messageId:"123456789001",publishTime:"2026-10-18T15:00:00Z",
+                attributes:{kind:"LSZH_G3_PRIVATE_PUSH_CANARY_V1",schema:"1"}}};
+            const post=async x=>fetch(b+"/g3-review",{method:"POST",
+              headers:{"content-type":"application/json"},body:JSON.stringify(x)});
+            assert.equal((await post(body)).status,204);
+            assert.equal((await post({...body,customerEmail:"invalid"})).status,503);
+            assert.equal((await fetch(b+"/offerte-annehmen/")).status,404);
+          '
+          mkdir -p "${RUNNER_TEMP}/g3-zlib-patched-verified-oci"
+          tar -xf "${RUNNER_TEMP}/g3-zlib-experiment-1.oci.tar" \
+            -C "${RUNNER_TEMP}/g3-zlib-patched-verified-oci"
+          trivy image --input "${RUNNER_TEMP}/g3-zlib-patched-verified-oci" \
+            --scanners vuln --vuln-type os,library --format json \
+            --output g3-zlib-experiment-trivy.json
+          node -e '
+            const fs=require("node:fs");
+            const d=JSON.parse(fs.readFileSync("g3-zlib-experiment-trivy.json"));
+            if(d.SchemaVersion!==2||d.ArtifactType!=="container_image"||
+               !Array.isArray(d.Results)||d.Results.length===0)process.exit(2);
+            const all=d.Results.flatMap(r=>r.Vulnerabilities||[]);
+            const high=all.filter(v=>["CRITICAL","HIGH"].includes(v.Severity));
+            const zlib=all.filter(v=>v.PkgName==="zlib"&&v.VulnerabilityID==="CVE-2026-85091");
+            console.log(JSON.stringify({status:high.length||zlib.length?
+              "BLOCKED_EXPERIMENT_SCAN":"PATCHED_EXPERIMENT_SCAN_CLEAR_FOR_THIS_CVE",
+              totalFindings:all.length,highCritical:high.length,
+              originalZlibCve:zlib.length,releaseStatus:"NO_GO",
+              signedProvenance:false,canPublish:false,canDeploy:false}));
+            // Candidate policy: any new CVE requires another explicit review.
+            if(all.length||high.length||zlib.length)process.exit(2);
+          '
+          echo "NO_GO: this is a local experimental patch result, not a customer release."
+
+      - name: Upload small audit reports only (no container, no secrets)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: g3-image-candidate-offline-audit
+          path: |
+            g3-image-inputs.json
+            g3-image-oci-report.json
+            g3-candidate-tar-sha256.txt
+            g3-trivy.json
+            g3-sbom.cdx.json
+            g3-security-review.json
+            g3-provenance-correlation.json
+            g3-upstream-base-review.json
+            g3-upstream-base-trivy.json
+            g3-zlib-patch-integrity.json
+            g3-zlib-experiment-oci-report.json
+            g3-zlib-experiment-difference.json
+            g3-zlib-experiment-trivy.json
+          if-no-files-found: ignore
+          retention-days: 7

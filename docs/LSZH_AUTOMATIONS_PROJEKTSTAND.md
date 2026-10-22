@@ -1,60 +1,168 @@
-# LSZH Automations – Projektstand & Betriebsentscheidungen
+# LSZH Automations – aktueller Projektstand
 
-_Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
-## Geschäftsmodell / Eigentümerschaft
+**22.10.2026 – Fehlende Offertennummer untersucht:** Neueste Offerte `rec99XQtB3PSVqOps` (Website-Lead) wurde durch Make `7835327`, Ausführung `bd58e0f04b5447cea5bd9c9ccdd0deae` angelegt, zunächst mit `ENTWURF-...`. Automationslauf in Airtable `wflQu1w5BSypDnWFT` scheiterte an `EXECUTION_LIMIT_REACHED`. Im Create-Lauf lief Make-Modul 5 zur Nummernübernahme **nicht**, obwohl das Airtable-Upsert die berechnete Nummer `1000` zurückgab. Der Datensatz zeigt inzwischen in `Offertennummer` und in `Offertennummer – automatisch` jeweils `1000`; welcher spätere Vorgang den Wert schrieb, ist nicht belegt. Der Make-Filter vor Modul 5 wurde von zusätzlicher ENTWURF-Kennung-Gleichheit auf vorhandene Record-ID plus vorhandene berechnete Nummer vereinfacht; Szenario weiterhin aktiv, bestehende Versände nicht verändert. **Nächsten natürlichen Neu-Lead-Lauf prüfen**, bevor zuverlässiger Weiterbetrieb behauptet wird. Keine neue Testofferte, keine Kundenmail.
 
-- LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.
-- **Kundenbetrieb:** Der Kunde nutzt eine eigene Make-Organisation und behält deren Kontrolle, Abrechnung, Ressourcen und Szenarien. Unser Zugang erfolgt über eine gezielte Einladung mit angemessener Berechtigung.
-- Make-Pläne und -Credits werden vom Kunden direkt mit Make abgerechnet. LSZH stellt separat Dienstleistungen und laufende Betreuung in Rechnung.
-- Der Erstkontakt und die Offerte setzen keine Registrierung bei Make voraus. Registrierung/Einladung folgen erst nach Annahme.
-- Möglichst OAuth/Anbieterfreigaben verwenden. Keine Kundenpasswörter per Mail oder in Airtable abfragen.
 
-## Prozess (verbindliches Zielbild)
+**22.10.2026 – Ereignisbasierter Lead→Offertenentwurf, Airtable-Run-Limit:** Website-Intake-Szenario Make `7774243` verwendet bereits einen Instant-Webhook und legt Website-Leads zunächst mit Status `Neu` in `Website Leads` ab. Das Szenario `7835327` erstellt Offertenentwürfe aus `Qualifiziert` weiterhin via Airtable-Suche alle 15 Min. Neu wurde Airtable-Automation `wflYJOTMPut8QiGAb` (`LSZH Vertrieb – Offertenentwurf bei Qualifizierung`) als **gültiger Entwurf** angelegt. Trigger `recordMatchesConditions`: `Status=Qualifiziert`, `Offerten` leer, Name/Firma/E-Mail vorhanden. Aktion `createRecord` verknüpft den Lead und legt nur einen internen Offertenentwurf an (ohne Mail, Preise oder Vertragsfreigabe), lässt die automatische Offertennummer frei. **Die neue Automation ist nicht deployed und nicht aktiv**; Aktivieren nur nach Lösung des Airtable-Limits und Deaktivierung des Polling-Fallbacks, um doppelte Entwürfe zu vermeiden.
+Airtable Run-Historie vom 22.10.: Beide aktiven Automationen `LSZH Offerten – automatische Nummern ab 1000` und `LSZH CRM – Statuslogik` schlagen mit `EXECUTION_LIMIT_REACHED` fehl. Workspace-Nutzung/Plan prüfen; Monatslimit laut Airtable wird jeweils am Monatsersten zurückgesetzt. Bei konkretem qualifiziertem Website-Lead `rectSdX4HA6e9DYuB` wurde der unversendete Entwurf `rec99XQtB3PSVqOps` mit einmaligem Make-Lauf `bd58e0f04b5447cea5bd9c9ccdd0deae` angelegt, Lead korrekt verknüpft. Zählerformel zeigte `1000`, aber Airtable-Übernahme scheiterte am Automationslimit; das bestehende Offertennummer-Feld wurde genau für diese Entwurfsofferte auf `1000` aktualisiert. Das Make-Szenario `7835327` wurde um das zusätzliche API-PATCH-Modul `5` ergänzt, welches bei Neuanlage von `ENTWURF-<Lead-ID>` die Autozähler-Formel direkt ins Nummernfeld überträgt (weiterer echter Neuanlage-Fall noch nicht getestet). 15-Minuten-Fallback wieder **aktiv**, Kontrolle `202db5d1f02c4b329057e6f321ba117f` erfolgreich und ohne weiteren Entwurf. **Nicht** die neue Airtable-Automation einschalten, solange der alte Make-Fallback aktiv ist. Keine Kundenmail oder Annahme ausgelöst.
 
-1. Anfrage über LSZH-Website: Problem, Unternehmensdaten und Kontakt.
-2. Rückfrage/Analyse, Offerte und allfällige vertragliche Vereinbarungen.
-3. Annahme der Offerte und ausgelöstes Projekt-Onboarding.
-4. Onboarding sammelt Rechnungsdaten, Anforderungen, Systemnamen, Status der kundeneigenen Make-Organisation und Stand der Einladung.
-5. LSZH prüft Angaben, Kundenorganisation und benötigte Rollen. Bei Bedarf unterstützt LSZH Registrierung und Einladung.
-6. Technische Verbindungen entstehen **in der Make-Organisation des Kunden**, möglichst durch den Kunden selbst mit OAuth.
-7. Entwicklung, Funktionstests, Dokumentation, Kundenfreigabe und Go-Live im Kundenkonto.
-8. Betrieb/Betreuung über separaten Servicevertrag. Kundeninhaberschaft und Freigaben bleiben erhalten.
 
-## Bereits umgesetzt
 
-- Öffentliche Website mit Kontakt, Leads, Offerten/Rechnungen und persönlichem Kunden-Onboarding (bestehender Prozess beibehalten).
-- Formular `/onboarding/`: zusätzlicher Abschnitt **Make & technische Einrichtung** mit optionalem Organisationsnamen und Angaben zu Konto-/Einladungsstatus. Keine Secrets.
-- Airtable `Kunden-Onboarding`: Felder **Make-Konto Status**, **Make-Organisation**, **Make-Einladung Status**, **Make-Einrichtung Hinweise**.
-- Make `LSZH Kunden-Onboarding – Eingang`: Feldzuordnung auf diese Airtable-Spalten ergänzt.
-- Make `LSZH Projekte – Onboarding anfordern`: Einladungsmail nach Offertenannahme erklärt das kundeneigene Make-Modell.
-- Bestätigungsmail nach Onboarding: erklärt Organisation, Einladung und nächste Schritte.
-- Kundenanleitung `/make-start/` erstellt und im Formular sowie in den E-Mails verlinkt.
-- Drei alte Make-OAuth-Szenarien des früheren LSZH-eigenen Kontomodells als **ARCHIV – ALTES MODELL** gekennzeichnet und unverändert inaktiv belassen.
-- Secure Transfer funktional mit Dummy-Schlüssel getestet: verschlüsselte Speicherung, einmaliger Abruf, Löschung der gespeicherten verschlüsselten Daten. Noch **nicht** für reale Kundenzugangsdaten freigegeben.
+**Airtable-Automationen aktiviert 22.10.2026:** Nutzer hat `LSZH Offerten – automatische Nummern ab 1000` (`wflQu1w5BSypDnWFT`) und `LSZH CRM – Statuslogik` (`wflfCq0YDSP0LIq09`) in Airtable aktiviert. Live-Metadaten: beide `deployed`, `configurationStatus=valid`, ohne abweichende Draft-Version. Offerten-Autonummer `fld8auWRyECWhNl1m` aktuell 1–25, Formel `IF(autoNumber>25,(autoNumber+974)&'',BLANK())` gibt für den nächsten neuen Datensatz voraussichtlich 1000 aus, dann 1001 usw.; beide Automationszweige schreiben nur in das vorhandene Textfeld `Offertennummer`, sofern leer oder `ENTWURF-`, lassen existierende Offerten unverändert. 25 alte Offerten, aktuell noch keine neu nummerierte Offerte und keine protokollierten Ausführungen; Nummerierung daher konfiguriert, aber noch nicht durch neuen Datensatz live nachgewiesen. CRM-Statuslogik triggert ausschliesslich auf Statusänderungen der Tabelle `Website Leads` (`tbldBCMm9NlSQqcq5`); bei Kontaktiert/Qualifiziert setzt sie `Letzter Kontakt am` auf `Letzte Statusänderung`, bei Kein Fit/Gewonnen/Verloren entfernt sie Follow-up-Termine/Reminder. Keine eigenen E-Mail- oder Offertenversandschritte; direkte Kollision mit dem Offerten-Dispatcher nicht ersichtlich. Beide Ausführungsverläufe zum Prüfzeitpunkt leer. Make-Eigenmailpilot `8120222` weiterhin separat aktiv und nur für ausdrücklich freigegebene Offerten an private Outlook-Adresse zugelassen.
 
-## Status / Sicherheit
 
-- Onboarding-Anforderung und Eingangsszenario bleiben vorerst inaktiv, bis ein vollständiger Test mit einer vereinbarten Testofferte durchgeführt wurde. Keine unaufgeforderten Mails auslösen.
-- Die Schlüssellieferung über Secure Transfer darf noch nicht produktiv eingesetzt werden, bis die Make-Webhooks authentifiziert und der parallele Abruf wiederholt getestet wurden.
-- Neue Make-Verbindungen müssen gegen die jeweilige Kundenorganisation und deren Rollen geprüft werden. Alte LSZH-eigene OAuth-Automationen nicht reaktivieren.
-- Make-Plan und Berechtigungen nach tatsächlichem Kundenbedarf prüfen. Nicht jedes Abonnement bietet identische Team-/Rollenoptionen.
 
-## Nächste Tests
+**22.10.2026 – Portalimage 00008 und Kundenfreigabe-Suchtest:** Betreiber hat aktuellen Container `customer-d782435ee46145cbe708077fedd56ff78e9b7fc2` erfolgreich mit Cloud Build `70cf9280-5689-4cc6-a592-a994c55cb974` erstellt und auf Kundenportal-Revision `lszh-offer-portal-00008-c9r` (100 % Verkehr) bereitgestellt. Öffentlicher Portal-Pfad HTTP 200, Annahme-POST HTTP 503. Version ist damit aktuell, aber `LSZH_PORTAL_PRODUCTION_ENABLED=false`. Im Make-Dispatcher `8120222` wurde die Test-only-Airtable-Suchklausel `AND(0=1,...)` durch reale Auswahl `Entwurf + Schnellaktion Für Versand freigeben + Versandprüfung BEREIT + Echtbetrieb + rechtliche Freigabe + noch keine Quote-/Token-/Versandbindung` ersetzt. **Gmail bleibt hart gesperrt `0=1`, Dispatcher inaktiv.** Live-Airtable-Prüfung: 25 Offerten, **0** echte freigegebene Kandidaten; zwei wartende Schnellaktionen sind ausdrücklich unvollständige `TEST-` bzw. `ENTWURF-` Datensätze. Kontrollierter Testlauf `e01b8b7ee5884aac8029a02bb64a4a44` erfolgreich; genau eine lesende Airtable-Abfrage, keine weiteren Module, keine PDFs/Firestore-Schreibzugriffe oder Mail. Anschliessend deaktiviert. Nächster konkreter Schritt ist die produktive Kundenportal-Annahmefunktion (`LSZH_PORTAL_PRODUCTION_ENABLED=true`) gesondert freischalten, mit ungültigem Code den erwarteten Sperrfall prüfen; vor Aktivierung der Make-Mailgates echte freigegebene Offerte / Empfänger und vollständige Portal-Annahme belegen.
 
-1. Neues Formular im Browser prüfen (Desktop / Mobile).
-2. Mit freigegebenem Testprojekt Onboarding durchspielen; vier Make-Felder in Airtable kontrollieren.
-3. Versand und Inhalt der zwei Kundenmails testen, bevor bisher inaktive Szenarien wieder aktiviert werden.
-4. Einladung in eine vom Kunden verwaltete Testorganisation prüfen, ohne dessen Zugangsdaten einzusehen.
-5. Kunden-Szenario dort erstellen, mit kundeneigener Verbindung autorisieren und Test/Übergabe dokumentieren.
-6. Secure Transfer erst nach separater Security-Abnahme für Ausnahmen nutzen.
 
-## Betrieb / Quellen
 
-- [Website – Kunden-Onboarding](https://www.lszh-automations.ch/onboarding/)
-- [Website – Make-Kundenanleitung](https://www.lszh-automations.ch/make-start/)
-- [Make – Organizations](https://help.make.com/organizations)
-- [Make – Teams](https://help.make.com/teams)
-- [Make – Preise/Funktionen](https://www.make.com/en/pricing)
+**22.10.2026 – Browser-Vorschau-Deploy 00007-8t6:** Betreiber meldet Cloud-Run-Update für `lszh-offer-portal`, Revision `lszh-offer-portal-00007-8t6` mit 100 % Verkehr. Öffentlicher `https://portal.lszh-automations.ch/offerte-annehmen/` antwortet HTTP 200; Annahme-POST antwortet HTTP 503. Laufzeitwerte: `LSZH_PORTAL_PREVIEW_ENABLED=true`, `LSZH_PORTAL_PRODUCTION_ENABLED=false` (die Freischaltung erfolgte über `--update-env-vars` auf bestehendem Image). **Nur die öffentliche Browser-Oberfläche ist damit verfügbar, nicht die verbindliche Annahme.** Die späteren GitHub-Codeänderungen zur kanonischen Projektbedingungen-Versionsanzeige `v1.0` vs. `1.0` wurden noch nicht als Cloud-Run-Image bereitgestellt. Make-Dispatcher `8120222` weiterhin inaktiv, Such- und Gmail-Sperren geschlossen; noch kein persönlicher Kundenlink oder Mailversand. Vor echtem Erstversand: aktualisiertes Portalimage unverändert mit Preview=true/Accept=false bereitstellen und testen; anschliessend Annahme gezielt aktivieren und nur echte, bestätigte Empfänger-Offerten ausgeben. Offene Test-Schnellaktionen mit Entwurfsnummern bleiben ohne Live-Freigaben liegen.
 
-Letzte Architekturentscheidung: 13.10.2026 – Kunden besitzen ihre eigenen Make-Organisationen.
+
+
+**Stand 22.10.2026 – Schnellaktion auf Kundendispatch vorbereiten:** Make #8120222 enthält 48 Module, alle Verbindungen OK; weiterhin `inactive` mit `AND(0=1)`-Suchsperre sowie `0=1`-Gmail-Gate (kein realer Mailversand). Projektbedingungen-Versionsanzeige `v1.0` in Airtable wird jetzt in `customerDispatchContract.cjs`, `approvedCustomerOffer.mjs` und `customerAirtableWriteback.mjs` neben der internen kanonischen Version `1.0` akzeptiert (GitHub-Code aktualisiert, Make-Codeprüfmodule 3/18/22/24/30 synchronisiert; Cloud-Run-Release für den neuen Code noch nicht erfolgt). Die Airtable-Formel `Versandprüfung` weist inzwischen `ENTWURF-`, `TEST-` und `DEMO-`-Nummern ab und zeigt für die interne Beispielofferte `recuhDNdUf2gMw07o` derzeit `Fehlt / prüfen: Offertennummer;` statt fälschlich `BEREIT`; ausstehende Schnellaktion unverändert, keine Kundenmail. Die beiden vorbereiteten Annahmebestätigungsszenarien `7940220` (AVV Nein) und `7965223` (AVV Ja) nutzen in den Firestore-Reservierungsmodulen jetzt ebenfalls die funktionierende OAuth-Verbindung `12236460` statt der fehlenden `12158299`; beide bleiben inaktiv. Produktives Annahmeportal zuletzt deaktiviert; vor Aktivierung von Make-Mail und Suche müssen Cloud-Run-Portalkonfiguration, tatsächlich erreichbarer persönlicher Link, Vertragsoriginale und freigegebener echter Datensatz zusammenpassen. Kein zusammenhängender echter End-to-End-Versand geprüft, keine Kundeneinladung ausgelöst.
+
+
+
+**Firestore-OAuth-Nachtrag 22.10.2026:** Make Credential Request `b9887e7a-be40-423a-a9f6-d2fbf9eca0dd` ist **authorized**; die neue Firestore-Verbindung `12236460` hat den Scope `https://www.googleapis.com/auth/datastore`. Im Kunden-Dispatcher `8120222` wurden alle fünf Firestore-Module `19,25,28,29,31` von der fehlerhaften Verbindung `12198232` auf `12236460` umgestellt. Alle Verbindungen im Szenario melden **ok**. Kontrollierter Make-Start mit Suchfilter `AND(0=1,...)` und Gmail-Sperre `0=1` hat **success** geliefert, Execution `15c5df63aa5640cba656fa1723295d26`; genau ein lesender Airtable-Aufruf ohne Kundendatenverarbeitung, PDF, Firestore-Schreibzugriff oder Mail. Szenario danach wieder **inaktiv**. Dies bestätigt die Make-Szenario-Initialisierung, **nicht** einen separaten produktiven Firestore-REST-Lese-/Schreibtest und noch nicht den öffentlichen Cloud-Run-Portaldienst. Vor Live-Mail weiterhin Annahmeportal, End-to-End-Test und datensatzbezogene echte Vertragsfreigabe erledigen.
+
+**Make Kundenversand 22.10.2026 (Szenario 8120222):** Dispatcher um acht Module zur Archivierung exakt versendeter PDF-Kopien im geschäftlichen Originalordner 1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe ergänzt. Kontrolle von Quellhash, Zielordner, Schreibschutz und erwarteten 2/3 Dateien vor finalem Airtable-Status. Alle fünf eingebetteten JavaScript-Prüfmodule auf neuen GitHub-Vertrag mit Airtable-Standardtexten aktualisiert. Das Szenario bleibt inaktiv; Suchfilter und Gmail-Versand weiterhin hart gesperrt. Kontrollierter Startversuch vor Datenverarbeitung abgebrochen: Google-Custom-Verbindung 12198232 (Firestore) kann nicht initialisiert werden, HTTP 400. Neue Make-Autorisierungsanfrage b9887e7a-be40-423a-a9f6-d2fbf9eca0dd pending. Kein realer Kundenversand, keine bestätigte produktive Annahme. 
+
+> **Stand 22.10.2026 – Offerten-PDF-Vorschau und Drive-Trennung:** Make-Szenario `8001527` wurde als interner On-Demand-Vorschaudienst auf beliebige Airtable-Offerten mit `Versandprüfung = BEREIT` umgestellt (Eingabe `offer_record_id`). PDF-Erzeugung via geschäftlichem Google Docs, anschliessender PDF-Export, SHA-256-/Read-only-Verifikation. Vorschauen liegen jetzt ausschliesslich im geschäftlichen STAGING-Unterordner `LSZH Offerten – INTERNE VORSCHAU (nicht versenden)` (`16whvSKfUmwIMp4Xzr_91NosoLw_DRMmJ`); nach erfolgreicher neuer Version werden nur ältere `LSZH_VORSCHAU_<gleiche Airtable Record-ID>_...`-PDFs und editierbare Google Docs dieses Datensatzes über Make-Iterator und Google-Drive-Papierkorb-Modul entfernt. Getestet mit `recuhDNdUf2gMw07o`: Lauf `4ccc7f19ceb5440794b1101e988eb9c2` erfolgreich, PDF `1X7HV50NB5rh6lgd2g8st9QshiKOwbzNi`, sechs ältere Vorschau-Dateien in Papierkorb, neue PDF + editierbares Doc allein im Vorschauordner; keinerlei Kundenmail. Für versendete Originale wurde getrennt im geschäftlichen PRODUKTIONSARCHIV der bislang leere Unterordner `LSZH Offerten – VERSENDETE ORIGINALE (unveränderlich)` (`1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe`) angelegt. **Keine Vorschau und keine Testunterlage dort ablegen.** Die automatische Archivierung finaler Kunden-PDFs ist erst bei zukünftigem echten, nachweislich bestätigten Versand (Gmail Message-ID, exakte PDF-Version/Hash) an den produktiven Versandweg anzubinden; Kundenversand selbst weiterhin inaktiv. Vor erneutem Start mit identischen Daten stoppt die Vorschau derzeit `PREVIEW_THIS_VERSION_ALREADY_ARCHIVED` (keine Dublette). 
+
+
+> **Aktueller Stand 22.10.2026 – Website-Leads entblockt (Teilabnahme):** Bestehendes Make-Szenario `7774243` von abgelaufenem festen TEST_ONLY-Eingang auf unverbindliche Website-Anfragen umgestellt: festen Kunden-/Zeitfilter entfernt, bestehende Feldvalidierung behalten, Data-Store-Schlüssel aus Zeitpunkt und E-Mail statt fester Testkennung, beide Gmail-Versandmodule explizit deaktiviert. Live-Rücklesen bestätigt Szenario **aktiv**, Airtable-Verbindung **ok**, Webhook-Rückstau **0**, keine unvollständigen Ausführungen. Im Featurebranch wurden `server.js` und `index.html` geändert, sodass erst ein gültiger Airtable-Record-Beleg von Make Erfolg meldet und erneutes Absenden denselben Zeitstempel verwendet; synthetischer HTTP-Test `test/leadProxy.http.test.js` ergänzt. **Noch nicht in `main` oder auf der Website deployed; kein neuer Website→Airtable-Echt-POST-End-to-End nach der Änderung bestätigt.** Kein externer Mailversand, keine Vertrags-, Rechnungs- oder Kundenfreigabe. Nächster konkreter Schritt: Freigabe der Website-Code-Änderung für Deploy und exakt ein harmloser Website-Test mit Airtable-Readback. Kein neuer Dienst und keine zusätzliche Architektur.
+
+> **Teilabschluss 21.10.2026 – interne Segmente abgeschlossen:** V3-Testannahme, unabhängiger Firestore-/Airtable-Abgleich, Archivbeleg und Drei-PDF-Bestätigung bestanden; Empfang/Anhänge bestätigt. Öffentliche TEST_ONLY-Vorschau mit fiktiven PDFs, Token-/Origin-/Annahmesperren live geprüft und bestätigt. Neu: genau eine intern reservierte Offertenmail an lars@lszh-automations.ch mit zwei fiktiven PDFs und neuem öffentlichem Fragmentlink versandt; Gmail-Metadaten und dauerhafter Versandnachweis unabhängig geprüft, Betreiber bestätigt Anhänge und Mail-Link funktionieren. Temporären Vorschaudienst danach erneut entfernt; Bestandsdienste unverändert, Kundenroute weiter HTTP 503. Onboarding-Fragmentübergabe und klare HTTP-202-Rückmeldung lokal mit echtem Chromium geprüft, nicht veröffentlicht. **Kein zusammenhängender echter Kundenabschluss:** konkrete Pilotkundenauswahl, finale Offerte/gegebenenfalls AVV, kundenbezogene Make-Linkausgabe, tatsächliche öffentliche Annahme und Live-Auftrags-Onboarding bleiben offen und separat freizugeben. Keine externen Mails, Produktivflags, neue V3-Annahme oder Main-Merge. Keine erfolgreichen Tests/Mails wiederholen. [V3](LSZH_INTERNAL_PILOT_V3_20261021.md), [öffentliche Vorschau](LSZH_PUBLIC_PREVIEW_RELEASE_20261021.md), [Offertenmail und Onboarding-Grenzen](LSZH_INTERNAL_INVITATION_ONBOARDING_20261021.md). **Neuer Betreiber-Eigenauftrag:** vollständiges internes Dokumentpaket INT-EA-20261021-001 mit frei gewählten CHF 120 einmalig erstellt, visuell geprüft und einmalig als drei PDFs an die Geschäftsadresse zugestellt. Reservierung/Gmail-Metadaten unabhängig bestätigt; Betreiber bestätigt Eingang und drei lesbare PDFs. Noch keine tatsächliche Annahme, Buchung, Zahlung oder Leistungserbringung. [Dokumentpaket und Versandgrenze](LSZH_EIGENAUFTRAG_DOKUMENTE_20261021.md).
+
+> Aktualisierung 20.10.2026 nach Commit `109db91`: [Betriebsalarme](LSZH_BETRIEBSALARME_20261020.md) stündlich aktiv, Testzustellung bestätigt und produktives Make-Reservierungs-Schreibrecht geprüft.  [Produktionsbereitschaft](LSZH_PRODUKTIONSBEREITSCHAFT_20261019.md) und [neue Make-Sicherungen](LSZH_KUNDENSTRECKE_SICHERUNGEN_20261020.md) enthalten den aktuellen Abschlussstand. Ältere Testzahlen und offene Schritte im nachfolgenden Verlauf sind historische Angaben.
+
+Stand: 20.10.2026 (Europe/Zurich). **Abschluss 20.10.2026 – interner TEST_ONLY-Pilot AVV Nein bestanden:** Verlorene Einladung am bestehenden Datensatz `recR70ZSPynGqA1LS` kontrolliert ersetzt; alter Zugang gesperrt, Ablauf unverändert. Bestehenden Build wiederverwendet, private Revision `00010-lars` ohne normalen Traffic erstellt. Browser-Testannahme und unabhängiger Firestore-/Airtable-Abgleich PASS. Make-Lauf `9d725883751c44ff8363e7ae64097991`: 15/15 Module ohne Fehler, Testbeleg im Testarchiv und Airtable. Testmail an die feste Outlook-Adresse; Betreiber bestätigt Eingang und drei lesbare PDF-Anhänge. Testtag und beide temporären Secret-Grants entfernt; Demo 100 %, Produktion false. Make-Konfiguration, Filter und Zeitplan unabhängig mit Sicherung verglichen, wieder inaktiv, 0 unvollständige Ausführungen. Rechtliche/Echtbetriebs-/Versandflags weiter false/leer; kein echter Kundenabschluss. Details: [Prüfbericht 20.10.2026](LSZH_INTERNAL_PILOT_ABSCHLUSS_20261020.md). AVV Ja: vorhandene synthetische Annahme und ursprünglichen Beleg weiterverwendet; Vier-PDF-Mailtest erfolgreich und Eingang/Anhänge vom Betreiber bestätigt. Unerwartete zusätzliche Belegerstellung bereinigt, ursprüngliche Belegreferenz wiederhergestellt, Make wieder inaktiv und exakt zurückgesetzt. Kein neuer AVV-Ja-Browser-/Firestore-Lauf; siehe [AVV-Ja-Versandtest](LSZH_AVV_JA_VERSANDTEST_20261020.md).
+
+## Verbindliche Übergabe – hier weiterarbeiten
+
+**Ziel:** Einen vollständigen Offertenprozess für einen KMU fertigstellen: Offerte → private PDFs → getrennte Online-Zustimmungen → Annahmenachweis → Airtable → Make-Beleg und Bestätigung. Beide Varianten AVV Ja/Nein müssen funktionieren.
+
+**Vertragsfreigabe der Geschäftsführung (19.10.2026):** Die B2B-Projektbedingungen v1.0 sind als **geschäftlich geprüfte/freigegebene Kundenfassung** (Drive-PDF `1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX`) im **Produktionsarchiv** abgelegt. Die AVV-Grundklauseln sind als **geschäftlich freigegebene Rahmenvorlage v1.0** (Drive-PDF `1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x`) ohne fiktiven Kunden neu erstellt; die Anlagen A/B/C bleiben **für jeden Kunden zwingend sachlich auszufüllen und vom Kunden zu genehmigen**. Die frühere TEST_ONLY-AVV bleibt unverändert im Staging. Freigabeprotokoll mit Links/Hashes: [LSZH_VERTRAGSFREIGABE_20261019.md](LSZH_VERTRAGSFREIGABE_20261019.md). Keine Behauptung einer unabhängigen anwaltlichen Prüfung oder einer pauschalen Freigabe von Airtable-Angeboten.
+
+**Abschluss 20.10.2026 – interner TEST_ONLY-Pilot AVV Nein bestanden:** Verlorene Einladung am bestehenden Datensatz `recR70ZSPynGqA1LS` kontrolliert ersetzt; alter Zugang gesperrt, Ablauf unverändert. Bestehenden Build wiederverwendet, private Revision `00010-lars` ohne normalen Traffic erstellt. Browser-Testannahme und unabhängiger Firestore-/Airtable-Abgleich PASS. Make-Lauf `9d725883751c44ff8363e7ae64097991`: 15/15 Module ohne Fehler, Testbeleg im Testarchiv und Airtable. Testmail an die feste Outlook-Adresse; Betreiber bestätigt Eingang und drei lesbare PDF-Anhänge. Testtag und beide temporären Secret-Grants entfernt; Demo 100 %, Produktion false. Make-Konfiguration, Filter und Zeitplan unabhängig mit Sicherung verglichen, wieder inaktiv, 0 unvollständige Ausführungen. Rechtliche/Echtbetriebs-/Versandflags weiter false/leer; kein echter Kundenabschluss. Details: [Prüfbericht 20.10.2026](LSZH_INTERNAL_PILOT_ABSCHLUSS_20261020.md).
+
+**Nächste Arbeit:** Noch kein echter Pilotkunde ausgewählt. Interne Annahmen, lokale Sperrtests, kundenbezogene Make-Reservierung, produktives Reservierungs-Schreibrecht und aktive stündliche Betriebsalarme sind mit den verlinkten Nachweisgrenzen dokumentiert. Empfänger `lars@lszh-automations.ch`, Testzustellung bestätigt. Kein erneuter synthetischer Mail-Replay. Nächster Meilenstein ist ein konkreter kundenbezogener Pilot mit finalen Unterlagen und ausdrücklicher Freigabe. Für unbeaufsichtigten Serienbetrieb ausserdem unabhängigen Alarm-Meldeweg und vollständige Abnahme abschliessen. [Aktueller Alarmbetrieb](LSZH_BETRIEBSALARME_20261020.md).
+
+**Produktiv-Kundenportal als Code vorbereitet:** Unter `cloud-run/offer-portal-production/` sind nun ein reiner freigabegebundener Airtable-Datensatzmapper, atomare Firestore-Kundenquellenregistrierung, transaktionssichere Einzelannahme, post-commit Airtable-Writeback mit manueller Klärung unklarer PATCH-Ergebnisse, eigene Cloud-Run-Laufzeitkonfiguration, ein standardmässig deaktivierter Functions-Framework-Kundendienst, Dockerfile und intern gegateter Dry-Run-/Einmal-Link-Issuer implementiert. `cloud-run/offer-portal-staging/portalCore.mjs` besitzt einen expliziten `productionOnly`-Modus, ohne den bisherigen Synthetic-only-Pfad freizuschalten. Die CI prüft Unit-Tests, Browser-Flow, Firestore-Emulator und einen Offline-Docker-Build. **GitHub Actions [Offer acceptance checks #39183314447](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39183314447) abgeschlossen, alle vier Jobs erfolgreich.** Spätere Änderungen am Issuer/Runbook sind noch separat zu beurteilen.
+
+**Cloud-Shell-Blocker umgangen (20.10.):** Cloud Shell blieb gesperrt. Die dortige private Einladung wird nicht mehr benötigt: ihr alter Zugang ist widerrufen, der Ersatz und der interne Test wurden auf dem Surface abgeschlossen. Keine weitere Token-Neuausstellung oder automatische Verlängerung.
+
+**Codefortschritt ohne Cloud Shell (20.10.2026):** Im bereits vorhandenen Kunden-Airtable-Writeback wird vor einem Status-PATCH jetzt auch der vollständige Dokumentnachweis gegen die archivierten Offerten-/Bedingungen- und gegebenenfalls AVV-Hashes/Version abgeglichen. Eine inzwischen entzogene Versandfreigabe oder ein vorhandener abweichender Annahmenachweis blockiert den Schreibvorgang. Passende Offline-Regressionstests wurden ergänzt. **GitHub-Actions-Lauf [Offer acceptance checks #39428669861](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39428669861) vollständig erfolgreich (4/4 Jobs)**; separater [Build-only-Workflow #39428669953](https://github.com/lszh-automations/lszh-automations-site/actions/runs/39428669953) ebenfalls erfolgreich. Diese Offline-Prüfungen sind **keine** Live-Kundenabnahme. Produktionsannahme und Make-Szenarien unverändert inaktiv. Kein neuer Build, Deployment, Seed oder Mailversand ausgelöst.
+
+**Nicht wiederholen:** Erfolgreiche Testannahme, Firestore-Seeder, separaten Airtable-Schreibtest, bestandene Drive-Diagnose oder bereits getroffene Geschäftsentscheide. Neue Prüfung nur bei verändertem Zustand oder konkretem Fehler.
+
+Arbeitsbranch: `feature/optional-avv-acceptance-staging-20261014`. [PR #5](https://github.com/lszh-automations/lszh-automations-site/pull/5) ist offen, Draft und ungemergt. Der Stand hier beschreibt Entwicklungsarbeit, keinen veröffentlichten Kundenbetrieb.
+
+## Umfang und feste Entscheidungen
+
+- LSZH Automations: Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Betreuung für Schweizer KMU.
+- Kunden besitzen ihre eigene Make-Organisation und bezahlen Make-Pläne/Credits direkt. LSZH verrechnet Dienstleistungen und Betreuung.
+- Erstkontakt und Offerte benötigen kein Make-Konto. Registrierung, Einladung und technische Verbindungen folgen im Kunden-Onboarding nach Annahme.
+- Möglichst OAuth und gezielte Rollenfreigaben im Kundenkonto; keine Kundenpasswörter per Mail oder Airtable.
+- Für Projektdateien ausschliesslich geschäftliches Google Drive.
+- Projektbedingungen sind vom Betreiber geschäftlich bereits akzeptiert. Diese Entscheidung nicht erneut abfragen. Endgültige Dokumentfassung, rechtliche Endprüfung und kundenspezifische AVV-Anlagen bleiben vom Geschäftsentscheid getrennt.
+- Bestehende Make-Szenarien nutzen. G3/Pub/Sub/Canary ist keine Voraussetzung für die erste nutzbare Online-Annahme und wird ohne konkreten Pilot-Blocker nicht weiterentwickelt.
+
+## Tatsächlicher Umsetzungsstand
+
+| Bereich | Belegt | Noch offen / Testgrenze |
+| --- | --- | --- |
+| Website und Onboarding | Website, persönliches Onboarding, Make-Konto-/Einladungsfelder und `/make-start/` vorhanden | Vollständige Kundenübergabe, tatsächliche Einladung/Rollen und Mailweg nicht aus dem Offerten-Test ableiten |
+| Online-Annahme | Synthetische Cloud-Annahmen für AVV Nein/Ja bestanden; neue Kundenofferten-Mappingfunktion plus productionOnly-Prüfmodus im Featurebranch | Privater, deaktivierter Cloud-Run-Kundendienst `lszh-offer-portal` Revision `00002-4zw` in Zürich bereitgestellt; noch kein Produktiv-Seed oder echter Firestore→Airtable-Kunden-Writeback |
+| Drive-Dokumente | Echter Portal-Download aller drei AVV-Ja-PDFs und SHA-256-Prüfung live bestanden; Annahmebelege in Geschäfts-Testordner archiviert | Keine visuelle Layoutkontrolle der PDFs |
+| Firestore | Cloud-Annahmen AVV Nein und Ja samt Person, Zustimmungen und Dokumenthashes unabhängig zurückgelesen | Keine offene technische Lücke im synthetischen Annahmeweg |
+| Airtable | Beide früheren Cloud-Annahmen und zwei neue synthetische Make-Integrationsrecords; Beleg-IDs und Mailversand-Zeitstempel gespeichert | Produktiver Kundenstatus und Rückfall bei Fehlern noch offen |
+| Make-Beleg & Mail | 3/4-PDF-End-to-End-Make-Kette mit Testdaten bestanden; beide bestehenden Szenarien sind jetzt auf bedingt freigegebene Echtbetrieb-Offerten, Lead-/Annahme-E-Mail-Gleichheit und Geschäftsarchiv konfiguriert | Keine Live-Kunden-Ausführung; Aktivierung erst nach echten Portal-/Vertragsunterlagen. Szenarien sind inaktiv |
+| Kundenunterlagen | Geschäftlich freigegebene Projektbedingungen v1.0 als saubere PDF im Produktionsarchiv; AVV-Rahmenwortlaut v1.0 ohne fiktiven Testkunden geprüft, eigene Mustervorlage/PDF archiviert | Pro echten AVV-Ja-Kunden Anlagen A/B/C mit tatsächlich eingesetzten Anbietern, Regionen, Datenarten, TOM und Löschfristen vervollständigen und explizit akzeptieren lassen. Noch kein echter Kundenvertrag oder anwaltlicher Prüfungsnachweis. |
+| Secure Transfer | Dummy-Schlüssel funktional getestet | Keine Produktivfreigabe für reale Kundensecrets; kein zusätzlicher MVP-Pflichtschritt bei OAuth |
+| G3-Infrastruktur | Umfangreiche Offline-/CI-Nachweise im Repository | Zurückgestellt; keine G3-Release-/Deploymentfreigabe |
+
+Bei Airtable-Ausfall nach gespeichertem Firestore-Accept meldet der implementierte Callback `manual_review_required`. Firestore-Annahme bleibt bestehen; keine blinde Wiederholung. Airtable GET/PATCH ist keine atomare CAS-Operation: einzige Schreibverantwortung und Umgang mit unklaren Ergebnissen im Pilot beachten.
+
+## Cloud-Testfälle – beide Varianten erfolgreich synthetisch angenommen
+
+| Referenz | Wert |
+| --- | --- |
+| Google-Cloud-Projekt | `lszh-automations` |
+| Portalservice | `lszh-offer-portal-staging` |
+| Firestore Named Database | `lszh-offers-staging` |
+| Airtable Base / Offerten-Tabelle | `appzJiskpAdaR1HEv` / `tbljeIUoD7wwKuSmS` |
+| Zu verwendender Testrecord | `recensIiczNGsoPeR` |
+| Testofferte | `TEST_CLOUD_E2E_20261018_NO_CONTRACT` |
+| AVV / Dokumentversion | Nein / `TEST_v1.0_RC1` |
+| Direkter Geschäfts-Testordner | `10bZHaNYWsxxUGkFBfRcdh45NxC-66Nko` |
+
+Der Roh-Testtoken gehört ausschliesslich in die sichere lokale Betreiberdatei `lszh_synthetic_cloud_test_20261018_token.txt`, nicht in Chat, GitHub oder Airtable. Datei-Verfügbarkeit vor Nutzung prüfen; hier ist kein Token enthalten. Der ältere separate Airtable-Test `rec4lc9AV5TxRQlcd` ist bereits simuliert angenommen und **nicht** der aktuelle Cloud-Testrecord. Auch das Dokument-/Demo-Paket `OFF-TEST-AVV-20261018-001` ist ein anderer Testfall.
+
+## AVV-Ja-Testfall – abgeschlossen
+
+- Airtable: `recktLXj5wUxLmHFQ`, angenommen mit AVV ausdrücklich akzeptiert; Airtable-Beleg-ID `1TI3aj3vgn8CuGpbGkgZa2ogqvdohtK_t`.
+- Offerte: `1-GQyj0cKC4aAJD_9wrxanckCJisEy0nB`, SHA-256 `2dd5c5377461c969b9a436f36999150dc53cf159f02e4985e2f2536b683b004c`.
+- Bedingungen: identische synthetische Bedingungen wie im AVV-Nein-Test.
+- AVV: `1p2ZRrPuSuaICH9W4N0afK5xt8xeOeKZI`, SHA-256 `53f9deda2000e219f79e0496b33f1e74df8ac00eac09f221b2436c3fd848d060`.
+- Offerte/AVV direkt aus Geschäfts-Drive heruntergeladen, SHA-256 lokal berechnet und Text geprüft. Alle Dateien TEST_ONLY, kein echter Vertrag.
+- Tokendatei in der Betreiber-Cloud-Shell: `$HOME/lszh_synthetic_cloud_avv_20261019_token.txt`; Inhalt niemals ausgeben.
+
+**Google-Cloud-Kundenbasis erstellt (19.10.2026, Cloud-Shell-Nachweis):** Cloud Run `lszh-offer-portal` Revision `00001-2m6` in `europe-west6`, eigenes Laufzeitdienstkonto `lszh-offer-portal@lszh-automations.iam.gserviceaccount.com`, benannte Firestore-DB `lszh-offers` (Native/Standard, Löschschutz ein), IAM-Rolle `roles/datastore.user` mit Bedingung auf diese DB vergeben. Der Dienst ist IAM-privat (`--no-allow-unauthenticated`) und per Env `LSZH_PORTAL_PRODUCTION_ENABLED=false` abgeschaltet. Bestehende Staging-Dienste blieben unverändert. **Nicht freigeschaltet, keine Kundenroute.**
+
+**Geschäfts-Drive Produktionsarchiv eingerichtet (19.10.):** In `lars@lszh-automations.ch` als Geschwister des STAGING-Archivs neuer, leerer Ordner `LSZH Automations Vertragsarchiv – PRODUKTION` mit ID `10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN` erstellt. Portal-Konfiguration im Featurebranch und beide deaktivierten Make-Bestätigungsszenarien `7940220`/`7965223` (Belegordner + Parent-Checks) auf dieses echte Kundenarchiv umgestellt. Das neue Cloud-Run-Dienstkonto besitzt laut Drive-Readback noch **keinen** Reader-Zugriff auf den Produktionsordner. **WICHTIG:** Die live bereitgestellte Cloud-Run-Revision stammt noch von vor der Ordner-Konfigurationsänderung (und ist weiterhin deaktiviert); vor Aktivierung neues Image bereitstellen und prüfen. Weiterhin fehlen final freigegebene Vertrags-PDFs, Domainbindung und echte End-to-End-Verknüpfung. Keinen Kundenversand aktivieren.
+
+**Drive-Freigabe bestätigt (19.10.):** Im geschäftlichen Google-Drive-Konto `lars@lszh-automations.ch` besitzt `lszh-offer-portal@lszh-automations.iam.gserviceaccount.com` laut Live-Berechtigungs-Readback explizit die Rolle `reader` für den Ordner `LSZH Automations Vertragsarchiv – PRODUKTION` (`10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN`). Damit ist die Ordnerfreigabe erledigt; ein echtes Google-Drive-API-Leseverfahren aus der Cloud-Run-Laufzeit ist noch nicht bestätigt. Kein neues Kundenmail-GO, Cloud-Run-Portal bleibt deaktiviert.
+
+## Neuer Stand auf dem Weg zum Produktivbetrieb (19.10.2026)
+
+- **Weiterentwicklung nach Make-Umstellung:** `cloud-run/offer-portal-production/` beinhaltet Kundenmapper, Firestore-Einmalannahme/Source-Index, Airtable-Rückschreiben, konfigurationsgesperrten Cloud-Run-Kundendienst, Docker-Build und einmaligen Operator-Link-Issuer. Build-/Unit-/Browser-/Emulator-CI läuft ohne Kundendaten; Kundendienst **als private deaktivierte Revision 00002-4zw deployed**, nicht produktiv freigegeben.
+
+- **Make angepasst, nicht aktiviert:** Die bestehenden Annahme-/PDF-Mail-Szenarien `7940220` und `7965223` wurden auf Kundenfelder, echte Freigabe-Flags, geschäftlichen Archivordner und dynamische Empfänger umgestellt. Automatisches Mail-/Belegszenario bleibt inaktiv bis zu echten Dokumenten und einem kontrollierten ersten Pilot. Der frühere TEST_ONLY-Integrationsnachweis ist historisch erfolgreich, nicht auf die neue Konfiguration übertragbar.
+- **Portalcode vorbereitet, nicht bereitgestellt:** Kundenofferten-Mapping in `cloud-run/offer-portal-production/approvedCustomerOffer.mjs`; `productionOnly` akzeptiert nur ausdrücklich freigegebene Kundendatensätze, die bisherigen Cloud-Synthetic-only-Restriktionen bleiben erhalten. Dies ist bisher eine Code- und Teständerung, noch keine live verbundene Kundenroute.
+- **Live CRM-Readback:** 19 Offerten eingesehen, davon 16 mit TEST-Markierung; **0 Datensätze** haben gleichzeitig die beiden Produktivfreigabe-Flags `Online-Annahme rechtlich freigegeben` und `Echtbetrieb – kein Test`. Somit aktuell kein freigegebener Kunde für den echten Versand.
+
+## Bestehende Make-Strecken
+
+Historische interne Läufe beider Bestätigungsszenarien sind erfolgreich. Aktuell sind `7940220` und `7965223` jedoch auf bedingt freigegebene Kundenofferten mit dynamischer Kundenadresse konfiguriert und **inaktiv**. Für den neuen Betreiber-Pilot wurde diese Konfiguration noch nicht verändert und kein neuer Beleg-/Maillauf ausgelöst. Der separate neue Offerten-PDF-Lauf in `7835460` ist abgeschlossen und vollständig zurückgestellt:
+
+| Aufgabe | Szenario-ID | Stand |
+| --- | --- | --- |
+| Offerten-PDF, Archiv, Versand | `7835460` | Inaktiv; Trigger/Gmail gesperrt, Gmail zusätzlich deaktiviert |
+| Annahmelink ohne AVV | `7940261` | Inaktiv; Token-/Mailpfad gesperrt |
+| Annahmebeleg ohne AVV | `7940220` | Bisher 15/15 Testmodule erfolgreich; **neu kundenfähige Konfiguration** mit echten Freigabe-Flags und Kunden-E-Mail, noch nicht live getestet; inaktiv |
+| Annahmelink mit AVV | `7965215` | Inaktiv; Token-/Mailpfad gesperrt |
+| Annahmebeleg mit AVV | `7965223` | Bisher 17/17 Testmodule erfolgreich; **neu kundenfähige Konfiguration** mit AVV-Freigabe und Kunden-E-Mail, noch nicht live getestet; inaktiv |
+
+## Nächste Schritte und Grenzen
+
+1. **Cloud-Tests und Cleanup abgeschlossen:** AVV Nein/Ja synthetisch end-to-end bestanden. Tag entfernt, `00007-e2e`/`00008-json` gelöscht, beide temporären Secret-Grants entfernt. Neueste Revision `00009-avv` bleibt retired, ohne Tag und Traffic bestehen; Browser-Demo weiterhin 100 %. Tests nicht wiederholen.
+2. **Vollständige automatische Make-Bestätigung mit internem Empfänger bestanden:** Zwei neue künstlich angenommene TEST_ONLY-Airtable-Records haben in den bestehenden Szenarien jeweils Belegarchivierung, PDF-Mailversand (3/4 Anhänge) und Versand-Zeitstempel ohne Modulfehler durchlaufen. Keine erneute Prüfung ohne geänderten Zustand; nächster Schritt ist die Umstellung vom internen Empfänger auf den kontrollierten Kundenpfad. Polling derzeit deaktiviert.
+3. **Aktuellen internen Pilot fortsetzen:** Den bereits angelegten TEST_ONLY-Fall gemäss [Pilotnachweis](LSZH_INTERNAL_TEST_ONLY_PILOT_20261019.md) nach dem Shelllimit fertigstellen. Kein neuer Seed/Build und keine echten Kundenfreigaben. Der spätere Kundenbetrieb bleibt getrennt und inaktiv.
+
+Bereits genehmigt und erledigt: einmaliger privater Cloud-Run-Staging-Test mit synthetischen Daten, separater synthetischer Airtable-Schreibtest und einmaliger Make-Belegtest. Am 19.10. stellte der Betreiber klar, dass für die weitere synthetische Entwicklungs- und Testarbeit keine wiederholten Freigabefragen nötig sind; im bestehenden Aufgabenrahmen selbstständig weiterarbeiten. **Nicht genehmigt:** echte Kundenverträge/-mails, externe Kundeneinladungen, allgemeine Make-Aktivierung, Main-Merge oder öffentlicher Go-Live. Bestehende Freigaben nicht nochmals pauschal einholen; den Umfang nicht ausweiten.
+
+Cockpit V2, neue Branchenmodule, zusätzliche KI-Funktionen, separate Portale und kosmetische Website-Erweiterungen folgen nach dem nutzbaren MVP. Sanitär-OS-Monteurportal wird nicht weiterverfolgt.
+
+## Dokumentation pflegen
+
+- Dieses Dokument ist die einzige aktuelle Statusquelle. Nach jedem abgeschlossenen Arbeitsschritt betroffene Zeilen **ersetzen**, nicht weitere widersprüchliche Statusblöcke anhängen.
+- Übergabe oben aktualisieren: letztes Ergebnis, nächster Schritt, tatsächlicher Blocker, Nachweis und Freigabeumfang.
+- Implementiert, offline getestet, live geprüft und produktiv freigegeben ausdrücklich unterscheiden. Prüfdatum nennen; keine alte Live-Prüfung als heute ausgeführt ausgeben.
+- Detailnachweise nur bei Bedarf öffnen. Historische NO-GOs und frühere nächste Schritte gelten nicht als aktuelle Arbeitsanweisung.
+- [MVP-Fokus](LSZH_MVP_FOKUS_20261018.md) beschreibt Ziel/Abschlusskriterien; [Pilot-Freigabematrix](LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md) beschreibt verbleibende Freigabegrenzen. Status nicht mehrfach ausformulieren.
+
+## Cloud-Testressourcen – Cleanup abgeschlossen
+
+Am 19.10.2026 wurde der Tag `cloud-e2e` entfernt, Revisionen `lszh-offer-browser-staging-00007-e2e` und `lszh-offer-browser-staging-00008-json` gelöscht sowie die beiden temporären Secret-Accessor-Bindungen des Portal-Dienstkontos entfernt. Cloud-Shell-Readback bestätigte 100 % Browser-Demo-Traffic auf `lszh-offer-browser-staging-00006-h5w` und leere IAM-Bindings für beide Test-Secrets. `lszh-offer-browser-staging-00009-avv` bleibt als neueste Revision retired, ungetaggt und ohne Traffic bestehen; Cloud Run erlaubt das Löschen der neuesten Revision nicht. Testsecrets, synthetische Daten und Belege blieben erhalten.
+
+## Historische Nachweise
+
+Die ausführliche Chronik wurde aus dem laufenden Status entfernt, bleibt aber unverändert über die Git-Historie zugänglich:
+- [Projektchronik vor Bereinigung](https://github.com/lszh-automations/lszh-automations-site/blob/0c36e5339d12ceac300d3c50d29daf107e79eaea/docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md)
+- [Früherer MVP-Fokus](https://github.com/lszh-automations/lszh-automations-site/blob/0c36e5339d12ceac300d3c50d29daf107e79eaea/docs/LSZH_MVP_FOKUS_20261018.md)
+- [Frühere G1–G7-Matrix](https://github.com/lszh-automations/lszh-automations-site/blob/0c36e5339d12ceac300d3c50d29daf107e79eaea/docs/LSZH_OFFERTEN_PILOT_FREIGABEMATRIX_20261018.md)
+
+Diese historischen Fassungen enthalten überholte Blocker und sind keine aktuelle Aufgabenliste.

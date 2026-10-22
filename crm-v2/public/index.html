@@ -104,7 +104,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .dash-pipeline-label{font-size:12px;color:#c9d7e5;white-space:nowrap}
 .dash-pipeline-track{height:9px;border-radius:20px;background:#202e3e;overflow:hidden}
 .dash-pipeline-fill{height:100%;border-radius:20px;background:#81bff4;min-width:0}
-.dash-pipeline-fill.stage-1{background:#7aa7e5}.dash-pipeline-fill.stage-2{background:#64cfaa}.dash-pipeline-fill.stage-3{background:#7d8799}
+.dash-pipeline-fill.stage-1{background:#7aa7e5}.dash-pipeline-fill.stage-2{background:#64cfaa}.dash-pipeline-fill.stage-3{background:#67d1ae}.dash-pipeline-fill.stage-4{background:#7d8799}
 .dash-pipeline-value{font-size:12px;font-weight:700;text-align:right}
 .dash-finance{display:grid;gap:0}
 .dash-finance-item{padding:13px 0;display:flex;align-items:baseline;justify-content:space-between;gap:15px;border-bottom:1px solid var(--border)}
@@ -198,9 +198,9 @@ const definitions={
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
   ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['status','Status']]}
 };
-const statuses={leads:['Neu','In Prüfung','Qualifiziert','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
+const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',records:{},editing:null};
+const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null};
 const $=id=>document.getElementById(id);
 function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
 async function api(path,options={}) {
@@ -308,6 +308,7 @@ function renderDashboard(){
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
     {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
+    {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
     {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
     {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
     {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'}
@@ -349,7 +350,7 @@ function renderDashboard(){
   upper.append(tasks.panel,recent.panel);
   const lower=el('div','dash-grid');
   const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
-  const stages=['Neu','In Prüfung','Qualifiziert','Verloren'];
+  const stages=['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'];
   for(let i=0;i<stages.length;i++){
     const count=(state.records.leads||[]).filter(x=>x.status===stages[i]).length;
     const row=el('div','dash-pipeline-row');
@@ -406,7 +407,7 @@ function render(){
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
       else td.textContent=valueText(key,rec[key]);
       row.append(td);
     }
@@ -509,7 +510,6 @@ function renderLeadDetail(lead){
     ['Häufigkeit',lead.frequency],['Gewünschtes Ergebnis',lead.desiredResult]
   ]);
   const offers=leadOffers(lead.id);
-  const accepted=offers.find(o=>o.status==='Angenommen');
   const existingCustomer=leadCustomer(lead);
   const offer=offers[0];
   if(offer){
@@ -518,47 +518,34 @@ function renderLeadDetail(lead){
       ['Bezeichnung',offer.title]
     ]);
   }
-  if(accepted&&existingCustomer){
-    detailAction(actions,'Kunde öffnen',()=>{
-      $('leadDetail').close();
-      navigateTo('kunden',existingCustomer);
+  const relatedProject=offer&&(state.records.projekte||[]).find(p=>p.offerId===offer.id);
+  const updateStatus=async status=>{
+    await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+      method:'PATCH',body:JSON.stringify({status})
+    });
+    await loadAll();
+    const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
+    if(updated)renderLeadDetail(updated);
+  };
+  if(lead.status==='Gewonnen'){
+    if(existingCustomer)detailAction(actions,'Kunde öffnen',()=>{
+      $('leadDetail').close();navigateTo('kunden',existingCustomer);
+    });
+    if(relatedProject)detailAction(actions,'Projekt öffnen',()=>{
+      $('leadDetail').close();navigateTo('projekte',relatedProject);
     },true);
-  }else if(accepted&&!existingCustomer){
-    detailAction(actions,'Als Kunde übernehmen',async()=>{
-      const customer={
-        company:lead.company,contactName:lead.name,email:lead.email,
-        street:lead.street,postalCode:lead.postalCode,city:lead.city,
-        country:lead.country,notes:'Übernommen aus Website-Lead',status:'Aktiv'
-      };
-      await api('/api/records/kunden',{method:'POST',body:JSON.stringify(customer)});
-      await loadAll();
-      const created=leadCustomer(lead);
-      $('leadDetail').close();
-      navigateTo('kunden',created);
-    },true);
-  }else if(offer){
+  }else if(lead.status==='Neu'){
+    detailAction(actions,'Als kontaktiert markieren',()=>updateStatus('Kontaktiert'),true);
+  }else if(lead.status==='Kontaktiert'){
+    detailAction(actions,'Qualifizieren',()=>updateStatus('Qualifiziert'),true);
+  }
+  if(offer && lead.status!=='Gewonnen'){
     detailAction(actions,'Offerte öffnen',()=>{
-      $('leadDetail').close();
-      navigateTo('offerten',offer);
-    },true);
-  }else if(lead.status==='Qualifiziert'){
-    detailAction(actions,'Offerte vorbereiten',()=>{
-      $('leadDetail').close();
-      navigateTo('offerten');
-      openEditor(null,{
-        leadId:lead.id,title:'Automation für '+(lead.company||lead.name),
-        description:lead.message||'',status:'Entwurf'
-      });
-    },true);
-  }else if(lead.status==='Neu'||lead.status==='In Prüfung'){
-    detailAction(actions,'Qualifizieren',async()=>{
-      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
-        method:'PATCH',body:JSON.stringify({status:'Qualifiziert'})
-      });
-      await loadAll();
-      const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
-      if(updated)renderLeadDetail(updated);
-    },true);
+      $('leadDetail').close();navigateTo('offerten',offer);
+    },lead.status==='Qualifiziert');
+  }
+  if(lead.status==='Qualifiziert'&&!offer){
+    detailAction(actions,'Offerte anlegen',()=>updateStatus('Qualifiziert'),true);
   }
   detailAction(actions,'Bearbeiten',()=>{
     $('leadDetail').close();
@@ -575,7 +562,7 @@ function makeField(key,label,type,value) {
     const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
       ...(state.records[type]||[])
-        .filter(r=>type!=='leads'||state.tab!=='offerten'||r.status==='Qualifiziert'||r.id===value)
+        .filter(r=>type!=='leads'||state.tab!=='offerten'||['Qualifiziert','Gewonnen'].includes(r.status)||r.id===value)
         .map(r=>({value:r.id,label:titleOf(type,r)}))
     ];
     for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
@@ -609,6 +596,8 @@ function openEditor(record=null,draft=null) {
 async function loadAll(){
   const results=await Promise.all(order.map(x=>api('/api/records/'+x)));
   order.forEach((x,i)=>state.records[x]=results[i].records);
+  const reminders=await api('/api/reminders').catch(()=>({reminders:[]}));
+  state.reminders=reminders.reminders||[];
   render();
 }
 async function signedIn(token){

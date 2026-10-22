@@ -125,7 +125,7 @@ async function createRecord(collection,data,user) {
       const next=snap.exists && Number.isSafeInteger(snap.data().next) ? snap.data().next : 1000;
       if(next>99999999) throw new Error('sequence_exhausted');
       tx.set(counter,{next:next+1},{merge:true});
-      values.number=(collection==='offerten' ? 'OFF-' : 'RE-')+String(next);
+      values.number=(collection==='offerten' ? '' : 'RE-')+String(next);
       tx.create(ref,values);
     });
   } else await ref.create(values);

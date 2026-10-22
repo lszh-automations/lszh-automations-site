@@ -933,6 +933,7 @@ menuButton?.addEventListener('click',()=>{const open=mobile.classList.toggle('op
 mobile?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.classList.remove('open');menuButton.setAttribute('aria-expanded','false');}));
 document.getElementById('year').textContent=new Date().getFullYear();
 const form=document.getElementById('contactForm'),note=document.getElementById('formNote');
+let pendingSubmissionId=null;
 
 form?.addEventListener('submit',async e=>{
   e.preventDefault();
@@ -943,8 +944,8 @@ form?.addEventListener('submit',async e=>{
   note.textContent='';
 
   const payload=Object.fromEntries(new FormData(form).entries());
-  payload.source='LSZH Automations Website';
-  payload.submitted_at=new Date().toISOString();
+  pendingSubmissionId ||= crypto.randomUUID();
+  payload.submission_id=pendingSubmissionId;
 
   try{
     const response=await fetch('/api/lead',{
@@ -954,8 +955,12 @@ form?.addEventListener('submit',async e=>{
     });
 
     if(!response.ok) throw new Error('HTTP '+response.status);
+    const receipt=await response.json();
+    if(receipt.confirmed!==true || !/^web_[0-9a-f]{32}$/.test(receipt.recordId||''))
+      throw new Error('CRM storage unconfirmed');
 
     form.reset();
+    pendingSubmissionId=null;
     note.textContent='Vielen Dank. Ihre Anfrage wurde erfolgreich übermittelt.';
     note.style.color='#9becce';
   }catch(error){

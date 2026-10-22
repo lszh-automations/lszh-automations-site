@@ -114,6 +114,14 @@ async function handleWebsiteLead(req,res) {
       return send(res,400,JSON.stringify({error:'invalid_fields'}));
     if(payload.website) return send(res,204,'');
     delete payload.website;
+    // Enforce required business address at the public gateway even before the
+    // independently deployed Cloud Run CRM service receives the same validation.
+    const requiredLeadFields=[
+      'name','company','email','street','postal_code','city','country',
+      'message','current_process','systems','main_problem','frequency'
+    ];
+    if(requiredLeadFields.some(key=>typeof payload[key]!=='string' || !payload[key].trim()))
+      return send(res,400,JSON.stringify({error:'missing_required_fields'}));
     // Older website versions may not yet supply a submission ID.
     if(!payload.submission_id) payload.submission_id=crypto.randomUUID();
     const remote=await fetch(target,{

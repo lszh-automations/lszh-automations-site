@@ -477,6 +477,11 @@ function renderLeadDetail(lead){
     option.value=value;
     statusSelect.append(option);
   }
+  if(lead.status && !statuses.leads.includes(lead.status)){
+    const legacy=el('option','',lead.status+' (bisheriger Status)');
+    legacy.value=lead.status;
+    statusSelect.append(legacy);
+  }
   statusSelect.value=lead.status||'Neu';
   statusSelect.addEventListener('change',async()=>{
     if(statusSelect.value===lead.status)return;

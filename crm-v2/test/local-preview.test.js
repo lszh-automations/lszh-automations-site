@@ -128,3 +128,16 @@ test('repairs only untouched old demo fixtures and preserves user edits',async()
     fs.writeFileSync(file,saved);
   }
 });
+
+test('an open lead cannot receive a linked offer before qualification',async()=>{
+  const invalid=await call('POST','/api/records/offerten',{
+    leadId:'test-lead-1',title:'Zu frühe Offerte'
+  });
+  assert.equal(invalid.status,400);
+  assert.match(invalid.body.error,/zuerst qualifizieren/);
+  const valid=await call('POST','/api/records/offerten',{
+    leadId:'test-lead-2',title:'Offerte für qualifizierten Lead'
+  });
+  assert.equal(valid.status,201);
+  assert.equal(valid.body.record.leadId,'test-lead-2');
+});

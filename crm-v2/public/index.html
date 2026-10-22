@@ -7,7 +7,7 @@
 <title>LSZH CRM – Intern</title>
 <style>
 :root{color-scheme:dark;--bg:#090e17;--panel:#111925;--panel2:#172231;--border:#273243;--muted:#9caabd;--text:#edf3fa;--accent:#8bc7f2;--green:#67d1ae}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .layout{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
@@ -189,7 +189,7 @@ function makeField(key,label,type,value) {
     if(type==='number'){control.step='0.01';control.min='0';}
   }
   control.name=key;
-  control.value=value==null?'':String(value);
+  control.value=value==null?(key==='country'?'Schweiz':''):String(value);
   if(['company','name','email','title','description'].includes(key)){
     if((state.tab==='leads' && ['name','company','email'].includes(key))||
        (state.tab==='kunden' && key==='company')||

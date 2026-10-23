@@ -6,14 +6,16 @@ function createOfferSender(store,config={}){
   const post=config.fetchImpl||globalThis.fetch;
   const hook=String(config.webhookUrl||'');
   const testTo=String(config.testTo||'').trim().toLowerCase();
+  const requestedMode=String(config.mode||'').trim().toLowerCase();
+  // TEST_ONLY deployments from October continue working without a mode value.
+  // Production cannot be enabled by accidentally dropping CRM_OFFER_MAIL_TEST_TO.
+  const isTestMode=Boolean(testTo)&&(!requestedMode||requestedMode==='test_only');
+  const isProductionMode=requestedMode==='production'&&!testTo;
   const configured=config.enabled===true&&
     /^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9]+$/.test(hook)&&
-    (!testTo||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo));
-  const stats=()=>({
-    enabled:configured,
-    mode:configured?(testTo?'test_only':'one_click_explicit_approval'):'disabled',
-    testTo:configured?testTo:''
-  });
+    (isTestMode&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo)||isProductionMode);
+  const mode=configured?(isProductionMode?'production':'test_only'):'disabled';
+  const stats=()=>({enabled:configured,mode,testTo:configured?testTo:''});
   async function send(id,payload,user){
     if(!configured)throw error('Automatischer Offertenversand ist noch nicht freigegeben',503);
     // In test-only mode, reject ordinary offers BEFORE creating any send claim.
@@ -28,7 +30,16 @@ function createOfferSender(store,config={}){
       if(String(recipient?.email||'').trim().toLowerCase()!==testTo)
         throw error('Testmodus: Versand nur an freigegebenes Testpostfach erlaubt',403);
     }
+    if(isProductionMode){
+      const original=await store.get('offerten',id);
+      if(!original||String(original.title||'').startsWith('TEST_ONLY'))
+        throw error('Testofferten duerfen nicht an echte Kunden versendet werden',403);
+    }
     const claim=await store.claimOfferSend(id,payload,user);
+    if(isProductionMode&&String(claim.offer.title||'').startsWith('TEST_ONLY')){
+      await store.finishOfferSend(id,claim.attemptId,'preparation_failed');
+      throw error('Testofferten duerfen nicht an echte Kunden versendet werden',403);
+    }
     if(testTo&&(
       String(claim.to||'').trim().toLowerCase()!==testTo||
       !String(claim.offer.title||'').startsWith('TEST_ONLY')
@@ -50,7 +61,7 @@ function createOfferSender(store,config={}){
     }
     const eventId='offer_send_'+claim.attemptId;
     const body={
-      kind:'offer_send',eventId,offerId:id,to:claim.to,
+      kind:'offer_send',sendMode:mode,eventId,offerId:id,to:claim.to,
       subject:mail.subject,html:mail.html,
       pdfFilename:mail.filename,pdfBase64:attachment.toString('base64')
     };

@@ -240,6 +240,13 @@ Beim ersten Test nach `git pull` schlugen **2 von 30** CRM-Tests fehl: Die bishe
 - Der vorherige Lauf hatte **31/31 CRM-Tests bestanden**, Scheduler-Job erfolgreich **PAUSED**, Secret hinterlegt und Cloud-Run-Kandidat `lszh-crm-v2-00008-zog` mit **0%** bereitgestellt. Der HTTP-Check bestaetigt die erwartete Trennung der Revisionen; die produktive Traffic-Aufteilung wurde nicht ueber Google Cloud separat erneut abgefragt.
 - Make-Szenario `8135270` erneut ueberprueft: **inaktiv**, geschäftlicher Gmail-Connector `11904991` Status `ok`. Bei der Diagnose wurden keine Mails gesendet und keine produktiven CRM- oder Cloud-Scheduler-Einstellungen geaendert. Die Mailautomationen bleiben bis zur gesonderten Go-Live-Freigabe deaktiviert.
 
+### 23.10.2026 – Sicherer CRM Mail Cutover entwickelt, noch nicht ausgefuehrt
+
+- Ziel: die bereits verifizierte Cloud-Run Mail-Kandidatenrevision `lszh-crm-v2-00008-zog` von 0 % auf 100 % Live-Traffic umschalten, dabei **keine E-Mails versenden**. Bisherige Revision `lszh-crm-v2-00006-moz` bleibt fuer automatischen Rollback verfuegbar.
+- Neues Skript `scripts/cutover-crm-mail-safe.ps1` ist auf GitHub im Entwicklungsbranch angelegt, enthaelt 31+ CRM Tests, Versions-/Traffic-/Konfigurationsvergleich (Website, Firestore, Google OAuth, Secret Manager), pausierten Cloud Scheduler, HTTP-Pruefungen der Kandidaten-URL vor und des Live-Dienstes nach dem Wechsel. Falls Traffic gewechselt wurde und eine Nachpruefung scheitert, schaltet das Skript zur alten Revision zurueck. In CI zur PowerShell-Syntaxpruefung aufgenommen.
+- Make Szenario 8135270 zuletzt bestaetigt INAKTIV mit gueltiger Geschaefts-Gmail-Verbindung und leerer Webhook-Queue. Scheduler `lszh-crm-v2-mail-tick` laut letzter gcloud-Ausgabe PAUSED. `CRM_MAIL_ENABLED=false` auf Kandidat aus vorherigem Cloud-Run-Deployment; Skript prueft das noch einmal in den eigentlichen Revisionsdetails.
+- **Status:** Skript erstellt, noch NICHT vom Surface ausgefuehrt; daher keine neue Live-Traffic-Verteilung durch diesen Schritt. Nutzer muss `git pull --ff-only` und `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\cutover-crm-mail-safe.ps1"` ausfuehren. Erst nach dem Ergebnis folgt die Aktivierung der 3 E-Mail-Automationen mit neuem Aktivierungszeitpunkt und zuletzt Scheduler-Resume.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

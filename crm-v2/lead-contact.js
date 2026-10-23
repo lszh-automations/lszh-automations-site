@@ -38,10 +38,9 @@ function offerDescription(lead){
     ['Beteiligte Systeme',lead.systems],
     ['Grösstes Problem',lead.mainProblem],
     ['Häufigkeit',lead.frequency],
-    ['Gewünschtes Ergebnis',lead.desiredResult],
-    ['Budgetrahmen',lead.budgetRange],
-    ['Qualifizierungsnotizen',lead.qualificationNotes]
+    ['Gewünschtes Ergebnis',lead.desiredResult]
   ];
+  // Internal budget and qualification notes NEVER enter customer-facing quotes.
   // No artificial content, no automated re-writes of existing offers.
   return fields.filter(([,value])=>typeof value==='string'&&value.trim())
     .map(([label,value])=>label+': '+value.trim()).join('\n\n').slice(0,5000);

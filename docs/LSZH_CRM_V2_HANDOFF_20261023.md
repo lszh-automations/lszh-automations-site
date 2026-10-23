@@ -183,3 +183,16 @@ Benutzer führte `scripts/activate-crm-swiss-qr-pdf-live.ps1` aus. Schritt 1 (`V
 Fix in GitHub: `scripts/activate-crm-swiss-qr-pdf-live.ps1` verwendet jetzt `$homepageResponse` statt `$home` in der Webprüfung (Commit `15cfb47f7578a340ef704a2f648d20e396ae7f65`). Bestehende Mail-/Firestore-/IBAN-Gates, Freigabephrase `LIVE QR PDF`, geschützter 0%-Kandidat `00041-far`, Live-`00038-gic` mit 100%, Auth-401-Probe, Scheduler-Prüfung und Rollback bleiben unverändert.
 
 Nächster Benutzerschritt: im Git-Repo `git pull --ff-only`, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-swiss-qr-pdf-live.ps1"`. Vor dem Switch sieht Benutzer das Freigabeprompt; bei `LIVE QR PDF` schaltet es die getaggte bereits bereitgestellte Revision `00041-far` auf 100%, prüft Live und versucht bei Fehler automatisch Rollback `00038-gic`. Erst Erfolgsausgabe `CRM SWISS QR PDF LIVE PASS` bestätigt tatsächlichen Cutover. Erfolg bisher NICHT vorliegend.
+
+### 24.10.2026 – CRM Swiss-QR-PDF Go-live: BESTANDEN (vom Betreiber in PowerShell bestätigt)
+
+**Verbindlicher neuer LIVE-Stand:** Skript `scripts/activate-crm-swiss-qr-pdf-live.ps1` wurde nach ausdrücklicher lokaler Freigabe erfolgreich ausgeführt. Original-Erfolgsmeldung des Benutzers: `CRM SWISS QR PDF LIVE PASS`.
+
+- `LIVE: lszh-crm-v2-00041-far (100 percent)`; bestehende Adresse `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- `ROLLBACK: lszh-crm-v2-00038-gic`; vorherige produktive Revision dient als rückschaltbarer Stand.
+- `MAIL CUTOFF UNCHANGED: 2026-10-23T16:15:28Z`.
+- Skript hat nach Umschaltung die produktive Startseite inkl. `Swiss-QR-PDF`-Schaltfläche, `/api/config` mit unverändertem manuellem Offertenmodus, den unangemeldeten Rechnungsexport (HTTP 401), Scheduler-Vertrag und 100%-Traffic-Zuordnung geprüft. Der separate 0%-Tag-OAuth-Origin ist für reguläre Bedienung nicht mehr erforderlich.
+- Firmen-IBAN liegt nur im Google Secret Manager `lszh-crm-v2-invoice-iban`, gepinnte Version 1; im GitHub keine echte IBAN hinterlegt. PDF-Download nur nach authentifiziertem Klick im CRM, kein automatischer Rechnungsversand. Bestehende Lead- und Offerten-E-Mail-Prozesse nicht bewusst verändert.
+- **WICHTIG – verbleibende Abnahme:** Der Erfolgslog beweist Deployment/HTTP-/Konfigurationskontrollen, aber **noch keinen erfolgreichen authentifizierten Download einer echten Rechnung aus der produktiven Firestore-Datenquelle und noch keine manuelle PDF-Sichtprüfung**. Im Live-CRM auf eine vorhandene, passende offene Rechnung (z. B. `RE-1001`, sofern rein intern/testgeeignet) gehen, die PDF per `Swiss-QR-PDF` herunterladen und Bankverbindung, Adressen, MWST-Hinweis, Betrag und Zahlteil/QR prüfen; vor externer Verwendung Freigabe. Benutzer zeigte für RE-1001 bisher Selbstadressierung an LSZH Invest GmbH, Beschreibung `abc`, Betrag CHF 100 – **als Testfall, nicht als an Kunden zu sendende Rechnung**. Kein Kundenversand ohne ausdrückliche Freigabe.
+
+Der bis hier dokumentierte vorherige Stand `00038-gic` ist **überholt**. Ab diesem Eintrag gilt `00041-far` (100%) als neue Release-Baseline. Weitere 0%-Skripte mit hartkodierter Baseline `00038-gic` dürfen nicht ohne Anpassung/Prüfung erneut ausgeführt werden.

@@ -677,7 +677,8 @@ function makeField(key,label,type,value) {
     const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
       ...(state.records[type]||[])
-        .filter(r=>type!=='leads'||state.tab!=='offerten'||['Qualifiziert','Gewonnen'].includes(r.status)||r.id===value)
+        .filter(r=>(type!=='leads'||state.tab!=='offerten'||['Qualifiziert','Gewonnen'].includes(r.status)||r.id===value)
+          &&(type!=='offerten'||state.tab!=='projekte'||r.status==='Angenommen'||r.id===value))
         .map(r=>({value:r.id,label:titleOf(type,r)}))
     ];
     for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
@@ -850,6 +851,85 @@ function openOfferEditor(record=null,draft=null){
   $('offerEditor').showModal();
 }
 
+
+function renderProjectProgress(){
+  const rows=$('projectTasks').children;
+  let completed=0;
+  for(const row of rows)if(row._taskFields?.done.checked)completed++;
+  $('projectProgress').textContent=completed+' von '+rows.length+' erledigt';
+}
+function addProjectTask(task={}){
+  if($('projectTasks').children.length>=30){
+    $('projectError').textContent='Maximal 30 Aufgaben je Projekt möglich.';
+    $('projectError').hidden=false;
+    return;
+  }
+  $('projectError').hidden=true;
+  const row=el('div','project-task');
+  const done=el('input','project-task-check');
+  done.type='checkbox';
+  done.checked=task.done===true;
+  done.setAttribute('aria-label','Aufgabe erledigt');
+  const title=el('input','project-task-title'+(done.checked?' done':''));
+  title.type='text';title.maxLength=160;title.required=true;
+  title.placeholder='Was muss erledigt werden?';
+  title.value=task.title||'';
+  title.setAttribute('aria-label','Aufgabe');
+  // Unlike quote headers, tasks have no form field named "title".
+  title.name='project-task-text';
+  const remove=el('button','project-task-delete','×');
+  remove.type='button';remove.setAttribute('aria-label','Aufgabe entfernen');
+  done.addEventListener('change',()=>{
+    title.classList.toggle('done',done.checked);
+    renderProjectProgress();
+  });
+  remove.addEventListener('click',()=>{
+    row.remove();
+    renderProjectProgress();
+  });
+  row._taskFields={done,title};
+  row.append(done,title,remove);
+  $('projectTasks').append(row);
+  renderProjectProgress();
+  title.focus();
+}
+function projectTasksFromForm(){
+  const tasks=[];
+  for(const row of $('projectTasks').children){
+    const fields=row._taskFields;
+    if(!fields)continue;
+    tasks.push({title:fields.title.value.trim(),done:fields.done.checked});
+  }
+  return tasks;
+}
+function openProjectEditor(record=null,draft=null){
+  state.projectEditing=record;
+  $('projectEditorTitle').textContent=record?'Projekt bearbeiten':'Neues Projekt';
+  $('projectFields').replaceChildren();
+  $('projectTasks').replaceChildren();
+  $('projectError').hidden=true;
+  const fields=['customerId','offerId','title','description','dueDate','status'];
+  for(const [key,label,type] of definitions.projekte.fields){
+    if(!fields.includes(key))continue;
+    const value=record?.[key]??draft?.[key];
+    const field=makeField(key,label,type,value);
+    if(record?.offerId && (key==='offerId'||key==='customerId')){
+      const input=field.querySelector('input,select,textarea');
+      if(input)input.disabled=true;
+    }
+    $('projectFields').append(field);
+  }
+  for(const task of Array.isArray(record?.tasks)?record.tasks:[])addProjectTask(task);
+  renderProjectProgress();
+  const customer=(state.records.kunden||[]).find(c=>c.id===record?.customerId);
+  const offer=(state.records.offerten||[]).find(o=>o.id===record?.offerId);
+  $('projectCustomerOpen').hidden=!customer;
+  $('projectOfferOpen').hidden=!offer;
+  $('projectCustomerOpen').onclick=()=>{ $('projectEditor').close();navigateTo('kunden',customer); };
+  $('projectOfferOpen').onclick=()=>{ $('projectEditor').close();navigateTo('offerten',offer); };
+  $('projectEditor').showModal();
+}
+
 function openEditor(record=null,draft=null) {
   if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
   if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
@@ -899,6 +979,45 @@ $('search').addEventListener('input',render);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
 $('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
+$('projectClose').addEventListener('click',()=>$('projectEditor').close());
+$('projectCancel').addEventListener('click',()=>$('projectEditor').close());
+$('projectAddTask').addEventListener('click',()=>addProjectTask());
+$('projectForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=$('projectForm');
+  const data={};
+  for(const key of ['customerId','offerId','title','description','dueDate','status']){
+    const field=form.elements.namedItem(key);
+    data[key]=field?.value??'';
+  }
+  if(state.projectEditing?.offerId){
+    // Preserves the accepted-offer/customer linkage on the existing project.
+    data.offerId=state.projectEditing.offerId;
+    data.customerId=state.projectEditing.customerId||'';
+  }
+  data.tasks=projectTasksFromForm();
+  const error=$('projectError');
+  error.hidden=true;
+  if(!data.title.trim()||data.tasks.some(x=>!x.title)){
+    error.textContent='Bitte den Projektnamen und alle Aufgabenbezeichnungen ausfüllen.';
+    error.hidden=false;return;
+  }
+  const button=$('projectSave');
+  button.disabled=true;button.textContent='Speichere …';
+  try{
+    const current=state.projectEditing;
+    const result=await api('/api/records/projekte'+(current?'/'+encodeURIComponent(current.id):''),{
+      method:current?'PATCH':'POST',body:JSON.stringify(data)
+    });
+    $('projectEditor').close();
+    await loadAll();
+    const updated=(state.records.projekte||[]).find(x=>x.id===result.record.id);
+    if(updated)openProjectEditor(updated);
+  }catch(err){
+    error.textContent='Projekt konnte nicht gespeichert werden: '+err.message;
+    error.hidden=false;
+  }finally{button.disabled=false;button.textContent='Speichern';}
+});
 $('offerClose').addEventListener('click',()=>$('offerEditor').close());
 $('offerCancel').addEventListener('click',()=>$('offerEditor').close());
 $('offerAddLine').addEventListener('click',()=>{

@@ -138,6 +138,18 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .offer-totals strong{font-size:22px;letter-spacing:-.035em}
 .offer-hint{font-size:11px;color:#99aabd;margin:0;padding:0 24px}
 .offer-actions{padding:18px 24px 22px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.offer-workflow{margin:12px 24px 8px;padding:18px;border:1px solid #35536d;background:#152434;border-radius:13px;display:grid;gap:13px}
+.offer-workflow h3{margin:0;font-size:16px}
+.offer-workflow p{color:#afc3d8;font-size:12px;line-height:1.55;margin:0}
+.offer-workflow-meta{display:grid;gap:4px;color:#afc3d8;font-size:12px}
+.offer-workflow-meta strong{color:#e8f3ff}
+.offer-workflow-row{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.offer-workflow-row label{display:grid;gap:5px;font-size:12px;color:#bdcee0;min-width:175px;flex:1}
+.offer-workflow-row input{background:#0b141e;color:var(--text);border:1px solid #45617e;border-radius:8px;padding:10px;min-height:40px;max-width:100%}
+.offer-workflow-error{color:#ffafb0!important}
+.offer-workflow-history{padding:12px;border-radius:9px;background:#101c2a;display:grid;gap:7px}
+.offer-workflow-history span{font-size:11px;color:#aec1d2;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){.offer-workflow{margin:12px 16px 8px;padding:14px}}
 @media(max-width:880px){.offer-line{grid-template-columns:minmax(160px,2fr) 75px minmax(100px,1fr);}.offer-line-total{align-self:center}}
 @media(max-width:600px){.offer-fields{grid-template-columns:1fr;padding:16px}.offer-line{grid-template-columns:1fr 1fr;padding:10px}.offer-line label:first-child{grid-column:1/-1}.offer-lines,.offer-lines-head{padding-left:16px;padding-right:16px}.offer-lines-head{flex-wrap:wrap}.offer-totals{grid-template-columns:1fr;margin:16px}.offer-actions{padding:16px}.offer-actions .btn{flex:1}.offer-hint{padding:0 16px}}
 
@@ -295,6 +307,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div><span>Monatlicher Gesamtbetrag</span><strong id="offerMonthly">CHF 0.00 / Monat</strong></div>
     </div>
     <p class="offer-hint" id="offerHint">PDF-Vorschau verwendet die zuletzt gespeicherte Version. Kein Kundenversand.</p>
+    <div id="offerWorkflow" class="offer-workflow" hidden></div>
     <div class="offer-actions">
       <button type="button" class="btn" id="offerPrint" disabled>Druckansicht / PDF</button>
       <button type="button" class="btn" id="offerCancel">Schliessen</button>
@@ -358,7 +371,7 @@ const definitions={
   ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['status','Status']]},
+  ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
   rechnungen:{title:'Rechnungen',description:'Rechnungen erstellen, Zahlungen erfassen und als PDF ansehen (lokale Testversion).',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
@@ -678,6 +691,12 @@ function render(){
             rec.followUpDate);
           label.title=rec.nextAction;
           td.append(label);
+        }else td.textContent='–';
+      }
+      else if(key==='followUpDate'&&state.tab==='offerten'){
+        if(rec.status==='Versendet'&&rec.followUpDate){
+          const due=rec.followUpDate<=localDateKey();
+          td.append(el('span',due?'lead-followup-badge overdue':'lead-followup-badge',rec.followUpDate));
         }else td.textContent='–';
       }
       else if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
@@ -1044,7 +1063,8 @@ function makeField(key,label,type,value) {
   else if(type==='status'||order.includes(type)){
     control=el('select');
     const items=type==='status'?statuses[state.tab]
-      .filter(s=>state.tab!=='leads'||s!=='Neu'||!state.editing||state.editing.status==='Neu')
+      .filter(s=>(state.tab!=='leads'||s!=='Neu'||!state.editing||state.editing.status==='Neu')&&
+        (state.tab!=='offerten'||['Entwurf','Bereit'].includes(s)||s===state.offerEditing?.status))
       .map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
       ...(state.records[type]||[])
@@ -1087,6 +1107,7 @@ function quotePreviousItems(offer){
 function markQuoteUnsaved(){
   if(state.offerLocked)return;
   $('offerPrint').disabled=true;
+  $('offerWorkflow').hidden=true;
   $('offerHint').textContent='Ungespeicherte Änderungen. Bitte zuerst speichern, danach die Druckansicht öffnen.';
 }
 function updateQuoteTotals(){
@@ -1176,7 +1197,7 @@ function quoteItemsFromForm(){
 }
 function isOfferLocked(offer){
   if(!offer)return false;
-  return offer.status==='Angenommen' ||
+  return ['Angenommen','Versendet'].includes(offer.status) ||
     !!((state.records.leads||[]).find(lead=>lead.id===offer.leadId && lead.status==='Gewonnen'));
 }
 function openOfferEditor(record=null,draft=null){
@@ -1185,6 +1206,13 @@ function openOfferEditor(record=null,draft=null){
   state.offerOpening=true;
   $('offerEditor').classList.toggle('is-locked',state.offerLocked);
   $('offerLockedNotice').hidden=!state.offerLocked;
+  if(state.offerLocked){
+    const sent=record?.status==='Versendet';
+    $('offerLockedNotice').querySelector('strong').textContent=sent?'Offerte als versendet dokumentiert':'Offerte angenommen – schreibgeschützt';
+    $('offerLockedNotice').querySelector('span').textContent=sent
+      ?'Die versendete Offerte ist für Änderungen gesperrt. Nachfassen oder Kundenentscheidung unten dokumentieren.'
+      :'Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.';
+  }
   $('offerEditorTitle').textContent=record
     ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – Angenommen':' bearbeiten')
     :'Neue Offerte';
@@ -1217,8 +1245,9 @@ function openOfferEditor(record=null,draft=null){
   $('offerSave').hidden=state.offerLocked;
   $('offerPrint').disabled=!record;
   $('offerHint').textContent=state.offerLocked
-    ?'Diese angenommene Offerte ist unveränderbar. Du kannst die gespeicherte Fassung weiterhin als PDF öffnen.'
+    ?'Die gespeicherte Offerte ist unveränderbar. Die PDF-Ansicht bleibt verfügbar.'
     :'PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
+  renderOfferWorkflow(record);
   $('offerEditor').showModal();
 }
 

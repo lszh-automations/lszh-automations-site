@@ -310,6 +310,8 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='offerten'){
+        if(['sending','manual_review'].includes(before.offerDispatchState))
+          throw err('Offerte hat einen laufenden oder ungeklärten Versandauftrag',409);
         // Once manually marked sent, the exact submitted offer must stay frozen.
         if(input.status==='Versendet')
           throw err('Versand nur über «Versand dokumentieren» erfassen',409);
@@ -369,6 +371,85 @@ function buildStore(db,prefix){
     });
     const saved=await ref.get();return toObject(saved);
   }
+  async function claimOfferSend(id,payload,user){
+    const date=now(),today=date.slice(0,10);
+    const requested=normalizeDispatchInput(payload,today);
+    const ref=col('offerten').doc(id);
+    let claimed=null;
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const offer=snap.data();
+      if(['sending','manual_review'].includes(offer.offerDispatchState))
+        throw err('Versand bereits in Bearbeitung oder manuell zu prüfen',409);
+      const lead=offer.leadId?await tx.get(col('leads').doc(offer.leadId)):null;
+      const customer=offer.customerId?await tx.get(col('kunden').doc(offer.customerId)):null;
+      const recipient=lead?.data()?.email?lead.data():customer?.data();
+      const to=checkReadyForDispatch(offer,recipient,today);
+      const attemptId=randomUUID();
+      tx.update(ref,audit({
+        offerDispatchState:'sending',offerDispatchAttemptId:attemptId,
+        offerDispatchRequestedAt:date,offerDispatchRequestedBy:user.email,
+        offerDispatchTo:to,offerDispatchFollowUpDate:requested.followUpDate,
+        offerDispatchError:''
+      },user,date));
+      claimed={id,attemptId,offer:{id,...offer},recipient:{...recipient,email:to},
+        to,followUpDate:requested.followUpDate};
+    });
+    return claimed;
+  }
+  async function finishOfferSend(id,attemptId,status,receipt=''){
+    if(!['confirmed','preparation_failed','manual_review'].includes(status))
+      throw err('Ungültiges Versandresultat');
+    const date=now(),ref=col('offerten').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const offer=snap.data();
+      if(offer.offerDispatchState!=='sending'||offer.offerDispatchAttemptId!==attemptId)
+        throw err('Versandauftrag wurde bereits verarbeitet',409);
+      const values={
+        offerDispatchState:status,offerDispatchResultAt:date,
+        offerDispatchError:status==='manual_review'?String(receipt).slice(0,100):''
+      };
+      if(status==='confirmed'){
+        Object.assign(values,{
+          status:'Versendet',sentAt:date,sentBy:offer.offerDispatchRequestedBy,
+          sentTo:offer.offerDispatchTo,
+          followUpDate:offer.offerDispatchFollowUpDate,
+          followUpCount:0,followUpHistory:[],
+          offerDispatchProviderId:String(receipt).slice(0,200)
+        });
+      }
+      tx.update(ref,audit(values,{email:offer.offerDispatchRequestedBy},date));
+    });
+    return toObject(await ref.get());
+  }
+  async function resolveOfferSend(id,resolution,user){
+    if(!['confirmed','not_sent'].includes(resolution))throw err('Ungültige Prüfung');
+    const date=now(),ref=col('offerten').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const before=snap.data();
+      if(before.status!=='Bereit'||before.offerDispatchState!=='manual_review')
+        throw err('Kein ungeklärter Versand vorhanden',409);
+      const values={
+        offerDispatchState:resolution==='confirmed'?'confirmed':'not_sent',
+        offerDispatchReviewedBy:user.email,
+        offerDispatchReviewedAt:date,offerDispatchError:''
+      };
+      if(resolution==='confirmed')Object.assign(values,{
+        status:'Versendet',sentAt:date,sentBy:before.offerDispatchRequestedBy,
+        sentTo:before.offerDispatchTo,
+        followUpDate:before.offerDispatchFollowUpDate,
+        followUpCount:0,followUpHistory:[],
+        offerDispatchProviderId:'manual_verification'
+      });
+      tx.update(ref,audit(values,user,date));
+    });
+    return toObject(await ref.get());
+  }
   async function recordOfferDispatch(id,payload,user){
     const date=now(),today=date.slice(0,10);
     const form=normalizeDispatchInput(payload,today);
@@ -377,6 +458,8 @@ function buildStore(db,prefix){
       const snap=await tx.get(ref);
       if(!snap.exists)throw err('Offerte nicht gefunden',404);
       const offer=snap.data();
+      if(['sending','manual_review'].includes(offer.offerDispatchState))
+        throw err('Ein Versandauftrag läuft oder muss zuerst überprüft werden',409);
       const lead=offer.leadId?await tx.get(col('leads').doc(offer.leadId)):null;
       const customer=offer.customerId?await tx.get(col('kunden').doc(offer.customerId)):null;
       const email=checkReadyForDispatch(offer,
@@ -444,6 +527,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

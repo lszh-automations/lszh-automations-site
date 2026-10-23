@@ -1,3 +1,20 @@
+### 23.10.2026 – Offerten-PDF Preview-Deploy: Cloud Run Tag-Guard korrigiert
+
+Beim ersten Aufruf von `scripts/deploy-crm-offer-send-preview-live.ps1` durch den Benutzer: **alle 71 CRM-Tests bestanden**, Vorprüfung bei `Unrecognised live CRM revision/tag: lszh-crm-v2-00028-lij; no changes made` abgebrochen. Es wurde **keine** neue Cloud-Run-Revision erstellt und **kein** Traffic umgestellt. Ursache im Vorprüfungsskript: bislang musste die frühere Release-Tag-Zuordnung im **selben Traffic-Eintrag** wie die 100-%-Revision stehen. Ein `gcloud run services update-traffic --to-revisions=...=100` kann jedoch separate 0-%-Tags erzeugen oder die Tag-Zuordnung entfernen.
+
+**Behoben:** Tag-Zuordnung wird nun unabhängig von `percent` geprüft. Gibt es keinen bekannten Tag, erlaubt der Guard ausnahmsweise **nur** die im echten Benutzerlog beobachtete laufende Revision `lszh-crm-v2-00028-lij` und verifiziert deren bestehende Kontakt-, Qualifizierungs-, Wiedervorlage- und Offerten-UI-Marker via HTTP, bevor das normale strenge Preflight fortgesetzt wird. Alle übrigen Prüfungen (Cloud-Run-Konto, CRM-Firestore-Präfix, Mail-Env und Cutoff, Cloud Scheduler, HTTP, Kandidaten-Tag bei 0 %, keine aktivierte Offerten-Mailfunktion, unveränderter Env-Signaturvergleich, Traffic-Switch mit Rollback) bleiben unverändert. PowerShell-Datei weiterhin vollständig ASCII für Windows PowerShell 5.1.
+
+**Erneut ausführen:**
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-offer-send-preview-live.ps1"
+```
+
+**Status:** Preview ist erst nach `CRM OFFER SEND PREVIEW LIVE PASS` bestätigt. Separates Make-Offerten-Szenario `8144117` bleibt inaktiv; produktive Offerten-E-Mails bleiben aus.
+
+---
+
 ### 23.10.2026 – Make-Offerten-PDF E2E: synthetischer Gmail-Test erfolgreich
 
 - **Make-Szenario:** `8144117`, «LSZH CRM V2 – Offertenversand PDF (TEST / INAKTIV)». Der Benutzer verwendete zunächst die URL des alten Lead-Mail-Szenarios `8135270`; jener Lauf wurde bereits am Webhook-Filter beendet und versendete keine Nachricht. Anschliessend wurde korrekt das neue Offerten-Webhook genutzt.

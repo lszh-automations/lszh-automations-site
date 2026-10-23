@@ -153,6 +153,8 @@ test('lead dialog adds contact history, follow-up actions and qualification',()=
   assert.match(html,/method:'POST',body:JSON\.stringify\(\{\s*channel:/);
   assert.match(html,/method:'PATCH',body:JSON\.stringify\(\{nextAction:'',followUpDate:''\}\)/);
   assert.match(html,/Qualifizierung speichern/);
+  assert.match(html,/Speichern & qualifizieren/);
+  assert.match(html,/if\(promote\)updates\.status='Qualifiziert'/);
   assert.match(html,/await reloadOpenLead\(lead\.id\)/);
   assert.match(html,/history\.length>20/);
   assert.doesNotMatch(html,/localStorage\.setItem\(/);

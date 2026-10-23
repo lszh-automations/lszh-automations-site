@@ -138,6 +138,18 @@ async function handler(req,res){
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
     return reply(res,201,{contact:await store.addContact(contactPath[1],await json(req),user)});
   }
+  // Manual offer dispatch/follow-up bookkeeping. Does not send an email.
+  const offerAction=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/(dispatch|followup)$/);
+  if(offerAction){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const [_,id,action]=offerAction;
+    const payload=await json(req);
+    const record=action==='dispatch'
+      ?await store.recordOfferDispatch(id,payload,user)
+      :await store.recordOfferFollowUp(id,payload,user);
+    return reply(res,200,{record});
+  }
   const parts=pathname.split('/').filter(Boolean);
   if(parts[0]!=='api'||parts[1]!=='records'||!store.TABLES.includes(parts[2])||parts.length>4)
     return reply(res,404,{error:'not_found'});

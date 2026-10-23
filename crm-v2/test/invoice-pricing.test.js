@@ -9,7 +9,7 @@ test('line items calculate CHF with safe rounding',()=>{
     {title:'Einrichtung',qty:2,unitPriceCHF:149.95},
     {title:'Support',qty:1.5,unitPriceCHF:100.10}
   ]);
-  assert.equal(result.amountCHF,449.05);
+  assert.equal(result.amountCHF,450.05);
   assert.equal(result.items.length,2);
 });
 test('wrong quantities, money or excessive items are rejected',()=>{

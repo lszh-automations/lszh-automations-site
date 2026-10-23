@@ -12,6 +12,12 @@ _Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüs
 - **Keine Produktionsfreigabe oder Merge in main.** Vor Cutover: OAuth, echter Staging-Test, Live-Daten/Nummernkreis, Rollback/Backup, Dienstkontorechte, echte interne Erinnerungs-E-Mail und Swiss-QR-Zahlteil klären.
 - Technische Übergabe/Bedienung: siehe crm-v2/CLOUD-STAGING.md im Cloud-Staging-Branch. Lokale Preview weiter unverändert.
 
+### Browserabnahme CRM-V2-Staging am 23.10.2026
+
+Der Geschäftsführer bestätigt, dass in der Cloud-Version (`lszh-crm-v2-staging`) der komplette Testablauf **Lead → Qualifiziert/Offerte → Angenommen/Kunde/Projekt → Rechnung/Offen/Bezahlt** funktioniert. Firestore-Datensätze bleiben nach Neuladen erhalten, die Google-Anmeldung wurde ebenfalls erfolgreich getestet. Diese Bestätigung gilt für synthetische Daten im Staging, **nicht** für Produktionsfreigabe, produktiven Website-Eingang oder echte Zahlungsabwicklung.
+
+**Nächste zielorientierte Schritte:** Live-Eingangsintegration ohne Downtime und mit überprüfbarem Rückfallweg vorbereiten; Vorhandene Live-Daten/Nummernkreis sowie Identitäts-/Zugriffsrechte und Backup prüfen. Erst nach Freigabe umschalten. Kundenversand bleibt gesperrt.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

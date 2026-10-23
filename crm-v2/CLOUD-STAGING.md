@@ -1,3 +1,13 @@
+## Verbindliche Geschäftsführerentscheidung – 23.10.2026: Kein Airtable-Import
+
+- Für **LSZH CRM V2** werden weder Airtable noch die bisherigen Airtable-Datensätze benötigt. **Keine Migration, keine Zuordnung historischer Airtable-IDs, keine Nachführung historischer CRM-Daten**.
+- Der Geschäftsführer bestätigt den durch die Firestore-Zählung ermittelten **leeren Live-Bestand** (`lszh_crm_v2_`: jeweils null Leads, Kunden, Offerten, Projekte und Rechnungen) als **korrekten gewünschten Startzustand**.
+- Die produktiven Offerten- und Rechnungsnummern beginnen jeweils bei **1000**. Die Staging-Nummern zählen nicht zum Live-Bestand.
+- Der produktive Website-Eingang bleibt **Render -> Cloud Run -> Firestore**; kein Make-/Airtable-Zwischenschritt im Hauptkontaktformular. Make für andere, ausdrücklich benötigte Kundenautomationen unabhängig davon weiter nutzbar.
+- **Airtable-Inventur/Import ist kein Go-Live-Blocker mehr**. Historische Airtable-Datenbanken, Make-Szenarien, Google-Drive-Archive und Nachweise werden durch diese Entscheidung **nicht automatisch gelöscht oder deaktiviert**; hierfür wäre eine separate gezielte Freigabe erforderlich.
+- Bereits bestanden: Staging-Prozess und Website-Ingest, produktiver Cloud-Run-Kandidat `lszh-crm-v2-00004-mez` mit `0 %` Traffic, anonyme API-Negativtests sowie erlaubter Google-OAuth-Login und leeres Live-Dashboard in Edge; Firestore-Gesamtexport nach Zürich mit Status `SUCCESSFUL`.
+- Weiter offen: **isolierten Firestore-Restore nachweisen** (Backup vorhanden, Restore ungetestet), Website-Datenschutzerklärung im produktiven Render-Stand anpassen/veröffentlichen, produktiven Traffic-Switch bewusst freigeben und danach `POST /api/lead` durch die echte Render-Website mit synthetischer Anfrage testen. Derzeit läuft weiter `lszh-crm-v2-00002-6lh` mit 100 % Traffic. **Kein Cutover durch diese Dokumentationsentscheidung.**
+
 # LSZH CRM V2 – Cloud Staging und Firestore-Übernahme
 
 ## Website-Eingang: HTTP-Test erfolgreich – 23.10.2026

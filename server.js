@@ -702,6 +702,77 @@ async function handleSecureSubmit(req,res) {
   }
 }
 
+// OFF BY DEFAULT. Private server-to-server invoice rendering, never public without a secret.
+// This route must pass a verified live bank/QR scan review before enabling.
+async function handleSwissQrBill(req,res,{demo499=false,dynamicPreview=false}={}){
+  const enabled=String(process.env.SWISS_QR_BILL_ENABLED||'').toLowerCase()==='true';
+  const secret=String(process.env.SWISS_QR_BILL_API_KEY||'');
+  if(!enabled||secret.length<32)
+    return send(res,503,JSON.stringify({error:'swiss_qr_bill_disabled'}));
+  if(!safeEqual(req.headers['x-lszh-invoice-key'],secret))
+    return send(res,401,JSON.stringify({error:'unauthorized'}));
+  if(secureRateLimited(req,12))
+    return send(res,429,JSON.stringify({error:'rate_limited'}));
+  try{
+    const data=await readJson(req,16384);
+    if(!data||typeof data!=='object'||Array.isArray(data))
+      return send(res,400,JSON.stringify({error:'invalid_invoice'}));
+    // Two separate hard-locked test paths. Neither can accept real customer data.
+    // The CHF 499 preview is a fixed non-payable specimen for mobile banking scans.
+    let safeData=data;
+    if(dynamicPreview){
+      // This endpoint is accessible only with the private invoice API key.
+      // Preview amount and address must come from a single validated invoice record.
+      if(data.test!==true||data.preview!==true||data.variablePreview!==true||
+         !/^rec[A-Za-z0-9]{14}$/.test(String(data.invoiceRecordId||''))||
+         !/^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$/.test(String(data.invoiceNumber||''))||
+         typeof data.amountCHF!=='string'||
+         !/^[0-9]{1,7}\.[0-9]{2}$/.test(data.amountCHF)||
+         !(Number(data.amountCHF)>0)||
+         !/^\d{2}\.\d{2}\.\d{4}$/.test(String(data.invoiceDate||''))||
+         !/^\d{2}\.\d{2}\.\d{4}$/.test(String(data.dueDate||'')))
+        return send(res,403,JSON.stringify({error:'invalid_preview_only_input'}));
+      const servicePeriod=String(data.servicePeriod||'').trim();
+      if(servicePeriod.length>60 || /[\r\n\x00-\x1f]/.test(servicePeriod))
+        return send(res,400,JSON.stringify({error:'invalid_service_period'}));
+      safeData={
+        invoiceNumber:'PREVIEW-'+data.invoiceNumber,amountCHF:data.amountCHF,
+        test:true,preview:true,variablePreview:true,
+        invoiceDate:data.invoiceDate,dueDate:data.dueDate,
+        description:String(data.description||'LSZH Automations Leistung').slice(0,100),
+        servicePeriod,
+        debtor:data.debtor
+      };
+    } else if(demo499){
+      if(data.test!==true||data.preview!==true)
+        return send(res,403,JSON.stringify({error:'preview_only'}));
+      safeData={
+        invoiceNumber:'DEMO-QR-499-2026-001',amountCHF:'499.00',test:true,preview:true,
+        invoiceDate:'14.10.2026',dueDate:'28.10.2026',
+        description:'QR-Scan-Demo ohne Auftrag oder Zahlungsforderung',
+        debtor:{name:'Beispielkunde AG',street:'Teststrasse',number:'7',postal:'5610',city:'Wohlen',country:'CH'}
+      };
+    } else if(data.test!==true || data.amountCHF!=='0.00' || data.preview===true) {
+      return send(res,403,JSON.stringify({error:'test_only_zero_amount'}));
+    }
+    const {renderInvoice}=require('./lib/invoice-pdf');
+    const result=await renderInvoice(safeData);
+    const fileNo=String(safeData.invoiceNumber||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,55);
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Disposition','attachment; filename="LSZH_Rechnung_'+fileNo+'.pdf"');
+    res.setHeader('X-LSZH-SCOR-Reference',result.reference);
+    return send(res,200,result.pdf,'application/pdf');
+  }catch(e){
+    if(e.message==='too_large') return send(res,413,JSON.stringify({error:'payload_too_large'}));
+    if(e.message==='bad_json') return send(res,400,JSON.stringify({error:'invalid_json'}));
+    if(/^invalid_|^missing_|^payload_too_long/.test(e.message))
+      return send(res,400,JSON.stringify({error:'invalid_invoice_fields'}));
+    // No customer data is logged by this handler.
+    return send(res,502,JSON.stringify({error:'qr_renderer_unavailable'}));
+  }
+}
+
 function staticFile(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://local').pathname); } catch { return send(res,400,'Bad request','text/plain'); }
@@ -737,6 +808,15 @@ const server=http.createServer(async (req,res)=>{
   catch { return send(res,400,'Bad request','text/plain; charset=utf-8'); }
   const pathname=urlObj.pathname;
   const sitePrivate=String(process.env.SITE_PRIVATE || '').toLowerCase()==='true';
+
+  // The dedicated API has its own independent, secret-based access gate. Keep all
+  // website pages under SITE_PRIVATE; no bypass for any other route.
+  if(req.method==='POST' && pathname==='/api/internal/invoices/qr-pdf')
+    return handleSwissQrBill(req,res);
+  if(req.method==='POST' && pathname==='/api/internal/invoices/qr-preview-499-pdf')
+    return handleSwissQrBill(req,res,{demo499:true});
+  if(req.method==='POST' && pathname==='/api/internal/invoices/qr-preview-airtable-pdf')
+    return handleSwissQrBill(req,res,{dynamicPreview:true});
 
   if(sitePrivate) {
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');

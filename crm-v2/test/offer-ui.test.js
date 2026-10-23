@@ -58,14 +58,17 @@ function setup(){
     document,window:{open:(...args)=>printed.push(args),alert:msg=>{throw Error(msg)}},
     fetch:request,Intl,Date,console,setTimeout
   });
+  // Mirror native HTMLFormControlsCollection behavior: duplicate names
+  // return a RadioNodeList, whose .value is empty for non-radio controls.
   get('offerForm').elements={namedItem:key=>{
-    const find=node=>{
-      if(node.name===key)return node;
-      for(const child of node.children){
-        const found=find(child);if(found)return found;
-      }
+    const matches=[];
+    const collect=node=>{
+      if(node.name===key)matches.push(node);
+      for(const child of node.children)collect(child);
     };
-    return find(get('offerFields'));
+    collect(get('offerFields'));
+    collect(get('offerLines'));
+    return matches.length>1?{value:''}:(matches[0]||null);
   }};
   app.state.records=records;
   return {app,records,get,writes,printed};
@@ -92,6 +95,9 @@ test('editing a quote recalculates CHF immediately and disables stale print',asy
   assert.equal(records.offerten[0].items.length,2);
   assert.equal(get('offerPrint').disabled,false);
   assert.equal(writes.length,1);
+  assert.equal(writes[0].updates.title,'TEST: Büroautomation',
+    'Offerten-Titel darf nicht von einer Positionsbezeichnung überschrieben werden');
+  assert.equal(get('offerLines').children[0]._quoteFields.title.name,'position-title');
   get('offerPrint').listeners.click();
   assert.equal(printed[0][0],'/preview/offerte/q1');
 });
@@ -102,4 +108,14 @@ test('quote preview is disabled for a new unsaved quote',()=>{
   assert.equal(get('offerPrint').disabled,true);
   get('offerPrint').listeners.click();
   assert.equal(printed.length,0);
+});
+
+test('offerte title and line-item title are separate form fields',()=>{
+  const {app,records,get}=setup();
+  app.navigateTo('offerten',records.offerten[0]);
+  const mainTitle=get('offerForm').elements.namedItem('title');
+  assert.equal(mainTitle.value,'TEST: Büroautomation');
+  const lineTitle=get('offerLines').children[0]._quoteFields.title;
+  assert.equal(lineTitle.name,'position-title');
+  assert.notEqual(mainTitle,lineTitle);
 });

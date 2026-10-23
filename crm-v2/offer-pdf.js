@@ -56,7 +56,7 @@ function makePdf(offer,recipient={}){
     rect(LEFT,HEIGHT-105,150,3,[.357,.549,1]);
     text('LSZH',LEFT,HEIGHT-52,24,true,[1,1,1]);
     text('AUTOMATIONS',LEFT+90,HEIGHT-52,11,true,[.455,.847,1]);
-    text('Ein Geschaeftsbereich der LSZH Invest GmbH',LEFT,HEIGHT-76,9,false,[.72,.81,.9]);
+    text('Ein Geschäftsbereich der LSZH Invest GmbH',LEFT,HEIGHT-76,9,false,[.72,.81,.9]);
     text('OFFERTEN',RIGHT-101,HEIGHT-50,11,true,[1,1,1]);
     text('LSZH Invest GmbH  |  Rummelmatt 8  |  5610 Wohlen AG',LEFT,43,8,false,[.47,.53,.59]);
     text('UID: CHE-369.474.125  |  info@lszh-automations.ch',LEFT,29,8,false,[.47,.53,.59]);

@@ -1041,13 +1041,13 @@ const legalTexts={
     <p>Wir verwenden diese Angaben zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit. Zur sicheren und nachvollziehbaren Verarbeitung werden zudem eine eindeutige Übermittlungskennung, der Bearbeitungsstatus und Zeitangaben erfasst.</p>
 
     <h3>3. Eingesetzte Dienstleister und Kontaktformular</h3>
-    <p>Beim Absenden des öffentlichen Kontaktformulars werden die Angaben zunächst über den Website-Server bei Render übermittelt. Dieser leitet die Anfrage über eine geschützte serverseitige Verbindung an unser CRM auf Google Cloud Run weiter; die Angaben werden in Google Cloud Firestore gespeichert. Dieser Kontaktformularweg verwendet weder Make noch Airtable.</p>
+    <p>Beim Absenden des öffentlichen Kontaktformulars werden die Angaben zunächst über den Website-Server bei Render übermittelt. Dieser leitet die Anfrage über eine geschützte serverseitige Verbindung an unser CRM auf Google Cloud Run weiter; die Angaben werden in Google Cloud Firestore gespeichert. Die Kontaktformular-Anfragen werden ohne Make als Zwischenstation direkt an das Cloud-CRM übermittelt.</p>
     <p>Für den Betrieb dieser Website und unserer weiteren Leistungen setzen wir insbesondere folgende Dienstleister ein:</p>
     <ul>
       <li><strong>Render</strong> für das Hosting der öffentlichen Website und die serverseitigen Website-Schnittstellen,</li>
       <li><strong>Google Cloud (Cloud Run und Firestore)</strong> für die Verarbeitung und Speicherung der eingehenden Kontaktanfragen und internen CRM-Daten,</li>
       <li><strong>Google / Gmail</strong> für geschäftliche Kommunikation und gegebenenfalls interne Benachrichtigungen,</li>
-      <li><strong>Make und Airtable</strong> nur soweit diese für separat eingerichtete Automationsabläufe, bestehende Projekte oder andere Website-Funktionen wie den sicheren Zugangsdaten-Transfer verwendet werden, nicht für die Speicherung neuer Kontaktformular-Leads.</li>
+      <li><strong>Make</strong> für separat eingerichtete Automationsabläufe und, soweit genutzt, die technische Verarbeitung beim sicheren Zugangsdaten-Transfer. Dabei können spezialisierte externe Datenspeicherdienste für die verschlüsselte Ablage eingesetzt werden.</li>
     </ul>
     <p>Diese Anbieter bearbeiten Daten im Rahmen der von uns eingesetzten Dienste und ihrer jeweiligen vertraglichen und datenschutzrechtlichen Regelungen.</p>
 
@@ -1064,7 +1064,7 @@ const legalTexts={
     <p>Für die freiwillig nutzbaren KI-Live-Demos können die von Ihnen eingegebenen Texte bzw. hochgeladenen Testdokumente je nach technischer Konfiguration direkt über unseren Website-Server oder über Make an einen KI-Dienst von OpenAI übermittelt werden, um die gewünschte Analyse zu erstellen. LSZH Automations legt diese Inhalte nicht zusätzlich als eigene Website-Datenbank ab; bei den beteiligten Anbietern können jedoch technische Protokolle entstehen, die nach deren jeweiligen Bedingungen aufbewahrt werden. Verwenden Sie in den öffentlichen Demos deshalb keine vertraulichen Informationen, Geschäftsgeheimnisse oder besonders schützenswerten Personendaten.</p>
 
     <h3>8. Sichere Übermittlung technischer Zugangsdaten</h3>
-    <p>Für Kundenprojekte kann LSZH Automations einen zeitlich begrenzten Secure-Transfer-Link bereitstellen, über den beispielsweise ein dedizierter API-Schlüssel oder ein anderes technisches Secret übermittelt werden kann. Das eingegebene Secret wird auf dem LSZH-Webserver vor der Speicherung mit einem serverseitig verwahrten Schlüssel verschlüsselt. An Make und Airtable werden nur die verschlüsselte Nutzlast sowie notwendige Metadaten wie Unternehmen, System, Status und Ablaufzeitpunkt übermittelt. Der verwendete Kunden-Link wird nicht im Klartext gespeichert, sondern nur in Form eines kryptografischen Hashwerts.</p>
+    <p>Für Kundenprojekte kann LSZH Automations einen zeitlich begrenzten Secure-Transfer-Link bereitstellen, über den beispielsweise ein dedizierter API-Schlüssel oder ein anderes technisches Secret übermittelt werden kann. Das eingegebene Secret wird auf dem LSZH-Webserver vor der Speicherung mit einem serverseitig verwahrten Schlüssel verschlüsselt. Zur technischen Abwicklung können Make und ein externer Datenspeicherdienst die verschlüsselte Nutzlast sowie notwendige Metadaten wie Unternehmen, System, Status und Ablaufzeitpunkt erhalten. Der verwendete Kunden-Link wird nicht im Klartext gespeichert, sondern nur in Form eines kryptografischen Hashwerts.</p>
     <p>Nach dem einmaligen Abruf durch LSZH Automations wird die verschlüsselte Nutzlast aus der Transfer-Ablage gelöscht; zurück bleiben nur administrative Nachweisdaten zum Transfer. Die Funktion ist nicht für normale Benutzerpasswörter, Recovery-Codes oder MFA-Codes vorgesehen.</p>
 
     <h3>9. Cookies und Tracking</h3>

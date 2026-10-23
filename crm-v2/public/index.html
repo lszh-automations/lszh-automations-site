@@ -234,7 +234,7 @@ const definitions={
     ['company','Firma','text'],['contactName','Ansprechpartner','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['notes','Notizen','textarea'],['status','Status','status']
   ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
-    ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Bezeichnung','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
+    ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['status','Status']]},
   rechnungen:{title:'Rechnungen',description:'Rechnungsentwürfe und Zahlungsstatus; noch kein Versand oder Swiss QR.',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['amountCHF','Betrag CHF','number'],['dueDate','Fällig am','date'],['status','Status','status']
@@ -668,7 +668,10 @@ function updateQuoteTotals(){
 }
 function quoteInput(type,name,value){
   const control=el(type==='select'?'select':'input');
-  control.name=name;
+  // Item inputs are read via row._quoteFields, not FormData. A position's
+  // "title" must NOT share the header input name "title": doing so makes
+  // form.elements.namedItem('title') return a RadioNodeList with an empty value.
+  control.name='position-'+name;
   if(type!=='select'){
     control.type=type==='number'?'number':'text';
     if(type==='number'){control.min='0';control.step=name==='qty'?'0.001':'0.01';}
@@ -818,6 +821,10 @@ $('offerForm').addEventListener('submit',async event=>{
   for(const key of ['leadId','customerId','title','description','validUntil','status']){
     const field=form.elements.namedItem(key);
     data[key]=field?.value??'';
+  }
+  if(!data.title.trim()){
+    window.alert('Bitte einen Offertentitel eingeben.');
+    return;
   }
   data.items=quoteItemsFromForm();
   const current=state.offerEditing;

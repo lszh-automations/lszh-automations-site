@@ -49,6 +49,21 @@ Deployment (erst nach Vorliegen des OAuth-Clients):
 
 Das Script führt lokale Tests aus und deployed ausschliesslich den neuen Service lszh-crm-v2-staging in europe-west6. Die produktive Render-Website und der bisherige lszh-crm-v2-Intake bleiben unberührt.
 
+## Deployment-Nachtrag 23.10.2026 – erster echter Staging-Deploy
+
+**Vom Surface-Pro-PowerShell-Log bestätigt (kein unabhängiger HTTP-Abruf):**
+
+- Nach Umgehung der lokalen PowerShell-Skript-Ausführungsbeschränkung liefen **13/13 Node-Tests erfolgreich**.
+- Firestore-Datenbank `projects/lszh-automations/databases/(default)` wurde erfolgreich angesprochen.
+- Der separate Cloud-Run-Dienst `lszh-crm-v2-staging` wurde in `europe-west6` als Revision `lszh-crm-v2-staging-00001-mlq` mit 100 % Traffic erstellt.
+- Ursprüngliche Warnung beim IAM-Policy-Setzen während `gcloud run deploy`; anschliessendes `gcloud run services update ... --no-invoker-iam-check` meldete erfolgreiches Update. **Öffentliche Erreichbarkeit noch gesondert testen.**
+- Zuletzt vom `gcloud run services describe` gemeldete Staging-URL: `https://lszh-crm-v2-staging-ozx7mp2bka-oa.a.run.app`.
+- Website-Webhook im Staging deaktiviert. **Bestehender Dienst `lszh-crm-v2` und Render-Website wurden vom Staging-Skript nicht verändert.**
+- Die neue eigenständige OAuth-Client-ID wurde vom Nutzer angelegt und beim Staging-Deploy übergeben; **autorisierter JavaScript-Ursprung ist noch zu konfigurieren**. Die Web-Anmeldung mit `lars@lszh-automations.ch` ist **noch nicht end-to-end getestet**.
+- Die Live-Staging-URL muss ohne abschliessenden Slash beim OAuth-Webclient unter `Autorisierte JavaScript-Ursprünge` eingetragen werden. Danach echte Anmeldung sowie negative Zugriffsprüfungen durchführen.
+
+Dies ersetzt die Aussage im älteren Erstentwurf, dass kein Deploy erfolgte, ist aber **keine Produktionsfreigabe**.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

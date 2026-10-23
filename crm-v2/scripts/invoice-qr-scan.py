@@ -59,7 +59,18 @@ def verify(filename, expected_amount='499.90', multi=False):
     for earlier in doc[:-1]:
         text=earlier.get_text()
         assert 'Zahlteil' not in text and 'Empfangsschein' not in text, 'duplicate payment slip'
-    # Independently scan the rendered PDF, not just the payload fed to the JS generator.
+    # Every scissors icon consists of two 5pt circles. pdf-lib.drawEllipse uses
+    # xScale/yScale, NOT width/height. If these are omitted its default 100pt
+    # radii create giant 200pt loops obscuring the invoice (real RE-1001 defect).
+    curves=[drawing for drawing in page.get_drawings()
+            if any(item[0]=='c' for item in drawing['items'])]
+    assert len(curves)==4, f'expected four tiny scissors circles, got {len(curves)}'
+    for drawing in curves:
+        rect=drawing['rect']
+        assert rect.width<=6 and rect.height<=6, (
+            f'oversized scissors curve {rect.width:.1f}x{rect.height:.1f}pt')
+        assert rect.y0>=SHEET_HEIGHT-PAYMENT_HEIGHT-20, 'scissors overlap invoice body'
+        # Independently scan the rendered PDF, not just the payload fed to the JS generator.
     pix=page.get_pixmap(matrix=fitz.Matrix(3,3),alpha=False)
     pixels=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,pix.n)
     crop=max(0,int(pix.height-PAYMENT_HEIGHT*3)-16)

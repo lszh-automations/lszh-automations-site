@@ -55,6 +55,43 @@ test('all three Swiss German mail types have correct destinations and escaped HT
     assert.equal(eventId(kind,l.id),kind+'__'+l.id);
   }
 });
+test('customer confirmation follows LSZH website brand and works without remote assets',()=>{
+  const l=lead();
+  const mail=renderMail(EVENT_TYPES.CUSTOMER_ACK,l);
+  assert.equal(mail.to,'clara@firma.ch');
+  assert.equal(mail.subject,'Ihre Anfrage bei LSZH Automations ist eingegangen');
+  assert.match(mail.html,/role="presentation"/);
+  assert.match(mail.html,/background-color:#06101d/);
+  assert.match(mail.html,/background-color:#74d8ff/);
+  assert.match(mail.html,/background-color:#5b8cff/);
+  assert.match(mail.html,/background-color:#8e72ff/);
+  assert.match(mail.html,/AUTOMATION FÜR SCHWEIZER KMU/);
+  assert.match(mail.html,/Ihre Anfrage ist bei uns eingegangen/);
+  assert.match(mail.html,/Wie geht es weiter/);
+  assert.match(mail.html,/Rummelmatt 8/);
+  assert.match(mail.html,/LSZH Invest GmbH/);
+  assert.match(mail.html,/https:\/\/lszh-automations\.ch\//);
+  assert.match(mail.html,/mailto:info@lszh-automations\.ch/);
+  assert.match(mail.html,/Guten Tag Clara &lt;Test&gt;/);
+  assert.doesNotMatch(mail.html,/<script|<img|<svg|<iframe|<link\b/i);
+  assert.doesNotMatch(mail.html,/Anfrage &lt;script&gt;/);
+  assert.doesNotMatch(mail.html,/Live-CRM öffnen|lszh-crm-v2-ozx7mp2bka/);
+  assert.doesNotMatch(mail.html,/<style\b/i);
+  const missingName=renderMail(EVENT_TYPES.CUSTOMER_ACK,{...l,name:''});
+  assert.match(missingName.html,/>Guten Tag<\/p>/);
+  assert.doesNotMatch(missingName.html,/Guten Tag Guten Tag/);
+});
+test('rebranding only changes customer email, not the two internal templates',()=>{
+  const l=lead();
+  const internal=renderMail(EVENT_TYPES.INTERNAL_NEW,l).html;
+  const reminder=renderMail(EVENT_TYPES.INTERNAL_24H,l).html;
+  assert.match(internal,/Neue Website-Anfrage eingegangen/);
+  assert.match(reminder,/Lead nach 24 Stunden noch auf/);
+  assert.match(internal,/Live-CRM öffnen/);
+  assert.match(reminder,/Live-CRM öffnen/);
+  assert.match(internal,/#f7f9fc/);
+  assert.match(reminder,/#f7f9fc/);
+});
 test('24h reminder is due only after 24h and while status Neu',()=>{
   const l=lead();
   assert.equal(isEligible(l,EVENT_TYPES.INTERNAL_24H,T0+oneDay-1,T0),false);

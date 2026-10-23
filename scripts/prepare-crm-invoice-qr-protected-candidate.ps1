@@ -120,7 +120,9 @@ try {
   if(!$versionName){throw 'Cannot determine created secret version'}
   if($versionName -match '([0-9]+)$'){$version=$Matches[1]}
   else{throw 'Unknown secret version'}
-  & gcloud.cmd secrets add-iam-policy-binding $secret --project $project --member=('serviceAccount:'+$runtimeSA) --role=roles/secretmanager.secretAccessor --quiet | Out-Null
+  # PowerShell native .cmd argument parsing: pass --member=VALUE as one explicit token.
+  $memberArg='--member=serviceAccount:'+$runtimeSA
+  & gcloud.cmd secrets add-iam-policy-binding $secret ('--project='+$project) $memberArg '--role=roles/secretmanager.secretAccessor' '--quiet' | Out-Null
   Check 'Secret access grant failed'
   Write-Host ('IBAN secret created: '+$secret+':'+$version+' (value hidden)')
   Write-Host '4/5 Deploy protected 0% release candidate'

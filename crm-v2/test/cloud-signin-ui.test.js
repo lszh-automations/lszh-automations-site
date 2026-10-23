@@ -51,8 +51,7 @@ test('CRM reload asks Google for a fresh credential rather than persisting a tok
   assert.equal(typeof calls.configured[0].callback,'function');
   assert.equal(calls.button,1);
   assert.equal(calls.prompt,1);
-  assert.equal(calls.intervals.length,1);
-  assert.equal(calls.intervals[0].ms,30000);
+  assert.deepEqual(calls.intervals.map(interval=>interval.ms),[30000,60000]);
   assert.equal(typeof calls.documentEvents.visibilitychange,'function');
   assert.equal(typeof calls.windowEvents.focus,'function');
   assert.doesNotMatch(script,/localStorage\.(?:setItem|getItem)/);

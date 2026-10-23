@@ -38,8 +38,8 @@ function text(page,font,s,x,y,size=9,color=INK){
   page.drawText(clean(s),{x,y,size,font,color});
 }
 function circleScissors(page,x,y){
-  page.drawEllipse({x,y,width:5,height:5,borderColor:INK,borderWidth:.7});
-  page.drawEllipse({x:x+6,y,width:5,height:5,borderColor:INK,borderWidth:.7});
+  page.drawEllipse({x,y,xScale:2.5,yScale:2.5,borderColor:INK,borderWidth:.7});
+  page.drawEllipse({x:x+6,y,xScale:2.5,yScale:2.5,borderColor:INK,borderWidth:.7});
   page.drawLine({start:{x:x+4,y:y+3},end:{x:x+15,y:y+11},thickness:.6,color:INK});
   page.drawLine({start:{x:x+9,y:y+3},end:{x:x+1,y:y+11},thickness:.6,color:INK});
 }

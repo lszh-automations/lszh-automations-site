@@ -100,6 +100,16 @@ Der Nutzer bestätigt nach manueller Browserprüfung ausdrücklich, dass der kom
 
 Diese Abnahme beruht auf einem **realen Nutzertest im Cloud-Staging**, nicht auf einer selbst ausgeführten unabhängigen API-Prüfung. Das ist **keine Produktionsfreigabe**. Noch offen sind insbesondere Berechtigungs-/Negativtests, Verbindung des produktiven Website-Eingangs, Daten- und Nummernkreisprüfung, Backup/Rollback, reale interne Reminder-E-Mails und produktive Swiss-QR-Rechnungen.
 
+## Website-Intake / Produktivvorbereitung – 23.10.2026
+
+Die Website-Codeprüfung zeigt: Das öffentliche Hauptformular nutzt bereits `POST /api/lead` auf Render und den serverseitigen `CRM_LEAD_INGEST_URL`-Proxy zu Cloud Run / Firestore, nicht direkt Make/Airtable. Render-Umgebungsvariablen und ihr tatsächlicher Live-Zustand sind noch separat zu prüfen.
+
+**Codeänderung ohne Live-Eingriff:** `crm-v2/lead-ingest.js` akzeptiert nur die explizit zugelassenen Firestore-Leadsammlungen. `crm-v2/server.js` übergibt `CRM_RECORD_PREFIX+'leads'`; ein künstlicher Staging-Aufruf kann deshalb nie in `lszh_crm_v2_leads` schreiben. Die produktive Website und Cloud-Run-Live-Revision wurden nicht geändert.
+
+**Zusätzliche Prüfer:** `test/cloud-website-intake.test.js` testet den tatsächlichen Node-HTTP-Endpunkt mit in-memory Firestore. `scripts/test-crm-website-intake-staging.ps1` prüft nach erneutem Staging-Deploy die reale Cloud-Run-Strecke (201/200/409/401) mit einem dedizierten Staging-Secret und deaktiviert den Eingang wieder. `scripts/preflight-crm-production.ps1` liest nur Cloud-Run-Metadaten, keine Geheimnisse.
+
+**Kein Produktiv-Cutover:** Die Website bleibt auf dem bestehenden Cloud-Run-Ziel. Erst bestehende Live-Lead-Sammlung, Sequenznummern, Backup, OAuth, Render-Ziel/Secrets und Rückfallrevision prüfen. Siehe `crm-v2/WEBSITE-CUTOVER.md`.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

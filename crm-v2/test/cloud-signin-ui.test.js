@@ -18,7 +18,7 @@ function newLogin(){
     });
     return ids.get(id);
   };
-  const calls={configured:[],button:0,prompt:0,disabled:0};
+  const calls={configured:[],button:0,prompt:0,disabled:0,intervals:[],documentEvents:{},windowEvents:{}};
   const id={
     initialize(options){calls.configured.push(options);},
     renderButton(target){assert.equal(target,elem('googleButton'));calls.button++;},
@@ -28,14 +28,15 @@ function newLogin(){
   const google={accounts:{id}};
   const source=script.replace(/\binitialise\(\);\s*$/,'')+'\n({initialise,state});';
   const ctx={
-    document:{getElementById:elem},
-    window:{google,alert:msg=>{throw Error(msg)}},
+    document:{getElementById:elem,addEventListener(event,fn){calls.documentEvents[event]=fn;}},
+    window:{google,alert:msg=>{throw Error(msg)},addEventListener(event,fn){calls.windowEvents[event]=fn;}},
     google,
     fetch:async(url)=>{
       assert.equal(url,'/api/config');
       return {ok:true,json:async()=>({clientId:'test.apps.googleusercontent.com'})};
     },
-    Intl,Date,console,setTimeout
+    Intl,Date,console,setTimeout,
+    setInterval(fn,ms){calls.intervals.push({fn,ms});return 1;}
   };
   const app=vm.runInNewContext(source,ctx);
   return {app,calls,elem};
@@ -50,6 +51,10 @@ test('CRM reload asks Google for a fresh credential rather than persisting a tok
   assert.equal(typeof calls.configured[0].callback,'function');
   assert.equal(calls.button,1);
   assert.equal(calls.prompt,1);
+  assert.equal(calls.intervals.length,1);
+  assert.equal(calls.intervals[0].ms,30000);
+  assert.equal(typeof calls.documentEvents.visibilitychange,'function');
+  assert.equal(typeof calls.windowEvents.focus,'function');
   assert.doesNotMatch(script,/localStorage\.(?:setItem|getItem)/);
   assert.doesNotMatch(script,/sessionStorage\.(?:setItem|getItem)/);
 });

@@ -1,3 +1,21 @@
+### Website Leads – Ampel nach Eingangsalter (23.10.2026)
+
+Die Spalte **Eingegangen** im produktiven CRM V2 erhält eine kompakte, farbige Anzeige mit kleinem Punkt. **Grün**: Lead ist weniger als 8 Stunden alt. **Orange**: 8 bis unter 16 Stunden. **Rot**: mindestens 16 Stunden, bleibt auch nach 24 Stunden rot. Die Berechnung erfolgt stets gegen `createdAt` des ursprünglichen Website-Leads, statusunabhängig und ohne Backendänderung. Ungültige oder fehlende Zeitstempel erhalten die neutrale Anzeige «–».
+
+Der vorhandene Text («gerade eben», «vor 3 Min.», «vor 8 Std.», «vor 1 Tag») und der Hover-Zeitstempel bleiben erhalten. CSS-Klassen, Hintergrund, Punkt und Schriftfarbe machen die Ampel erkennbar; zusätzlich erhalten die Werte eine beschreibende `aria-label`-Angabe. Die bisherige einminütige DOM-Aktualisierung `refreshLeadAges` aktualisiert **Text und Farbe**, auch genau an den Übergängen 8/16 Stunden. Kein weiterer API-Aufruf. Die 24h-Lead-Erinnerung, die Regeln zur Löschung «Neu» und sämtliche CRM-Mailabläufe bleiben unverändert.
+
+Regressionstests kontrollieren exakte Grenzwerte `8h-1ms`/8h/`16h-1ms`/16h/24h/72h sowie die Minutenerneuerung inkl. Farben und Hilfstext. Der verantwortliche Deploy ist `scripts/deploy-crm-lead-traffic-light-live.ps1`. Er akzeptiert beim Preflight sowohl die vorherige Dashboard-Only-KPI-Revision mit Tag `crm-dashboard-kpis-only` als auch die danach aktivierte Lead-Controls-Version mit Tag `crm-lead-workflow-refresh`; welches von beiden live ist, wird **gelesen, nicht geraten**. Vor produktiver Umschaltung folgen CRM-Tests, 0%-Kandidat, Cloud-Run-/Scheduler-/Secret-/HTTP-Prüfung. Rollback erfolgt auf die bei Start festgestellte aktive Revision. Keine Cloud-Daten, Kundenmails oder Make-Szenarien durch das Skript verändern.
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-lead-traffic-light-live.ps1"
+```
+
+Nur nach `CRM LEAD TRAFFIC LIGHT LIVE PASS` und 100% neuem Traffic als produktiv melden. Seite danach neu laden.
+
+---
+
 ### CRM V2 Website Leads – Löschen, Statussperre und relative Altersanzeige (23.10.2026)
 
 Im Register **Website Leads** hat jeder Lead mit aktuellem Status **Neu** rechts neben **Öffnen** ein rotes **×** mit Bestätigungsdialog. Nach bestätigtem Löschen ruft die angemeldete CRM-Oberfläche `DELETE /api/records/leads/:id` auf und aktualisiert alle Listen und Dashboard-Kennzahlen. Für andere Status fehlt das ×. Der Server verlangt bestehende Google-ID-Token-Authentifizierung sowie Same-Origin-Kontrolle und prüft in einer Firestore-Transaktion den tatsächlich aktuellen Status und das Fehlen einer verknüpften Offerte. Nur **Neu** ohne Offerte kann dauerhaft gelöscht werden; andere Register haben keine DELETE-Route. E-Mail-Versandereignisse werden nicht zurückgesetzt oder erneut versendet.

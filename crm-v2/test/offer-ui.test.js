@@ -19,6 +19,16 @@ class Node{
   replaceChildren(...nodes){this.children=[];this.append(...nodes);}
   addEventListener(name,fn){this.listeners[name]=fn;}
   setAttribute(){}
+  querySelector(selector){
+    const tag=selector==='input,select,textarea'?['input','select','textarea']:null;
+    const cls=selector.startsWith('.')?selector.slice(1):'';
+    if((tag&&tag.includes(this.tag))||(cls&&this.className===cls))return this;
+    for(const child of this.children){
+      const found=child.querySelector?.(selector);
+      if(found)return found;
+    }
+    return null;
+  }
   showModal(){this.open=true;}
   close(){this.open=false;}
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this);}
@@ -118,4 +128,44 @@ test('offerte title and line-item title are separate form fields',()=>{
   const lineTitle=get('offerLines').children[0]._quoteFields.title;
   assert.equal(lineTitle.name,'position-title');
   assert.notEqual(mainTitle,lineTitle);
+});
+
+test('accepted offer is clearly locked, can be printed and cannot submit edits',async()=>{
+  const {app,records,get,writes,printed}=setup();
+  const quote=records.offerten[0];
+  quote.status='Angenommen';
+  app.navigateTo('offerten',quote);
+  assert.equal(get('offerEditor').open,true);
+  assert.equal(get('offerLockedNotice').hidden,false);
+  assert.equal(get('offerSave').hidden,true);
+  assert.equal(get('offerAddLine').hidden,true);
+  assert.equal(get('offerPrint').disabled,false);
+  assert.match(get('offerEditorTitle').textContent,/Angenommen/);
+  for(const child of get('offerFields').children){
+    const control=child.querySelector('input,select,textarea');
+    assert.ok(control?.disabled,'All quote header controls are disabled');
+  }
+  for(const row of get('offerLines').children){
+    assert.equal(row._quoteFields.title.disabled,true);
+    assert.equal(row._quoteFields.qty.disabled,true);
+    assert.equal(row._quoteFields.unitPriceCHF.disabled,true);
+    assert.equal(row._quoteFields.mode.disabled,true);
+    assert.equal(row.querySelector('.offer-line-remove').disabled,true);
+  }
+  await get('offerForm').listeners.submit({preventDefault(){}});
+  assert.equal(writes.length,0,'Locked quotes must not call save API');
+  get('offerPrint').listeners.click();
+  assert.equal(printed[0][0],'/preview/offerte/q1');
+});
+test('quote editor returns to writable mode on another nonaccepted quote',()=>{
+  const {app,records,get}=setup();
+  records.offerten[0].status='Angenommen';
+  app.navigateTo('offerten',records.offerten[0]);
+  records.offerten.push({id:'draft',number:'1001',title:'Test draft',status:'Entwurf'});
+  app.navigateTo('offerten',records.offerten[1]);
+  assert.equal(get('offerLockedNotice').hidden,true);
+  assert.equal(get('offerSave').hidden,false);
+  assert.equal(get('offerAddLine').hidden,false);
+  const title=get('offerForm').elements.namedItem('title');
+  assert.equal(title.disabled,false);
 });

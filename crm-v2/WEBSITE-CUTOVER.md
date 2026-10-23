@@ -96,5 +96,5 @@ Dieser Befehl liest Cloud-Run-Konfiguration (Revisionen, Dienstkonto, Staging-Pr
 
 - Server: `crm-v2/server.js` übergibt die explizite Collection aus `CRM_RECORD_PREFIX` an `saveWebsiteLead()`. Zulässige Collections sind nur Live- oder Staging-Leads.
 - Tests: `crm-v2/test/lead-ingest.test.js` und `crm-v2/test/cloud-website-intake.test.js`; CI im Branch `feature/crm-v2-cloud-staging-20261023`.
-- Das externe Formular und der Render-Server wurden nicht geändert. **Es hat noch kein echter Staging-HTTP-Test von PowerShell stattgefunden**, solange der Nutzer das zweite Skript nicht ausgeführt hat.
+- Das externe Formular und der Render-Server wurden nicht geändert. **Der echte Staging-HTTP-Test wurde am 23.10.2026 erfolgreich ausgeführt (201/200/409/401); der öffentliche Render-Formularweg bleibt noch ungeprüft.**
 - Kein Merge in `main`, kein Produktiv-Deployment oder Umschalten des Render-Routings. Aktueller Draft-PR: #11.

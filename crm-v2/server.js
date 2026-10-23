@@ -9,6 +9,7 @@ const crypto=require('node:crypto');
 const {OAuth2Client}=require('google-auth-library');
 const {Firestore}=require('@google-cloud/firestore');
 const {saveWebsiteLead}=require('./lead-ingest');
+const {makeDispatcher}=require('./mail-dispatcher');
 const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {renderInvoicePreview}=require('./invoice-preview');
@@ -21,6 +22,13 @@ const INTAKE_ENABLED=process.env.CRM_WEBSITE_INTAKE_ENABLED==='true';
 const authClient=new OAuth2Client(CLIENT_ID);
 const db=new Firestore();
 const store=buildStore(db,PREFIX);
+const mailDispatcher=makeDispatcher(db,PREFIX,{
+  enabled:process.env.CRM_MAIL_ENABLED==='true',
+  activeFrom:process.env.CRM_MAIL_ACTIVE_FROM,
+  webhookUrl:process.env.CRM_MAIL_WEBHOOK_URL
+});
+const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
+const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();
 const MAX_BODY=100*1024;
 const headers={
   'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY',
@@ -81,6 +89,22 @@ async function handler(req,res){
       return reply(res,401,{error:'unauthorized'});
     const result=await saveWebsiteLead(db,await json(req),new Date().toISOString(),PREFIX+'leads');
     return reply(res,result.created?201:200,{ok:true,confirmed:true,recordId:result.id,created:result.created});
+  }
+  // Cloud Scheduler uses a Google-signed OIDC ID token for this private mail job.
+  // No generic API key, no arbitrary cron callers and no anonymous access.
+  if(req.method==='POST'&&pathname==='/api/internal/mail/tick'){
+    if(!mailDispatcher.stats().enabled||!MAIL_SCHEDULER_EMAIL||!MAIL_SCHEDULER_AUDIENCE)
+      return reply(res,404,{error:'mail_not_configured'});
+    const bearer=/^Bearer ([A-Za-z0-9._-]+)$/.exec(String(req.headers.authorization||''));
+    if(!bearer)return reply(res,401,{error:'unauthorized'});
+    let claims=null;
+    try{
+      const identity=await authClient.verifyIdToken({idToken:bearer[1],audience:MAIL_SCHEDULER_AUDIENCE});
+      claims=identity.getPayload();
+    }catch{return reply(res,401,{error:'unauthorized'});}
+    if(!claims?.email_verified||String(claims.email||'').toLowerCase()!==MAIL_SCHEDULER_EMAIL)
+      return reply(res,403,{error:'forbidden'});
+    return reply(res,200,await mailDispatcher.tick());
   }
   if(!pathname.startsWith('/api/'))return reply(res,404,{error:'not_found'});
   if(!configured())return reply(res,503,{error:'not_configured'});

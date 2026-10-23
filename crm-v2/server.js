@@ -137,12 +137,14 @@ async function handler(req,res){
   const table=parts[2],id=parts[3];
   if(req.method==='GET'&&!id)
     return reply(res,200,{records:await store.list(table,url.searchParams.get('limit')||200)});
-  if((req.method==='POST'||req.method==='PATCH')&&!sameOrigin(req))
+  if((req.method==='POST'||req.method==='PATCH'||req.method==='DELETE')&&!sameOrigin(req))
     return reply(res,403,{error:'origin_mismatch'});
   if(req.method==='POST'&&!id)
     return reply(res,201,{record:await store.create(table,await json(req),user)});
   if(req.method==='PATCH'&&id&&/^[A-Za-z0-9_-]{1,100}$/.test(id))
     return reply(res,200,{record:await store.update(table,id,await json(req),user)});
+  if(req.method==='DELETE'&&table==='leads'&&id&&/^[A-Za-z0-9_-]{1,100}$/.test(id))
+    return reply(res,200,await store.remove(table,id));
   return reply(res,405,{error:'method_not_allowed'});
 }
 function createApp(){

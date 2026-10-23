@@ -878,7 +878,7 @@ function appendFollowUpSection(body,lead){
 function appendQualificationSection(body,lead){
   const section=el('section','lead-detail-group lead-workflow-section');
   section.append(el('h3','','Qualifizierung'),
-    el('p','lead-workflow-note','Bestehenden Bedarf konkretisieren. Bei der ersten Qualifizierung werden die Angaben in den Entwurf der Offerte übernommen.'));
+    el('p','lead-workflow-note','Bedarfsangaben fliessen bei der ersten Qualifizierung in den Offertenentwurf ein. Budget und interne Notizen bleiben ausschliesslich im CRM.'));
   const form=el('form','lead-workflow-form'),fields=el('div','lead-workflow-fields');
   const controls={};
   const definitions=[

@@ -68,15 +68,22 @@ try{
   & gcloud.cmd services enable cloudscheduler.googleapis.com secretmanager.googleapis.com --project $project --quiet
   Assert-Last 'Google APIs konnten nicht bereitgestellt werden'
   Write-Host '3. Make Webhook Secret anlegen oder erhalten'
-  $foundSecret=((& gcloud.cmd secrets list --project $project ('--filter=name:'+ $secret) '--format=value(name)')-join '').Trim()
+  $secretRaw=(& gcloud.cmd secrets list --project $project --format=json) -join [Environment]::NewLine
   Assert-Last 'Secret-Liste konnte nicht gelesen werden'
-  if(!$foundSecret){
+  $foundSecret=@(($secretRaw|ConvertFrom-Json)|Where-Object{$_.name -match ('/secrets/'+[regex]::Escape($secret)+'$')})
+  if($foundSecret.Count -gt 1){throw 'Mehrere gleichnamige Mail Secrets gefunden'}
+  if($foundSecret.Count -eq 0){
     & gcloud.cmd secrets create $secret --project $project --replication-policy=automatic --quiet
     Assert-Last 'Secret konnte nicht erstellt werden'
   }
-  $versions=((& gcloud.cmd secrets versions list $secret --project $project '--filter=state:ENABLED' '--format=value(name)')-join '').Trim()
+  $versionRaw=(& gcloud.cmd secrets versions list $secret --project $project --format=json) -join [Environment]::NewLine
   Assert-Last 'Secret-Versionen konnten nicht gelesen werden'
-  if(!$versions){
+  $allVersions=@($versionRaw|ConvertFrom-Json)
+  $enabledVersions=@($allVersions|Where-Object{$_.state -eq 'ENABLED'})
+  if($allVersions.Count -gt 0 -and $enabledVersions.Count -eq 0){
+    throw 'Mail Secret hat keine aktivierte Version. Bitte Secret-Versionen pruefen.'
+  }
+  if($enabledVersions.Count -eq 0){
     $secured=Read-Host 'Geheime Make Webhook URL eingeben (unsichtbar)' -AsSecureString
     $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secured)
     try{$hook=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr).Trim()}
@@ -93,19 +100,37 @@ try{
   & gcloud.cmd secrets add-iam-policy-binding $secret --project $project ('--member=serviceAccount:'+$runtime) --role=roles/secretmanager.secretAccessor --quiet | Out-Null
   Assert-Last 'CRM Dienstkonto erhaelt keinen Mail-Secret Zugriff'
   Write-Host '4. Nur fuer Scheduler bestimmtes Dienstkonto erstellen'
-  $foundIdentity=((& gcloud.cmd iam service-accounts list --project $project ('--filter=email:'+ $scheduler) '--format=value(email)')-join '').Trim()
+  $identityRaw=(& gcloud.cmd iam service-accounts list --project $project --format=json) -join [Environment]::NewLine
   Assert-Last 'Dienstkonto-Liste konnte nicht gelesen werden'
-  if(!$foundIdentity){
+  $foundIdentity=@(($identityRaw|ConvertFrom-Json)|Where-Object{$_.email -eq $scheduler})
+  if($foundIdentity.Count -gt 1){throw 'Mehrere Scheduler-Identitaeten gefunden'}
+  if($foundIdentity.Count -eq 0){
     & gcloud.cmd iam service-accounts create lszh-crm-mail-scheduler --project $project --display-name='LSZH CRM mail clock' --quiet
     Assert-Last 'Mail Scheduler Dienstkonto konnte nicht erstellt werden'
   }
   Write-Host '5. Inaktiven Scheduler mit OIDC konfigurieren'
-  $foundJob=((& gcloud.cmd scheduler jobs list --location $region --project $project ('--filter=name:'+ $job) '--format=value(name)')-join '').Trim()
+  $jobRaw=(& gcloud.cmd scheduler jobs list --location $region --project $project --format=json) -join [Environment]::NewLine
   Assert-Last 'Scheduler-Job-Liste konnte nicht gelesen werden'
-  if(!$foundJob){
-    # Annual safe schedule on creation, then pause immediately.
-    $args=@('scheduler','jobs','create','http',$job,'--location='+$region,'--project='+$project,'--schedule=0 0 1 1 *','--time-zone=Etc/UTC','--uri='+$base+'/api/internal/mail/tick','--http-method=POST','--oidc-service-account-email='+$scheduler,'--oidc-token-audience='+$base,'--max-retry-attempts=0','--attempt-deadline=180s','--quiet')
-    & gcloud.cmd @args
+  $foundJob=@(($jobRaw|ConvertFrom-Json)|Where-Object{$_.name -match ('/jobs/'+[regex]::Escape($job)+'$')})
+  if($foundJob.Count -gt 1){throw 'Mehrere Scheduler-Jobs gefunden'}
+  if($foundJob.Count -eq 0){
+    # Annual schedule while setting up; next step pauses job.
+    $targetUri=[string]($base.TrimEnd('/')+'/api/internal/mail/tick')
+    if($targetUri -ne 'https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app/api/internal/mail/tick'){
+      throw 'Scheduler Zieladresse unerwartet'
+    }
+    $scheduleArgs=@('scheduler','jobs','create','http',$job,
+      ('--location='+$region),('--project='+$project),
+      '--schedule=0 0 1 1 *','--time-zone=Etc/UTC',
+      ('--uri='+$targetUri),'--http-method=POST',
+      ('--oidc-service-account-email='+$scheduler),('--oidc-token-audience='+$base),
+      '--max-retry-attempts=0','--attempt-deadline=180s','--quiet')
+    $uriFlags=@($scheduleArgs|Where-Object{$_ -like '--uri=*'})
+    if($uriFlags.Count -ne 1 -or $uriFlags[0] -ne ('--uri='+$targetUri)){
+      throw 'Scheduler URI Argument konnte nicht gebildet werden'
+    }
+    Write-Host ('Scheduler HTTP Ziel: '+$targetUri)
+    & gcloud.cmd @scheduleArgs
     Assert-Last 'Cloud Scheduler Job konnte nicht erstellt werden'
   }
   $raw=(& gcloud.cmd scheduler jobs describe $job --location $region --project $project --format=json)-join [Environment]::NewLine
@@ -123,8 +148,10 @@ try{
   Write-Host '6. Neue Cloud Run Mail Kandidaten-Revision bei 0 Prozent Traffic bereitstellen'
   $vars='CRM_MAIL_ENABLED=false,CRM_MAIL_SCHEDULER_EMAIL='+$scheduler+',CRM_MAIL_SCHEDULER_AUDIENCE='+$base
   $secrets='CRM_MAIL_WEBHOOK_URL='+$secret+':latest'
-  $args=@('run','deploy',$service,'--source=.\crm-v2','--project='+$project,'--region='+$region,'--no-traffic','--tag='+$tag,'--update-env-vars='+$vars,'--update-secrets='+$secrets,'--quiet')
-  & gcloud.cmd @args
+  $deployArgs=@('run','deploy',$service,'--source=.\crm-v2',
+    ('--project='+$project),('--region='+$region),'--no-traffic',('--tag='+$tag),
+    ('--update-env-vars='+$vars),('--update-secrets='+$secrets),'--quiet')
+  & gcloud.cmd @deployArgs
   Assert-Last 'Mail Kandidat konnte nicht mit 0 Prozent Traffic erstellt werden'
   $next=Read-Service
   if((Live-Revision $next) -ne $previous){throw 'ALARM: CRM Live Traffic veraendert'}

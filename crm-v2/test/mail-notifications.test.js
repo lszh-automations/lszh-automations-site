@@ -81,16 +81,59 @@ test('customer confirmation follows LSZH website brand and works without remote 
   assert.match(missingName.html,/>Guten Tag<\/p>/);
   assert.doesNotMatch(missingName.html,/Guten Tag Guten Tag/);
 });
-test('rebranding only changes customer email, not the two internal templates',()=>{
+test('internal lead and reminder emails use LSZH branding, maintain recipients and action',()=>{
   const l=lead();
-  const internal=renderMail(EVENT_TYPES.INTERNAL_NEW,l).html;
-  const reminder=renderMail(EVENT_TYPES.INTERNAL_24H,l).html;
-  assert.match(internal,/Neue Website-Anfrage eingegangen/);
-  assert.match(reminder,/Lead nach 24 Stunden noch auf/);
-  assert.match(internal,/Live-CRM öffnen/);
-  assert.match(reminder,/Live-CRM öffnen/);
-  assert.match(internal,/#f7f9fc/);
-  assert.match(reminder,/#f7f9fc/);
+  const newMail=renderMail(EVENT_TYPES.INTERNAL_NEW,l);
+  const reminder=renderMail(EVENT_TYPES.INTERNAL_24H,l);
+  assert.equal(newMail.to,'lars@lszh-automations.ch');
+  assert.equal(reminder.to,'lars@lszh-automations.ch');
+  assert.equal(newMail.subject,'[LSZH CRM] Neuer Website-Lead: Muster GmbH');
+  assert.equal(reminder.subject,'[LSZH CRM] 24h-Erinnerung: Muster GmbH – weiterhin Neu');
+  for(const html of [newMail.html,reminder.html]){
+    assert.match(html,/role="presentation"/);
+    assert.match(html,/background-color:#06101d/);
+    assert.match(html,/background-color:#0a1728/);
+    assert.match(html,/background-color:#74d8ff/);
+    assert.match(html,/background-color:#5b8cff/);
+    assert.match(html,/background-color:#8e72ff/);
+    assert.match(html,/INTERNES CRM/);
+    assert.match(html,/INTERNER CRM-HINWEIS/);
+    assert.match(html,/LSZH Invest GmbH/);
+    assert.match(html,/Rummelmatt 8/);
+    assert.match(html,/Live-CRM öffnen/);
+    assert.match(html,/href="https:\/\/lszh-crm-v2-ozx7mp2bka-oa\.a\.run\.app"/);
+    assert.match(html,/Kontakt/);
+    assert.match(html,/Unternehmen/);
+    assert.match(html,/E-Mail/);
+    assert.match(html,/Lead-ID:/);
+    assert.match(html,/Clara &lt;Test&gt;/);
+    assert.match(html,/Anfrage &lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.doesNotMatch(html,/<script|<img|<svg|<iframe|<link\b|<style\b/i);
+    assert.doesNotMatch(html,/Diese Nachricht bestätigt nur den Eingang Ihrer Anfrage/);
+    assert.doesNotMatch(html,/#f7f9fc/);
+  }
+  assert.match(newMail.html,/Neue Website-Anfrage eingegangen/);
+  assert.match(newMail.html,/NEUER WEBSITE-LEAD/);
+  assert.match(reminder.html,/Lead nach 24 Stunden noch auf «Neu»/);
+  assert.match(reminder.html,/24H-ERINNERUNG/);
+  assert.match(reminder.html,/Bitte prüfen und bearbeiten/);
+});
+test('internal HTML treats customer-controlled input only as text',()=>{
+  const l={...lead(),
+    name:'" <img src=x onerror=alert(1)>',
+    company:'Firma & Co. <iframe>',
+    email:'mail+test@firma.ch',
+    message:'Zeile 1\n<script>alert("x")</script>\nhttps://example.org?x=<unsafe>'};
+  for(const kind of [EVENT_TYPES.INTERNAL_NEW,EVENT_TYPES.INTERNAL_24H]){
+    const html=renderMail(kind,l).html;
+    assert.match(html,/&lt;img src=x onerror=alert\(1\)&gt;/);
+    assert.match(html,/Firma &amp; Co. &lt;iframe&gt;/);
+    assert.match(html,/Zeile 1<br>&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+    assert.match(html,/https:\/\/example.org\?x=&lt;unsafe&gt;/);
+    assert.doesNotMatch(html,/<img|<iframe|<script/i);
+    const links=[...html.matchAll(/href="([^"]+)"/g)].map(match=>match[1]);
+    assert.deepEqual(links,['https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app']);
+  }
 });
 test('24h reminder is due only after 24h and while status Neu',()=>{
   const l=lead();

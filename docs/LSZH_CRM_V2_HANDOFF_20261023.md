@@ -1,21 +1,22 @@
 # LSZH Automations – CRM V2: Übergabe für neuen Chat
 
-**Stand:** 23.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
+**Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 ## Kurzfazit und verifizierte Freigaben
 
 **LSZH CRM V2 läuft produktiv.** Letzte vom Geschäftsführer per PowerShell-Ausgabe bestätigte erfolgreiche Bereitstellung:
 
-- `CRM OFFER PDF AND MAIL DESIGN LIVE PASS`
+- **`CRM SWISS QR PDF LIVE PASS` (24.10.2026)**
 - Cloud Run: `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`
-- **Live Revision: `lszh-crm-v2-00038-gic` (100 % Traffic)**
-- Rollback-Revision: `lszh-crm-v2-00036-ret`
+- **Live Revision: `lszh-crm-v2-00041-far` (100 % Traffic)**
+- **Rollback-Revision: `lszh-crm-v2-00038-gic`**
+- Swiss-QR-PDF nun im bestehenden Google-authentifizierten Live-CRM manuell downloadbar; geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Authentifizierter Download einer echten Rechnung und manuelle PDF-Abnahme stehen noch aus.
 - Bisheriger E-Mail-Cutoff unverändert: `2026-10-23T16:15:28Z`
 - CRM-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`
 - Produktiver Lead-Eingang: Render Website → Cloud Run → Firestore mit Namespace `lszh_crm_v2_`. Ein Airtable-Import wurde ausdrücklich **abgewählt**.
 - GitHub: `lszh-automations/lszh-automations-site`, Arbeitsbranch `feature/crm-v2-cloud-staging-20261023`.
 - Windows Checkout: `C:\Users\larss\Projects\lszh-crm-cloud-staging`.
-- CI für die zuletzt ausgerollten Vorlagen: **81/81 Tests bestanden**, plus PowerShell-Parserprüfung.
+- Für die Swiss-QR-Rechnungsfunktion: **86/86 CRM-Regressionstests bestanden**; SIX-Testdatenvalidierung, synthetische PDF-Druckgeometrie und optisches QR-Decoding bestanden.
 
 ## CRM-Funktionen und geschäftliche Entscheidungen
 

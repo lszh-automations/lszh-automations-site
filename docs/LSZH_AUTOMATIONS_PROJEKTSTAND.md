@@ -1,3 +1,23 @@
+### CRM V2 Website Leads – Löschen, Statussperre und relative Altersanzeige (23.10.2026)
+
+Im Register **Website Leads** hat jeder Lead mit aktuellem Status **Neu** rechts neben **Öffnen** ein rotes **×** mit Bestätigungsdialog. Nach bestätigtem Löschen ruft die angemeldete CRM-Oberfläche `DELETE /api/records/leads/:id` auf und aktualisiert alle Listen und Dashboard-Kennzahlen. Für andere Status fehlt das ×. Der Server verlangt bestehende Google-ID-Token-Authentifizierung sowie Same-Origin-Kontrolle und prüft in einer Firestore-Transaktion den tatsächlich aktuellen Status und das Fehlen einer verknüpften Offerte. Nur **Neu** ohne Offerte kann dauerhaft gelöscht werden; andere Register haben keine DELETE-Route. E-Mail-Versandereignisse werden nicht zurückgesetzt oder erneut versendet.
+
+Status **Neu** ist nur Einstiegsstatus; die Statusauswahl im Lead-Detail und im Bearbeitungsformular bietet ihn nach jeder anderen Statusstufe nicht mehr an. Der Backend-Updatepfad weist Übergänge von jedem anderen Status zurück auf **Neu** mit HTTP 409 ab. Andere Statusübergänge bleiben wie gehabt. In der Lead-Tabelle gibt es jetzt die zusätzliche Spalte **Eingegangen** mit Altersanzeige (z. B. «vor 3 Min.», «vor 2 Std.», «vor 4 Tagen») auf Basis von `createdAt`; die lokale Originalzeit ist per Hover verfügbar. Die Altersangaben werden einmal pro Minute im DOM aktualisiert, ohne einen zusätzlichen Backend-Request auszulösen.
+
+Tests: neue Firestore-Fakes/Regressionsprüfungen für erlaubte/abgelehnte Löschungen, irreversible Neu-Stati, Verknüpfung zu bestehenden Offerten; Browser-Checks für ×, Altersberechnung/Refresh und die beiden Statusauswahlen. Bestehendes 30-Sekunden-Lead-Polling und Kundenmail-Templates bleiben unverändert.
+
+**Produktionsumstellung vorbereitet, noch nicht aktiv:** `scripts/deploy-crm-lead-controls-live.ps1` überprüft zu Beginn, dass die vorherige Dashboard-Only-KPI-Revision unter dem Tag `crm-dashboard-kpis-only` tatsächlich **100 % Traffic** bedient. Die konkrete Revision wird vor dem Deployment aus Cloud Run gelesen und als Rollback vorgemerkt (kein geratenes Revisionskürzel). Danach Tests, unveränderte Firestore-/Website-/Scheduler-/Mail-Konfiguration, 0%-Deploy, HTTP-Schutznachweis und Umschaltung mit Rollback im Fehlerfall. Keine Test-Leads oder echten Datensatz-Löschungen im Deploy-Skript.
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-lead-controls-live.ps1"
+```
+
+Der neue Stand ist erst nach `CRM LEAD WORKFLOW LIVE PASS` produktiv. Zur Sichtprüfung danach das CRM im Browser neu laden.
+
+---
+
 ### CRM V2: KPI-Übersicht nur auf Dashboard (23.10.2026)
 
 Die bisherige doppelte KPI-Leiste (Website Leads, Kunden, Offerten, Rechnungen, Projekte) wird in `crm-v2/public/index.html` in sämtlichen Arbeitsregistern `leads`, `kunden`, `offerten`, `rechnungen` und `projekte` vollständig ausgeblendet. Die Dashboard-KPI-Karten (Neue Leads, offene Offerten/Rechnungen, aktive Projekte, Zahlungseingänge) bleiben unverändert. Auch der leere Abstand des KPI-Containers entfällt via `#kpis[hidden]{display:none}`. Ein isolierter UI-Regressions-Test prüft Tabwechsel Dashboard → Arbeitsregister → Dashboard, Kartenanzahl, Sichtbarkeit und fehlende Leerfläche. Keine Daten-/Mail-/CRM-Statuslogik verändert.

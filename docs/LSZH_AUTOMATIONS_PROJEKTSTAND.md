@@ -1,3 +1,33 @@
+### 23.10.2026 – Qualitätsprüfung Offerten-PDF und Kundenmail (Verbesserungen im Branch, NOCH NICHT PRODUKTIV)
+
+**Ausgangslage:** Benutzer bestätigte Produktiv-Go-Live `CRM OFFER CUSTOMER GO LIVE PASS`; Cloud Run `lszh-crm-v2-00036-ret` bei **100 % Traffic**, Rückfallrevision `lszh-crm-v2-00034-hec`, deduplizierender Mail-Cutoff `2026-10-23T16:15:28Z`. Make-Szenario `8144117` ist produktiv, überprüfte Gmail-Verbindung; Filter verlangt `kind=offer_send`, `sendMode=production`, das Offerten-Ereignis und passenden Betreff/PDF-Namen. Die Produktivrevision darf ohne weiteres Rollout nicht mit den hier bearbeiteten Quellen gleichgesetzt werden.
+
+**Quellcodeprüfung ergab:**
+- PDF hatte bisher nur `LSZH Invest GmbH | Schweiz` und keine vollständige Firmenanschrift oder UID, trotz vorhandener vollständiger Absenderangaben in `crm-v2/mail-templates.js`.
+- Kundenmail begann mit `Guten Tag <Firma>`, nutzte ISO-Datumsdarstellung `YYYY-MM-DD`, eigenes abweichendes Branding und keine eindeutige Aussage, dass das Versenden keine Beauftragung auslöst.
+- Preise werden korrekt **separat** nach einmaligen und monatlich wiederkehrenden Leistungen berechnet; ein kombiniertes Total wäre irreführend. Der angebotene `items`-Inhalt stammt aus der gespeicherten CRM-Offerte.
+- Keine eindeutige MWST-Deklaration. Die UID **CHE-369.474.125** ist nach dem Handelsregistereintrag der LSZH Invest GmbH dokumentiert, aber eine UID alleine bestätigt **nicht**, ob die Unternehmung derzeit MWST-pflichtig bzw. freiwillig registriert ist. Zum Zeitpunkt dieser Änderung wurde der effektive MWST-Status **nicht verifiziert**; daher **keine erfundene MWST-Nummer oder ein erfundener Steuersatz** in die Vorlagen geschrieben.
+- Firmendaten `LSZH Invest GmbH, Rummelmatt 8, 5610 Wohlen AG` stammen aus bestehendem LSZH-Kundenmaildesign und öffentlich auffindbarem Handelsregisterauszug (letzte bekannte Meldung 2024); aktueller Register-/Domizilstatus sollte vor Freigabe bestätigt werden.
+
+**Im Entwicklungsbranch überarbeitet, noch nicht deployed:**
+- `crm-v2/offer-pdf.js`: LSZH-Navy/Blau, vollständiger Absender in wiederholter Fusszeile, UID korrekt als UID (ohne `MWST`-Suffix), geschäftliche Kontaktadresse, mehrzeilige Offertentitel, schriftlicher Auftragsbestätigungsvorbehalt nach dem Preisblock.
+- `crm-v2/offer-mail.js`: an bestehende LSZH-Kundenbestätigung angeglichenes HTML-Tabellenlayout (Gmail/Outlook, Inline-CSS, keine Fernressourcen), persönliche Anrede über `name` oder `contactName`, Schweizer Datumsformat `DD.MM.YYYY`, getrennte Einmal-/Monatsbeträge, Firmenadresse, UID und Kontakt, gleicher Vorbehalt. Alle Eingaben werden HTML-escaped; vorhandene Make-Filter-/Betreffkonvention `Ihre Offerte Nr.` und Dateiname `LSZH-Offerte-NNN.pdf` bleiben erhalten.
+- Angebotshinweis: `Diese Offerte ist unverbindlich. Ein Auftrag kommt erst durch unsere ausdrückliche schriftliche Auftragsbestätigung zustande.` Die exakte rechtliche Wirkung ist unter Art. 3/7 OR und den tatsächlichen Geschäftsbedingungen vor Verwendung zu überprüfen. Keine automatische Auftragsannahme wurde freigeschaltet.
+- `scripts/preview-crm-offer-documents.js`: produziert lokal ausschliesslich **synthetische** Beispieldaten in `%TEMP%\\lszh-offerten-vorschau`, PDF und HTML, ohne CRM-Login, Firestore, Make, Gmail oder Cloud-Zugriff. Für die menschliche Layoutfreigabe im Browser/PDF-Betrachter.
+- Regressionstests `crm-v2/test/offer-send.test.js` wurden um Unternehmensidentifikation, nicht-bindende Bedingungen, Schweizer Datumsformat, personalisierte Anrede, Escaping und Titelzeilenumbruch erweitert. Bis dahin alle **81** Tests erfolgreich.
+
+**Freigabe noch offen:** Tatsächlichen MWST-Status in ESTV/UID prüfen, Adresse/Kontakt bestätigen, Vertragstext gegen genehmigte Projektbedingungen/AGB abstimmen, synthetische PDF-/HTML-Vorschau auf Inhalt und Zeilenumbrüche prüfen. **Nicht automatisch live deployen** und keine produktiven Empfänger anschreiben. Bestehender Cloud Run bleibt `lszh-crm-v2-00036-ret`; danach kann ein eigenes überprüftes Null-Traffic-Kandidaten-Rollout für die Angebotsvorlagen erfolgen.
+
+**Offline-Vorschau auf dem Surface (kein Mailversand):**
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+node .\scripts\preview-crm-offer-documents.js
+explorer.exe "$env:TEMP\lszh-offerten-vorschau"
+```
+
+---
+
 ### 23.10.2026 – Benutzerfreigabe fuer regulären Offertenversand, Make-Filter angepasst (Cloud Run noch TEST_ONLY)
 
 **Explizite Entscheidung:** Der Benutzer hat den TEST_ONLY-Zwang für den PDF-Offertenversand aufgehoben. Jede E-Mail soll ausschliesslich nach bewusstem, manuellem CRM-Klick samt Empfängerbestätigung verschickt werden; digitale Auftragsannahme ist weiterhin nicht freigeschaltet und bleibt ein getrennter Prozess. Das ist eine Freigabe fuer den Versandkanal, **keine** automatische Annahme von Kundenaufträgen.

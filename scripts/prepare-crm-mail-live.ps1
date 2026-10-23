@@ -68,8 +68,9 @@ try{
   & gcloud.cmd services enable cloudscheduler.googleapis.com secretmanager.googleapis.com --project $project --quiet
   Assert-Last 'Google APIs konnten nicht bereitgestellt werden'
   Write-Host '3. Make Webhook Secret anlegen oder erhalten'
-  & gcloud.cmd secrets describe $secret --project $project '--format=value(name)' 1>$null 2>$null
-  if($LASTEXITCODE -ne 0){
+  $foundSecret=((& gcloud.cmd secrets list --project $project ('--filter=name:'+ $secret) '--format=value(name)')-join '').Trim()
+  Assert-Last 'Secret-Liste konnte nicht gelesen werden'
+  if(!$foundSecret){
     & gcloud.cmd secrets create $secret --project $project --replication-policy=automatic --quiet
     Assert-Last 'Secret konnte nicht erstellt werden'
   }
@@ -92,14 +93,16 @@ try{
   & gcloud.cmd secrets add-iam-policy-binding $secret --project $project ('--member=serviceAccount:'+$runtime) --role=roles/secretmanager.secretAccessor --quiet | Out-Null
   Assert-Last 'CRM Dienstkonto erhaelt keinen Mail-Secret Zugriff'
   Write-Host '4. Nur fuer Scheduler bestimmtes Dienstkonto erstellen'
-  & gcloud.cmd iam service-accounts describe $scheduler --project $project '--format=value(email)' 1>$null 2>$null
-  if($LASTEXITCODE -ne 0){
+  $foundIdentity=((& gcloud.cmd iam service-accounts list --project $project ('--filter=email:'+ $scheduler) '--format=value(email)')-join '').Trim()
+  Assert-Last 'Dienstkonto-Liste konnte nicht gelesen werden'
+  if(!$foundIdentity){
     & gcloud.cmd iam service-accounts create lszh-crm-mail-scheduler --project $project --display-name='LSZH CRM mail clock' --quiet
     Assert-Last 'Mail Scheduler Dienstkonto konnte nicht erstellt werden'
   }
   Write-Host '5. Inaktiven Scheduler mit OIDC konfigurieren'
-  & gcloud.cmd scheduler jobs describe $job --location $region --project $project '--format=value(name)' 1>$null 2>$null
-  if($LASTEXITCODE -ne 0){
+  $foundJob=((& gcloud.cmd scheduler jobs list --location $region --project $project ('--filter=name:'+ $job) '--format=value(name)')-join '').Trim()
+  Assert-Last 'Scheduler-Job-Liste konnte nicht gelesen werden'
+  if(!$foundJob){
     # Annual safe schedule on creation, then pause immediately.
     $args=@('scheduler','jobs','create','http',$job,'--location='+$region,'--project='+$project,'--schedule=0 0 1 1 *','--time-zone=Etc/UTC','--uri='+$base+'/api/internal/mail/tick','--http-method=POST','--oidc-service-account-email='+$scheduler,'--oidc-token-audience='+$base,'--max-retry-attempts=0','--attempt-deadline=180s','--quiet')
     & gcloud.cmd @args

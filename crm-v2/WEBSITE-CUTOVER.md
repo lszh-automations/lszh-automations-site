@@ -142,6 +142,17 @@ Der Geschäftsführer hat die korrigierte Datei `scripts/check-crm-live-candidat
 - Das Testskript musste nur wegen der reservierten PowerShell-Systemvariablen `$HOME` auf `$homeResponse` korrigiert werden. Die Korrektur erforderte kein Cloud-Run-Deployment.
 - **Kein** Auth-Login und keine Berechtigungsprüfung mit einem gültigen Google-ID-Token am Kandidaten bisher. Der getestete anonyme Zugriff bestätigt **nicht** die korrekt autorisierte produktive Google-Anmeldung.
 - **Nächster Schritt:** Im bestehenden Google OAuth Webclient die JavaScript-Ursprünge `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app` und `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` ergänzen (vorhandenen Staging-Ursprung erhalten), Login mit dem erlaubten Workspace-Konto auf Kandidaten-URL durchführen und die leeren Live-Register ausschließlich lesen; keine Live-Datensätze bearbeiten oder Website-Cutover durchführen.
+### 23.10.2026 – Produktionskandidat: Google-Login im Browser erfolgreich
+
+Der Geschäftsführer hat nach Behebung von Google `400 origin_mismatch` die Google-OAuth-JavaScript-Ursprünge konfiguriert und einen Screenshot aus Microsoft Edge vom **erfolgreich angemeldeten** CRM-V2-Produktionskandidaten zur Verfügung gestellt.
+
+- Browser-URL: `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- In der CRM-Oberfläche ist das erlaubte Geschäftskonto `lars@lszh-automations.ch` angemeldet; Dashboard mit Leads, Offerten, Rechnungen, Projekten und Finanzübersicht geladen.
+- Alle angezeigten Dashboard-Zahlen sind 0 und stimmen mit dem zuvor ausgelesenen leeren Live-CRM-Firestore-Inventar überein.
+- Es fand **keine produktive Traffic-Umschaltung und keine bestätigte Schreiboperation auf Live-Firestore** statt; der Cloud-Run-Kandidat war bei Deploy auf 0 % regulären Traffic gesetzt.
+- Die Sichtprüfung des angemeldeten Dashboards ist kein vollständiger Beweis für die Korrektheit sämtlicher rollenbasierter Zugriffe, für das historische Airtable-Inventar oder die Restore-Fähigkeit des Backups.
+
+**Nächste kontrollierte Produktions-Gates:** Airtable-/Make-Altbestand bestimmen und Umgang festlegen, isolierten Restore nachweisen und Datenvollständigkeit kontrollieren; unmittelbar vor Cutover produktive Cloud-Run-Revision/Secret/Traffic erneut validieren. Kein Go-Live ohne ausdrückliche Freigabe.
 ## Einmalige Voraussetzungen vor Live-Cutover
 
 1. **Render-Konfiguration prüfen:** Richtiger Workspace und Dienst `lszh-automations-site`; Umgebungsvariablen `CRM_LEAD_INGEST_URL` und `CRM_INGEST_SECRET` sind gesetzt. Secrets nie exportieren oder im Chat teilen. Live-Website-Formular-HTTP-Test nur mit ausdrücklicher Freigabe.

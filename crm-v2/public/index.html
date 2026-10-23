@@ -159,6 +159,25 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 @media(max-width:700px){.lead-detail-grid{grid-template-columns:1fr}.lead-detail-body{padding:16px}.lead-detail-actions{padding:16px;justify-content:stretch}.lead-detail-actions .btn{flex:1}}
 
 /* CRM V2 command center */
+
+/* Contact workflow lives inside the existing lead details dialog. */
+.lead-workflow-section{margin-top:22px}
+.lead-workflow-note{margin:5px 0 15px;color:var(--muted);font-size:12px;line-height:1.55}
+.lead-workflow-form{display:grid;gap:12px;margin-top:10px}
+.lead-workflow-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lead-workflow-label{display:grid;gap:6px;color:#b7c8d9;font-size:12px;font-weight:650}
+.lead-workflow-label.wide{grid-column:1/-1}
+.lead-workflow-label input,.lead-workflow-label select,.lead-workflow-label textarea{width:100%;min-width:0;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:10px;border-radius:8px;font:inherit;font-size:13px}
+.lead-workflow-label textarea{min-height:75px;resize:vertical}
+.lead-workflow-actions{display:flex;flex-wrap:wrap;gap:10px}
+.lead-workflow-history{display:grid;gap:10px;margin-top:15px}
+.lead-workflow-entry{border-left:3px solid #527dae;background:var(--panel2);border-radius:7px;padding:12px}
+.lead-workflow-entry strong{display:block;font-size:12px;margin-bottom:4px}
+.lead-workflow-entry p{font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0}
+.lead-workflow-date{font-size:11px;color:var(--muted)}
+.lead-followup-badge{display:inline-flex;padding:4px 9px;border-radius:99px;background:#1a3a32;color:#8ce5bc;font-size:12px}
+.lead-followup-badge.overdue{background:#44232e;color:#ffacb3}
+@media(max-width:620px){.lead-workflow-fields{grid-template-columns:1fr}}
 .dashboard-intro-wrapper{margin-bottom:20px}
 .dashboard-area{display:grid;gap:18px}
 .dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
@@ -506,6 +525,7 @@ function renderDashboard(){
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
+    {n:dueLeadFollowUps(state.records.leads).length,title:'Fällige Wiedervorlagen',description:'Heute fällige und überfällige nächste Aktionen',tab:'leads',icon:'◷'},
     {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
     {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
     {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
@@ -548,6 +568,20 @@ function renderDashboard(){
     button.addEventListener('click',()=>navigateTo('leads',lead));
     recent.body.append(button);
   }
+  const followUps=dashboardPanel('Fällige Wiedervorlagen','Heute fällige und überfällige nächste Aktionen.');
+  const due=dueLeadFollowUps(state.records.leads);
+  if(!due.length){
+    followUps.body.append(el('div','dash-empty','Keine Wiedervorlagen fällig.'));
+  }
+  for(const lead of due.slice(0,8)){
+    const button=el('button','dash-lead');button.type='button';
+    const content=el('span','dash-lead-info');
+    content.append(el('strong','',lead.company||lead.name||'Lead'),
+      el('small','',lead.nextAction+' · '+lead.followUpDate));
+    button.append(content,el('span','dash-open','Öffnen →'));
+    button.addEventListener('click',()=>navigateTo('leads',lead));
+    followUps.body.append(button);
+  }
   upper.append(tasks.panel,recent.panel);
   const lower=el('div','dash-grid');
   const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
@@ -575,7 +609,7 @@ function renderDashboard(){
   finance.body.append(financeList,el('p','dash-finance-note',
     'Offertenvolumen ist kein Umsatz. Die Monatszahl summiert vereinbarte Monatsbeträge, nicht tatsächliche Zahlungen. Es werden maximal 200 Datensätze je Register geladen.'));
   lower.append(pipeline.panel,finance.panel);
-  area.append(upper,lower);
+  area.append(upper,followUps.panel,lower);
 }
 function projectIsOverdue(project){
   if(!project?.dueDate||project.status==='Abgeschlossen')return false;
@@ -700,6 +734,168 @@ function detailAction(container,label,callback,primary=false){
   });
   container.append(button);
 }
+
+function localDateKey(now=new Date()){
+  return [String(now.getFullYear()),String(now.getMonth()+1).padStart(2,'0'),
+    String(now.getDate()).padStart(2,'0')].join('-');
+}
+function dueLeadFollowUps(leads,day=localDateKey()){
+  return (leads||[]).filter(lead=>['Neu','Kontaktiert','Qualifiziert'].includes(lead.status)&&
+    typeof lead.followUpDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(lead.followUpDate)&&
+    lead.followUpDate<=day && lead.nextAction)
+    .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
+}
+function leadDate(value){
+  const timestamp=Date.parse(value||'');
+  if(!Number.isFinite(timestamp))return '–';
+  return new Intl.DateTimeFormat('de-CH',{
+    day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+  }).format(new Date(timestamp));
+}
+function workflowLabel(caption,type,value='',wide=false){
+  const wrap=el('label','lead-workflow-label'+(wide?' wide':''),caption);
+  const input=el(type==='textarea'?'textarea':type==='select'?'select':'input');
+  if(type!=='textarea'&&type!=='select')input.type=type;
+  input.value=value||'';
+  wrap.append(input);
+  return {wrap,input};
+}
+function showLeadWorkflowError(message){
+  $('leadDetailError').textContent=message;
+  $('leadDetailError').hidden=false;
+}
+async function reloadOpenLead(id){
+  await loadAll();
+  const updated=(state.records.leads||[]).find(lead=>lead.id===id);
+  if(updated)renderLeadDetail(updated);
+}
+function appendContactSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Kontaktverlauf'),
+    el('p','lead-workflow-note','Telefonate, E-Mails und Besprechungen als manuelle Einträge dokumentieren.'));
+  const form=el('form','lead-workflow-form');
+  const fields=el('div','lead-workflow-fields');
+  const channel=workflowLabel('Kontaktart','select'),outcome=workflowLabel('Ergebnis','select');
+  for(const value of ['Telefon','E-Mail','Besprechung','Sonstiges']){
+    const option=el('option','',value);option.value=value;channel.input.append(option);
+  }
+  for(const value of ['Erreicht','Nicht erreicht','Nachricht gesendet']){
+    const option=el('option','',value);option.value=value;outcome.input.append(option);
+  }
+  const note=workflowLabel('Gesprächsnotiz','textarea','',true);
+  note.input.required=true;note.input.maxLength=1500;
+  note.input.placeholder='Was wurde vereinbart oder besprochen?';
+  fields.append(channel.wrap,outcome.wrap,note.wrap);
+  const save=el('button','btn primary','Kontakt erfassen');save.type='submit';
+  form.append(fields,save);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    save.disabled=true;$('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id)+'/contacts',{
+        method:'POST',body:JSON.stringify({
+          channel:channel.input.value,outcome:outcome.input.value,note:note.input.value
+        })
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Kontakt konnte nicht gespeichert werden: '+error.message);}
+    finally{save.disabled=false;}
+  });
+  section.append(form);
+  const history=Array.isArray(lead.contactHistory)?lead.contactHistory:[];
+  const list=el('div','lead-workflow-history');
+  if(!history.length)list.append(el('p','lead-workflow-note','Noch keine Kontakte erfasst.'));
+  for(const entry of [...history].reverse().slice(0,20)){
+    const card=el('div','lead-workflow-entry');
+    card.append(el('strong','',entry.channel+' · '+entry.outcome),
+      el('span','lead-workflow-date',leadDate(entry.createdAt)+' · '+(entry.createdBy||'')),
+      el('p','',entry.note||''));
+    list.append(card);
+  }
+  if(history.length>20)list.append(el('p','lead-workflow-note','Die letzten 20 von '+history.length+' Einträgen.'));
+  section.append(list);body.append(section);
+}
+function appendFollowUpSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Nächste Aktion & Wiedervorlage'),
+    el('p','lead-workflow-note','Offene Termine erscheinen am Fälligkeitstag im Dashboard. Es wird keine E-Mail automatisch verschickt.'));
+  if(lead.followUpDate&&lead.nextAction){
+    const overdue=lead.followUpDate<localDateKey();
+    section.append(el('span','lead-followup-badge'+(overdue?' overdue':''),
+      (overdue?'Überfällig: ':'Vorgemerkt: ')+lead.followUpDate+' · '+lead.nextAction));
+  }
+  const form=el('form','lead-workflow-form'),fields=el('div','lead-workflow-fields');
+  const action=workflowLabel('Nächste Aktion','text',lead.nextAction||'',true);
+  action.input.maxLength=180;action.input.placeholder='z. B. Kunden zurückrufen';
+  const date=workflowLabel('Wiedervorlage am','date',lead.followUpDate||'',true);
+  fields.append(action.wrap,date.wrap);
+  const actions=el('div','lead-workflow-actions'),save=el('button','btn primary','Wiedervorlage speichern');
+  save.type='submit';actions.append(save);
+  if(lead.followUpDate||lead.nextAction){
+    const done=el('button','btn','Als erledigt markieren');done.type='button';
+    done.addEventListener('click',async()=>{
+      done.disabled=true;$('leadDetailError').hidden=true;
+      try{
+        await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+          method:'PATCH',body:JSON.stringify({nextAction:'',followUpDate:''})
+        });
+        await reloadOpenLead(lead.id);
+      }catch(error){showLeadWorkflowError('Wiedervorlage konnte nicht abgeschlossen werden: '+error.message);}
+      finally{done.disabled=false;}
+    });
+    actions.append(done);
+  }
+  form.append(fields,actions);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();save.disabled=true;$('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify({nextAction:action.input.value,followUpDate:date.input.value})
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Wiedervorlage konnte nicht gespeichert werden: '+error.message);}
+    finally{save.disabled=false;}
+  });
+  section.append(form);body.append(section);
+}
+function appendQualificationSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Qualifizierung'),
+    el('p','lead-workflow-note','Bestehenden Bedarf konkretisieren. Bei der ersten Qualifizierung werden die Angaben in den Entwurf der Offerte übernommen.'));
+  const form=el('form','lead-workflow-form'),fields=el('div','lead-workflow-fields');
+  const controls={};
+  const definitions=[
+    ['currentProcess','Aktueller Ablauf','textarea'],
+    ['systems','Vorhandene Systeme','textarea'],
+    ['mainProblem','Grösstes Problem','text'],
+    ['frequency','Häufigkeit','text'],
+    ['desiredResult','Gewünschtes Ergebnis','textarea'],
+    ['budgetRange','Budgetrahmen (optional)','text'],
+    ['qualificationNotes','Weitere Qualifizierungsnotizen','textarea']
+  ];
+  for(const [key,title,type] of definitions){
+    const item=workflowLabel(title,type,lead[key]||'',type==='textarea');
+    if(key==='budgetRange')item.input.maxLength=100;
+    if(key==='qualificationNotes')item.input.maxLength=2000;
+    if(key==='mainProblem'||key==='frequency')item.input.maxLength=500;
+    controls[key]=item.input;fields.append(item.wrap);
+  }
+  const save=el('button','btn primary','Qualifizierung speichern');save.type='submit';
+  form.append(fields,save);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();save.disabled=true;$('leadDetailError').hidden=true;
+    const updates=Object.fromEntries(Object.entries(controls).map(([key,input])=>[key,input.value]));
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify(updates)
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Qualifizierung konnte nicht gespeichert werden: '+error.message);}
+    finally{save.disabled=false;}
+  });
+  section.append(form);body.append(section);
+}
+
 function openLeadDetail(record){
   const lead=(state.records.leads||[]).find(x=>x.id===record.id)||record;
   $('leadDetail').showModal();
@@ -757,6 +953,9 @@ function renderLeadDetail(lead){
     ['Eingesetzte Systeme',lead.systems],['Grösstes Problem',lead.mainProblem],
     ['Häufigkeit',lead.frequency],['Gewünschtes Ergebnis',lead.desiredResult]
   ]);
+  appendContactSection(body,lead);
+  appendFollowUpSection(body,lead);
+  appendQualificationSection(body,lead);
   const offers=leadOffers(lead.id);
   const existingCustomer=leadCustomer(lead);
   const offer=offers[0];

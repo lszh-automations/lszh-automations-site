@@ -39,6 +39,12 @@ Der Geschäftsführer hat den echten synthetischen Staging-HTTP-Test mit `script
 - Der Test wurde **direkt am Cloud-Run-Staging-Webhook**, nicht über das öffentlich erreichbare Render-Webformular ausgeführt. Nach Prüfung der produktiven Konfiguration und expliziter Freigabe bleibt ein separater echter Website-Test nötig.
 - **Kein Merge, keine Render-Umstellung, kein Produktiv-Cutover**. Nächster Schritt: `scripts/preflight-crm-production.ps1` (read-only) ausführen, Ausgabe prüfen; Live-Dateninventar, Backup, Nummernkreis und Google-OAuth-Zugriff separat kontrollieren.
 
+### 23.10.2026 – Read-only Live-Preflight erfolgreich, Firestore-Inventar als nächster Schritt
+
+Surface-PowerShell hat bestätigt, dass `lszh-crm-v2` weiter auf `lszh-crm-v2-00002-6lh` mit 100 % Traffic läuft. Das Live-Dienstkonto ist `lszh-crm-v2@lszh-automations.iam.gserviceaccount.com`; der bestehende Website-Eingangs-Secret ist über Secret Manager referenziert. Die alte Version hat noch keine gesetzten Intake-/Collection-Präfix-Flags. Staging weist `CRM_RECORD_PREFIX=lszh_crm_v2_staging_` und `CRM_WEBSITE_INTAKE_ENABLED=false` aus. Keine produktiven Änderungen.
+
+Vorbereitetes `scripts/inventory-crm-firestore-readonly.ps1` ermittelt als nächsten Test ausschliesslich Live-/Staging-Collection-Anzahlen und Sequenz-Zähler über Firestore REST, ohne Geheimnisse/PII auszugeben oder etwas zu verändern. Datenzahlen noch nicht bekannt. Ein Live-Firestore-Backup, Datenschutz-/IAM-/Negativtests und überprüfbarer Rollback bleiben vor Cutover erforderlich.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

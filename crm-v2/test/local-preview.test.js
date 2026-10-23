@@ -66,10 +66,12 @@ test('requires address and avoids invalid CRM statuses',async()=>{
   const invalid=await call('PATCH','/api/records/leads/test-lead-1',{status:'Ungueltig'});
   assert.equal(invalid.status,400);
 });
-test('continues local offer numbering from 1001',async()=>{
+test('keeps offer numbering increasing without reusing a number',async()=>{
+  const before=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8')).nextOffer;
   const r=await call('POST','/api/records/offerten',{title:'TEST: Neue Offerte',status:'Entwurf'});
   assert.equal(r.status,201);
-  assert.equal(r.body.record.number,'1001');
+  assert.equal(r.body.record.number,String(before));
+  assert.ok(before>=1001);
 });
 
 test('live mode exposes a version endpoint and browser self-reload, demo mode does not',async()=>{

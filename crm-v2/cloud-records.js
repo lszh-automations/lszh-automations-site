@@ -259,6 +259,9 @@ function buildStore(db,prefix){
         tx.update(ref,audit(input,user,date));return;
       }
       if(table==='leads'){
+        // "Neu" is an entry state, never a destination after the lead was processed.
+        if(before.status!=='Neu' && input.status==='Neu')
+          throw err('Ein bearbeiteter Lead kann nicht auf «Neu» zurückgesetzt werden',409);
         if(before.status==='Gewonnen' && input.status&&input.status!=='Gewonnen')
           throw err('Gewonnener Auftrag kann nicht zurückgestuft werden');
         if(before.status==='Gewonnen'){
@@ -348,6 +351,22 @@ function buildStore(db,prefix){
     });
     const saved=await ref.get();return toObject(saved);
   }
-  return {TABLES,list,get,create,update,reminders,clean};
+  async function remove(table,id){
+    // Deletion is deliberately restricted to unprocessed leads, never to
+    // customers, offers, invoices or projects. Firestore transaction re-reads
+    // current status and linked offers to handle concurrent status changes.
+    if(table!=='leads')throw err('Nur neue Website-Leads dürfen gelöscht werden',405);
+    const ref=col('leads').doc(id);
+    await db.runTransaction(async tx=>{
+      const lead=await tx.get(ref);
+      if(!lead.exists)throw err('Lead nicht gefunden',404);
+      if(lead.data().status!=='Neu')throw err('Nur Leads mit Status «Neu» dürfen gelöscht werden',409);
+      const linked=await queryOne(tx,'offerten','leadId',id);
+      if(linked)throw err('Lead hat bereits eine verknüpfte Offerte und kann nicht gelöscht werden',409);
+      tx.delete(ref);
+    });
+    return {id,deleted:true};
+  }
+  return {TABLES,list,get,create,update,remove,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

@@ -100,6 +100,7 @@ test('qualification creates exactly one numbered editable Firestore offer',async
   assert.equal(offers[0].leadId,lead.id);
   await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
   assert.equal((await store.list('offerten')).length,1);
+  assert.equal((await store.list('offerten'))[0].description,'');
 });
 test('accepting a quote generates customer and project once and locks accepted offer',async()=>{
   const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
@@ -255,11 +256,7 @@ test('follow-up and qualification data persist without affecting other records',
   await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
   const offers=await store.list('offerten');
   assert.equal(offers.length,1);
-  assert.match(offers[0].description,/Anfrage: Automationen prüfen/);
-  assert.match(offers[0].description,/Heutiger Ablauf: Excel/);
-  assert.doesNotMatch(offers[0].description,/Budgetrahmen/);
-  assert.doesNotMatch(offers[0].description,/Qualifizierungsnotizen/);
-  assert.doesNotMatch(offers[0].description,/MVP zuerst/);
+  assert.equal(offers[0].description,'','Qualifizierte Leads dürfen keine vorausgefüllte Leistungsbeschreibung erzeugen');
   await store.update('leads',lead.id,{qualificationNotes:'Später ergänzt'},admin);
   assert.equal((await store.list('offerten'))[0].description,offers[0].description);
   await store.update('leads',lead.id,{nextAction:'',followUpDate:''},admin);
@@ -327,4 +324,20 @@ test('declined sent offer marks lead lost; duplicate sent requests cannot resend
   assert.equal((await store.get('leads',lead.id)).status,'Verloren');
   assert.equal((await store.get('offerten',offer.id)).status,'Abgelehnt');
   await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate},admin),{status:409});
+});
+
+test('directly qualified lead creates an offer with blank description; explicit manual description persists',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',{
+    ...newLead('Beispiel AG'),status:'Qualifiziert',currentProcess:'Excel',
+    systems:'ERP',desiredResult:'Schnellerer Workflow',qualificationNotes:'Intern'
+  },admin);
+  const offers=await store.list('offerten');
+  assert.equal(offers.length,1);
+  assert.equal(offers[0].description,'');
+  await store.update('offerten',offers[0].id,{description:'Manuell erstellte Leistungsbeschreibung'},admin);
+  assert.equal((await store.get('offerten',offers[0].id)).description,'Manuell erstellte Leistungsbeschreibung');
+  assert.equal((await store.get('leads',lead.id)).currentProcess,'Excel');
+  await store.update('leads',lead.id,{qualificationNotes:'Geändert'},admin);
+  assert.equal((await store.get('offerten',offers[0].id)).description,'Manuell erstellte Leistungsbeschreibung');
 });

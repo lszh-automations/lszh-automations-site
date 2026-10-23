@@ -30,7 +30,8 @@ const mailDispatcher=makeDispatcher(db,PREFIX,{
 });
 const offerSender=createOfferSender(store,{
   enabled:process.env.CRM_OFFER_MAIL_ENABLED==='true',
-  webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL
+  webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
+  testTo:process.env.CRM_OFFER_MAIL_TEST_TO
 });
 const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
 const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();
@@ -83,7 +84,7 @@ async function handler(req,res){
   if(req.method==='GET'&&(pathname==='/'||pathname==='/index.html'))
     return reply(res,200,fs.readFileSync(path.join(__dirname,'public','index.html'),'utf8'),'text/html; charset=utf-8');
   if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled}:{error:'not_configured'});
+    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo}:{error:'not_configured'});
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');

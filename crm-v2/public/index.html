@@ -630,7 +630,131 @@ function makeField(key,label,type,value) {
   }
   wrap.append(control);return wrap;
 }
+
+function quoteCHF(value){
+  return new Intl.NumberFormat('de-CH',{
+    style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2
+  }).format(value||0);
+}
+function quotePreviousItems(offer){
+  if(Array.isArray(offer?.items))return offer.items;
+  const lines=[];
+  if(Number(offer?.oneTimeCHF)>0)lines.push({
+    title:'Einmalige Umsetzung',qty:1,unitPriceCHF:Number(offer.oneTimeCHF),mode:'einmalig'
+  });
+  if(Number(offer?.monthlyCHF)>0)lines.push({
+    title:'Monatliche Betreuung',qty:1,unitPriceCHF:Number(offer.monthlyCHF),mode:'monatlich'
+  });
+  return lines;
+}
+function markQuoteUnsaved(){
+  $('offerPrint').disabled=true;
+  $('offerHint').textContent='Ungespeicherte Änderungen. Bitte zuerst speichern, danach die Druckansicht öffnen.';
+}
+function updateQuoteTotals(){
+  let onceCents=0,monthlyCents=0;
+  for(const row of $('offerLines').children){
+    const fields=row._quoteFields;
+    if(!fields)continue;
+    const qty=Number(fields.qty.value)||0;
+    const cents=Math.round((Number(fields.unitPriceCHF.value)||0)*100);
+    const value=Math.round(qty*cents);
+    fields.total.textContent=quoteCHF(value/100);
+    if(fields.mode.value==='monatlich')monthlyCents+=value;
+    else onceCents+=value;
+  }
+  $('offerOnce').textContent=quoteCHF(onceCents/100);
+  $('offerMonthly').textContent=quoteCHF(monthlyCents/100)+' / Monat';
+}
+function quoteInput(type,name,value){
+  const control=el(type==='select'?'select':'input');
+  control.name=name;
+  if(type!=='select'){
+    control.type=type==='number'?'number':'text';
+    if(type==='number'){control.min='0';control.step=name==='qty'?'0.001':'0.01';}
+  }
+  control.value=value==null?'':String(value);
+  return control;
+}
+function addQuoteLine(data={}){
+  const row=el('div','offer-line');
+  const fields={};
+  const values={
+    title:data.title??'',qty:data.qty??1,
+    unitPriceCHF:data.unitPriceCHF??0,mode:data.mode??'einmalig'
+  };
+  const make=(name,label,type)=>{
+    const wrap=el('label');
+    wrap.append(el('span','',label));
+    const control=quoteInput(type,name,values[name]);
+    if(name==='title'){control.required=true;control.maxLength=180;control.placeholder='Leistung beschreiben';}
+    if(name==='qty'){control.required=true;control.min='0.001';}
+    if(name==='unitPriceCHF'){control.required=true;}
+    wrap.append(control);
+    fields[name]=control;
+    control.addEventListener('input',()=>{updateQuoteTotals();markQuoteUnsaved();});
+    control.addEventListener('change',()=>{updateQuoteTotals();markQuoteUnsaved();});
+    return wrap;
+  };
+  row.append(make('title','Leistung','text'));
+  row.append(make('qty','Menge','number'));
+  row.append(make('unitPriceCHF','Preis pro Einheit (CHF)','number'));
+  const mode=make('mode','Art','select');
+  const select=fields.mode;
+  for(const [value,label] of [['einmalig','Einmalig'],['monatlich','Monatlich']]){
+    const option=el('option','',label);option.value=value;select.append(option);
+  }
+  select.value=values.mode;
+  row.append(mode);
+  const total=el('div','offer-line-total');
+  total.append(el('small','','Positionsbetrag'));
+  fields.total=el('strong','','CHF 0.00');
+  total.append(fields.total);row.append(total);
+  const remove=el('button','offer-line-remove','×');
+  remove.type='button';remove.setAttribute('aria-label','Position entfernen');
+  remove.addEventListener('click',()=>{
+    row.remove();
+    updateQuoteTotals();markQuoteUnsaved();
+  });
+  row.append(remove);row._quoteFields=fields;
+  $('offerLines').append(row);
+  updateQuoteTotals();
+}
+function quoteItemsFromForm(){
+  const items=[];
+  for(const row of $('offerLines').children){
+    const f=row._quoteFields;
+    if(!f)continue;
+    items.push({
+      title:f.title.value.trim(),qty:Number(f.qty.value),
+      unitPriceCHF:Number(f.unitPriceCHF.value),mode:f.mode.value
+    });
+  }
+  return items;
+}
+function openOfferEditor(record=null,draft=null){
+  state.offerEditing=record;
+  $('offerEditorTitle').textContent=record
+    ?'Offerte Nr. '+(record.number||'–')+' bearbeiten':'Neue Offerte';
+  $('offerFields').replaceChildren();
+  $('offerLines').replaceChildren();
+  const fields=['leadId','customerId','title','description','validUntil','status'];
+  for(const [key,label,type] of definitions.offerten.fields){
+    if(!fields.includes(key))continue;
+    const field=makeField(key,label,type,record?.[key] ?? draft?.[key]);
+    field.addEventListener('input',markQuoteUnsaved);
+    field.addEventListener('change',markQuoteUnsaved);
+    $('offerFields').append(field);
+  }
+  for(const line of quotePreviousItems(record||draft))addQuoteLine(line);
+  updateQuoteTotals();
+  $('offerPrint').disabled=!record;
+  $('offerHint').textContent='PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
+  $('offerEditor').showModal();
+}
+
 function openEditor(record=null,draft=null) {
+  if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
   state.editing=record;
   $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
   const form=$('editorForm');
@@ -677,6 +801,41 @@ $('search').addEventListener('input',render);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
 $('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
+$('offerClose').addEventListener('click',()=>$('offerEditor').close());
+$('offerCancel').addEventListener('click',()=>$('offerEditor').close());
+$('offerAddLine').addEventListener('click',()=>{
+  addQuoteLine();
+  markQuoteUnsaved();
+});
+$('offerPrint').addEventListener('click',()=>{
+  if(!state.offerEditing||$('offerPrint').disabled)return;
+  window.open('/preview/offerte/'+encodeURIComponent(state.offerEditing.id),'_blank','noopener');
+});
+$('offerForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=$('offerForm');
+  const data={};
+  for(const key of ['leadId','customerId','title','description','validUntil','status']){
+    const field=form.elements.namedItem(key);
+    data[key]=field?.value??'';
+  }
+  data.items=quoteItemsFromForm();
+  const current=state.offerEditing;
+  const save=$('offerSave');
+  save.disabled=true;save.textContent='Speichere …';
+  try {
+    const endpoint='/api/records/offerten'+(current?'/'+encodeURIComponent(current.id):'');
+    const result=await api(endpoint,{
+      method:current?'PATCH':'POST',body:JSON.stringify(data)
+    });
+    $('offerEditor').close();
+    await loadAll();
+    const found=(state.records.offerten||[]).find(x=>x.id===result.record.id);
+    if(found)openOfferEditor(found);
+  }catch(err){
+    window.alert('Offerte konnte nicht gespeichert werden: '+err.message);
+  }finally{save.disabled=false;save.textContent='Speichern';}
+});
 $('editorForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=$('editorForm'),data=Object.fromEntries(new FormData(form).entries());

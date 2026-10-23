@@ -255,6 +255,13 @@ Beim ersten Test nach `git pull` schlugen **2 von 30** CRM-Tests fehl: Die bishe
 - CI-Syntaxprüfung auf `scripts/activate-crm-mail-live.ps1` erweitert, Dokumentation `crm-v2/MAIL-AUTOMATIONS.md` fortgeschrieben.
 - **Stand:** Script auf GitHub, noch nicht vom Surface ausgeführt; produktiver Versand weiterhin nicht aktiv. Nach Skriptlauf sind Kunden-Bestätigung, interne Neu-Lead-Mail und die nach 24h bedingte interne Erinnerungsmail freigeschaltet. Frühere Leads als UTC-Aktivierungszeitpunkt werden nicht rückwirkend benachrichtigt. Ersten authentifizierten Scheduler-Aufruf sowie Mail-Sendehistorie danach gesondert prüfen (reiner 401-Smoketest bestätigt nur unauthentisierten Schutz).
 
+### 23.10.2026 – CRM V2 E-Mailautomationen produktiv aktiviert
+
+- Der Geschäftsführer führte `scripts/activate-crm-mail-live.ps1` auf dem Surface aus; **31/31 Tests PASS**. Neue Cloud-Run-Revision **`lszh-crm-v2-00010-raf` bedient 100 % Traffic**, vorherige bewährte Revision `lszh-crm-v2-00008-zog` bleibt mit 0 % als Rollback verfügbar. HTTP-Smoketests auf Kandidat und Live erfolgreich. Website Intake und Google OAuth intakt.
+- **Mail-Aktivierungscutoff `2026-10-23T16:15:28Z`** (18:15:28 Europa/Zurich). `CRM_MAIL_ENABLED=true` auf neuer Live-Revision; alle vor diesem Zeitpunkt erstellten Website-Leads werden ausgeschlossen.
+- Cloud Scheduler `lszh-crm-v2-mail-tick` auf `* * * * *` (einmal pro Minute) gestellt und per gcloud `jobs resume` aktiviert; Schlussmeldung des Skripts: `MAIL GO-LIVE PASS`. Dieser Abschluss belegt Scheduler-Status ENABLED, aber **noch nicht die erfolgreiche Ausführung mit OIDC oder den tatsächlichen E-Mail-Versand**.
+- Make Szenario **8135270** live nochmals geprüft: Status `active`, Geschäfts-Gmail-Verbindung **11904991 `ok`**, Webhook-Warteschlange **0**. Zum Kontrollzeitpunkt zeigte die Make-Ausführungshistorie **noch keine neuen Ausführungen nach dem Cutoff**, nur den früheren internen `TEST_ONLY`-Versand vom selben Tag. Ohne neue Website-Anfrage kann dies der erwartete Zustand sein.
+- Offene Live-Abnahme: mit **lesendem** `gcloud scheduler jobs describe lszh-crm-v2-mail-tick --project lszh-automations --location europe-west6 --format="json(state,schedule,lastAttemptTime,status)"` prüfen, ob ein letzter Lauf mit Statuscode 0 statt Auth-/Run-Fehlern vorliegt. Danach einen neuen Website-Lead (ab Cutoff) von Ende zu Ende prüfen: Firestore mail_events, Make-Ausführung mit Gmail-ID, Empfang interner und Kunden-E-Mail; 24h-Erinnerung nur bei Status `Neu` zum Fälligkeitszeitpunkt.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

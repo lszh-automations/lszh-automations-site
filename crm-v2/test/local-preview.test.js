@@ -215,3 +215,50 @@ test('quote API rejects negative or malformed line items without saving changes'
   const missing=await call('GET','/preview/offerte/not-a-record');
   assert.equal(missing.status,404);
 });
+
+test('accepted offers are immutable through API even if caller bypasses browser controls',async()=>{
+  const offer=await call('POST','/api/records/offerten',{
+    title:'TEST: Angenommene Kundenofferte',customerId:'test-customer-1',
+    status:'Angenommen',items:[{title:'Fixbetrag',qty:1,unitPriceCHF:100,mode:'einmalig'}]
+  });
+  assert.equal(offer.status,201);
+  const id=offer.body.record.id;
+  const attempts=[
+    {title:'Heimlich geändert'},
+    {status:'Entwurf'},
+    {items:[{title:'Andere Summe',qty:1,unitPriceCHF:1,mode:'einmalig'}]},
+    {validUntil:'2026-12-01'}
+  ];
+  for(const changes of attempts){
+    const denied=await call('PATCH','/api/records/offerten/'+id,changes);
+    assert.equal(denied.status,403);
+    assert.match(denied.body.error,/gesperrt|Sonderrechte/);
+  }
+  const stored=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8'));
+  const record=stored.offerten.find(x=>x.id===id);
+  assert.equal(record.title,'TEST: Angenommene Kundenofferte');
+  assert.equal(record.status,'Angenommen');
+  assert.equal(record.oneTimeCHF,100);
+  assert.equal(record.validUntil,undefined);
+  assert.equal(stored.offerten.filter(x=>x.id===id).length,1);
+});
+test('won lead blocks direct mutation of its accepted offer',async()=>{
+  const leadInput={
+    name:'TEST Auftrag',company:'TEST Auftrag AG',email:'auftrag@example.com',
+    street:'Testweg 4',postalCode:'5000',city:'Aarau',country:'Schweiz'
+  };
+  const made=await call('POST','/api/records/leads',leadInput);
+  assert.equal(made.status,201);
+  const leadId=made.body.record.id;
+  await call('PATCH','/api/records/leads/'+leadId,{status:'Qualifiziert'});
+  await call('PATCH','/api/records/leads/'+leadId,{status:'Gewonnen'});
+  const offers=await call('GET','/api/records/offerten');
+  const offer=offers.body.records.find(x=>x.leadId===leadId);
+  assert.ok(offer);
+  const result=await call('PATCH','/api/records/offerten/'+offer.id,{
+    title:'Neue Bezeichnung'
+  });
+  assert.equal(result.status,403);
+  const updated=await call('GET','/api/records/offerten');
+  assert.equal(updated.body.records.find(x=>x.id===offer.id).title,offer.title);
+});

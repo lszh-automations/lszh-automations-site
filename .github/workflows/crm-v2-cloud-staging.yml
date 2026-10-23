@@ -37,6 +37,7 @@ jobs:
           node --check mail-dispatcher.js
           node --check ../scripts/preview-crm-customer-mail.js
           node --check ../scripts/preview-crm-internal-mails.js
+          node --check ../scripts/preview-crm-offer-documents.js
       - name: Validate PowerShell cutover scripts (no cloud commands executed)
         shell: pwsh
         run: |

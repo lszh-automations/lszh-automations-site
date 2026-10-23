@@ -109,13 +109,14 @@ function makePdf(offer,recipient={}){
     y-=height;
     rect(LEFT,y,RIGHT-LEFT,.6,[.72,.80,.86]);
   }
-  check(180);y-=26;
+  check(210);y-=26;
   rect(LEFT,y-56,RIGHT-LEFT,67,[.89,.94,.975]);
   text('Einmalig',LEFT+13,y-10,10);
   text(money(totals.oneTimeCHF),LEFT+13,y-37,15,true);
   text('Monatlich',LEFT+264,y-10,10);
   text(money(totals.monthlyCHF)+' / Monat',LEFT+264,y-37,15,true);
   y-=83;
+  line('Keine MWST ausgewiesen - nicht MWST-registriert.',9,18);
   line('Diese Offerte ist bis '+dateCH(offer.validUntil)+' gültig.',9,20);
   line('Unverbindlich. Ein Auftrag kommt erst nach unserer ausdrücklichen',9,14);
   line('schriftlichen Auftragsbestätigung zustande.',9,20);

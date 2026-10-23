@@ -15,5 +15,13 @@ async function main(){
   const file=path.join(dest,'TEST_ONLY_LSZH_Swiss_QR.pdf');
   fs.writeFileSync(file,bytes,{flag:'w'});
   console.log('TEST_ONLY PDF generated, bytes='+bytes.length);
+  const longItems=Array.from({length:60},(_,i)=>({
+    title:'TEST_ONLY Leistung '+String(i+1).padStart(2,'0')+' Automationsberatung und Schulung',
+    qty:1,unitPriceCHF:2
+  }));
+  const longPdf=await makeInvoicePdf({...invoice,description:'TEST_ONLY Mehrseitige Rechnungspruefung',
+    amountCHF:120,items:longItems},customer,null,{iban:'CH9300762011623852957'});
+  fs.writeFileSync(path.join(dest,'TEST_ONLY_LSZH_Swiss_QR_LONG.pdf'),longPdf,{flag:'w'});
+  console.log('TEST_ONLY LONG PDF generated, bytes='+longPdf.length);
 }
 main().catch(e=>{console.error('TEST_ONLY PDF FAIL:',e.message);process.exitCode=1;});

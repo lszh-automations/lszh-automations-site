@@ -28,6 +28,71 @@ function shell(content){
     '<p style="font-size:12px;color:#66758c">LSZH Automations · Geschäftsbereich der LSZH Invest GmbH · 5610 Wohlen AG</p>'+
     '</div></body></html>';
 }
+
+// Dedicated, email-client-friendly customer layout in the live LSZH brand.
+// Tables and inline CSS work in Gmail/Outlook; no external images, JS or fonts.
+function customerShell(content){
+  return '<!doctype html><html lang="de-CH"><head>'+
+    '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>LSZH Automations – Ihre Anfrage</title></head>'+
+    '<body style="margin:0;padding:0;background-color:#f4f7fb;color:#0f1726;font-family:Arial,Helvetica,sans-serif;">'+
+    '<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">'+
+      'Vielen Dank. Wir haben Ihre Anfrage erhalten und melden uns persönlich bei Ihnen.</div>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background-color:#f4f7fb;">'+
+    '<tr><td align="center" style="padding:28px 14px 36px;">'+
+    '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
+    '<tr><td bgcolor="#06101d" style="background-color:#06101d;padding:29px 32px;">'+
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
+      '<td width="53" valign="middle" style="width:53px;">'+
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
+        '<td width="43" height="43" align="center" valign="middle" bgcolor="#5b8cff" style="width:43px;height:43px;border-radius:12px;background-color:#5b8cff;color:#ffffff;font-size:27px;font-weight:800;line-height:43px;">L</td>'+
+        '</tr></table>'+
+      '</td>'+
+      '<td valign="middle" style="padding-left:10px;">'+
+        '<div style="font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:18px;font-weight:700;line-height:23px;letter-spacing:-0.3px;">LSZH Automations</div>'+
+        '<div style="color:#b2bfd3;font-size:9px;font-weight:700;line-height:16px;letter-spacing:1.6px;">AUTOMATION FÜR SCHWEIZER KMU</div>'+
+      '</td></tr></table>'+
+    '</td></tr>'+
+    '<tr><td style="padding:0;">'+
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">'+
+        '<tr><td width="34%" height="4" bgcolor="#74d8ff" style="height:4px;font-size:0;line-height:0;background-color:#74d8ff;">&nbsp;</td>'+
+        '<td width="33%" height="4" bgcolor="#5b8cff" style="height:4px;font-size:0;line-height:0;background-color:#5b8cff;">&nbsp;</td>'+
+        '<td width="33%" height="4" bgcolor="#8e72ff" style="height:4px;font-size:0;line-height:0;background-color:#8e72ff;">&nbsp;</td></tr>'+
+      '</table>'+
+    '</td></tr>'+
+    '<tr><td style="background-color:#ffffff;padding:40px 34px 38px;">'+content+'</td></tr>'+
+    '<tr><td bgcolor="#0a1728" style="background-color:#0a1728;padding:27px 34px 29px;">'+
+      '<p style="margin:0 0 9px;color:#ffffff;font-size:13px;font-weight:700;line-height:20px;">LSZH Automations</p>'+
+      '<p style="margin:0 0 13px;color:#b2bfd3;font-size:11px;line-height:19px;">'+
+        'Ein Geschäftsbereich der LSZH Invest GmbH<br>Rummelmatt 8 · 5610 Wohlen AG · Schweiz</p>'+
+      '<p style="margin:0 0 14px;font-size:11px;line-height:19px;">'+
+        '<a href="mailto:info@lszh-automations.ch" style="color:#74d8ff;text-decoration:none;">info@lszh-automations.ch</a>'+
+        '<span style="color:#66758c;"> &nbsp;·&nbsp; </span>'+
+        '<a href="https://lszh-automations.ch/" style="color:#74d8ff;text-decoration:none;">lszh-automations.ch</a></p>'+
+      '<p style="margin:0;padding-top:13px;border-top:1px solid #25354d;color:#93a4bc;font-size:10px;line-height:17px;">'+
+        'Diese Nachricht bestätigt nur den Eingang Ihrer Anfrage. Es ist noch kein Auftrag zustande gekommen.</p>'+
+    '</td></tr></table>'+
+    '</td></tr></table></body></html>';
+}
+function customerConfirmation(lead,name){
+  const greeting=name ? 'Guten Tag '+escapeHtml(name) : 'Guten Tag';
+  return customerShell(
+    '<p style="margin:0 0 13px;color:#5b8cff;font-size:11px;font-weight:700;line-height:17px;letter-spacing:1.6px;">ANFRAGE EINGEGANGEN</p>'+
+    '<h1 style="margin:0 0 26px;color:#06101d;font-size:29px;font-weight:700;line-height:37px;letter-spacing:-0.8px;">Ihre Anfrage ist bei uns eingegangen.</h1>'+
+    '<p style="margin:0 0 17px;color:#0f1726;font-size:15px;line-height:25px;">'+greeting+'</p>'+
+    '<p style="margin:0 0 26px;color:#344259;font-size:15px;line-height:25px;">'+
+      'Vielen Dank für Ihr Interesse an LSZH Automations. Wir haben Ihre Angaben erhalten.</p>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;">'+
+      '<tr><td style="padding:20px 22px;">'+
+        '<p style="margin:0 0 8px;color:#06101d;font-size:13px;font-weight:700;line-height:20px;">Wie geht es weiter?</p>'+
+        '<p style="margin:0;color:#526278;font-size:14px;line-height:23px;">'+
+          'Wir prüfen Ihr Anliegen und melden uns persönlich bei Ihnen, um mögliche Lösungen und die nächsten Schritte zu besprechen.</p>'+
+      '</td></tr></table>'+
+    '<p style="margin:28px 0 0;color:#344259;font-size:14px;line-height:24px;">'+
+      'Freundliche Grüsse<br><strong style="color:#06101d;">Ihr Team von LSZH Automations</strong></p>'
+  );
+}
+
 function isEligible(lead,kind,nowMs=Date.now(),notBeforeMs=0){
   // This workflow is exclusively for leads created by the public website,
   // not manually entered CRM contacts or imported records.
@@ -54,12 +119,7 @@ function renderMail(kind,lead){
     return {
       to:asText(lead.email,254).toLowerCase(),
       subject:'Ihre Anfrage bei LSZH Automations ist eingegangen',
-      html:shell('<p>Guten Tag '+escapeHtml(name)+'</p>'+
-        '<p>Vielen Dank für Ihre Anfrage und Ihr Interesse an LSZH Automations. '+
-        'Wir haben Ihre Angaben erhalten und werden sie prüfen. '+
-        'Wir melden uns persönlich bei Ihnen, um die nächsten Schritte zu besprechen.</p>'+
-        '<p>Dies ist eine automatische Eingangsbestätigung; es wurde noch kein Auftrag abgeschlossen.</p>'+
-        '<p>Freundliche Grüsse<br>LSZH Automations</p>')
+      html:customerConfirmation(lead,asText(lead.name,180))
     };
   }
   if(kind===EVENT_TYPES.INTERNAL_NEW){

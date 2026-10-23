@@ -159,3 +159,36 @@ test('lead dialog adds contact history, follow-up actions and qualification',()=
   assert.match(html,/history\.length>20/);
   assert.doesNotMatch(html,/localStorage\.setItem\(/);
 });
+
+test('offer follow-ups appear on dashboard only while sent, in due order',()=>{
+  const inline=inlineScripts.find(s=>s.includes('function dueOfferFollowUps('));
+  const source=inline.slice(inline.indexOf('function dueOfferFollowUps('),inline.indexOf('function offerRecipient('));
+  const dueOfferFollowUps=vm.runInNewContext(source+'\ndueOfferFollowUps');
+  const offers=[
+    {id:'early',status:'Versendet',followUpDate:'2026-10-20'},
+    {id:'ready',status:'Bereit',followUpDate:'2026-10-22'},
+    {id:'due',status:'Versendet',followUpDate:'2026-10-23'},
+    {id:'future',status:'Versendet',followUpDate:'2026-10-30'},
+    {id:'won',status:'Angenommen',followUpDate:'2026-10-19'}
+  ];
+  assert.deepEqual(Array.from(dueOfferFollowUps(offers,'2026-10-23'),o=>o.id),['early','due']);
+  assert.match(html,/dashboardPanel\('Offerten-Nachverfolgung'/);
+  assert.match(html,/navigateTo\('offerten',offer\)/);
+  assert.match(html,/\['followUpDate','Nachfassen'\]/);
+});
+test('offer UI documents manual delivery without automatically sending mail',()=>{
+  assert.match(html,/function renderOfferWorkflow\(offer\)/);
+  assert.match(html,/E-Mail-Text kopieren/);
+  assert.match(html,/navigator\.clipboard\.writeText/);
+  assert.match(html,/PDF bitte separat anhängen/);
+  assert.match(html,/Versand dokumentieren/);
+  assert.match(html,/\/dispatch'/);
+  assert.match(html,/\/followup'/);
+  assert.match(html,/Nachfassen protokollieren/);
+  assert.match(html,/Als angenommen markieren/);
+  assert.match(html,/Als abgelehnt markieren/);
+  assert.match(html,/if\(!window\.confirm\('Wurde die Offerte tatsächlich an den Kunden versendet/);
+  assert.match(html,/renderOfferWorkflow\(record\)/);
+  assert.match(html,/offer\.status==='Versendet'/);
+  assert.doesNotMatch(html,/fetch\([^)]*sendEmail/i);
+});

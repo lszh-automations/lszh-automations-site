@@ -154,13 +154,94 @@ try{
   Probe $base
   CheckMode $base $false
   $core=EnvCore $old
-  $oldImage=[string](@($old.spec.containers)[0].image)
 
   Write-Host '2. Prepare offer-only Make URL in Secret Manager (no customer sends)'
-  $found=$false
-  & gcloud.cmd secrets describe $secret --project $project --format='value(name)' 2>$null | Out-Null
-  if($LASTEXITCODE -eq 0){$found=$true}
-  if(!$found){
+  $allRaw=(& gcloud.cmd secrets list --project $project --format=json) -join [Environment]::NewLine
+  Check 'Cannot list secrets in project'
+  $found=@(($allRaw|ConvertFrom-Json)|Where-Object{
+    $_.name -match ('/secrets/'+[regex]::Escape($secret)+'
+    & gcloud.cmd secrets create $secret --project $project --replication-policy=automatic --quiet
+    Check 'Cannot create offer Make secret'
+  }
+  $rawVersions=(& gcloud.cmd secrets versions list $secret --project $project --format=json) -join [Environment]::NewLine
+  Check 'Cannot list offer Make secret versions'
+  $versions=@($rawVersions|ConvertFrom-Json)
+  $enabledVersions=@($versions|Where-Object{$_.state -eq 'ENABLED'})
+  if($enabledVersions.Count -eq 0){
+    $secure=Read-Host 'Paste NEW OFFERS Make webhook URL (hidden input; never paste in chat)' -AsSecureString
+    $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try{$hook=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr).Trim()}
+    finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
+    if($hook -notmatch '^https://hook[.]eu1[.]make[.]com/[A-Za-z0-9]+$'){
+      throw 'Wrong offer Make URL format'
+    }
+    $tmp=Join-Path $env:TEMP ('lszh-offer-'+[guid]::NewGuid().ToString('N')+'.tmp')
+    try{
+      [IO.File]::WriteAllText($tmp,$hook,([System.Text.UTF8Encoding]::new($false)))
+      $hook=$null
+      & gcloud.cmd secrets versions add $secret ('--data-file='+$tmp) --project $project --quiet | Out-Null
+      Check 'Could not store offer Make secret version'
+    }finally{if(Test-Path $tmp){Remove-Item $tmp -Force}}
+  }else{
+    Write-Host 'PASS: Existing enabled offer webhook Secret Manager version reused'
+  }
+  & gcloud.cmd secrets add-iam-policy-binding $secret --project $project ('--member=serviceAccount:'+$account) --role=roles/secretmanager.secretAccessor --quiet | Out-Null
+  Check 'CRM cannot read offer Make secret'
+
+  Write-Host '3. Deploy source with allowlisted TEST_ONLY sending at ZERO live traffic'
+  $vars='CRM_OFFER_MAIL_ENABLED=true,CRM_OFFER_MAIL_TEST_TO='+$testTo
+  $binding='CRM_OFFER_MAIL_WEBHOOK_URL='+$secret+':latest'
+  & gcloud.cmd run deploy $service --source '.\crm-v2' --project $project --region $region --no-traffic ('--tag='+$tag) ('--update-env-vars='+$vars) ('--update-secrets='+$binding) --quiet
+  Check 'Cloud Run offer test-only candidate build failed'
+  $candidateService=ReadService
+  if((ActiveRevision $candidateService) -ne $previous){
+    throw 'ALARM: live traffic changed during candidate deployment'
+  }
+  $newName=[string]$candidateService.status.latestReadyRevisionName
+  if(!$newName -or $newName -eq $previous){throw 'New candidate revision missing'}
+  $new=ReadRevision $newName
+  CheckRuntime $new
+  if((EnvCore $new) -ne $core){throw 'Existing service env/secret settings changed'}
+  if((EnvEntry $new 'CRM_OFFER_MAIL_ENABLED').value -ne 'true'){
+    throw 'Offer enabled flag missing from candidate'
+  }
+  if((EnvEntry $new 'CRM_OFFER_MAIL_TEST_TO').value -ne $testTo){
+    throw 'TEST_ONLY mailbox allowlist missing from candidate'
+  }
+  $ref=(EnvEntry $new 'CRM_OFFER_MAIL_WEBHOOK_URL').valueFrom.secretKeyRef
+  if($ref.name -ne $secret){throw 'Offer webhook not supplied through Secret Manager'}
+  $candidateTag=@($candidateService.status.traffic|Where-Object{
+    $_.tag -eq $tag -and $_.revisionName -eq $newName -and [int]$_.percent -eq 0
+  })
+  if($candidateTag.Count -ne 1){throw 'Tagged candidate must have zero live traffic'}
+  Probe $candidateTag[0].url
+  CheckMode $candidateTag[0].url $true
+  CheckScheduler (ReadScheduler)
+  Write-Host ('PASS: TEST_ONLY candidate '+$newName+' ready; old live unchanged')
+
+  Write-Host '4. Switch traffic; retain original mail scheduler and rollback revision'
+  $switched=$true
+  & gcloud.cmd run services update-traffic $service ('--to-revisions='+$newName+'=100') --project $project --region $region --quiet
+  Check 'Could not route 100 percent to TEST_ONLY revision'
+  if((ActiveRevision (ReadService)) -ne $newName){
+    throw 'TEST_ONLY revision did not receive all traffic'
+  }
+  Probe $base
+  CheckMode $base $true
+  CheckScheduler (ReadScheduler)
+  $completed=$true
+  Write-Host 'CRM OFFER TEST ONLY LIVE PASS'
+  Write-Host ('LIVE: '+$newName+' 100 percent')
+  Write-Host ('ROLLBACK: '+$previous)
+  Write-Host ('AUTOMATIC OFFER MAIL: TEST_ONLY to '+$testTo)
+  Write-Host 'Existing customer emails, scheduler and mail cutoff unchanged.'
+}finally{
+  try{if($switched -and !$completed){Rollback}}finally{Pop-Location}
+}
+)
+  })
+  if($found.Count -gt 1){throw 'Duplicate offer webhook secrets detected'}
+  if($found.Count -eq 0){
     & gcloud.cmd secrets create $secret --project $project --replication-policy=automatic --quiet
     Check 'Cannot create offer Make secret'
   }

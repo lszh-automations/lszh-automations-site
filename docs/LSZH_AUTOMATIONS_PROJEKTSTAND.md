@@ -69,6 +69,19 @@ Den Rückfallbefehl **jetzt nicht ausführen**. Vor dem Wechsel ausserdem Altbes
 
 Nutzer hat den rein lesenden `scripts/prepare-crm-live-candidate.ps1` ohne `-Deploy` ausgeführt. Live-Cloud-Run-Revision `lszh-crm-v2-00002-6lh` mit 100 % Traffic unverändert; Servicekonto und Secret-Manager-Referenz nachgewiesen; 20/20 CRM-Tests bestanden; geprüfter Source-Commit `8598f99`. Keine produktive Änderung. Als bewusster nächster Schritt ist der `-Deploy`-Aufruf für eine getaggte Kandidatenrevision mit 0 % Standardtraffic vorbereitet. **Eine Tag-URL ist dennoch direkt erreichbar und kann auf Live-Firestore zugreifen; keine echten Schreibtests vor gesonderter Freigabe.** Bestandsabgleich Airtable und isolierte Backup-Wiederherstellung bleiben offen.
 
+### 23.10.2026 – Live-Kandidat mit 0 % Traffic erfolgreich bereitgestellt
+
+Vom Geschäftsführer übermittelte PowerShell-Ausgabe:
+- `git pull --ff-only` auf Commit `55a7a09`, danach `scripts/prepare-crm-live-candidate.ps1 -Deploy`.
+- **20/20** Node-Tests bestanden.
+- Neuer CRM-V2-Kandidat im bestehenden Cloud-Run-Dienst `lszh-crm-v2`: Revision `lszh-crm-v2-00004-mez`, **0 % produktiver Traffic**.
+- Getaggte Test-URL: `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Weiterhin **100 % produktiver Traffic** auf Alt-Revision `lszh-crm-v2-00002-6lh`.
+- Cloud-Run-Dienstkonto und bisherige `CRM_INGEST_SECRET`-Referenz nach Deployment unverändert.
+- Kandidat konfiguriert für `CRM_RECORD_PREFIX=lszh_crm_v2_`, Website-Intake `true`, **also mit potenziellem Zugriff auf Live-Firestore**.
+- Kein Render-Deployment, keine produktive Website-Umstellung, kein Kundenversand und keine Live-Datenmigration.
+
+**Als Nächstes:** `scripts/check-crm-live-candidate-http.ps1 -CandidateUrl 'https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app'` durch den Geschäftsführer ausführen (nur anonymes HTML/Config-GET und verbotene API-Aufrufe; erwartet 200/401). Danach Google-OAuth-Ursprünge und einen isolierten Restore- bzw. Datenbestandsabgleich vor endgültiger Traffic-Umstellung prüfen. Freigabe zum Go-live ist noch **nicht** erteilt.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

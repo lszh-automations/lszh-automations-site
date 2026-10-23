@@ -60,6 +60,7 @@ function store(){
   };
   return {
     calls,
+    async get(table,id){return table==='offerten'?saved:null;},
     async claimOfferSend(...args){calls.push(['claim',...args]);return claim;},
     async finishOfferSend(...args){
       calls.push(['finish',...args]);return {id:saved.id,status:args[2]==='confirmed'?'Versendet':'Bereit'};

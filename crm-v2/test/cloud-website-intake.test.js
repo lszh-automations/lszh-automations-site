@@ -44,6 +44,11 @@ async function runServer(enabled,callback){
     'google-auth-library':{OAuth2Client:class {verifyIdToken(){throw Error('not needed')}}},
     '@google-cloud/firestore':{Firestore:FakeFirestore},
     './lead-ingest':leadIngest,
+    './mail-dispatcher':{makeDispatcher:(_db,prefix,config)=>{
+      assert.equal(prefix,'lszh_crm_v2_staging_');
+      assert.equal(config.enabled,false);
+      return {stats:()=>({enabled:false}),tick:async()=>{throw Error('mail_not_enabled_in_intake_tests');}};
+    }},
     './cloud-records':{buildStore:(_db,prefix)=>{
       assert.equal(prefix,'lszh_crm_v2_staging_');
       return {TABLES:['leads','kunden','offerten','rechnungen','projekte']};

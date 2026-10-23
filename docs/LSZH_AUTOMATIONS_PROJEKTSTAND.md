@@ -65,6 +65,10 @@ Neue abgesicherte Kandidatenwerkzeuge (bisher **nicht** auf Live ausgeführt):
 
 Den Rückfallbefehl **jetzt nicht ausführen**. Vor dem Wechsel ausserdem Altbestand, Google OAuth Origins, Rollen/Negativtests und die unmittelbar vorherige aktuelle Sicherung kontrollieren.
 
+### 23.10.2026 – CRM-V2-Live-Kandidaten-Preflight bestanden, noch kein Deployment
+
+Nutzer hat den rein lesenden `scripts/prepare-crm-live-candidate.ps1` ohne `-Deploy` ausgeführt. Live-Cloud-Run-Revision `lszh-crm-v2-00002-6lh` mit 100 % Traffic unverändert; Servicekonto und Secret-Manager-Referenz nachgewiesen; 20/20 CRM-Tests bestanden; geprüfter Source-Commit `8598f99`. Keine produktive Änderung. Als bewusster nächster Schritt ist der `-Deploy`-Aufruf für eine getaggte Kandidatenrevision mit 0 % Standardtraffic vorbereitet. **Eine Tag-URL ist dennoch direkt erreichbar und kann auf Live-Firestore zugreifen; keine echten Schreibtests vor gesonderter Freigabe.** Bestandsabgleich Airtable und isolierte Backup-Wiederherstellung bleiben offen.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

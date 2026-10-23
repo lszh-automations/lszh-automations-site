@@ -51,6 +51,32 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
 
+/* Invoice V1: a short form, a few positions, one amount */
+.invoice-dialog{width:min(940px,calc(100vw - 28px));max-height:92vh}
+#invoiceForm{overflow:auto;max-height:calc(92vh - 80px)}
+.invoice-fields{padding:20px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.invoice-fields .wide{grid-column:1/-1}
+.invoice-fields select{width:100%;border:1px solid #35485d;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.invoice-lines-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 24px 14px;border-top:1px solid var(--border);font-size:14px}
+.invoice-lines{padding:0 24px 10px;display:grid;gap:10px}
+.invoice-line{display:grid;grid-template-columns:minmax(175px,2.2fr) 85px minmax(130px,1fr) minmax(125px,1fr) 38px;gap:10px;align-items:end;border:1px solid #304357;border-radius:12px;background:#152333;padding:11px}
+.invoice-line label{display:grid;gap:6px;color:#a8bfd2;font-size:11px}
+.invoice-line input{width:100%;min-width:0;border:1px solid #354b61;border-radius:8px;background:#0b141e;color:#f3f8ff;padding:10px;font-size:12px}
+.invoice-line-total{display:grid;gap:7px;align-self:end}
+.invoice-line-total small{color:#a8bfd2;font-size:11px}
+.invoice-line-total strong{padding:8px 0;font-size:12px;white-space:nowrap}
+.invoice-line-remove{height:38px;border:1px solid #41566f;border-radius:8px;background:#24374b;color:#ecf4ff;font-size:18px}
+.invoice-total{margin:15px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px;border-radius:12px;border:1px solid #3c5c7a;background:#172b40}
+.invoice-total span{font-size:12px;color:#b6c9db}.invoice-total strong{font-size:24px;letter-spacing:-.03em}
+.invoice-caption{padding:0 24px;font-size:11px;color:#a2b5c7;line-height:1.5}
+.invoice-error{padding:0 24px;font-size:12px;color:#ffb6ac}
+.invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
+.invoice-lock{margin:18px 24px 0;padding:14px 16px;color:#d1e9ff;border:1px solid #426585;background:#1a2c40;border-radius:11px;font-size:13px}
+.invoice-dialog.is-locked input:disabled,.invoice-dialog.is-locked select:disabled,.invoice-dialog.is-locked textarea:disabled{opacity:1;background:#152231;color:#aebfd0}
+@media(max-width:740px){.invoice-line{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.invoice-line-total{align-self:center}}
+@media(max-width:600px){.invoice-fields{grid-template-columns:1fr;padding:16px}.invoice-fields .wide{grid-column:1}.invoice-line{grid-template-columns:1fr 1fr}.invoice-line label:first-child{grid-column:1/-1}.invoice-lines,.invoice-lines-head,.invoice-actions{padding-left:16px;padding-right:16px}.invoice-total{margin:16px}.invoice-caption,.invoice-error{padding:0 16px}.invoice-actions .btn{flex:1}}
+
+
 /* Simple project execution - one project, a status, a date and a checklist */
 .project-dialog{width:min(820px,calc(100vw - 30px));max-height:92vh}
 #projectForm{max-height:calc(92vh - 78px);overflow:auto}
@@ -247,6 +273,23 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     </div>
   </form>
 </dialog>
+<dialog id="invoiceEditor" class="invoice-dialog" aria-labelledby="invoiceEditorTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / RECHNUNGEN</span><h2 id="invoiceEditorTitle">Rechnung</h2></div><button class="btn" type="button" id="invoiceClose" aria-label="Schliessen">✕</button></div>
+  <form id="invoiceForm">
+    <div class="invoice-lock" id="invoiceLocked" role="status" hidden>Diese Rechnung ist abgeschlossen und schreibgeschützt. Die gespeicherte Druckansicht bleibt verfügbar.</div>
+    <div class="invoice-fields" id="invoiceFields"></div>
+    <div class="invoice-lines-head"><strong>Rechnungspositionen</strong><button class="btn" type="button" id="invoiceAddLine">+ Position</button></div>
+    <div class="invoice-lines" id="invoiceLines"></div>
+    <div class="invoice-total"><span>Gesamtbetrag</span><strong id="invoiceTotal">CHF 0.00</strong></div>
+    <p class="invoice-caption">Lokale Testrechnung ohne Versand, MWST-Ausweis und Swiss-QR-Zahlteil. Status «Bezahlt» wird manuell gesetzt.</p>
+    <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
+    <div class="invoice-actions">
+      <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht / PDF</button>
+      <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
+      <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="projectEditor" class="project-dialog" aria-labelledby="projectEditorTitle">
   <div class="modal-head"><div><span class="eyebrow">LSZH / PROJEKTE</span><h2 id="projectEditorTitle">Projekt</h2></div><button class="btn" type="button" id="projectClose" aria-label="Schliessen">✕</button></div>
   <form id="projectForm">
@@ -286,9 +329,9 @@ const definitions={
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['status','Status']]},
-  rechnungen:{title:'Rechnungen',description:'Rechnungsentwürfe und Zahlungsstatus; noch kein Versand oder Swiss QR.',fields:[
-    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['amountCHF','Betrag CHF','number'],['dueDate','Fällig am','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['status','Status']]},
+  rechnungen:{title:'Rechnungen',description:'Rechnungen erstellen, Zahlungen erfassen und als PDF ansehen (lokale Testversion).',fields:[
+    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
+  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
   ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
@@ -939,6 +982,7 @@ function openProjectEditor(record=null,draft=null){
 function openEditor(record=null,draft=null) {
   if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
   if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
+  if(state.tab==='rechnungen'){openInvoiceEditor(record,draft);return;}
   state.editing=record;
   $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
   const form=$('editorForm');

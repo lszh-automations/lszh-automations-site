@@ -127,8 +127,8 @@ try{
   if($tags.Count -ne 1){throw 'Mail candidate not accessible at 0 percent tagged traffic'}
   $newRev=Read-Revision $newName
   if($newRev.spec.serviceAccountName -ne $runtime){throw 'Unexpected runtime service account on candidate'}
-  $oldImage=[string]@($oldRev.spec.containers)[0].image
-  $newImage=[string]@($newRev.spec.containers)[0].image
+  $oldImage=[string](@($oldRev.spec.containers)[0].image)
+  $newImage=[string](@($newRev.spec.containers)[0].image)
   if($newImage -ne $oldImage){throw 'Application image unexpectedly changed'}
   foreach($key in @('CRM_RECORD_PREFIX','CRM_WEBSITE_INTAKE_ENABLED','CRM_INGEST_SECRET',
     'GOOGLE_OAUTH_CLIENT_ID','CRM_ALLOWED_EMAILS','CRM_MAIL_WEBHOOK_URL',

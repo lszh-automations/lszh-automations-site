@@ -1,0 +1,32 @@
+name: CRM V2 Cloud Staging Tests
+on:
+  push:
+    branches:
+      - feature/crm-v2-cloud-staging-20261023
+  pull_request:
+    paths:
+      - 'crm-v2/**'
+      - 'scripts/deploy-crm-cloud-staging.ps1'
+      - '.github/workflows/crm-v2-cloud-staging.yml'
+permissions:
+  contents: read
+jobs:
+  crm-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crm-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate JavaScript
+        run: |
+          node --check server.js
+          node --check cloud-records.js
+          node --check offer-pricing.js
+          node --check invoice-pricing.js
+          node --check project-tasks.js
+      - name: Run all CRM regression tests
+        run: node --test

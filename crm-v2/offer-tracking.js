@@ -33,10 +33,12 @@ function normalizeDispatchInput(input,today){
 }
 function normalizeFollowUpInput(input,today){
   if(!input||typeof input!=='object'||Array.isArray(input)||
-     Object.keys(input).some(key=>key!=='followUpDate'||key==='note'))
+     Object.keys(input).some(key=>!['followUpDate','note'].includes(key)))
     throw failure('Ungültige Nachfassdokumentation');
   const date=validateNextDate(input.followUpDate,today);
-  return {followUpDate:date};
+  if(input.note!==undefined&&(typeof input.note!=='string'||input.note.length>500))
+    throw failure('Nachfassnotiz maximal 500 Zeichen');
+  return {followUpDate:date,note:String(input.note||'').trim()};
 }
 function dueOfferFollowUps(offers,today){
   return (offers||[]).filter(offer=>offer.status==='Versendet'&&

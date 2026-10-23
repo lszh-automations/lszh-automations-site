@@ -381,7 +381,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null};
+const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -1268,6 +1268,31 @@ function renderOfferWorkflow(offer){
     });
     return elButton;
   };
+  // Never allow a second click to resend an unresolved request.
+  if(offer.offerDispatchState==='sending'){
+    message.textContent='Automatischer Versand läuft. Die Offerte ist bis zum Ergebnis vorübergehend gesperrt.';
+    return;
+  }
+  if(offer.offerDispatchState==='manual_review'){
+    message.textContent='Versandbestätigung unklar. Bitte zuerst unter «Gesendet» im LSZH-Geschäftspostfach prüfen. Keinen zweiten Versand auslösen.';
+    const actions=el('div','offer-workflow-row');
+    actions.append(button('Versand im Postfach bestätigt',async()=>{
+      if(!window.confirm('Hast du die versendete Offerte im geschäftlichen Postfach nachgewiesen?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send/resolve',{
+        method:'POST',body:JSON.stringify({resolution:'confirmed'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    actions.append(button('Sicher nicht versendet',async()=>{
+      if(!window.confirm('Hast du überprüft, dass weder Gmail noch Make diese Offerte verschickt hat?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send/resolve',{
+        method:'POST',body:JSON.stringify({resolution:'not_sent'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    area.append(actions);
+    return;
+  }
   const status=offer.status||'Entwurf';
   if(status==='Entwurf'){
     message.textContent='Positionen und Gültigkeitsdatum ergänzen, speichern und den Status auf «Bereit» stellen. Danach stehen die Versandaktionen zur Verfügung.';
@@ -1285,6 +1310,23 @@ function renderOfferWorkflow(offer){
     const dateField=el('label','','Nächstes Nachfassen');
     const dateInput=el('input');dateInput.type='date';dateInput.value=suggestedOfferFollowUp();dateInput.required=true;
     dateField.append(dateInput);row.append(dateField);
+    if(state.offerMailEnabled){
+      row.append(button('Automatisch mit PDF versenden',async()=>{
+        if(!window.confirm('Soll Offerte Nr. '+(offer.number||'')+
+          ' jetzt mit dem PDF-Anhang an '+offerRecipient(offer)+' versendet werden?'))return;
+        try{
+          await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send',{
+            method:'POST',body:JSON.stringify({followUpDate:dateInput.value})
+          });
+          await reopenSavedOffer(offer.id);
+        }catch(error){
+          await reopenSavedOffer(offer.id);
+          window.alert('Versandstatus bitte prüfen: '+error.message);
+        }
+      },true));
+    }else{
+      area.append(el('p','','Automatischer PDF-Versand ist vorbereitet, aber noch nicht freigeschaltet. Der manuelle Versand bleibt verfügbar.'));
+    }
     row.append(button('Versand dokumentieren',async()=>{
       if(!window.confirm('Wurde die Offerte tatsächlich an den Kunden versendet? Dieser Klick sendet selbst keine E-Mail.'))return;
       await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/dispatch',{
@@ -1671,6 +1713,7 @@ async function signedIn(token){
 async function initialise(){
   try{
     const config=await api('/api/config');
+    state.offerMailEnabled=config.offerMailEnabled===true;
     for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
     if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
     // Let Google renew our login after page reload without persisting ID tokens

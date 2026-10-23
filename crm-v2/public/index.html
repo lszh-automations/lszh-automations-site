@@ -979,6 +979,108 @@ function openProjectEditor(record=null,draft=null){
   $('projectEditor').showModal();
 }
 
+
+function legacyInvoiceLines(invoice){
+  if(Array.isArray(invoice?.items))return invoice.items;
+  const amount=Number(invoice?.amountCHF)||0;
+  return amount>0?[{title:invoice.description||'Leistung',qty:1,unitPriceCHF:amount}]:[];
+}
+function invoiceCHF(number){
+  return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2}).format(number||0);
+}
+function markInvoiceUnsaved(){
+  if(state.invoiceLocked)return;
+  $('invoicePrint').disabled=true;
+}
+function refreshInvoiceTotal(){
+  let cents=0;
+  for(const row of $('invoiceLines').children){
+    const f=row._invoiceFields;
+    if(!f)continue;
+    const line=Math.round((Number(f.qty.value)||0)*Math.round((Number(f.unitPriceCHF.value)||0)*100));
+    cents+=line;
+    f.total.textContent=invoiceCHF(line/100);
+  }
+  $('invoiceTotal').textContent=invoiceCHF(cents/100);
+}
+function invoiceItems(){
+  const items=[];
+  for(const row of $('invoiceLines').children){
+    const f=row._invoiceFields;
+    if(!f)continue;
+    items.push({title:f.title.value.trim(),qty:Number(f.qty.value),unitPriceCHF:Number(f.unitPriceCHF.value)});
+  }
+  return items;
+}
+function addInvoiceLine(data={},isLoading=false){
+  if(state.invoiceLocked&&!isLoading)return;
+  if($('invoiceLines').children.length>=60){
+    $('invoiceError').textContent='Maximal 60 Rechnungspositionen.';
+    $('invoiceError').hidden=false;return;
+  }
+  const row=el('div','invoice-line'),controls={};
+  const make=(key,label,type,value)=>{
+    const wrap=el('label'),control=el('input');
+    wrap.append(el('span','',label));
+    control.type=type;
+    control.name='invoice-position-'+key;
+    control.value=value==null?'':String(value);
+    if(key==='title'){control.maxLength=180;control.placeholder='Leistung';control.required=true;}
+    if(type==='number'){
+      control.step=key==='qty'?'0.001':'0.01';
+      control.min=key==='qty'?'0.001':'0';
+      control.required=true;
+    }
+    control.addEventListener('input',()=>{refreshInvoiceTotal();markInvoiceUnsaved()});
+    wrap.append(control);controls[key]=control;return wrap;
+  };
+  row.append(make('title','Leistung','text',data.title||''));
+  row.append(make('qty','Menge','number',data.qty??1));
+  row.append(make('unitPriceCHF','Einzelpreis (CHF)','number',data.unitPriceCHF??0));
+  const total=el('div','invoice-line-total');
+  total.append(el('small','','Betrag'));
+  controls.total=el('strong','','CHF 0.00');total.append(controls.total);
+  row.append(total);
+  const remove=el('button','invoice-line-remove','×');
+  remove.type='button';remove.setAttribute('aria-label','Position entfernen');
+  remove.addEventListener('click',()=>{row.remove();refreshInvoiceTotal();markInvoiceUnsaved()});
+  row.append(remove);row._invoiceFields=controls;
+  $('invoiceLines').append(row);
+  if(state.invoiceLocked){
+    for(const key of ['title','qty','unitPriceCHF'])controls[key].disabled=true;
+    remove.disabled=true;
+  }
+  refreshInvoiceTotal();
+}
+function openInvoiceEditor(record=null,draft=null){
+  state.invoiceEditing=record;
+  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert';
+  $('invoiceEditor').classList.toggle('is-locked',state.invoiceLocked);
+  $('invoiceLocked').hidden=!state.invoiceLocked;
+  $('invoiceEditorTitle').textContent=record?'Rechnung '+(record.number||'–'):'Neue Rechnung';
+  $('invoiceFields').replaceChildren();
+  $('invoiceLines').replaceChildren();
+  $('invoiceError').hidden=true;
+  const data=record||draft||{};
+  const fields=['customerId','projectId','description','invoiceDate','dueDate','status'];
+  for(const [key,label,type] of definitions.rechnungen.fields){
+    if(!fields.includes(key))continue;
+    const initial=data[key]??(key==='invoiceDate'?new Date().toLocaleDateString('en-CA'):undefined);
+    const element=makeField(key,label,type,initial);
+    element.addEventListener('input',markInvoiceUnsaved);
+    element.addEventListener('change',markInvoiceUnsaved);
+    const control=element.querySelector('input,select,textarea');
+    if(state.invoiceLocked&&control)control.disabled=true;
+    $('invoiceFields').append(element);
+  }
+  for(const line of legacyInvoiceLines(data))addInvoiceLine(line,true);
+  refreshInvoiceTotal();
+  $('invoiceAddLine').hidden=state.invoiceLocked;
+  $('invoiceSave').hidden=state.invoiceLocked;
+  $('invoicePrint').disabled=!record;
+  $('invoiceEditor').showModal();
+}
+
 function openEditor(record=null,draft=null) {
   if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
   if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
@@ -1029,6 +1131,43 @@ $('search').addEventListener('input',render);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
 $('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
+$('invoiceClose').addEventListener('click',()=>$('invoiceEditor').close());
+$('invoiceCancel').addEventListener('click',()=>$('invoiceEditor').close());
+$('invoiceAddLine').addEventListener('click',()=>{addInvoiceLine();markInvoiceUnsaved();});
+$('invoicePrint').addEventListener('click',()=>{
+  if(!state.invoiceEditing||$('invoicePrint').disabled)return;
+  window.open('/preview/rechnung/'+encodeURIComponent(state.invoiceEditing.id),'_blank','noopener');
+});
+$('invoiceForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(state.invoiceLocked)return;
+  const form=$('invoiceForm'),values={};
+  for(const key of ['customerId','projectId','description','invoiceDate','dueDate','status']){
+    const control=form.elements.namedItem(key);
+    values[key]=control?.value??'';
+  }
+  values.items=invoiceItems();
+  const error=$('invoiceError');
+  error.hidden=true;
+  if(!values.description.trim()||values.items.some(x=>!x.title)){
+    error.textContent='Bitte Beschreibung und alle Rechnungspositionen ausfüllen.';
+    error.hidden=false;return;
+  }
+  const button=$('invoiceSave');button.disabled=true;button.textContent='Speichere …';
+  try{
+    const current=state.invoiceEditing;
+    const result=await api('/api/records/rechnungen'+(current?'/'+encodeURIComponent(current.id):''),{
+      method:current?'PATCH':'POST',body:JSON.stringify(values)
+    });
+    $('invoiceEditor').close();
+    await loadAll();
+    const updated=(state.records.rechnungen||[]).find(x=>x.id===result.record.id);
+    if(updated)openInvoiceEditor(updated);
+  }catch(err){
+    error.textContent='Rechnung konnte nicht gespeichert werden: '+err.message;
+    error.hidden=false;
+  }finally{button.disabled=false;button.textContent='Speichern';}
+});
 $('projectClose').addEventListener('click',()=>$('projectEditor').close());
 $('projectCancel').addEventListener('click',()=>$('projectEditor').close());
 $('projectAddTask').addEventListener('click',()=>addProjectTask());

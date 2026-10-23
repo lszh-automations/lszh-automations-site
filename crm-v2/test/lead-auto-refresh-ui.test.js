@@ -121,3 +121,39 @@ test('traffic-light style refresh updates class and accessible text without back
   assert.match(html,/const urgency=leadUrgency\(rec\.createdAt\)/);
   assert.match(html,/age\.title=new Intl\.DateTimeFormat/);
 });
+
+test('due follow-ups use local calendar date and only actionable lead stages',()=>{
+  const inline=inlineScripts.find(s=>s.includes('function dueLeadFollowUps('));
+  assert.ok(inline);
+  const start=inline.indexOf('function localDateKey(');
+  const end=inline.indexOf('function leadDate(',start);
+  const source=inline.slice(start,end);
+  const {dueLeadFollowUps}=vm.runInNewContext(source+'\n({dueLeadFollowUps})',{Date,String});
+  const leads=[
+    {id:'tomorrow',status:'Kontaktiert',nextAction:'Rückruf',followUpDate:'2026-10-24'},
+    {id:'today',status:'Kontaktiert',nextAction:'Angebot besprechen',followUpDate:'2026-10-23'},
+    {id:'yesterday',status:'Qualifiziert',nextAction:'Demo',followUpDate:'2026-10-22'},
+    {id:'won',status:'Gewonnen',nextAction:'Kickoff',followUpDate:'2026-10-23'},
+    {id:'lost',status:'Verloren',nextAction:'Rückruf',followUpDate:'2026-10-22'},
+    {id:'empty',status:'Neu',nextAction:'',followUpDate:'2026-10-20'}
+  ];
+  assert.deepEqual(Array.from(dueLeadFollowUps(leads,'2026-10-23'),lead=>lead.id),
+    ['yesterday','today']);
+  assert.deepEqual(Array.from(dueLeadFollowUps([],'2026-10-23')),[]);
+  assert.match(html,/dashboardPanel\('Fällige Wiedervorlagen'/);
+  assert.match(html,/navigateTo\('leads',lead\)/);
+});
+test('lead dialog adds contact history, follow-up actions and qualification',()=>{
+  assert.match(html,/function appendContactSection\(body,lead\)/);
+  assert.match(html,/function appendFollowUpSection\(body,lead\)/);
+  assert.match(html,/function appendQualificationSection\(body,lead\)/);
+  assert.match(html,/appendContactSection\(body,lead\)/);
+  assert.match(html,/appendFollowUpSection\(body,lead\)/);
+  assert.match(html,/appendQualificationSection\(body,lead\)/);
+  assert.match(html,/method:'POST',body:JSON\.stringify\(\{\s*channel:/);
+  assert.match(html,/method:'PATCH',body:JSON\.stringify\(\{nextAction:'',followUpDate:''\}\)/);
+  assert.match(html,/Qualifizierung speichern/);
+  assert.match(html,/await reloadOpenLead\(lead\.id\)/);
+  assert.match(html,/history\.length>20/);
+  assert.doesNotMatch(html,/localStorage\.setItem\(/);
+});

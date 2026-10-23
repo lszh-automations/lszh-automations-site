@@ -251,7 +251,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
       </div>
 
       <button type="submit">Onboarding übermitteln</button>
-      <p class="status" id="status"></p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
     </form>
   </div>
 
@@ -282,6 +282,21 @@ if (!code) {
   document.getElementById('projectCodeFallback').classList.remove('hidden');
 }
 
+// Transport success is NOT processing success: Make may answer 200 "Accepted"
+// while a webhook delivery is still queued. Only a completed, record-bound
+// JSON response may confirm storage; don't echo names, token or record ID.
+function classifyOnboardingReply(httpStatus, body) {
+  const obj = body !== null && typeof body === 'object' && !Array.isArray(body);
+  if (httpStatus === 409 || (obj && (body.duplicate === true || body.error === 'already_submitted' || body.error === 'conflict'))) return 'conflict';
+  if (httpStatus >= 200 && httpStatus < 300) {
+    if (obj && body.ok === true && typeof body.record_id === 'string' && /^rec[A-Za-z0-9]{14}$/.test(body.record_id)) {
+      return body.already_complete === true ? 'already_complete' : 'confirmed';
+    }
+    return 'pending';
+  }
+  return 'error';
+}
+
 document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.currentTarget;
@@ -310,18 +325,40 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {const error = new Error('HTTP '+response.status); error.status = response.status; throw error;}
-
-    form.reset();
-    status.textContent = response.status===202 ? 'Vielen Dank. Ihre Angaben wurden zur Verarbeitung entgegengenommen. Die abschliessende Speicherung ist noch nicht bestätigt. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen können Sie LSZH Automations kontaktieren.' : 'Vielen Dank. Ihre Angaben wurden erfolgreich übermittelt. Notwendige Zugänge besprechen wir anschliessend separat.';
-    status.style.color = '#16794b';
-  } catch (err) {
-    status.textContent = err.status===409 ? 'Dieses Onboarding wurde bereits eingereicht oder wird gerade verarbeitet. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.' : 'Die Angaben konnten gerade nicht übermittelt werden. Bitte versuchen Sie es erneut.';
+    // Never infer saved from HTTP 200, 202 or a plain-text "Accepted".
+    const raw = await response.text();
+    let reply = null;
+    try { reply = JSON.parse(raw); } catch (_) { /* Make can return plain text. */ }
+    const decision = classifyOnboardingReply(response.status, reply);
+    if (decision === 'confirmed' || decision === 'already_complete') {
+      form.reset();
+      status.textContent = decision === 'confirmed'
+        ? 'Vielen Dank. Ihr Onboarding wurde nachweislich gespeichert. Wir melden uns wegen der nächsten Schritte.'
+        : 'Ihre Angaben waren bereits vollständig gespeichert. Sie müssen nichts erneut senden.';
+      status.style.color = '#16794b';
+      button.textContent = 'Abgeschlossen';
+    } else if (decision === 'conflict') {
+      status.textContent = 'Zu diesem Onboarding liegen bereits Angaben vor, die geprüft werden müssen. Bitte senden Sie das Formular nicht erneut ab und kontaktieren Sie LSZH Automations.';
+      status.style.color = '#9b5c00';
+      button.textContent = 'Prüfung erforderlich';
+    } else if (decision === 'pending') {
+      status.textContent = 'Ihre Anfrage wurde entgegengenommen. Die Speicherung ist noch nicht bestätigt. Bitte senden Sie das Formular nicht erneut ab. Bei Fragen kontaktieren Sie LSZH Automations.';
+      status.style.color = '#9b5c00';
+      button.textContent = 'Eingang in Prüfung';
+    } else {
+      status.textContent = 'Die Speicherung konnte nicht bestätigt werden. Bitte senden Sie nicht erneut ab, bevor Sie den Status mit LSZH Automations geklärt haben.';
+      status.style.color = '#b42318';
+      button.textContent = 'Status unklar';
+    }
+  } catch (_) {
+    // A network failure is ambiguous: the server may have accepted the data.
+    status.textContent = 'Die Übermittlung konnte nicht bestätigt werden. Bitte senden Sie nicht erneut ab, bevor Sie den Status mit LSZH Automations geklärt haben.';
     status.style.color = '#b42318';
-  } finally {
-    button.disabled = false;
-    button.textContent = 'Onboarding übermitteln';
+    button.textContent = 'Status unklar';
   }
+  // Keep disabled after a request until the user deliberately reloads.
+  // This avoids accidental duplicate POSTs while Make may be processing.
+  button.disabled = true;
 });
 </script>
 </body>

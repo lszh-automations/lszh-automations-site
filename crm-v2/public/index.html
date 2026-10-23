@@ -546,6 +546,7 @@ function renderDashboard(){
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
+    {n:dueOfferFollowUps(state.records.offerten).length,title:'Offerten nachfassen',description:'Versendete Offerten mit heute fälliger oder überfälliger Wiedervorlage',tab:'offerten',icon:'▤'},
     {n:dueLeadFollowUps(state.records.leads).length,title:'Fällige Wiedervorlagen',description:'Heute fällige und überfällige nächste Aktionen',tab:'leads',icon:'◷'},
     {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
     {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
@@ -603,6 +604,18 @@ function renderDashboard(){
     button.addEventListener('click',()=>navigateTo('leads',lead));
     followUps.body.append(button);
   }
+  const offerTasks=dashboardPanel('Offerten-Nachverfolgung','Versendete Offerten, bei denen eine Rückmeldung fällig ist.');
+  const dueOffers=dueOfferFollowUps(state.records.offerten);
+  if(!dueOffers.length)offerTasks.body.append(el('div','dash-empty','Keine Offerten zum Nachfassen fällig.'));
+  for(const offer of dueOffers.slice(0,8)){
+    const item=el('button','dash-lead');item.type='button';
+    const copy=el('span','dash-lead-info');
+    copy.append(el('strong','','Offerte '+(offer.number||'–')+' · '+(offer.title||'')),
+      el('small','','Nachfassen am '+offer.followUpDate+' · '+(offer.sentTo||'')));
+    item.append(copy,el('span','dash-open','Öffnen →'));
+    item.addEventListener('click',()=>navigateTo('offerten',offer));
+    offerTasks.body.append(item);
+  }
   upper.append(tasks.panel,recent.panel);
   const lower=el('div','dash-grid');
   const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
@@ -630,7 +643,7 @@ function renderDashboard(){
   finance.body.append(financeList,el('p','dash-finance-note',
     'Offertenvolumen ist kein Umsatz. Die Monatszahl summiert vereinbarte Monatsbeträge, nicht tatsächliche Zahlungen. Es werden maximal 200 Datensätze je Register geladen.'));
   lower.append(pipeline.panel,finance.panel);
-  area.append(upper,followUps.panel,lower);
+  area.append(upper,followUps.panel,offerTasks.panel,lower);
 }
 function projectIsOverdue(project){
   if(!project?.dueDate||project.status==='Abgeschlossen')return false;
@@ -1200,6 +1213,145 @@ function isOfferLocked(offer){
   return ['Angenommen','Versendet'].includes(offer.status) ||
     !!((state.records.leads||[]).find(lead=>lead.id===offer.leadId && lead.status==='Gewonnen'));
 }
+
+function dueOfferFollowUps(offers,day=localDateKey()){
+  return (offers||[]).filter(offer=>offer.status==='Versendet'&&
+    typeof offer.followUpDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(offer.followUpDate)&&
+    offer.followUpDate<=day)
+    .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
+}
+function offerRecipient(offer){
+  const lead=(state.records.leads||[]).find(x=>x.id===offer.leadId);
+  const customer=(state.records.kunden||[]).find(x=>x.id===offer.customerId);
+  return (lead?.email||customer?.email||'').trim();
+}
+function offerEmailDraft(offer){
+  const to=offerRecipient(offer);
+  const subject='LSZH Automations – Offerte Nr. '+(offer.number||'');
+  const body='Sehr geehrte Damen und Herren,\n\n'+
+    'Vielen Dank für Ihr Interesse an LSZH Automations.\n\n'+
+    'Im Anhang erhalten Sie unsere Offerte Nr. '+(offer.number||'')+
+    ' für '+(offer.title||'die besprochenen Leistungen')+'.\n'+
+    (offer.validUntil?'Die Offerte ist gültig bis '+offer.validUntil+'.\n':'')+
+    '\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n'+
+    'Freundliche Grüsse\nLSZH Automations\nLSZH Invest GmbH';
+  return 'An: '+to+'\nBetreff: '+subject+'\n\n'+body;
+}
+function suggestedOfferFollowUp(){
+  const date=new Date();
+  date.setDate(date.getDate()+7);
+  return localDateKey(date);
+}
+async function reopenSavedOffer(id){
+  $('offerEditor').close();
+  await loadAll();
+  const updated=(state.records.offerten||[]).find(x=>x.id===id);
+  if(updated)openOfferEditor(updated);
+}
+function renderOfferWorkflow(offer){
+  const area=$('offerWorkflow');
+  area.replaceChildren();
+  area.hidden=!offer;
+  if(!offer)return;
+  const title=el('h3','','Versand und Nachverfolgung');
+  const message=el('p','','');
+  const error=el('p','offer-workflow-error','');error.hidden=true;
+  area.append(title,message,error);
+  const notify=err=>{error.textContent=err.message||String(err);error.hidden=false;};
+  const button=(caption,handler,primary=false)=>{
+    const elButton=el('button','btn'+(primary?' primary':''),caption);
+    elButton.type='button';
+    elButton.addEventListener('click',async()=>{
+      if(elButton.disabled)return;
+      elButton.disabled=true;error.hidden=true;
+      try{await handler();}catch(e){notify(e);}finally{elButton.disabled=false;}
+    });
+    return elButton;
+  };
+  const status=offer.status||'Entwurf';
+  if(status==='Entwurf'){
+    message.textContent='Positionen und Gültigkeitsdatum ergänzen, speichern und den Status auf «Bereit» stellen. Danach stehen die Versandaktionen zur Verfügung.';
+    return;
+  }
+  if(status==='Bereit'){
+    message.textContent='1. Gespeicherte Druckansicht als PDF exportieren. 2. E-Mail-Text kopieren und PDF selbst als Anhang senden. 3. Erst nach tatsächlichem Versand diesen im CRM dokumentieren.';
+    const row=el('div','offer-workflow-row');
+    row.append(button('E-Mail-Text kopieren',async()=>{
+      if(!offerRecipient(offer))throw new Error('Zuerst eine gültige Empfänger-E-Mail beim Lead oder Kunden erfassen.');
+      if(!navigator.clipboard?.writeText)throw new Error('Zwischenablage nicht verfügbar. Bitte eine sichere HTTPS-Verbindung verwenden.');
+      await navigator.clipboard.writeText(offerEmailDraft(offer));
+      message.textContent='E-Mail-Text kopiert. PDF bitte separat anhängen und E-Mail selbst versenden.';
+    }));
+    const dateField=el('label','','Nächstes Nachfassen');
+    const dateInput=el('input');dateInput.type='date';dateInput.value=suggestedOfferFollowUp();dateInput.required=true;
+    dateField.append(dateInput);row.append(dateField);
+    row.append(button('Versand dokumentieren',async()=>{
+      if(!window.confirm('Wurde die Offerte tatsächlich an den Kunden versendet? Dieser Klick sendet selbst keine E-Mail.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/dispatch',{
+        method:'POST',body:JSON.stringify({followUpDate:dateInput.value})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    area.append(row);
+    return;
+  }
+  if(status==='Versendet'){
+    const meta=el('div','offer-workflow-meta');
+    meta.append(
+      el('span','','Empfänger: '+(offer.sentTo||'bisher nicht protokolliert')),
+      el('span','','Versand erfasst: '+(offer.sentAt?leadDate(offer.sentAt):'ältere Offerte')),
+      el('strong','','Nächste Wiedervorlage: '+(offer.followUpDate||'Noch nicht festgelegt'))
+    );
+    area.append(meta);
+    message.textContent='Wiedervorlagen werden im Dashboard sichtbar, aber nicht automatisch an Kunden verschickt.';
+    const row=el('div','offer-workflow-row');
+    const dateLabel=el('label','','Nächstes Nachfassen'),date=el('input');
+    date.type='date';date.value=offer.followUpDate||suggestedOfferFollowUp();
+    dateLabel.append(date);
+    const noteLabel=el('label','','Nachfassnotiz (optional)'),note=el('input');
+    note.type='text';note.maxLength=500;note.placeholder='z. B. telefonisch nachgefragt';
+    noteLabel.append(note);
+    row.append(dateLabel,noteLabel);
+    row.append(button('Nachfassen protokollieren',async()=>{
+      if(!window.confirm('Wurde tatsächlich beim Kunden nachgefasst?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/followup',{
+        method:'POST',body:JSON.stringify({followUpDate:date.value,note:note.value})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    area.append(row);
+    const decisions=el('div','offer-workflow-row');
+    decisions.append(button('Als angenommen markieren',async()=>{
+      if(!window.confirm('Hat der Kunde die Offerte verbindlich angenommen? Dadurch werden Kunde und Projekt angelegt.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id),{
+        method:'PATCH',body:JSON.stringify({status:'Angenommen'})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    decisions.append(button('Als abgelehnt markieren',async()=>{
+      if(!window.confirm('Hat der Kunde die Offerte abgelehnt? Der verknüpfte Lead wird als verloren markiert.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id),{
+        method:'PATCH',body:JSON.stringify({status:'Abgelehnt'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    area.append(decisions);
+    const history=Array.isArray(offer.followUpHistory)?offer.followUpHistory:[];
+    if(history.length){
+      const log=el('div','offer-workflow-history');
+      log.append(el('strong','','Nachfassverlauf ('+history.length+')'));
+      for(const entry of [...history].reverse().slice(0,10)){
+        log.append(el('span','',leadDate(entry.at)+' · '+(entry.by||'')+(entry.note?' · '+entry.note:'')));
+      }
+      area.append(log);
+    }
+    return;
+  }
+  message.textContent=status==='Angenommen'
+    ?'Offerte angenommen. Kunde und Projekt wurden über die bestehende CRM-Logik angelegt. Die Offerte bleibt schreibgeschützt.'
+    :'Offerte abgelehnt. Es findet kein automatischer weiterer Versand statt.';
+}
+
 function openOfferEditor(record=null,draft=null){
   state.offerEditing=record;
   state.offerLocked=isOfferLocked(record);

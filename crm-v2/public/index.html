@@ -1269,11 +1269,12 @@ function renderOfferWorkflow(offer){
     return elButton;
   };
   // Never allow a second click to resend an unresolved request.
-  if(offer.offerDispatchState==='sending'){
+  if(offer.offerDispatchState==='sending'&&
+     Date.now()-Date.parse(offer.offerDispatchRequestedAt||'')<5*60*1000){
     message.textContent='Automatischer Versand läuft. Die Offerte ist bis zum Ergebnis vorübergehend gesperrt.';
     return;
   }
-  if(offer.offerDispatchState==='manual_review'){
+  if(offer.offerDispatchState==='manual_review'||offer.offerDispatchState==='sending'){
     message.textContent='Versandbestätigung unklar. Bitte zuerst unter «Gesendet» im LSZH-Geschäftspostfach prüfen. Keinen zweiten Versand auslösen.';
     const actions=el('div','offer-workflow-row');
     actions.append(button('Versand im Postfach bestätigt',async()=>{

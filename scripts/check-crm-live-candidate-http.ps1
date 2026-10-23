@@ -20,8 +20,8 @@ function Query([string]$method,[string]$endpoint,[string]$body=""){
     return @{status=[int]$r.StatusCode;content=""}
   }
 }
-$home=Query "GET" "/"
-if($home.status -ne 200 -or $home.content -notmatch "LSZH"){throw "Kandidaten-UI liefert kein CRM-HTML: $($home.status)"}
+$homeResponse=Query "GET" "/"
+if($homeResponse.status -ne 200 -or $homeResponse.content -notmatch "LSZH"){throw "Kandidaten-UI liefert kein CRM-HTML: $($homeResponse.status)"}
 $config=Query "GET" "/api/config"
 if($config.status -ne 200){throw "Google OAuth-Konfiguration nicht vorhanden: $($config.status)"}
 $me=Query "GET" "/api/me"

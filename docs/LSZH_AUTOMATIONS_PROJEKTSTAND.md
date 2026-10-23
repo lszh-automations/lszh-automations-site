@@ -82,6 +82,17 @@ Vom Geschäftsführer übermittelte PowerShell-Ausgabe:
 - Kein Render-Deployment, keine produktive Website-Umstellung, kein Kundenversand und keine Live-Datenmigration.
 
 **Als Nächstes:** `scripts/check-crm-live-candidate-http.ps1 -CandidateUrl 'https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app'` durch den Geschäftsführer ausführen (nur anonymes HTML/Config-GET und verbotene API-Aufrufe; erwartet 200/401). Danach Google-OAuth-Ursprünge und einen isolierten Restore- bzw. Datenbestandsabgleich vor endgültiger Traffic-Umstellung prüfen. Freigabe zum Go-live ist noch **nicht** erteilt.
+### 23.10.2026 – Kandidaten-HTTP-Prüfung erfolgreich
+
+Der Geschäftsführer hat die korrigierte Datei `scripts/check-crm-live-candidate-http.ps1` in PowerShell nach `git pull --ff-only` ausgeführt. Die getaggte Kandidaten-URL war `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+
+- **PASS:** Startseite HTTP 200, Google-OAuth-Konfiguration HTTP 200.
+- **PASS:** `GET /api/me`, `GET /api/records/leads`, `GET /api/print/offerte/test` ohne ID Token HTTP 401.
+- **PASS:** `POST /api/internal/website-leads` ohne Secret HTTP 401.
+- **PASS:** Keine Firestore-Schreibvorgänge; kein Secret an den Kandidaten gesendet.
+- Das Testskript musste nur wegen der reservierten PowerShell-Systemvariablen `$HOME` auf `$homeResponse` korrigiert werden. Die Korrektur erforderte kein Cloud-Run-Deployment.
+- **Kein** Auth-Login und keine Berechtigungsprüfung mit einem gültigen Google-ID-Token am Kandidaten bisher. Der getestete anonyme Zugriff bestätigt **nicht** die korrekt autorisierte produktive Google-Anmeldung.
+- **Nächster Schritt:** Im bestehenden Google OAuth Webclient die JavaScript-Ursprünge `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app` und `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` ergänzen (vorhandenen Staging-Ursprung erhalten), Login mit dem erlaubten Workspace-Konto auf Kandidaten-URL durchführen und die leeren Live-Register ausschließlich lesen; keine Live-Datensätze bearbeiten oder Website-Cutover durchführen.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

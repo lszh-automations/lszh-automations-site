@@ -6,6 +6,11 @@ on:
     paths:
       - "crm-v2/**"
       - ".github/workflows/crm-v2-invoice-qr.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "crm-v2/**"
+      - ".github/workflows/crm-v2-invoice-qr.yml"
   workflow_dispatch:
 permissions:
   contents: read

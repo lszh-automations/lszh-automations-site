@@ -17,8 +17,8 @@ function ReadCount([string]$collectionName) {
       aggregations=@(@{alias="total";count=@{}})
     }
   }|ConvertTo-Json -Depth 10 -Compress
-  $args=@{Uri=($base+":runAggregationQuery");Headers=$headers;Method="Post";ContentType="application/json";Body=$query;ErrorAction="Stop"}
-  $response=Invoke-RestMethod @args
+  $requestParams=@{Uri=($base+":runAggregationQuery");Headers=$headers;Method="Post";ContentType="application/json";Body=$query;ErrorAction="Stop"}
+  $response=Invoke-RestMethod @requestParams
   $parts=@($response)
   if($parts.Count -lt 1 -or $null -eq $parts[0].result.aggregateFields.total.integerValue){
     throw "Keine gueltige COUNT-Antwort fuer $collectionName"

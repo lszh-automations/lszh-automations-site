@@ -53,6 +53,7 @@ async function runServer(enabled,callback){
       assert.equal(prefix,'lszh_crm_v2_staging_');
       return {TABLES:['leads','kunden','offerten','rechnungen','projekte']};
     }},
+    './offer-send':{createOfferSender:()=>({stats:()=>({enabled:false})})},
     './offer-preview':{renderOfferPreview:()=>''},
     './invoice-preview':{renderInvoicePreview:()=>''}
   };

@@ -1,3 +1,7 @@
+### Praxistest: automatische Lead-Aktualisierung im Live-Browser bestätigt (23.10.2026)
+
+Der Geschäftsführer hat nach dem erfolgreichen Deployment der produktiven Cloud-Run-Revision `lszh-crm-v2-00006-moz` selbst das öffentliche Website-Formular getestet und bestätigt: **Neuer Website-Lead erscheint automatisch im geöffneten Live-CRM, ohne manuelles Neuladen oder erneute Google-Anmeldung.** Die 30-Sekunden-Synchronisierung funktioniert damit auch im echten Browser. Das Website→Render→Cloud Run→Firestore→CRM-UI-Ziel ist praktisch verifiziert. Keine zusätzliche Änderung, kein Deployment, keine produktive Mail oder Vertragsannahme durch diese Dokumentation.
+
 ## CRM V2 Lead-Auto-Refresh – PRODUKTIV seit 23.10.2026
 
 Der Geschäftsführer führte `scripts/deploy-crm-lead-refresh-live.ps1` erfolgreich auf dem Surface aus und übermittelte die vollständige Ausgabe.

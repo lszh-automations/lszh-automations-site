@@ -1,3 +1,18 @@
+## Kundenbestätigung im LSZH-Website-Design – vorbereitet, noch nicht deployed
+
+Die **ausschliesslich kundenseitige** Bestätigung wurde in `crm-v2/mail-templates.js` optisch an das produktive `index.html` angelehnt. Verbindliche LSZH-Website-Farben: Navy `#06101d`, dunkel `#0a1728`, Text `#0f1726`, Hintergrund `#f4f7fb`, Akzente Cyan `#74d8ff`, Blau `#5b8cff`, Violett `#8e72ff`. Header im Navy/Blau-Stil mit typografischer LSZH-Wortmarke und vereinfachtem L-Zeichen als E-Mail-kompatible Darstellung (das SVG der Website wird bewusst NICHT eingebettet, da E-Mail-Clients SVG nicht zuverlässig darstellen). Farbige Dreier-Akzentlinie, weisser Inhalt, personalisierte Anrede, verständlicher «Wie geht es weiter?»-Block, Signatur und dunkler Geschäftsfooter mit `LSZH Invest GmbH`, `Rummelmatt 8, 5610 Wohlen AG`, `info@lszh-automations.ch` sowie `https://lszh-automations.ch/`.
+
+Das HTML verwendet tabellenbasiertes, inline gestyltes E-Mail-Layout ohne JavaScript, SVG, externe Fonts/Bilder oder dynamisch von Kunden kontrollierte Links. Kundenname wird HTML-escaped; sensible Anfragetexte werden NICHT an den Kunden zurückgeschickt. Betreff, Empfänger, Versandtrigger und vorliegende Eindeutigkeits-/24h-Regeln bleiben unverändert. **Die internen Mails sind optisch und inhaltlich noch auf dem alten Stand und wurden absichtlich nicht angefasst.** Zwei neue Tests prüfen Kundenbranding, Sicherheit, erreichbare öffentliche Links und dass die internen Templates unverändert bleiben. Ein lokaler Lauf der Template-Funktion (statischer Beispiel-Lead) bestätigte alle Brand-/Escape-/Empfänger-Assertions; vollständige 31+ CRM-Testreihe muss noch auf dem Surface laufen.
+
+**Lokale Vorschau, ohne E-Mail-Versand:** Nach `git pull --ff-only` im CRM-Checkout:
+
+```powershell
+node.cmd .\scripts\preview-crm-customer-mail.js
+Start-Process (Join-Path $env:TEMP 'lszh-crm-kundenmail-vorschau.html')
+```
+
+Die Vorschau verwendet einen erfundenen Musterkunden und erzeugt ausschliesslich eine lokale HTML-Datei im Benutzer-TEMP-Verzeichnis. **Keine Änderung an Cloud Run, Make, Cloud Scheduler oder bestehenden Kunden-E-Mails**, solange keine neue CRM-Revision mit dem aktualisierten Quellcode deployed wird. Nach visuellem Check folgt eine kontrollierte E-Mail-Vorlagenrevision bei unverändertem Aktivierungszeitpunkt und ohne erneutes Versenden früherer Ereignisse.
+
 ## Make aktiv – letzte Produktivschaltung vorbereitet (23.10.2026)
 
 Der Geschäftsführer hat **Make-Szenario 8135270 aktiviert**; unmittelbar danach über die Make-App als `active` bestätigt. Vorhandene geschäftliche Gmail-Verbindung 11904991 war `ok`, Webhook-Warteschlange `0`, alle drei Mailfilter für `customer_ack`, `internal_new`, `internal_24h` vorhanden. Es wurden hierbei keine neuen Webhook-Daten oder Kundenmails abgeschickt.

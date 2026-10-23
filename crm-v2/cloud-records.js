@@ -118,6 +118,8 @@ function buildStore(db,prefix){
   // The helper performs every remaining read BEFORE any transaction writes.
   async function win(tx,{offerRef,offer,leadRef=null,lead=null,leadUpdate={}},user,date){
     if(!offer)throw err('Gewonnen setzt eine bestehende Offerte voraus');
+    if(!lead&&!offer.customerId)
+      throw err('Angenommene Offerte benötigt einen verknüpften Lead oder einen bestehenden Kunden');
     const custRef=offer.customerId?col('kunden').doc(offer.customerId):null;
     const knownCustomer=custRef?await tx.get(custRef):null;
     let customer=knownCustomer?.exists?knownCustomer:null;
@@ -174,7 +176,7 @@ function buildStore(db,prefix){
 
   async function create(table,payload,user){
     const input=clean(table,payload);
-    if(MONEY.has('amountCHF')&&table==='rechnungen'&&Object.hasOwn(input,'amountCHF')&&!Object.hasOwn(input,'items'))
+    if(table==='rechnungen'&&Object.hasOwn(input,'amountCHF')&&!Object.hasOwn(input,'items'))
       throw err('Rechnungsbetrag wird aus Positionen berechnet');
     if(table==='offerten'&&Object.hasOwn(input,'items'))Object.assign(input,quoteTotals(input.items));
     if(table==='rechnungen')Object.assign(input,invoiceTotals(input.items||[]));
@@ -259,6 +261,9 @@ function buildStore(db,prefix){
       if(table==='leads'){
         if(before.status==='Gewonnen' && input.status&&input.status!=='Gewonnen')
           throw err('Gewonnener Auftrag kann nicht zurückgestuft werden');
+        if(before.status==='Gewonnen'){
+          tx.update(ref,audit(input,user,date));return;
+        }
         const requested=input.status||before.status;
         const quote=await queryOne(tx,'offerten','leadId',id);
         if(requested==='Gewonnen'){

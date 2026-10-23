@@ -58,3 +58,10 @@ Empfohlene Reihenfolge:
 ## Für den nächsten Chat
 
 > VAMOS – Wir setzen LSZH Automations CRM V2 direkt fort. Lies zuerst die GitHub-Datei `docs/LSZH_CRM_V2_HANDOFF_20261023.md` und dann `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md` im Repo `lszh-automations/lszh-automations-site`, Branch `feature/crm-v2-cloud-staging-20261023`. Der letzte bestätigte Live-Stand ist `lszh-crm-v2-00038-gic` (100 %), mit freigegebenen Offerten-PDFs und Mails ohne MWST. Bitte als Nächstes das CRM-Rechnungsmodul inkl. Swiss-QR-Rechnung mit synthetischen Daten umsetzen; keine echten Mails/Rechnungen versenden, ohne mich ausdrücklich zu fragen. Beachte weiterhin zentrale Dokumentation, Live-Isolation und Rollback.
+
+
+## Fortsetzung im selben Chat am 23.10.2026 – QR-Rechnungsmodul im Entwicklungsbranch
+
+Im Branch `feature/crm-v2-cloud-staging-20261023` wurden `crm-v2/swiss-qr.js`, `crm-v2/invoice-pdf.js`, ein authentifizierter und standardmässig gesperrter PDF-Download, der Swiss-QR-PDF-Button im Rechnungseditor, npm-Abhängigkeiten sowie synthetische Tests hinzugefügt. **Nicht produktiv deployed.** QR-Payload isoliert geprüft (31 Felder, NON, CHF und strukturierte Adressen). Laufzeittests mit pdf-lib/qrcode, visueller PDF- und SIX-Prüfung stehen noch aus. Neue Tests dürfen nicht mit den alten 81/81 verwechseln.
+
+**Release-Gates:** `CRM_INVOICE_QR_ENABLED=true`, produktiv zusätzlich `CRM_INVOICE_PRODUCTION_APPROVED=true`, sowie die noch nicht bestätigte Bank-IBAN als `CRM_INVOICE_IBAN`. Diese Gates bleiben absichtlich ungesetzt. Kein Kundenmail-/Rechnungsversand implementiert. Siehe Nachtrag in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md` für Details. Nächste Aufgabe: echte Build-/PDF-/Reader-Tests im isolierten Staging, SIX-Validierung, Layoutprüfung und 0%-Deployment ohne Produktiv-Release.

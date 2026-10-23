@@ -14,6 +14,7 @@ const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {createOfferSender}=require('./offer-send');
 const {renderInvoicePreview}=require('./invoice-preview');
+const {makeInvoicePdf}=require('./invoice-pdf');
 
 const PORT=Number(process.env.PORT||8080);
 const CLIENT_ID=String(process.env.GOOGLE_OAUTH_CLIENT_ID||'').trim();
@@ -121,6 +122,24 @@ async function handler(req,res){
   if(req.method==='GET'&&pathname==='/api/reminders'){
     const reminders=await store.reminders();
     return reply(res,200,{reminders,mode:'preview_only_not_sent'});
+  }
+  // Download is disabled by default; never generates a payable document
+  // without configured business IBAN and explicit production approval.
+  const invoicePdf=pathname.match(/^\/api\/pdf\/rechnung\/([A-Za-z0-9_-]{1,100})$/);
+  if(req.method==='GET'&&invoicePdf){
+    if(process.env.CRM_INVOICE_QR_ENABLED!=='true'||
+       (PREFIX==='lszh_crm_v2_'&&process.env.CRM_INVOICE_PRODUCTION_APPROVED!=='true'))
+      return reply(res,503,{error:'Rechnungs-PDF mit Swiss QR noch nicht freigegeben'});
+    const iban=String(process.env.CRM_INVOICE_IBAN||'');
+    if(!iban)return reply(res,503,{error:'Firmen-IBAN noch nicht konfiguriert'});
+    const invoice=await store.get('rechnungen',invoicePdf[1]);
+    if(!invoice)return reply(res,404,{error:'record_not_found'});
+    const customer=invoice.customerId?await store.get('kunden',invoice.customerId):null;
+    const project=invoice.projectId?await store.get('projekte',invoice.projectId):null;
+    const pdf=await makeInvoicePdf(invoice,customer,project,{iban});
+    res.writeHead(200,{...headers,'Content-Type':'application/pdf',
+      'Content-Disposition':'attachment; filename="LSZH_Rechnung_'+invoice.number+'.pdf"'});
+    return res.end(pdf);
   }
   const print=pathname.match(/^\/api\/print\/(offerte|rechnung)\/([A-Za-z0-9_-]{1,100})$/);
   if(req.method==='GET'&&print){

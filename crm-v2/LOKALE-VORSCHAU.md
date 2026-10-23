@@ -63,6 +63,19 @@ Bestehende lokale Datensätze bleiben erhalten. Alte `In Prüfung`-Status werden
 
 **Spätere Sonderrechte:** Für produktive Admin-Korrekturen brauchen wir Google-Login mit serverseitiger Rollenprüfung (z. B. Berechtigung `offer:correct`), eine Begründung sowie einen unveränderbaren Audit-Eintrag. Korrekturen sollten eine **neue Offertenversion** erzeugen, die ursprüngliche angenommene Fassung aufbewahren und bestehende Projekte/Verträge nicht still überschreiben. Diese privilegierte Änderungsfunktion ist noch **nicht** freigeschaltet. Die lokale Testversion hat keine echte Identitäts- oder Rollenverwaltung; daher existiert absichtlich kein Admin-Bypass.
 
+## Projektverwaltung V1: einfacher Umsetzungsablauf
+
+Projekte werden nach **Gewonnen / Angenommen** automatisch mit dem richtigen Kunden und der akzeptierten Offerte angelegt. Der Standardstatus ist `Geplant`, die Aufgabenliste startet leer. Bereits bestehende lokale Projekte bleiben unverändert.
+
+Im Register **Projekte** über `Öffnen` erhältst du eine kompakte Projektansicht:
+
+- **Stammdaten:** Projektname, Beschreibung, verknüpfter Kunde und angenommene Offerte. Der Kunde und die Offerte können direkt über `Kunde öffnen` bzw. `Offerte öffnen` aufgerufen werden. Bei einem gewonnenen Projekt bleiben beide Verknüpfungen fest.
+- **Status:** `Geplant` → `In Arbeit` → bei Bedarf `Wartet auf Kunde` → `Abgeschlossen`. Der Status wird bewusst manuell festgelegt; keine unerwünschten Folgeprozesse oder E-Mails.
+- **Zieltermin:** Ein Datum je Projekt. Überfällige, noch nicht abgeschlossene Projekte werden in der Tabelle gekennzeichnet und unter `Jetzt wichtig` im Dashboard gezählt.
+- **Aufgabenliste:** Bis zu 30 kurze Aufgaben hinzufügen, abhaken oder entfernen. `X von Y erledigt` zeigt den Fortschritt. Aufgaben werden mit dem Projekt gemeinsam nach `Speichern` lokal gespeichert. Bestehende Projekte ohne Aufgaben funktionieren weiterhin.
+
+Die Aufgaben sind **nur eine Checkliste**, kein zweites Aufgaben- oder Ticketsystem. Es gibt weder Mitarbeiterzuweisung noch Unterprojekte oder automatische Kundennachrichten in dieser V1. Die Testversion verwendet ausschliesslich die Datei `crm-v2/.local-preview/data.json`. Die produktive Cloud-CRM-API muss die neuen Projektaufgaben vor einer späteren Übernahme separat unterstützen; der bestehende produktive Betrieb wird hier nicht verändert.
+
 ## Offertenverwaltung V1: Positionen und Druckvorschau
 
 Im Register **Offerten** öffnet `Bearbeiten` jetzt einen übersichtlichen spezialisierten Offerten-Editor. Er ersetzt für Offerten das bisherige generische Formular.

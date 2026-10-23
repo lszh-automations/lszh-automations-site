@@ -14,7 +14,6 @@ const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {createOfferSender}=require('./offer-send');
 const {renderInvoicePreview}=require('./invoice-preview');
-const {makeInvoicePdf}=require('./invoice-pdf');
 
 const PORT=Number(process.env.PORT||8080);
 const CLIENT_ID=String(process.env.GOOGLE_OAUTH_CLIENT_ID||'').trim();
@@ -136,6 +135,7 @@ async function handler(req,res){
     if(!invoice)return reply(res,404,{error:'record_not_found'});
     const customer=invoice.customerId?await store.get('kunden',invoice.customerId):null;
     const project=invoice.projectId?await store.get('projekte',invoice.projectId):null;
+    const {makeInvoicePdf}=require('./invoice-pdf'); // lazy: existing HTTP harnesses mock only enabled routes
     const pdf=await makeInvoicePdf(invoice,customer,project,{iban});
     res.writeHead(200,{...headers,'Content-Type':'application/pdf',
       'Content-Disposition':'attachment; filename="LSZH_Rechnung_'+invoice.number+'.pdf"'});

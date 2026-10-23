@@ -42,9 +42,14 @@ function prepareWebsiteLead(payload) {
   const payloadHash=crypto.createHash('sha256').update(JSON.stringify(lead)).digest('hex');
   return {id:'web_'+requestId.replace(/-/g,''),data:lead,payloadHash};
 }
-async function saveWebsiteLead(db,payload,now=new Date().toISOString()) {
+// Explicit collection names prevent staging intake from accidentally writing
+// to the live website collection. The legacy live intake keeps its old default.
+const INTAKE_COLLECTIONS=new Set(['lszh_crm_v2_leads','lszh_crm_v2_staging_leads']);
+async function saveWebsiteLead(db,payload,now=new Date().toISOString(),collection='lszh_crm_v2_leads') {
+  if(!INTAKE_COLLECTIONS.has(collection))
+    throw Object.assign(new Error('unapproved_intake_collection'),{status:500});
   const p=prepareWebsiteLead(payload);
-  const ref=db.collection('lszh_crm_v2_leads').doc(p.id);
+  const ref=db.collection(collection).doc(p.id);
   const data={...p.data,status:'Neu',source:'LSZH Automations Website',createdAt:now,updatedAt:now,payloadHash:p.payloadHash};
   try {
     await ref.create(data);

@@ -29,7 +29,10 @@ function shell(content){
     '</div></body></html>';
 }
 function isEligible(lead,kind,nowMs=Date.now(),notBeforeMs=0){
-  if(!lead||!email.test(asText(lead.email,254)))return false;
+  // This workflow is exclusively for leads created by the public website,
+  // not manually entered CRM contacts or imported records.
+  if(!lead||!/^web_[0-9a-f]{32}$/.test(String(lead.id||''))||
+     lead.source!=='LSZH Automations Website'||!email.test(asText(lead.email,254)))return false;
   if(/TEST_ONLY/i.test(asText(lead.name,180)+' '+asText(lead.company,180)) || /@example\.(?:com|org|net)$/i.test(asText(lead.email,254))) return false;
   const created=Date.parse(lead.createdAt||'');
   if(!Number.isFinite(created)||created<notBeforeMs)return false;

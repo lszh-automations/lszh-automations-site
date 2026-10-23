@@ -124,3 +124,59 @@ test('PDF generation failure is known not sent and can be handled separately',as
     assert.equal(db.calls[1][3],'preparation_failed');
   }finally{saved.number=original;}
 });
+
+
+test('TEST_ONLY mode rejects ordinary offers and customer addresses before claim',async()=>{
+  const db=store();
+  const realOffer={...saved,title:'Customer production offer'};
+  db.get=async(table,id)=>table==='offerten'?realOffer:person;
+  const sender=createOfferSender(db,{
+    enabled:true,webhookUrl:hook,testTo:'lars.schulthess@outlook.com',
+    async fetchImpl(){throw Error('must not send');}
+  });
+  assert.equal(sender.stats().mode,'test_only');
+  await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:403});
+  assert.equal(db.calls.length,0);
+  realOffer.title='TEST_ONLY CRM offer';
+  await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:403});
+  assert.equal(db.calls.length,0);
+});
+
+test('TEST_ONLY mode sends only approved mailbox with TEST_ONLY subject',async()=>{
+  const db=store();let sent=null;
+  db.get=async(table,id)=>table==='offerten'?{...saved,title:'TEST_ONLY CRM offer'}:
+    table==='leads'?{...person,email:'lars.schulthess@outlook.com'}:null;
+  db.claimOfferSend=async()=>{
+    db.calls.push(['claim']);
+    return {offer:{...saved,title:'TEST_ONLY CRM offer'},recipient:person,
+      to:'lars.schulthess@outlook.com',id:saved.id,
+      attemptId:'attempt-123',followUpDate:'2026-11-02'};
+  };
+  const sender=createOfferSender(db,{
+    enabled:true,webhookUrl:hook,testTo:'lars.schulthess@outlook.com',
+    async fetchImpl(_url,options){
+      sent=JSON.parse(options.body);
+      return {ok:true,async json(){return {
+        ok:true,eventId:sent.eventId,messageId:'gmail-test-333'
+      };}};
+    }
+  });
+  const done=await sender.send(saved.id,{followUpDate:'2026-11-02'},user);
+  assert.equal(done.record.status,'Versendet');
+  assert.equal(sent.to,'lars.schulthess@outlook.com');
+  assert.match(sent.subject,/^\[TEST_ONLY\] Ihre Offerte/);
+  assert.match(sent.pdfFilename,/^LSZH-Offerte-1000.pdf$/);
+});
+
+test('TEST_ONLY mode rechecks claimed snapshot and never sends switched recipient',async()=>{
+  const db=store();let requested=0;
+  db.get=async(table)=>table==='offerten'?{...saved,title:'TEST_ONLY CRM'}:
+    {email:'lars.schulthess@outlook.com'};
+  const sender=createOfferSender(db,{
+    enabled:true,webhookUrl:hook,testTo:'lars.schulthess@outlook.com',
+    async fetchImpl(){requested++;throw Error('unexpected call');}
+  });
+  await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:403});
+  assert.equal(db.calls[1][3],'preparation_failed');
+  assert.equal(requested,0);
+});

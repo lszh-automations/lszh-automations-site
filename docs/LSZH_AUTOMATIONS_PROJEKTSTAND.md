@@ -147,6 +147,10 @@ Nach produktivem CRM-V2-Cutover wurde der Datenschutztext im Website-Code auf da
 - Bestehende separate Funktionen (Make/Airtable für Secure-Transfer und übrige Automationen) werden nicht pauschal als entfernt dargestellt. Kunden-/CRM-/Render-Code, Secrets und produktive Cloud Run Konfiguration wurden durch diesen PR nicht geändert.
 - `main/index.html` wurde nach dem Merge erneut aus GitHub gelesen und enthielt die neuen Texte.
 - **Render-Deployment und tatsächliche Sichtbarkeit im öffentlichen Browser sind vom Assistant nicht unabhängig bestätigt**; die Website-URL war über das verfügbare Webabrufwerkzeug nicht erreichbar. Der Geschäftsführer kann im Footer die Datenschutzerklärung öffnen und Stand 23.10.2026 prüfen; falls alter Text erscheint, Render-Deploystatus des Dienstes `lszh-automations-site` prüfen.
+### 23.10.2026 – Airtable vollständig aus der Datenschutzerklärung entfernt
+
+Der Geschäftsführer wünschte die vollständige Entfernung aller namentlichen Airtable-Erwähnungen aus der Datenschutzerklärung. Ein minimaler Website-PR [#13](https://github.com/lszh-automations/lszh-automations-site/pull/13) wurde aus main erstellt und in den produktiven GitHub-Branch main gemergt (Commit `86b2e4d58ea2819ef87d422ae3a683d2b56f1b8b`). Im aktualisierten `main/index.html` wurde geprüft: **0 Airtable-Erwähnungen innerhalb der Datenschutzerklärung und der gesamten Datei**; CRM-Datenfluss Render → Cloud Run → Firestore bleibt beschrieben. Für getrennte bestehende Secure-Transfer-Abläufe wird weiterhin transparent auf Make und externe Speicher-Dienstleister als Kategorie hingewiesen. **Dies löscht oder beendet keine Airtable-Integration im Backend**, sofern dort noch vorhanden. Andere Website- und CRM-Dateien wurden nicht verändert. Öffentliche Render-Auslieferung im Browser noch nicht unabhängig bestätigt.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

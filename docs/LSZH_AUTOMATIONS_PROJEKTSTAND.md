@@ -151,6 +151,18 @@ Nach produktivem CRM-V2-Cutover wurde der Datenschutztext im Website-Code auf da
 
 Der Geschäftsführer wünschte die vollständige Entfernung aller namentlichen Airtable-Erwähnungen aus der Datenschutzerklärung. Ein minimaler Website-PR [#13](https://github.com/lszh-automations/lszh-automations-site/pull/13) wurde aus main erstellt und in den produktiven GitHub-Branch main gemergt (Commit `86b2e4d58ea2819ef87d422ae3a683d2b56f1b8b`). Im aktualisierten `main/index.html` wurde geprüft: **0 Airtable-Erwähnungen innerhalb der Datenschutzerklärung und der gesamten Datei**; CRM-Datenfluss Render → Cloud Run → Firestore bleibt beschrieben. Für getrennte bestehende Secure-Transfer-Abläufe wird weiterhin transparent auf Make und externe Speicher-Dienstleister als Kategorie hingewiesen. **Dies löscht oder beendet keine Airtable-Integration im Backend**, sofern dort noch vorhanden. Andere Website- und CRM-Dateien wurden nicht verändert. Öffentliche Render-Auslieferung im Browser noch nicht unabhängig bestätigt.
 
+### 23.10.2026 – CRM V2: neue Website-Leads ohne Browser-Reload anzeigen (UI-Fix vorbereitet)
+
+Der Geschäftsführer meldet aus echtem Live-Formulartest: Der Website-Lead wurde korrekt in Live Firestore gespeichert, war aber erst nach vollständigem CRM-Neuladen und erneuter Google-Anmeldung sichtbar. Ursache im Frontend: `loadAll()` wurde nur nach Login und eigenen Datensatzänderungen ausgeführt, es gab keine regelmässige externe Lead-Aktualisierung. Re-Login nach F5 kann beim bisherigen Google Identity Services ID-Token-Modell aus Sicherheitsgründen nötig sein, da Token absichtlich nur im Arbeitsspeicher liegt.
+
+Im Entwicklungsbranch `feature/crm-v2-cloud-staging-20261023` angepasst:
+- `crm-v2/public/index.html` lädt neue Website-Leads bei aktiver Anmeldung alle **30 Sekunden** und zusätzlich beim Wiederaufnehmen/Fokussieren des Browsertabs nach.
+- Zusätzliche Schaltfläche **↻ Aktualisieren** und unaufdringliche Statusanzeige.
+- Keine Live-Refresh-Requests in versteckten Tabs, bei offenen Bearbeitungsdialogen, während anderer Live-Refreshes oder ohne gültiges Login. Bei 401 wird eine neue Google-Anmeldung verlangt.
+- Bereits vorhandene Leads/Datensätze werden bei geänderten Ergebnissen neu dargestellt. **Kein CRM-Backend, Firestore-Schema, Website-Formular oder Render-Routing verändert.**
+- Neue Browser-JavaScript-Syntax- und Refresh-Invariantentests `crm-v2/test/lead-auto-refresh-ui.test.js`; Inline-Skript zudem direkt in V8 syntaktisch erfolgreich kompiliert und zentrale Refresh-Invarianten überprüft.
+- `scripts/deploy-crm-lead-refresh-live.ps1` führt lokale CRM-Regressionstests aus, prüft vorher `lszh-crm-v2-00004-mez` (100% Traffic), erstellt eine neue 0%-Revision, bestätigt Secret-/OAuth-/Service-Konfiguration, prüft anonymes UI 200/config 200/API 401, wechselt nach PASS auf die neue Revision und hat automatischen Rollback auf die bisherige Live-Revision bei nachfolgendem Fehler. Keine Testdaten/CRM-Schreibvorgänge.
+- **Wichtig: Änderung NOCH NICHT produktiv ausgerollt.** Zuerst lokales `git pull --ff-only`, dann PowerShell-Rolloutskript ausführen, Ausgabe kontrollieren, einmalig CRM-Browser neu laden und neue Formulareinreichung ohne Reload auf Live beobachten. GitHub Actions-Run war beim Dokumentationszeitpunkt noch nicht unabhängig bestätigt.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

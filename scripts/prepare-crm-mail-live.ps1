@@ -105,11 +105,16 @@ try{
     & gcloud.cmd @args
     Assert-Last 'Cloud Scheduler Job konnte nicht erstellt werden'
   }
-  & gcloud.cmd scheduler jobs pause $job --location $region --project $project --quiet
-  Assert-Last 'Scheduler konnte nicht pausiert werden'
   $raw=(& gcloud.cmd scheduler jobs describe $job --location $region --project $project --format=json)-join [Environment]::NewLine
   Assert-Last 'Scheduler Status konnte nicht gelesen werden'
   $j=$raw|ConvertFrom-Json
+  if($j.state -eq 'ENABLED'){
+    & gcloud.cmd scheduler jobs pause $job --location $region --project $project --quiet
+    Assert-Last 'Scheduler konnte nicht pausiert werden'
+    $raw=(& gcloud.cmd scheduler jobs describe $job --location $region --project $project --format=json)-join [Environment]::NewLine
+    Assert-Last 'Pausierter Scheduler konnte nicht gelesen werden'
+    $j=$raw|ConvertFrom-Json
+  }
   if($j.state -ne 'PAUSED' -or $j.httpTarget.uri -ne ($base+'/api/internal/mail/tick') -or $j.httpTarget.oidcToken.serviceAccountEmail -ne $scheduler -or $j.httpTarget.oidcToken.audience -ne $base){throw 'Scheduler Job Konfiguration unerwartet'}
   Write-Host 'PASS: Scheduler PAUSED und OIDC Konfiguration korrekt'
   Write-Host '6. Neue Cloud Run Mail Kandidaten-Revision bei 0 Prozent Traffic bereitstellen'
@@ -122,6 +127,11 @@ try{
   if((Live-Revision $next) -ne $previous){throw 'ALARM: CRM Live Traffic veraendert'}
   $after=Critical-Config $next
   foreach($key in $before.Keys){if($before[$key] -ne $after[$key]){throw ('ALARM: bestehende CRM Konfiguration veraendert: '+$key)}}
+  $allVars=@($next.spec.template.spec.containers)[0].env
+  $mode=@($allVars|Where-Object{$_.name -eq 'CRM_MAIL_ENABLED'})
+  $webhook=@($allVars|Where-Object{$_.name -eq 'CRM_MAIL_WEBHOOK_URL'})
+  if($mode.Count -ne 1 -or $mode[0].value -ne 'false'){throw 'Mail Kandidat muss deaktiviert bleiben'}
+  if($webhook.Count -ne 1 -or $webhook[0].valueFrom.secretKeyRef.name -ne $secret){throw 'Mail Webhook nicht via Secret Manager verbunden'}
   $rev=[string]$next.status.latestReadyRevisionName
   $tagged=@($next.status.traffic|Where-Object{$_.tag -eq $tag})
   if(!$rev -or $tagged.Count -ne 1 -or [int]$tagged[0].percent -ne 0 -or $tagged[0].revisionName -ne $rev){throw 'Kandidat ist nicht 0 Prozent markiert'}

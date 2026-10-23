@@ -79,12 +79,12 @@ function slip(page,regular,bold,payment){
       text(page,regular,wrapped,left,yy,7.6);yy-=10;
     }
   }
-  text(page,bold,'Waehrung',left,50,7);
+  text(page,bold,'Währung',left,50,7);
   text(page,bold,'Betrag',left+55,50,7);
   text(page,regular,'CHF',left,34,10);
   text(page,regular,payment.amount,left+55,34,10);
   text(page,bold,'Annahmestelle',left+86,11,7);
-  text(page,bold,'Zahlungsteil',right,SLIP-27,11);
+  text(page,bold,'Zahlteil',right,SLIP-27,11);
   text(page,bold,'Konto / Zahlbar an',right+169,SLIP-49,7);
   let rx=right+169,ry=SLIP-64;
   for(const line of [payment.iban,'LSZH Invest GmbH','Rummelmatt 8','5610 Wohlen']){
@@ -100,11 +100,11 @@ function slip(page,regular,bold,payment){
     }
   }
   qrVector(page,payment.payload,right,72);
-  text(page,bold,'Waehrung',right,57,7);
+  text(page,bold,'Währung',right,57,7);
   text(page,bold,'Betrag',right+55,57,7);
   text(page,regular,'CHF',right,39,11);
   text(page,regular,payment.amount,right+55,39,11);
-  text(page,bold,'Zusaetzliche Informationen',rx,67,7);
+  text(page,bold,'Zusätzliche Informationen',rx,67,7);
   text(page,regular,payment.message,rx,53,9);
 }
 async function makeInvoicePdf(invoice,customer,project,config){
@@ -123,15 +123,14 @@ async function makeInvoicePdf(invoice,customer,project,config){
     page.drawRectangle({x:46,y:H-106,width:155,height:3,color:BLUE});
     text(page,bold,'LSZH',46,H-51,24,WHITE);
     text(page,bold,'AUTOMATIONS',138,H-51,11,rgb(.455,.847,1));
-    text(page,regular,'Ein Geschaeftsbereich der LSZH Invest GmbH',46,H-75,9,WHITE);
+    text(page,regular,'Ein Geschäftsbereich der LSZH Invest GmbH',46,H-75,9,WHITE);
     text(page,bold,'RECHNUNG',W-126,H-51,11,WHITE);
-    text(page,regular,'LSZH Invest GmbH  |  Rummelmatt 8  |  5610 Wohlen AG',46,42,8,MUTED);
-    text(page,regular,'UID: CHE-369.474.125  |  info@lszh-automations.ch',46,28,8,MUTED);
+    // Footer intentionally omitted: the 105mm Swiss payment section occupies the bottom of the final A4 page.
     y=H-134;
     if(first){
       text(page,bold,'Rechnung Nr. '+invoice.number,46,y-19,19);
       y-=48;
-      text(page,bold,'RECHNUNGSEMPFAENGER',46,y,9,MUTED);
+      text(page,bold,'RECHNUNGSEMPFÄNGER',46,y,9,MUTED);
       text(page,bold,'RECHNUNGSDATEN',315,y,9,MUTED);
       let addrY=y-20;
       for(const s of [customer.company||customer.contactName,customer.contactName,
@@ -142,7 +141,7 @@ async function makeInvoicePdf(invoice,customer,project,config){
         }
       }
       text(page,regular,'Datum: '+date(invoice.invoiceDate||String(invoice.createdAt||'').slice(0,10)),315,y-20,9);
-      text(page,regular,'Faellig: '+date(invoice.dueDate),315,y-35,9);
+      text(page,regular,'Fällig: '+date(invoice.dueDate),315,y-35,9);
       text(page,regular,'Projekt: '+clean(project?.title||'-').slice(0,36),315,y-50,9);
       y=Math.min(addrY,y-64)-23;
       text(page,bold,clean(invoice.description||'Leistungen').slice(0,78),46,y,12);

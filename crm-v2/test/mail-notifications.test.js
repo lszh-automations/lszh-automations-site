@@ -9,21 +9,35 @@ const lead=()=>({id:'web_012345678901234567890123456789ab',name:'Clara <Test>',
   company:'Muster GmbH',email:'clara@firma.ch',message:'Anfrage <script>alert(1)</script>',
   status:'Neu',createdAt:new Date(T0).toISOString()});
 function fakeDB(data=lead()){
-  const mailEvents=new Map(), leads=new Map([[data.id,{...data}]]);
-  function snap(id,data){return{exists:Boolean(data),id,data:()=>data};}
-  return{
+  const mailEvents=new Map();
+  const leads=new Map([[data.id,{...data}]]);
+  const snap=(id,value)=>({exists:Boolean(value),id,data:()=>value});
+  return {
     leads,mailEvents,
     collection(name){
-      if(name.endsWith('_mail_events'))return{
-        doc(id){return{
-          async create(v){if(mailEvents.has(id)){const e=Error('duplicate');e.code=6;throw e;}mailEvents.set(id,{...v});},
-          async update(v){Object.assign(mailEvents.get(id),v);}
-        }}
-      };
-      if(name.endsWith('_leads'))return{
-        doc(id){return{async get(){return snap(id,leads.get(id));}};},
-        orderBy(){return{limit(){return{async get(){return{docs:[...leads.entries()].map(([id,v])=>snap(id,v))}};}}};}
-      };
+      if(name.endsWith('_mail_events')){
+        return {doc(id){
+          return {
+            async create(value){
+              if(mailEvents.has(id)){
+                const error=Error('duplicate');error.code=6;throw error;
+              }
+              mailEvents.set(id,{...value});
+            },
+            async update(value){Object.assign(mailEvents.get(id),value);}
+          };
+        }};
+      }
+      if(name.endsWith('_leads')){
+        return {
+          doc(id){return {async get(){return snap(id,leads.get(id));}};},
+          orderBy(){return {
+            limit(){return {
+              async get(){return {docs:[...leads.entries()].map(([id,value])=>snap(id,value))};}
+            };}
+          };}
+        };
+      }
       throw Error('unexpected collection '+name);
     }
   };

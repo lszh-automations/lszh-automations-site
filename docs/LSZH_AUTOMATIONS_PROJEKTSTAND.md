@@ -1,3 +1,27 @@
+### 23.10.2026 – Freigabe Offerten-Design + Nicht-MWST-Registrierung; Deployment bereit
+
+**Freigabe durch den Benutzer:** Die bereits gestaltete LSZH-Offerten-PDF und Kundenmail sind visuell ausdrücklich angenommen und dürfen übernommen werden. Der Benutzer hat zusätzlich ausdrücklich bestätigt: **LSZH Invest GmbH ist aktuell NICHT bei der MWST angemeldet**. Diese Bestätigung ist Grundlage für die Darstellung; eine nicht belegte Aussage über Jahresumsatz, Steuerbefreiung oder Vorsteuerabzug wird daraus nicht abgeleitet.
+
+**Implementierung im GitHub-Branch `feature/crm-v2-cloud-staging-20261023`:**
+- `crm-v2/offer-pdf.js` zeigt unter den getrennten Einmal-/Monatsbeträgen den Hinweis `Keine MWST ausgewiesen - nicht MWST-registriert.`. Der PDF-Block erhält genügend Platz, damit Datum und unverbindlicher Auftragsbestätigungsvorbehalt nicht abgeschnitten werden. UID bleibt `CHE-369.474.125`, **ohne** den Zusatz `MWST`, und es wird weder ein MWST-Satz noch ein MWST-Betrag berechnet.
+- `crm-v2/offer-mail.js` zeigt denselben Sachverhalt unmittelbar unter den Preispositionen: `Keine MWST ausgewiesen – LSZH Invest GmbH ist nicht MWST-registriert.`. Markenstil, persönliche Anrede, Schweizer Datum, Absender und separates schriftliches Auftragsbestätigungserfordernis bleiben unverändert.
+- `crm-v2/test/offer-send.test.js`: zusätzliche Assertions bestätigen in beiden Kundenunterlagen die negative MWST-Darstellung und Abwesenheit einer fingierten 8,1-%-Besteuerung.
+- `scripts/deploy-crm-offer-design-no-vat-live.ps1` ist das **neue spezifische Live-Rollout-Skript**, nicht zu verwechseln mit dem alten Cutover. Es verlangt als unveränderbare Ausgangsrevision `lszh-crm-v2-00036-ret` (letzte vom Benutzer bestätigte Live-Revision), verifiziert die produktive **manuelle** Offertenversandkonfiguration, die unveränderten Mail-/Webhook-/Firestore-Umgebungsvariablen, Scheduler/OIDC, aktive Mail-Cutoff-Grenze, Quellcode-Marker und vollständige CRM-Tests. Neue Cloud-Run-Revision wird mit **0 % Traffic** erstellt und live sowie vor dem Umschalten mit GET/POST-Statuscodes und `/api/config` geprüft. Danach 100 % Traffic; bei Fehler nach Umschaltung Rollback auf `00036-ret`. Das Skript verändert **keine** Make-Szenarien, Secrets, Firestore-Daten, Scheduler und löst selbst **keine** E-Mail aus. CI PowerShell-Parserprüfung ergänzt.
+
+**Vorbereitung abgeschlossen, aber Deployment noch NICHT vom Benutzer ausgeführt/bestätigt.** Die letzte bestätigte Live-Revision bleibt `lszh-crm-v2-00036-ret`. Erwartete neue Erfolgsmeldung `CRM OFFER PDF AND MAIL DESIGN LIVE PASS`; neue Revision erst aus dem späteren PowerShell-Log übernehmen.
+
+**Nächster manueller Schritt auf Surface:**
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-offer-design-no-vat-live.ps1"
+```
+Danach per Log Cloud Run Traffic/Mode, fortbestehenden Scheduler und sämtliche Tests bestätigen. Kein unnötiger echter Kundenversand zu Testzwecken. Es gibt keine automatisierte Auftragsannahme; echte E-Mails werden ausschliesslich durch bestätigten CRM-Klick versendet.
+
+**Betriebliche Folge:** Wenn sich die MWST-Registrierung später ändert, Offerten- und Rechnungsdarstellung sowie allfällige Steuercodes gezielt anpassen. Die UID allein darf weiterhin nicht als MWST-Nummer mit Zusatz `MWST` bezeichnet werden.
+
+---
+
 ### 23.10.2026 – Qualitätsprüfung Offerten-PDF und Kundenmail (Verbesserungen im Branch, NOCH NICHT PRODUKTIV)
 
 **Ausgangslage:** Benutzer bestätigte Produktiv-Go-Live `CRM OFFER CUSTOMER GO LIVE PASS`; Cloud Run `lszh-crm-v2-00036-ret` bei **100 % Traffic**, Rückfallrevision `lszh-crm-v2-00034-hec`, deduplizierender Mail-Cutoff `2026-10-23T16:15:28Z`. Make-Szenario `8144117` ist produktiv, überprüfte Gmail-Verbindung; Filter verlangt `kind=offer_send`, `sendMode=production`, das Offerten-Ereignis und passenden Betreff/PDF-Namen. Die Produktivrevision darf ohne weiteres Rollout nicht mit den hier bearbeiteten Quellen gleichgesetzt werden.

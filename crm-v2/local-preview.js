@@ -318,7 +318,11 @@ async function handle(req,res){
   if(req.method==='POST'&&!id){
     const data=clean(tab,body);
     if(tab==='offerten' && Object.hasOwn(data,'items'))Object.assign(data,quoteTotals(data.items));
-    if(tab==='rechnungen' && Object.hasOwn(data,'items'))Object.assign(data,invoiceTotals(data.items));
+    if(tab==='rechnungen'){
+      if(Object.hasOwn(data,'amountCHF') && !Object.hasOwn(data,'items'))
+        throw error('Rechnungsbetrag wird aus Positionen berechnet');
+      Object.assign(data,invoiceTotals(data.items||[]));
+    }
     validate(tab,data);
     if(tab==='offerten' && data.leadId){
       const lead=db.leads.find(x=>x.id===data.leadId);
@@ -367,7 +371,11 @@ async function handle(req,res){
     if(idx<0)return reply(res,404,{error:'Eintrag nicht gefunden'});
     const updates=clean(tab,body);
     if(tab==='offerten' && Object.hasOwn(updates,'items'))Object.assign(updates,quoteTotals(updates.items));
-    if(tab==='rechnungen' && Object.hasOwn(updates,'items'))Object.assign(updates,invoiceTotals(updates.items));
+    if(tab==='rechnungen'){
+      if(Object.hasOwn(updates,'amountCHF') && !Object.hasOwn(updates,'items'))
+        throw error('Rechnungsbetrag wird aus Positionen berechnet');
+      if(Object.hasOwn(updates,'items'))Object.assign(updates,invoiceTotals(updates.items));
+    }
     if(!Object.keys(updates).length)throw error('Keine Änderung');
     const now=new Date().toISOString();
     const record=db[tab][idx];

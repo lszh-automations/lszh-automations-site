@@ -26,11 +26,16 @@ $bytes = [Text.Encoding]::UTF8.GetBytes(($payload | ConvertTo-Json -Compress))
 try {
   $response = Invoke-WebRequest -Method POST -Uri $webhook -ContentType "application/json; charset=utf-8" -Body $bytes -UseBasicParsing -TimeoutSec 45
   $status = [int]$response.StatusCode
+  $bodyText = [string]$response.Content
   $result = $null
-  try {$result = $response.Content | ConvertFrom-Json} catch {}
+  try {$result = $bodyText | ConvertFrom-Json} catch {}
   if ($status -ne 200 -or $result.ok -ne $true -or -not $result.messageId) {
-    Write-Warning "Unbestaetigte Mailannahme: HTTP $status - Versand anhand Make-Ausfuehrungen pruefen, NICHT blind wiederholen."
-    throw "Kein verifizierter Gmail-Versandnachweis aus Make-WebHookResponse."
+    $preview = if ($bodyText -eq "Accepted") { "Make hat die Anfrage mit Accepted quittiert, ohne synchronen Gmail-Beleg." }
+      elseif ($bodyText.Length -lt 120 -and $bodyText -notmatch 'https?://|@') { "Antwort: " + $bodyText }
+      else { "Die Antwort enthaelt keinen erwarteten JSON-Versandnachweis." }
+    Write-Warning ("Unbestaetigte Rueckmeldung: HTTP " + $status + ". " + $preview)
+    Write-Warning "Der Versand kann trotz fehlendem synchronen Beleg erfolgreich sein. In Make-Ausfuehrungen pruefen, NICHT blind wiederholen."
+    throw "Kein verifizierter Gmail-Versandnachweis aus synchroner WebhookResponse."
   }
   Write-Host "PASS: Gmail-Send-Modul hat eine Nachricht-ID bestaetigt."
   Write-Host "Empfaenger: lars@lszh-automations.ch"

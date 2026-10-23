@@ -142,14 +142,29 @@ try {
   Write-Host '2. Verify current mail-enabled live deployment'
   $before=ReadService
   $expectedLive=ActiveRevision $before
-  # Both recent user-tested versions are safe predecessors.
+  # A Cloud Run traffic switch via --to-revisions can remove a revision tag
+  # from the 100-percent traffic entry (or leave the tag on a 0-percent entry).
+  # Match tag ownership independently from the traffic percent.
   $allowedTags=@('crm-offer-tracking','crm-empty-quote-description')
-  $previousTag=@($before.status.traffic | Where-Object {
-    $allowedTags -contains $_.tag -and
-    $_.revisionName -eq $expectedLive -and [int]$_.percent -eq 100
+  $matchingTags=@($before.status.traffic | Where-Object {
+    $allowedTags -contains $_.tag -and $_.revisionName -eq $expectedLive
   })
-  if($previousTag.Count -ne 1){
-    throw ('Unrecognised live CRM revision/tag: '+$expectedLive+'; no changes made')
+  if($matchingTags.Count -eq 0){
+    # Explicit observed revision from the user's failed preflight, never a wildcard.
+    if($expectedLive -ne 'lszh-crm-v2-00028-lij'){
+      throw ('Unrecognised live CRM revision: '+$expectedLive+'; no changes made')
+    }
+    # Confirm the pinned live revision still has the previously tested CRM UI.
+    $liveHtml=(& Invoke-WebRequest -Uri $base -UseBasicParsing -TimeoutSec 30).Content
+    foreach($required in @('function appendContactSection(', 'function openOfferEditor(',
+      'function dueLeadFollowUps(', 'Speichern & qualifizieren')){
+      if(!$liveHtml.Contains($required)){
+        throw ('Pinned live revision is missing previous CRM feature: '+$required)
+      }
+    }
+    Write-Host ('PASS: pinned live revision '+$expectedLive+' verified by CRM feature markers (tag not needed)')
+  }else{
+    Write-Host ('PASS: live revision has known tag: '+$matchingTags[0].tag)
   }
   $old=ReadRevision $expectedLive
   if($old.spec.serviceAccountName -ne $expectedAccount){throw 'Unexpected CRM runtime identity'}

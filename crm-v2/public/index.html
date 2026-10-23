@@ -1076,6 +1076,7 @@ function openInvoiceEditor(record=null,draft=null){
   $('invoiceError').hidden=true;
   const data=record||draft||{};
   const fields=['customerId','projectId','description','invoiceDate','dueDate','status'];
+  const controls={};
   for(const [key,label,type] of definitions.rechnungen.fields){
     if(!fields.includes(key))continue;
     const today=new Date();
@@ -1085,8 +1086,18 @@ function openInvoiceEditor(record=null,draft=null){
     element.addEventListener('input',markInvoiceUnsaved);
     element.addEventListener('change',markInvoiceUnsaved);
     const control=element.querySelector('input,select,textarea');
+    controls[key]=control;
     if(state.invoiceLocked&&control)control.disabled=true;
     $('invoiceFields').append(element);
+  }
+  if(controls.projectId&&!state.invoiceLocked){
+    controls.projectId.addEventListener('change',()=>{
+      const project=(state.records.projekte||[]).find(p=>p.id===controls.projectId.value);
+      if(project?.customerId && controls.customerId){
+        controls.customerId.value=project.customerId;
+        markInvoiceUnsaved();
+      }
+    });
   }
   for(const line of legacyInvoiceLines(data))addInvoiceLine(line,true);
   refreshInvoiceTotal();

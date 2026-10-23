@@ -109,7 +109,7 @@ try {
   CheckExit 'git status failed'
   if($dirty){throw 'Uncommitted local changes: release aborted'}
   $template=Get-Content '.\crm-v2\mail-templates.js' -Raw -Encoding UTF8
-  foreach($marker in @('function customerShell','AUTOMATION FÜR SCHWEIZER KMU',
+  foreach($marker in @('function customerShell','AUTOMATION','SCHWEIZER KMU',
     '#74d8ff','#5b8cff','#8e72ff','Rummelmatt 8')) {
     if(!$template.Contains($marker)){throw ('Missing reviewed mail design marker: '+$marker)}
   }

@@ -53,6 +53,12 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 
 /* Straightforward quote editor - local test version */
 .offer-dialog{width:min(1030px,calc(100vw - 30px));max-height:92vh}
+.offer-locked-notice{margin:20px 24px 0;padding:15px 17px;border:1px solid #536f90;border-radius:11px;background:#182d42;display:grid;gap:4px}
+.offer-locked-notice strong{font-size:13px;color:#e0f1ff}
+.offer-locked-notice span{font-size:12px;color:#abc3d8}
+.offer-dialog.is-locked input:disabled,.offer-dialog.is-locked textarea:disabled,.offer-dialog.is-locked select:disabled{opacity:1;background:#15202e;color:#b2c2d3;cursor:default}
+.offer-dialog.is-locked .offer-line-remove:disabled{opacity:.45;cursor:default}
+@media(max-width:600px){.offer-locked-notice{margin:14px 16px 0}}
 #offerForm{display:block;max-height:calc(92vh - 80px);overflow:auto}
 .offer-fields{padding:22px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
 .offer-fields .wide{grid-column:1 / -1}
@@ -200,6 +206,10 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 <dialog id="offerEditor" class="offer-dialog" aria-labelledby="offerEditorTitle">
   <div class="modal-head"><div><span class="eyebrow">LSZH / OFFERTEN</span><h2 id="offerEditorTitle">Offerte bearbeiten</h2></div><button class="btn" id="offerClose" type="button" aria-label="Schliessen">✕</button></div>
   <form id="offerForm">
+    <div id="offerLockedNotice" class="offer-locked-notice" role="status" hidden>
+      <strong>Offerte angenommen – schreibgeschützt</strong>
+      <span>Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.</span>
+    </div>
     <div id="offerFields" class="offer-fields"></div>
     <div class="offer-lines-head"><div><strong>Positionen</strong><p>Einmalige und monatliche Leistungen getrennt erfassen.</p></div><button class="btn" id="offerAddLine" type="button">+ Position hinzufügen</button></div>
     <div id="offerLines" class="offer-lines"></div>
@@ -648,6 +658,7 @@ function quotePreviousItems(offer){
   return lines;
 }
 function markQuoteUnsaved(){
+  if(state.offerLocked)return;
   $('offerPrint').disabled=true;
   $('offerHint').textContent='Ungespeicherte Änderungen. Bitte zuerst speichern, danach die Druckansicht öffnen.';
 }
@@ -680,6 +691,7 @@ function quoteInput(type,name,value){
   return control;
 }
 function addQuoteLine(data={}){
+  if(state.offerLocked && !state.offerOpening)return;
   const row=el('div','offer-line');
   const fields={};
   const values={
@@ -735,10 +747,20 @@ function quoteItemsFromForm(){
   }
   return items;
 }
+function isOfferLocked(offer){
+  if(!offer)return false;
+  return offer.status==='Angenommen' ||
+    !!((state.records.leads||[]).find(lead=>lead.id===offer.leadId && lead.status==='Gewonnen'));
+}
 function openOfferEditor(record=null,draft=null){
   state.offerEditing=record;
+  state.offerLocked=isOfferLocked(record);
+  state.offerOpening=true;
+  $('offerEditor').classList.toggle('is-locked',state.offerLocked);
+  $('offerLockedNotice').hidden=!state.offerLocked;
   $('offerEditorTitle').textContent=record
-    ?'Offerte Nr. '+(record.number||'–')+' bearbeiten':'Neue Offerte';
+    ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – Angenommen':' bearbeiten')
+    :'Neue Offerte';
   $('offerFields').replaceChildren();
   $('offerLines').replaceChildren();
   const fields=['leadId','customerId','title','description','validUntil','status'];
@@ -747,12 +769,29 @@ function openOfferEditor(record=null,draft=null){
     const field=makeField(key,label,type,record?.[key] ?? draft?.[key]);
     field.addEventListener('input',markQuoteUnsaved);
     field.addEventListener('change',markQuoteUnsaved);
+    if(state.offerLocked){
+      const control=field.querySelector('input,select,textarea');
+      if(control)control.disabled=true;
+    }
     $('offerFields').append(field);
   }
   for(const line of quotePreviousItems(record||draft))addQuoteLine(line);
+  state.offerOpening=false;
+  if(state.offerLocked){
+    for(const row of $('offerLines').children){
+      const fields=row._quoteFields;
+      for(const key of ['title','qty','unitPriceCHF','mode'])fields[key].disabled=true;
+      const remove=row.querySelector('.offer-line-remove');
+      if(remove)remove.disabled=true;
+    }
+  }
   updateQuoteTotals();
+  $('offerAddLine').hidden=state.offerLocked;
+  $('offerSave').hidden=state.offerLocked;
   $('offerPrint').disabled=!record;
-  $('offerHint').textContent='PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
+  $('offerHint').textContent=state.offerLocked
+    ?'Diese angenommene Offerte ist unveränderbar. Du kannst die gespeicherte Fassung weiterhin als PDF öffnen.'
+    :'PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
   $('offerEditor').showModal();
 }
 
@@ -807,6 +846,7 @@ $('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
 $('offerClose').addEventListener('click',()=>$('offerEditor').close());
 $('offerCancel').addEventListener('click',()=>$('offerEditor').close());
 $('offerAddLine').addEventListener('click',()=>{
+  if(state.offerLocked)return;
   addQuoteLine();
   markQuoteUnsaved();
 });
@@ -816,6 +856,7 @@ $('offerPrint').addEventListener('click',()=>{
 });
 $('offerForm').addEventListener('submit',async event=>{
   event.preventDefault();
+  if(state.offerLocked)return;
   const form=$('offerForm');
   const data={};
   for(const key of ['leadId','customerId','title','description','validUntil','status']){

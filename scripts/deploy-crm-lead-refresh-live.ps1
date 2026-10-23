@@ -54,6 +54,7 @@ function Probe([string]$base){
     $expect=if($path -eq "/api/records/leads"){401}else{200}
     if($code -ne $expect){throw "HTTP $code auf $path, erwartet $expect"}
     if($path -eq "/" -and $html -notmatch "LSZH"){throw "Kein CRM-HTML unter $base"}
+    if($path -eq "/" -and $html -notmatch "LEAD_REFRESH_INTERVAL_MS=30000"){throw "Neue automatische Lead-Synchronisierung fehlt in der bereitgestellten HTML-Seite"}
   }
   Write-Host "PASS: CRM UI HTTP 200, Google config HTTP 200, Leads ohne Login HTTP 401."
 }
@@ -74,6 +75,9 @@ try{
   if($html -notmatch "LEAD_REFRESH_INTERVAL_MS=30000" -or $html -notmatch "refreshLeads"){
     throw "Neue CRM-Lead-Aktualisierung fehlt in der lokalen Version"
   }
+  Write-Host "0. CRM Regressionstests vor dem Deploy ausfuehren"
+  & npm.cmd test --prefix ".\crm-v2"
+  CheckExit "CRM Regressionstests fehlgeschlagen - KEIN Deploy"
   Write-Host "1. Produktive Revision und unveraenderte Servicekonfiguration pruefen"
   $before=ReadService
   if((ActiveRevision $before) -ne $previous){throw "Aktive Produktivrevision hat sich unerwartet geaendert"}

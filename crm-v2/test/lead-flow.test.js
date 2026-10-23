@@ -99,7 +99,8 @@ test('Contacted lead has no offer; qualification automatically creates one edita
   assert.equal(calls.filter(x=>x.table==='offerten'&&x.method==='POST').length,0,
     'Offer creation must happen on backend, not through an extra frontend POST');
   await byId('leadDetailActions').children.find(x=>x.textContent==='Offerte öffnen').press();
-  assert.equal(byId('editor').open,true);
+  assert.equal(byId('offerEditor').open,true);
+  assert.equal(byId('editor').open,false);
   assert.equal(app.state.tab,'offerten');
 });
 test('Changing status dropdown to Gewonnen creates customer and project from accepted offer',async()=>{

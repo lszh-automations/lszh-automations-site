@@ -1,3 +1,27 @@
+### CRM V2 – Offertenversand dokumentieren und gezielt nachfassen (23.10.2026)
+
+**Ausgangslage:** Nummerierung, Offertenbearbeitung, gespeicherte PDF-/Druckansicht und Annahme/Abschluss inklusive automatischer Kunden-/Projektanlage funktionieren bereits. Es fehlten ein nachvollziehbarer Versandnachweis und die Wiedervorlagen zwischen Angebot und Kundenentscheid.
+
+**Umgesetzt auf `feature/crm-v2-cloud-staging-20261023` (noch nicht live):**
+- Im vorhandenen Offerteneditor gibt es neu den Bereich **«Versand und Nachverfolgung»**. Bei `Entwurf`: Offerte bearbeiten und auf `Bereit` setzen. Bei `Bereit`: vorbereiteten E-Mail-Text mit Empfänger und Betreff kopieren, die vorhandene gespeicherte Druckansicht als PDF verwenden und **E-Mail inkl. Anhang ausserhalb des CRM manuell verschicken**. Erst nach Bestätigungsdialog kann der Mitarbeiter den erfolgten Versand als `Versendet` protokollieren. **Dieser Klick sendet nie eine E-Mail.** Er trägt den nächsten Nachfasstermin ein.
+- Backend `POST /api/records/offerten/:id/dispatch` benötigt die bestehende Google-CRM-Anmeldung und Same-Origin, prüft atomar Status `Bereit`, gültiges Gültigkeitsdatum, positive Offertenposition(en), verknüpfte Empfänger-E-Mail und Nachfassdatum. Im Firestore-Dokument werden `sentAt`, `sentBy`, `sentTo`, `followUpDate`, `followUpCount` gespeichert. Mehrfacher Versandnachweis ist durch den Statuswechsel blockiert; generischer Statuswechsel auf `Versendet` ebenfalls.
+- **Versendete Offerten bleiben inhaltlich schreibgeschützt.** Im Dialog können manuell durchgeführte Nachfassaktionen mit Datum/Notiz über `POST /api/records/offerten/:id/followup` dokumentiert werden; neue Wiedervorlage ersetzt die alte, Geschichte und Bearbeiter werden aufgezeichnet. Keine automatischen E-Mails und keine automatisch ausgeführten Follow-ups.
+- Klare Aktionen **«Als angenommen markieren»** und **«Als abgelehnt markieren»** mit Bestätigungsdialog. Annahme nutzt die vorhandenen Firestore-Transaktionen, erzeugt Kunde und Projekt weiterhin nur einmal und sperrt die Offerte. Ablehnung markiert einen verknüpften Lead wie bisher als `Verloren`. Alte angenommene oder versendete Offerten bleiben lesbar. Bestehende Statusübergänge für legacy-Records sind weiterhin kompatibel.
+- Im Dashboard zusätzliche **«Offerten-Nachverfolgung»** mit heute fälligen/überfälligen Offerten und direktem Sprung zum Offerteneditor; Kennzahl in «Jetzt wichtig». Offertenregister mit neuer Spalte «Nachfassen». Keine neuen Make-Szenarien, keine Änderung am produktiven Website-Lead- oder CRM-Mailbetrieb.
+- Neue Validatoren in `crm-v2/offer-tracking.js`, API in `crm-v2/server.js`, Transaktionen in `crm-v2/cloud-records.js`, Oberfläche in `crm-v2/public/index.html`. Regressionstests prüfen Versandbereitschaft, Datumsgrenzen, Doppelaktionen, gesperrte versendete Offerten, Nachfassgeschichte, Annahme/Ablehnung, unveränderte Kunden-/Projekterstellung, auth-/Origin-Schutz und Dashboard.
+
+**Deployment vorbereitet, nicht automatisch live:** `scripts/deploy-crm-offer-tracking-live.ps1` verlangt beim Preflight die vom Geschäftsführer bestätigte vorige Produktivrevision mit Tag `crm-contact-workflow` auf 100 % Traffic und speichert sie als Rollback-Ziel. Danach vollständige CRM-Tests, Prüfung von Mail-Env, Cloud Scheduler, Service Account, Secret-Referenzen und bestehendem HTTP-Schutz; neue Revision zunächst bei 0 % Traffic. Erst wenn alle Prüfungen erfolgreich sind, Produktionswechsel. Kein Versand, keine Testdatensätze oder Mail-Event-Neuabwicklung beim Deploy.
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-offer-tracking-live.ps1"
+```
+
+**Produktivstatus erst nach `CRM OFFER TRACKING LIVE PASS` behaupten.** Danach im Browser das CRM neu laden und eine synthetische/ungefährliche Testofferte durch die manuelle Dokumentation durchgehen; keinesfalls behaupten, dass der Versand selbst automatisiert ist.
+
+---
+
 ### CRM V2 – Kontaktmanagement und Wiedervorlagen (23.10.2026)
 
 **Ziel:** Den Weg von Website-Lead → Kontaktaufnahme → Qualifizierung → Offerte ohne Medienbrüche unterstützen. Alle Änderungen im bestehenden Cloud-Run-CRM und dessen Firestore-Namespace; keine neuen Make-Szenarien oder automatischen Kundenmails.

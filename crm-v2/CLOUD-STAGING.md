@@ -64,6 +64,14 @@ Das Script führt lokale Tests aus und deployed ausschliesslich den neuen Servic
 
 Dies ersetzt die Aussage im älteren Erstentwurf, dass kein Deploy erfolgte, ist aber **keine Produktionsfreigabe**.
 
+## Update 23.10.2026 – Google Login nach Neuladen
+
+- Der Cloud-Staging-Login wurde vom Geschäftsführer mit dem Geschäftskonto erfolgreich getestet. Eine neue Website-Testanfrage blieb nach Browser-Neuladen in Firestore bestehen.
+- Festgestellt: Vorher war die Google-Anmeldung nach jedem Neuladen erneut manuell nötig. Jetzt versucht Google Identity Services bei geladenem Browser automatisch eine neue Anmeldung mit `auto_select: true`, `button_auto_select: true` und `google.accounts.id.prompt()`.
+- **Wichtig:** Eine automatische Anmeldung hängt von Googles und Browsers Datenschutz-/FedCM-Regeln ab. Bei wiederholten Logins, mehreren Konten oder abgelaufener Einwilligung kann weiterhin ein Bestätigungsklick nötig sein. Der reguläre Anmeldeknopf bleibt sichtbar.
+- Es werden keine Google-ID-Tokens in Local Storage oder Session Storage persistiert; jede vom Browser zurückgegebene Credential wird weiterhin durch die Cloud-API validiert. «Abmelden» deaktiviert die automatische Kontoauswahl.
+- Tests: `crm-v2/test/cloud-signin-ui.test.js`. Nach Änderung **Cloud-Staging neu deployen**, die bereits laufende Cloud-Run-Revision übernimmt GitHub-Änderungen nicht automatisch.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

@@ -11,6 +11,10 @@ function fakeFirestore(){
     constructor(collection,id){this.collection=collection;this.id=id;}
     get path(){return this.collection.name+'/'+this.id;}
     async get(){return snapshot(this);}
+    async create(value){
+      assert.equal(storage.has(this.path),false,'document must not exist');
+      storage.set(this.path,clone(value));
+    }
   }
   function snapshot(ref){
     const val=storage.get(ref.path);

@@ -159,7 +159,10 @@ try{
   $allRaw=(& gcloud.cmd secrets list --project $project --format=json) -join [Environment]::NewLine
   Check 'Cannot list secrets in project'
   $found=@(($allRaw|ConvertFrom-Json)|Where-Object{
-    $_.name -match ('/secrets/'+[regex]::Escape($secret)+'
+    $_.name -match ('/secrets/'+[regex]::Escape($secret)+'$')
+  })
+  if($found.Count -gt 1){throw 'Duplicate offer webhook secrets detected'}
+  if($found.Count -eq 0){
     & gcloud.cmd secrets create $secret --project $project --replication-policy=automatic --quiet
     Check 'Cannot create offer Make secret'
   }

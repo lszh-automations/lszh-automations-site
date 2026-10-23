@@ -115,7 +115,7 @@ try {
   $routes=Get-Content '.\crm-v2\server.js' -Raw -Encoding UTF8
   $contact=Get-Content '.\crm-v2\lead-contact.js' -Raw -Encoding UTF8
   foreach($marker in @('function appendContactSection(', 'function appendFollowUpSection(',
-    'function appendQualificationSection(', 'function dueLeadFollowUps(',
+    'function appendQualificationSection(', 'Speichern & qualifizieren', 'function dueLeadFollowUps(',
     "dashboardPanel('Fällige Wiedervorlagen'", "'followUpDate','Wiedervorlage'",
     "method:'POST'", "method:'PATCH'")) {
     if(!$html.Contains($marker)){throw ('Required contact UI missing: '+$marker)}

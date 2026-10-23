@@ -262,3 +262,75 @@ test('won lead blocks direct mutation of its accepted offer',async()=>{
   const updated=await call('GET','/api/records/offerten');
   assert.equal(updated.body.records.find(x=>x.id===offer.id).title,offer.title);
 });
+
+test('project checklist and deadline are stored together with status',async()=>{
+  const created=await call('POST','/api/records/projekte',{
+    customerId:'test-customer-1',title:'TEST: Projekt mit Aufgaben',
+    description:'Projektsteuerung lokal',dueDate:'2026-11-12',
+    status:'Geplant',tasks:[
+      {title:'Anforderungen bestätigen',done:false},
+      {title:'Staging prüfen',done:false}
+    ]
+  });
+  assert.equal(created.status,201);
+  assert.equal(created.body.record.tasks.length,2);
+  const id=created.body.record.id;
+  const update=await call('PATCH','/api/records/projekte/'+id,{
+    status:'In Arbeit',dueDate:'2026-11-15',
+    tasks:[{title:'Anforderungen bestätigen',done:true},{title:'Staging prüfen',done:false}]
+  });
+  assert.equal(update.status,200);
+  assert.equal(update.body.record.status,'In Arbeit');
+  assert.equal(update.body.record.dueDate,'2026-11-15');
+  assert.deepEqual(update.body.record.tasks,[
+    {title:'Anforderungen bestätigen',done:true},
+    {title:'Staging prüfen',done:false}
+  ]);
+  const stored=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8'));
+  assert.equal(stored.projekte.find(p=>p.id===id).tasks[0].done,true);
+  const finish=await call('PATCH','/api/records/projekte/'+id,{status:'Abgeschlossen'});
+  assert.equal(finish.status,200);
+  assert.equal(finish.body.record.status,'Abgeschlossen');
+  assert.equal(finish.body.record.tasks.length,2);
+});
+test('invalid project tasks are rejected without changing saved project',async()=>{
+  const created=await call('POST','/api/records/projekte',{title:'TEST: Aufgabenvalidierung',tasks:[]});
+  assert.equal(created.status,201);
+  const id=created.body.record.id;
+  for(const invalid of [
+    [{title:'',done:false}],
+    [{title:'Aufgabe',done:'yes'}],
+    Array.from({length:31},()=>({title:'Aufgabe',done:false})),
+    [{title:'X'.repeat(161),done:false}]
+  ]){
+    const denied=await call('PATCH','/api/records/projekte/'+id,{tasks:invalid});
+    assert.equal(denied.status,400);
+  }
+  const read=await call('GET','/api/records/projekte');
+  assert.deepEqual(read.body.records.find(p=>p.id===id).tasks,[]);
+});
+test('won project keeps customer and accepted-offer links when edited',async()=>{
+  const lead=await call('POST','/api/records/leads',{
+    name:'Projektkunde',company:'TEST Projekterfolg AG',email:'projekterfolg@example.com',
+    street:'Teststrasse 10',postalCode:'5000',city:'Aarau',country:'Schweiz'
+  });
+  assert.equal(lead.status,201);
+  const leadId=lead.body.record.id;
+  await call('PATCH','/api/records/leads/'+leadId,{status:'Qualifiziert'});
+  await call('PATCH','/api/records/leads/'+leadId,{status:'Gewonnen'});
+  const projects=await call('GET','/api/records/projekte');
+  const offers=await call('GET','/api/records/offerten');
+  const offer=offers.body.records.find(q=>q.leadId===leadId);
+  const project=projects.body.records.find(p=>p.offerId===offer.id);
+  assert.ok(project);
+  const wrongCustomer=await call('PATCH','/api/records/projekte/'+project.id,{customerId:'test-customer-1'});
+  assert.equal(wrongCustomer.status,400);
+  const wrongOffer=await call('PATCH','/api/records/projekte/'+project.id,{offerId:''});
+  assert.equal(wrongOffer.status,400);
+  const allowed=await call('PATCH','/api/records/projekte/'+project.id,{
+    status:'In Arbeit',tasks:[{title:'Einrichtung',done:false}]
+  });
+  assert.equal(allowed.status,200);
+  assert.equal(allowed.body.record.customerId,project.customerId);
+  assert.equal(allowed.body.record.offerId,offer.id);
+});

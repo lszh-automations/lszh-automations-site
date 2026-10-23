@@ -268,3 +268,63 @@ test('follow-up and qualification data persist without affecting other records',
   assert.equal(done.followUpDate,'');
   assert.equal((await store.list('offerten')).length,1);
 });
+
+test('manual offer delivery records actual dispatch once, locks quote and tracks follow-ups',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead('Offertenkunde GmbH'),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const validUntil=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const nextFollowUp=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const secondFollowUp=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+  const position={title:'Termin-Automation',mode:'einmalig',qty:1,unitPriceCHF:450};
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate:nextFollowUp},admin),{status:409});
+  await store.update('offerten',offer.id,{status:'Bereit'},admin);
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate:nextFollowUp},admin),{status:409});
+  await store.update('offerten',offer.id,{items:[position],validUntil},admin);
+  await assert.rejects(store.update('offerten',offer.id,{status:'Versendet'},admin),{status:409});
+  const sent=await store.recordOfferDispatch(offer.id,{followUpDate:nextFollowUp},admin);
+  assert.equal(sent.status,'Versendet');
+  assert.equal(sent.sentTo,lead.email);
+  assert.equal(sent.sentBy,admin.email);
+  assert.ok(sent.sentAt);
+  assert.equal(sent.followUpDate,nextFollowUp);
+  assert.equal(sent.followUpCount,0);
+  assert.equal(sent.followUpHistory.length,0);
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate:nextFollowUp},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{status:'Entwurf'},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{title:'Unerlaubt geändert'},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{status:'Bereit'},admin),{status:409});
+  await assert.rejects(store.recordOfferFollowUp(offer.id,{followUpDate:'2020-01-01'},admin),{status:400});
+  const first=await store.recordOfferFollowUp(offer.id,{
+    followUpDate:secondFollowUp,note:'Kunde telefonisch erinnert'
+  },admin);
+  assert.equal(first.followUpCount,1);
+  assert.equal(first.followUpDate,secondFollowUp);
+  assert.equal(first.followUpHistory[0].note,'Kunde telefonisch erinnert');
+  assert.equal(first.followUpHistory[0].by,admin.email);
+  const accepted=await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+  assert.equal(accepted.status,'Angenommen');
+  assert.equal((await store.get('leads',lead.id)).status,'Gewonnen');
+  assert.equal((await store.list('kunden')).length,1);
+  assert.equal((await store.list('projekte')).length,1);
+  await assert.rejects(store.recordOfferFollowUp(offer.id,{followUpDate:secondFollowUp},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{status:'Abgelehnt'},admin),{status:403});
+});
+test('declined sent offer marks lead lost; duplicate sent requests cannot resend',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const validUntil=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const followUpDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  await store.update('offerten',offer.id,{
+    status:'Bereit',validUntil,
+    items:[{title:'Setup',mode:'monatlich',qty:1,unitPriceCHF:199}]
+  },admin);
+  await store.recordOfferDispatch(offer.id,{followUpDate},admin);
+  await store.update('offerten',offer.id,{status:'Abgelehnt'},admin);
+  assert.equal((await store.get('leads',lead.id)).status,'Verloren');
+  assert.equal((await store.get('offerten',offer.id)).status,'Abgelehnt');
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate},admin),{status:409});
+});

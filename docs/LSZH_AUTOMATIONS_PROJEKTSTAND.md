@@ -200,6 +200,15 @@ Code im Branch `feature/crm-v2-cloud-staging-20261023`: `crm-v2/mail-templates.j
 - **CRM Live noch unverändert:** Revision `lszh-crm-v2-00006-moz` mit 100 % Traffic. Servermail-Dispatcher ist nur Quellcode, noch nicht deployt/aktiviert. Keine automatischen produktiven Kunden-E-Mails oder 24h-Erinnerungen.
 - Nächster Schritt: Nutzer führt `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2`, `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-crm-business-mail.ps1` aus, danach Make-Execution und Gmail-Message-ID prüfen. **Nicht doppelt absenden, wenn Antwort unklar!**
 
+### 23.10.2026 – Mail-Test: Windows-PowerShell und Website-Test-Mocks korrigiert
+
+Beim ersten Test nach `git pull` schlugen **2 von 30** CRM-Tests fehl: Die bisherige `cloud-website-intake.test.js`-Testumgebung erwartete `./mail-dispatcher` noch nicht. Dies war ein Test-Mock-Fehler beim Laden von `crm-v2/server.js`, nicht ein nachgewiesener Firestore-/Website-Produktivfehler. Zusätzlich war `scripts/test-crm-business-mail.ps1` durch ein UTF-8-Gedankenstrichzeichen unter Windows PowerShell 5.1 nicht parsbar. **Der Mail-Test wurde daher nicht ausgeführt.**
+
+- GitHub Commit `ed50ce1`: `crm-v2/test/cloud-website-intake.test.js` kennt neu ein sicher deaktiviertes Fake-Mail-Modul; keine produktive Serverlogik geändert.
+- GitHub Commit `66fc84b`: `scripts/test-crm-business-mail.ps1` ist vollständig ASCII-kompatibel; insbesondere Betreff und Meldungen ohne Sonderzeichen.
+- Statische Prüfung nach der Änderung: Testdatei in V8 kompiliert; Script ist ASCII-only. **Vollständiger Node-Testlauf auf dem Benutzerrechner steht noch aus.**
+- Make Szenario 8135270 blieb aktiv nur für intern TEST_ONLY gefilterte Mails. Kontrolle per Make: **keine Ausführungen registriert**; bei diesem Versuch wurden keine Mails versendet.
+- Nächste Schritte: `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2` muss alle 30 Tests bestehen; nur dann den einmaligen internen Test durch `scripts/test-crm-business-mail.ps1` senden. Ergebnis und Make-Ausführung prüfen, bevor produktive Mails aktiviert werden.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

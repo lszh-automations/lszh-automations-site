@@ -1,7 +1,142 @@
+## Produktiver CRM-V2-Cutover erfolgreich – 23.10.2026
+
+Der Geschäftsführer hat nach ausdrücklicher Freigabe das Skript `scripts/cutover-crm-v2-live.ps1` auf dem Surface ausgeführt und die vollständige erfolgreiche PowerShell-Ausgabe übermittelt.
+
+- **Live-Cloud-Run-Dienst:** `lszh-crm-v2`; Revision `lszh-crm-v2-00004-mez` erhält **100 % produktiven Traffic**.
+- **Alte Rückfallrevision:** `lszh-crm-v2-00002-6lh` bleibt als benannter Rückfallpunkt erhalten. Kein Rollback ausgelöst.
+- **Render-Website:** `https://www.lszh-automations.ch` war erreichbar. **Keine neue Render-Bereitstellung und kein Wechsel der Website-URL**.
+- **Produktive CRM-Oberfläche:** `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` lieferte die erwartete CRM-V2-Oberfläche. Anonyme CRM-API-Anfragen blieben gesperrt.
+- **Echter Website-to-CRM-HTTP-Test:** `POST /api/lead` über die öffentliche Render-Website → bestehendes Cloud-Run-Ziel → produktive Firestore-Sammlung mit `confirmed:true` und Datensatz-ID.
+- **Testlead in Live:** `web_bc17917b879a4f4ab254456da78b68e5`, gekennzeichnet als `TEST_ONLY LSZH CRM V2`.
+- **Dublettentest:** identische Wiederholung derselben `submission_id` lieferte denselben Datensatz; keine zweite Lead-Erstellung.
+- **Website-Formularweg benötigt kein Airtable/Make.** Alte Datenmigration wurde vom Geschäftsführer ausdrücklich abgewählt; produktiver Startbestand war absichtlich leer.
+- **Backup vor Cutover:** kompletter Export `gs://lszh-firestore-backups-470613067122/backups/20261023-094036` mit `SUCCESSFUL`; isolierter Restore nicht getestet.
+
+**Produktivstatus:** CRM-V2-Cutover erfolgreich. Echte neue Website-Leads sollen ab jetzt in der produktiven CRM-V2-Firestore-Sammlung sichtbar sein. Die Anzeige des Testleads im angemeldeten Dashboard ist der nächste visuelle Abnahmeschritt; die HTTP-Speicherung ist bereits bestätigt. Website-Datenschutztext-Änderung befindet sich noch im unveröffentlichten Entwicklungsbranch und ist nicht automatisch auf Render veröffentlicht. Für weitere produktive Änderungen gesondert freigeben. Keine Kundenmail, Vertrag oder Rechnung durch diesen Cutover versandt.
+
+## Verbindliche Geschäftsführerentscheidung – 23.10.2026: Kein Airtable-Import
+
+- Für **LSZH CRM V2** werden weder Airtable noch die bisherigen Airtable-Datensätze benötigt. **Keine Migration, keine Zuordnung historischer Airtable-IDs, keine Nachführung historischer CRM-Daten**.
+- Der Geschäftsführer bestätigt den durch die Firestore-Zählung ermittelten **leeren Live-Bestand** (`lszh_crm_v2_`: jeweils null Leads, Kunden, Offerten, Projekte und Rechnungen) als **korrekten gewünschten Startzustand**.
+- Die produktiven Offerten- und Rechnungsnummern beginnen jeweils bei **1000**. Die Staging-Nummern zählen nicht zum Live-Bestand.
+- Der produktive Website-Eingang bleibt **Render -> Cloud Run -> Firestore**; kein Make-/Airtable-Zwischenschritt im Hauptkontaktformular. Make für andere, ausdrücklich benötigte Kundenautomationen unabhängig davon weiter nutzbar.
+- **Airtable-Inventur/Import ist kein Go-Live-Blocker mehr**. Historische Airtable-Datenbanken, Make-Szenarien, Google-Drive-Archive und Nachweise werden durch diese Entscheidung **nicht automatisch gelöscht oder deaktiviert**; hierfür wäre eine separate gezielte Freigabe erforderlich.
+- Bereits bestanden: Staging-Prozess und Website-Ingest, produktiver Cloud-Run-Kandidat `lszh-crm-v2-00004-mez` mit `0 %` Traffic, anonyme API-Negativtests sowie erlaubter Google-OAuth-Login und leeres Live-Dashboard in Edge; Firestore-Gesamtexport nach Zürich mit Status `SUCCESSFUL`.
+- Weiter offen: **isolierten Firestore-Restore nachweisen** (Backup vorhanden, Restore ungetestet), Website-Datenschutzerklärung im produktiven Render-Stand anpassen/veröffentlichen, produktiven Traffic-Switch bewusst freigeben und danach `POST /api/lead` durch die echte Render-Website mit synthetischer Anfrage testen. Derzeit läuft weiter `lszh-crm-v2-00002-6lh` mit 100 % Traffic. **Kein Cutover durch diese Dokumentationsentscheidung.**
+
 # LSZH Automations – Projektstand & Betriebsentscheidungen
 
 _Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
+## Nachtrag 23.10.2026 – CRM V2: gesonderte Cloud-Staging-Infrastruktur
+
+- Der auf dem Surface getestete lokale CRM-V2-Fachprozess (Dashboard, Leads, Offerten, Kunden, Projekte und Rechnungen) wurde in einem eigenen Entwicklungsbranch erfolgreich durchgespielt. Keine automatischen Kundenmails oder echten Rechnungsversände.
+- Für die sichere Cloud-Übernahme wurde **feature/crm-v2-cloud-staging-20261023** direkt aus main erstellt. Die vollständige Oberfläche und die fachlichen Validierungen werden über einen neuen authentifizierten Firestore-Dienst eingebunden.
+- **Zielservice:** lszh-crm-v2-staging (neu), Sammlungen lszh_crm_v2_staging_*. **Der produktive Website-Lead-Eingang bleibt unverändert** auf lszh-crm-v2 mit seinen bestehenden Sammlungen und Secret-Manager-Zugängen. Staging-Website-Webhook ist hart deaktiviert.
+- Google-OAuth-Anmeldung mit Workspace-Mail-Allowlist ist vorgesehen; noch keine OAuth-Client-ID eingerichtet oder geprüft. Der Cloud Run Staging-Deploy wurde noch **nicht** durchgeführt. Echte Firestore-End-to-End-Tests fehlen.
+- Sieben pure simulierte Firestore-Funktionstests erfolgreich (Qualifizierung, Gewinnung, Offerten-Sperre, Projekt- und Rechnungsdaten, Remindervorschau). GitHub-Actions-Tests und separater PowerShell-Staging-Deploy eingerichtet.
+- **Keine Produktionsfreigabe oder Merge in main.** Vor Cutover: OAuth, echter Staging-Test, Live-Daten/Nummernkreis, Rollback/Backup, Dienstkontorechte, echte interne Erinnerungs-E-Mail und Swiss-QR-Zahlteil klären.
+- Technische Übergabe/Bedienung: siehe crm-v2/CLOUD-STAGING.md im Cloud-Staging-Branch. Lokale Preview weiter unverändert.
+
+### Browserabnahme CRM-V2-Staging am 23.10.2026
+
+Der Geschäftsführer bestätigt, dass in der Cloud-Version (`lszh-crm-v2-staging`) der komplette Testablauf **Lead → Qualifiziert/Offerte → Angenommen/Kunde/Projekt → Rechnung/Offen/Bezahlt** funktioniert. Firestore-Datensätze bleiben nach Neuladen erhalten, die Google-Anmeldung wurde ebenfalls erfolgreich getestet. Diese Bestätigung gilt für synthetische Daten im Staging, **nicht** für Produktionsfreigabe, produktiven Website-Eingang oder echte Zahlungsabwicklung.
+
+**Nächste zielorientierte Schritte:** Live-Eingangsintegration ohne Downtime und mit überprüfbarem Rückfallweg vorbereiten; Vorhandene Live-Daten/Nummernkreis sowie Identitäts-/Zugriffsrechte und Backup prüfen. Erst nach Freigabe umschalten. Kundenversand bleibt gesperrt.
+
+### 23.10.2026 – Website-Anbindung und Vorbereitung des Produktivstarts
+
+- Analyse Website-`index.html` und Render-`server.js`: Hauptkontaktformular sendet bereits `POST /api/lead` und serverseitig über `CRM_LEAD_INGEST_URL` und `CRM_INGEST_SECRET` zu Firestore (direkt, ohne Make-/Airtable-Zwischenstufe). Ob die Live-Render-Umgebungsvariablen tatsächlich korrekt gesetzt sind, bleibt zu bestätigen.
+- Wichtigste Anpassung im Cloud-Staging-Entwicklungsbranch: Annahme von Website-Leads in `crm-v2/server.js` verwendet nun die konfigurierte Firestore-Sammlung. `lead-ingest.js` erlaubt ausschliesslich `lszh_crm_v2_leads` beziehungsweise `lszh_crm_v2_staging_leads`. Schutz gegen irrtümliches Schreiben synthetischer Staging-Leads in die Live-Lead-Sammlung.
+- Neue serverseitige Tests für identische Wiederholung (200), neue Einreichung (201), Konflikt (409), fehlendes Token (401) und deaktivierte Staging-Route (404).
+- `scripts/test-crm-website-intake-staging.ps1`: einmaliger künstlicher HTTP-End-to-End-Test auf Cloud Run mit eigenem Secret Manager-Schlüssel und Deaktivierung des Staging-Webhooks im Anschluss; erst nach erneutem Cloud-Staging-Deploy ausführen.
+- `scripts/preflight-crm-production.ps1`: reiner Lesecheck bestehender Cloud-Run-Revisionen, Servicekonto und Secret-Referenz. Produktivdateninventar, Backup und Render-Umgebung weiter offen.
+- Ausführlicher Cutover-Plan: `crm-v2/WEBSITE-CUTOVER.md`. **Keine Render-Veränderung, kein Merge in main, kein Live-Cloud-Run-Deployment, keine Kundenmails.**
+
+## Website-Eingang: HTTP-Test erfolgreich – 23.10.2026
+
+Der Geschäftsführer hat den echten synthetischen Staging-HTTP-Test mit `scripts/test-crm-website-intake-staging.ps1` ausgeführt und die PowerShell-Ausgabe übermittelt:
+
+- Dediziertes Staging-Testsecret `lszh-crm-v2-staging-website-test` Version 1 erstellt; Berechtigung für Cloud-Run-Dienstkonto gesetzt. Keine geheimen Werte im Chat.
+- Nach temporärer Staging-Aktivierung Cloud-Run-Revision `lszh-crm-v2-staging-00004-njk`, 100 % Traffic.
+- Synthetisches `POST /api/internal/website-leads`: **201** (erstellt), identischer Wiederholungs-POST **200** ohne Dublette, abweichender Retry **409**, fehlendes Secret **401**.
+- Ein bestätigter Staging-Firestore-Datensatz mit ID `web_d05af7b4be214345af56948b2215e265`. Dies ist **kein realer Kunde**.
+- Im `finally` Staging-Webhook wieder deaktiviert. Cloud-Run-Revision `lszh-crm-v2-staging-00005-sjv` hat danach 100 % Traffic. PowerShell bestätigte `PASS: Staging Webhook wieder deaktiviert`.
+- Der Test wurde **direkt am Cloud-Run-Staging-Webhook**, nicht über das öffentlich erreichbare Render-Webformular ausgeführt. Nach Prüfung der produktiven Konfiguration und expliziter Freigabe bleibt ein separater echter Website-Test nötig.
+- **Kein Merge, keine Render-Umstellung, kein Produktiv-Cutover**. Nächster Schritt: `scripts/preflight-crm-production.ps1` (read-only) ausführen, Ausgabe prüfen; Live-Dateninventar, Backup, Nummernkreis und Google-OAuth-Zugriff separat kontrollieren.
+
+### 23.10.2026 – Read-only Live-Preflight erfolgreich, Firestore-Inventar als nächster Schritt
+
+Surface-PowerShell hat bestätigt, dass `lszh-crm-v2` weiter auf `lszh-crm-v2-00002-6lh` mit 100 % Traffic läuft. Das Live-Dienstkonto ist `lszh-crm-v2@lszh-automations.iam.gserviceaccount.com`; der bestehende Website-Eingangs-Secret ist über Secret Manager referenziert. Die alte Version hat noch keine gesetzten Intake-/Collection-Präfix-Flags. Staging weist `CRM_RECORD_PREFIX=lszh_crm_v2_staging_` und `CRM_WEBSITE_INTAKE_ENABLED=false` aus. Keine produktiven Änderungen.
+
+Vorbereitetes `scripts/inventory-crm-firestore-readonly.ps1` ermittelt als nächsten Test ausschliesslich Live-/Staging-Collection-Anzahlen und Sequenz-Zähler über Firestore REST, ohne Geheimnisse/PII auszugeben oder etwas zu verändern. Datenzahlen noch nicht bekannt. Ein Live-Firestore-Backup, Datenschutz-/IAM-/Negativtests und überprüfbarer Rollback bleiben vor Cutover erforderlich.
+
+## 23.10.2026 – Render bestätigt, Firestore-Backup erfolgreich, Kandidat vorbereitbar
+
+Der Geschäftsführer bestätigt, dass der produktive Render-Dienst die korrekte CRM_LEAD_INGEST_URL (https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app/api/internal/website-leads) und CRM_INGEST_SECRET (vorhanden) verwendet. Die Secretwerte wurden nicht geteilt.
+
+Cloud Firestore liegt in europe-west6 (Zürich). Der verwaltete Export ist mit done=True und operationState=SUCCESSFUL abgeschlossen. Backup-Pfad: gs://lszh-firestore-backups-470613067122/backups/20261023-094036; Metadaten und Datendatei output-0 nachgewiesen. **Isolierter Restore noch nicht durchgeführt.**
+
+Read-only Firestore-Inventar: Live lszh_crm_v2_ hat 0 Leads/Kunden/Offerten/Projekte/Rechnungen; Offerten- und Rechnungszähler noch nicht angelegt (Start 1000). Staging lszh_crm_v2_staging_ hat 2 Leads, je 1 Kunde/Offerte/Projekt/Rechnung; nächste Sequenzen 1001. **Ein leerer Live-Firestore-CRM-Bestand beweist nicht, dass Airtable und andere Altsysteme leer sind.**
+
+Neue abgesicherte Kandidatenwerkzeuge (bisher **nicht** auf Live ausgeführt):
+
+- scripts/prepare-crm-live-candidate.ps1: standardmässig READ ONLY; validiert Revision lszh-crm-v2-00002-6lh mit 100 % Traffic, Dienstkonto, Secret-Referenz, sauberen Git-Branch und Node-Tests. Nur expliziter Schalter -Deploy würde eine getaggte Kandidatenrevision mit 0 % Traffic auf dem vorhandenen Dienst bauen. --update-env-vars soll die bestehende Secret Manager Referenz bewahren. Kandidatenpräfix lszh_crm_v2_; Website-Eingang true.
+- scripts/check-crm-live-candidate-http.ps1: nur anonyme HTTP-Prüfungen an der getaggten Kandidaten-URL (HTML/Config 200, Daten-/Druck-/Website-API ohne Berechtigung 401), keine Firestore-Datenschreibungen.
+- Im unveröffentlichten Branch wurde der Datenschutztext der Website für den echten Kontaktformularweg Render -> Cloud Run -> Firestore aktualisiert. Vor Veröffentlichung rechtlich/redaktionell freigeben.
+
+**Live bleibt unverändert:** Kein Git-Merge, Render-Deployment oder Cutover. Rückfallrevision lszh-crm-v2-00002-6lh. Späterer Recovery-Befehl erst nach Freigabe eines produktiven Cutovers:
+
+    gcloud.cmd run services update-traffic lszh-crm-v2 --project lszh-automations --region europe-west6 --to-revisions=lszh-crm-v2-00002-6lh=100
+
+Den Rückfallbefehl **jetzt nicht ausführen**. Vor dem Wechsel ausserdem Altbestand, Google OAuth Origins, Rollen/Negativtests und die unmittelbar vorherige aktuelle Sicherung kontrollieren.
+
+### 23.10.2026 – CRM-V2-Live-Kandidaten-Preflight bestanden, noch kein Deployment
+
+Nutzer hat den rein lesenden `scripts/prepare-crm-live-candidate.ps1` ohne `-Deploy` ausgeführt. Live-Cloud-Run-Revision `lszh-crm-v2-00002-6lh` mit 100 % Traffic unverändert; Servicekonto und Secret-Manager-Referenz nachgewiesen; 20/20 CRM-Tests bestanden; geprüfter Source-Commit `8598f99`. Keine produktive Änderung. Als bewusster nächster Schritt ist der `-Deploy`-Aufruf für eine getaggte Kandidatenrevision mit 0 % Standardtraffic vorbereitet. **Eine Tag-URL ist dennoch direkt erreichbar und kann auf Live-Firestore zugreifen; keine echten Schreibtests vor gesonderter Freigabe.** Bestandsabgleich Airtable und isolierte Backup-Wiederherstellung bleiben offen.
+
+### 23.10.2026 – Live-Kandidat mit 0 % Traffic erfolgreich bereitgestellt
+
+Vom Geschäftsführer übermittelte PowerShell-Ausgabe:
+- `git pull --ff-only` auf Commit `55a7a09`, danach `scripts/prepare-crm-live-candidate.ps1 -Deploy`.
+- **20/20** Node-Tests bestanden.
+- Neuer CRM-V2-Kandidat im bestehenden Cloud-Run-Dienst `lszh-crm-v2`: Revision `lszh-crm-v2-00004-mez`, **0 % produktiver Traffic**.
+- Getaggte Test-URL: `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Weiterhin **100 % produktiver Traffic** auf Alt-Revision `lszh-crm-v2-00002-6lh`.
+- Cloud-Run-Dienstkonto und bisherige `CRM_INGEST_SECRET`-Referenz nach Deployment unverändert.
+- Kandidat konfiguriert für `CRM_RECORD_PREFIX=lszh_crm_v2_`, Website-Intake `true`, **also mit potenziellem Zugriff auf Live-Firestore**.
+- Kein Render-Deployment, keine produktive Website-Umstellung, kein Kundenversand und keine Live-Datenmigration.
+
+**Als Nächstes:** `scripts/check-crm-live-candidate-http.ps1 -CandidateUrl 'https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app'` durch den Geschäftsführer ausführen (nur anonymes HTML/Config-GET und verbotene API-Aufrufe; erwartet 200/401). Danach Google-OAuth-Ursprünge und einen isolierten Restore- bzw. Datenbestandsabgleich vor endgültiger Traffic-Umstellung prüfen. Freigabe zum Go-live ist noch **nicht** erteilt.
+### 23.10.2026 – Kandidaten-HTTP-Prüfung erfolgreich
+
+Der Geschäftsführer hat die korrigierte Datei `scripts/check-crm-live-candidate-http.ps1` in PowerShell nach `git pull --ff-only` ausgeführt. Die getaggte Kandidaten-URL war `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+
+- **PASS:** Startseite HTTP 200, Google-OAuth-Konfiguration HTTP 200.
+- **PASS:** `GET /api/me`, `GET /api/records/leads`, `GET /api/print/offerte/test` ohne ID Token HTTP 401.
+- **PASS:** `POST /api/internal/website-leads` ohne Secret HTTP 401.
+- **PASS:** Keine Firestore-Schreibvorgänge; kein Secret an den Kandidaten gesendet.
+- Das Testskript musste nur wegen der reservierten PowerShell-Systemvariablen `$HOME` auf `$homeResponse` korrigiert werden. Die Korrektur erforderte kein Cloud-Run-Deployment.
+- **Kein** Auth-Login und keine Berechtigungsprüfung mit einem gültigen Google-ID-Token am Kandidaten bisher. Der getestete anonyme Zugriff bestätigt **nicht** die korrekt autorisierte produktive Google-Anmeldung.
+- **Nächster Schritt:** Im bestehenden Google OAuth Webclient die JavaScript-Ursprünge `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app` und `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` ergänzen (vorhandenen Staging-Ursprung erhalten), Login mit dem erlaubten Workspace-Konto auf Kandidaten-URL durchführen und die leeren Live-Register ausschließlich lesen; keine Live-Datensätze bearbeiten oder Website-Cutover durchführen.
+### 23.10.2026 – Produktionskandidat: Google-Login im Browser erfolgreich
+
+Der Geschäftsführer hat nach Behebung von Google `400 origin_mismatch` die Google-OAuth-JavaScript-Ursprünge konfiguriert und einen Screenshot aus Microsoft Edge vom **erfolgreich angemeldeten** CRM-V2-Produktionskandidaten zur Verfügung gestellt.
+
+- Browser-URL: `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- In der CRM-Oberfläche ist das erlaubte Geschäftskonto `lars@lszh-automations.ch` angemeldet; Dashboard mit Leads, Offerten, Rechnungen, Projekten und Finanzübersicht geladen.
+- Alle angezeigten Dashboard-Zahlen sind 0 und stimmen mit dem zuvor ausgelesenen leeren Live-CRM-Firestore-Inventar überein.
+- Es fand **keine produktive Traffic-Umschaltung und keine bestätigte Schreiboperation auf Live-Firestore** statt; der Cloud-Run-Kandidat war bei Deploy auf 0 % regulären Traffic gesetzt.
+- Die Sichtprüfung des angemeldeten Dashboards ist kein vollständiger Beweis für die Korrektheit sämtlicher rollenbasierter Zugriffe, für das historische Airtable-Inventar oder die Restore-Fähigkeit des Backups.
+
+**Nächste kontrollierte Produktions-Gates:** Airtable-/Make-Altbestand bestimmen und Umgang festlegen, isolierten Restore nachweisen und Datenvollständigkeit kontrollieren; unmittelbar vor Cutover produktive Cloud-Run-Revision/Secret/Traffic erneut validieren. Kein Go-Live ohne ausdrückliche Freigabe.
+### 23.10.2026 – Freigabe für Live-CRM-V2-Websiteanbindung erteilt (Umschaltung noch ausstehend)
+
+Der Geschäftsführer hat nach erfolgreicher Kandidaten-Sicherheitsprüfung, OAuth-Anmeldung und ausdrücklicher Bestätigung des leeren Live-Datenbestands die **Freigabe für die produktive Umschaltung** erteilt. Ziel: Alle neuen Anfragen des öffentlichen Render-Kontaktformulars über den bestehenden Cloud-Run-Endpunkt direkt ins Live-CRM-V2/Firestore schreiben. **Airtable wird nicht benötigt; keine Bestandsmigration.**
+
+Neues Script `scripts/cutover-crm-v2-live.ps1`: überprüft die Altrevision `lszh-crm-v2-00002-6lh` (100 % Traffic), den getrennt getaggten Kandidaten `lszh-crm-v2-00004-mez` (0 %), Secret Manager, OAuth, Zielprefix `lszh_crm_v2_`, aktivierten Website-Eingang, Backup-Metadaten und öffentliche Website. Anschließend schaltet es **nur** die Cloud-Run-Traffic-Zuordnung auf die Kandidatenrevision, überprüft CRM-UI/API-Schutz und sendet einen explizit gekennzeichneten synthetischen Testlead über `https://lszh-automations.ch/api/lead` (bzw. offiziellen Redirect) mit eindeutiger submission_id. Die Antwort muss `confirmed:true` und eine `web_...`-ID enthalten; identische Wiederholung muss dieselbe ID bestätigen. Bei Fehler nach Umschaltungsversuch erfolgt automatischer Rollback auf die Altrevision; ein einzelner TEST_ONLY-Datensatz kann bei einem erst später auftretenden Fehler verbleiben.
+
+Der vollständige PowerShell-Skriptinhalt wurde im Cloud-Staging-Branch gespeichert und GitHub CI hat die PowerShell-Syntax und CRM-Regressionstests bestanden. **WICHTIG: Das Skript ist auf dem Computer des Nutzers NOCH NICHT ausgeführt worden; kein Cloud-Run-Traffic wurde von diesem Chat umgeschaltet.** Kein produktives Website-Render-Deployment oder Kundenmail ist Teil des Skripts. Das Backup ist erfolgreich exportiert, isolierter Restore bleibt ausstehend.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

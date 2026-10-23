@@ -31,6 +31,7 @@ async function withApp(callback){
     './lead-ingest':{saveWebsiteLead:async()=>{throw Error('not needed')}},
     './mail-dispatcher':{makeDispatcher:()=>({stats:()=>({enabled:false})})},
     './cloud-records':{buildStore:()=>store},
+    './offer-send':{createOfferSender:()=>({stats:()=>({enabled:false})})},
     './offer-preview':{renderOfferPreview:()=>''},
     './invoice-preview':{renderInvoicePreview:()=>''}
   };

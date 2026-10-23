@@ -1,3 +1,7 @@
+> **AKTUELLER CRM-V2-BETRIEBSSTAND (23.10.2026):** Siehe [docs/LSZH_CRM_V2_HANDOFF_20261023.md](./LSZH_CRM_V2_HANDOFF_20261023.md). Die letzte vom Benutzer bestätigte Live-Revision ist `lszh-crm-v2-00038-gic` (100 % Traffic), Rollback `00036-ret`. Offerten-PDF und Kundenmail mit Nicht-MWST-Hinweis sind produktiv, manueller Versand aktiv. Der folgende chronologische Verlauf enthält ältere Zwischenstände. Als Nächstes: Rechnungsmodul mit Swiss-QR-Rechnung entwickeln.
+
+---
+
 ### 23.10.2026 – Freigabe Offerten-Design + Nicht-MWST-Registrierung; Deployment bereit
 
 **Freigabe durch den Benutzer:** Die bereits gestaltete LSZH-Offerten-PDF und Kundenmail sind visuell ausdrücklich angenommen und dürfen übernommen werden. Der Benutzer hat zusätzlich ausdrücklich bestätigt: **LSZH Invest GmbH ist aktuell NICHT bei der MWST angemeldet**. Diese Bestätigung ist Grundlage für die Darstellung; eine nicht belegte Aussage über Jahresumsatz, Steuerbefreiung oder Vorsteuerabzug wird daraus nicht abgeleitet.

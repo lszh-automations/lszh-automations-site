@@ -411,25 +411,23 @@ function renderKpis(){
   container.replaceChildren();
   container.hidden=state.tab!=='dashboard';
   if(container.hidden)return;
-  {
-    const stats=dashboardStats(state.records);
-    const items=[
-      {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
-      {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
-      {title:'Offene Rechnungen',value:formatCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Zahlung(en) offen',tab:'rechnungen'},
-      {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'},
-      {title:'Zahlungseingänge',value:formatCHF(stats.paidAmount),note:'Als bezahlt markierte Rechnungen',tab:'rechnungen'}
-    ];
-    for(const item of items){
-      const card=el('button','kpi dash-kpi');
-      card.type='button';
-      card.setAttribute('aria-label',item.title+': '+item.value+'. '+definitions[item.tab].title+' öffnen');
-      const top=el('div','dash-kpi-top');
-      top.append(el('span','',item.title),el('span','dash-kpi-arrow','↗'));
-      card.append(top,el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));
-      card.addEventListener('click',()=>navigateTo(item.tab));
-      container.append(card);
-    }
+  const stats=dashboardStats(state.records);
+  const items=[
+    {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
+    {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
+    {title:'Offene Rechnungen',value:formatCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Zahlung(en) offen',tab:'rechnungen'},
+    {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'},
+    {title:'Zahlungseingänge',value:formatCHF(stats.paidAmount),note:'Als bezahlt markierte Rechnungen',tab:'rechnungen'}
+  ];
+  for(const item of items){
+    const card=el('button','kpi dash-kpi');
+    card.type='button';
+    card.setAttribute('aria-label',item.title+': '+item.value+'. '+definitions[item.tab].title+' öffnen');
+    const top=el('div','dash-kpi-top');
+    top.append(el('span','',item.title),el('span','dash-kpi-arrow','↗'));
+    card.append(top,el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));
+    card.addEventListener('click',()=>navigateTo(item.tab));
+    container.append(card);
   }
 }
 function renderDashboard(){

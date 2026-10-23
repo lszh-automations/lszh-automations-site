@@ -14,6 +14,8 @@ const clean=s=>String(s??'').replace(/[\u2010-\u2015]/g,'-')
 const date=s=>/^\d{4}-\d\d-\d\d$/.test(String(s||''))?
   s.slice(8)+'.'+s.slice(5,7)+'.'+s.slice(0,4):'-';
 const price=n=>'CHF '+Number(n).toFixed(2);
+const spacedIban=iban=>String(iban).replace(/(.{4})/g,'$1 ').trim();
+const spacedAmount=amount=>String(amount).replace(/\B(?=(\d{3})+(?=\.))/g,' ');
 function splitText(value,font,size,width,maxLines=4){
   const words=clean(value).split(/\s+/).filter(Boolean),result=[];
   let current='';
@@ -60,14 +62,17 @@ function qrVector(page,payload,x,y){
   return {modules:n,moduleMm:module/MM};
 }
 function slip(page,regular,bold,payment){
+  const displayIban=spacedIban(payment.iban), displayAmount=spacedAmount(payment.amount);
   // Exact physical size: 210 x 105 mm; 62 mm receipt and 148 mm payment part.
   page.drawLine({start:{x:0,y:SLIP},end:{x:W,y:SLIP},color:INK,thickness:.5,dashArray:[3,3]});
   page.drawLine({start:{x:RECEIPT,y:0},end:{x:RECEIPT,y:SLIP},color:INK,thickness:.5,dashArray:[3,3]});
   circleScissors(page,12,SLIP-3);
+  // Separate scissors mark for the vertical dividing line, also required for PDF bills.
+  circleScissors(page,RECEIPT-6,SLIP-16);
   const left=12,right=RECEIPT+19;
   text(page,bold,'Empfangsschein',left,SLIP-27,11);
   text(page,bold,'Konto / Zahlbar an',left,SLIP-49,6.7);
-  text(page,regular,payment.iban,left,SLIP-61,8);
+  text(page,regular,displayIban,left,SLIP-61,8);
   text(page,regular,'LSZH Invest GmbH',left,SLIP-73,8);
   text(page,regular,'Rummelmatt 8',left,SLIP-85,8);
   text(page,regular,'5610 Wohlen',left,SLIP-97,8);
@@ -82,12 +87,13 @@ function slip(page,regular,bold,payment){
   text(page,bold,'Währung',left,50,7);
   text(page,bold,'Betrag',left+55,50,7);
   text(page,regular,'CHF',left,34,10);
-  text(page,regular,payment.amount,left+55,34,10);
-  text(page,bold,'Annahmestelle',left+86,11,7);
+  text(page,regular,displayAmount,left+55,34,10);
+  const acceptance='Annahmestelle';
+  text(page,bold,acceptance,RECEIPT-12-bold.widthOfTextAtSize(acceptance,7),11,7);
   text(page,bold,'Zahlteil',right,SLIP-27,11);
   text(page,bold,'Konto / Zahlbar an',right+169,SLIP-49,7);
   let rx=right+169,ry=SLIP-64;
-  for(const line of [payment.iban,'LSZH Invest GmbH','Rummelmatt 8','5610 Wohlen']){
+  for(const line of [displayIban,'LSZH Invest GmbH','Rummelmatt 8','5610 Wohlen']){
     text(page,regular,line,rx,ry,9);ry-=13;
   }
   text(page,bold,'Zahlbar durch',rx,SLIP-130,7);
@@ -99,11 +105,12 @@ function slip(page,regular,bold,payment){
       text(page,regular,wrapped,rx,py,9);py-=13;
     }
   }
-  qrVector(page,payment.payload,right,72);
-  text(page,bold,'Währung',right,57,7);
-  text(page,bold,'Betrag',right+55,57,7);
-  text(page,regular,'CHF',right,39,11);
-  text(page,regular,payment.amount,right+55,39,11);
+  // 46mm code; the top of the amount headings is >= 5mm below the code.
+  qrVector(page,payment.payload,right,87);
+  text(page,bold,'Währung',right,57,8);
+  text(page,bold,'Betrag',right+55,57,8);
+  text(page,regular,'CHF',right,39,10);
+  text(page,regular,displayAmount,right+55,39,10);
   text(page,bold,'Zusätzliche Informationen',rx,67,7);
   text(page,regular,payment.message,rx,53,9);
 }

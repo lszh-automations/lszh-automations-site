@@ -1162,7 +1162,7 @@ $('invoiceCancel').addEventListener('click',()=>$('invoiceEditor').close());
 $('invoiceAddLine').addEventListener('click',()=>{addInvoiceLine();markInvoiceUnsaved();});
 $('invoicePrint').addEventListener('click',()=>{
   if(!state.invoiceEditing||$('invoicePrint').disabled)return;
-  window.open('/preview/rechnung/'+encodeURIComponent(state.invoiceEditing.id),'_blank','noopener');
+  openCloudPrint('rechnung',state.invoiceEditing.id);
 });
 $('invoiceForm').addEventListener('submit',async event=>{
   event.preventDefault();
@@ -1240,9 +1240,33 @@ $('offerAddLine').addEventListener('click',()=>{
   addQuoteLine();
   markQuoteUnsaved();
 });
+async function openCloudPrint(type,id){
+  // A private PDF must never be available by an unauthenticated GET link.
+  // Open a blank tab during the actual click to avoid popup blockers, then
+  // load the authenticated response through the CRM bearer token.
+  const tab=window.open('about:blank','_blank');
+  if(!tab){window.alert('Bitte Pop-ups für das CRM erlauben.');return;}
+  tab.opener=null;
+  try{
+    const r=await fetch('/api/print/'+type+'/'+encodeURIComponent(id),{
+      headers:{'Authorization':'Bearer '+state.token}
+    });
+    if(!r.ok){
+      const data=await r.json().catch(()=>({}));
+      throw new Error(data.error||'HTTP '+r.status);
+    }
+    const html=await r.text();
+    const uri=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+    tab.location.replace(uri);
+    setTimeout(()=>URL.revokeObjectURL(uri),300000);
+  }catch(err){
+    tab.close();
+    window.alert('Druckvorschau nicht verfügbar: '+err.message);
+  }
+}
 $('offerPrint').addEventListener('click',()=>{
   if(!state.offerEditing||$('offerPrint').disabled)return;
-  window.open('/preview/offerte/'+encodeURIComponent(state.offerEditing.id),'_blank','noopener');
+  openCloudPrint('offerte',state.offerEditing.id);
 });
 $('offerForm').addEventListener('submit',async event=>{
   event.preventDefault();

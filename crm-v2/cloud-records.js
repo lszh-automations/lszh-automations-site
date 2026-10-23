@@ -432,8 +432,12 @@ function buildStore(db,prefix){
       const snap=await tx.get(ref);
       if(!snap.exists)throw err('Offerte nicht gefunden',404);
       const before=snap.data();
-      if(before.status!=='Bereit'||before.offerDispatchState!=='manual_review')
-        throw err('Kein ungeklärter Versand vorhanden',409);
+      const stalePending=before.offerDispatchState==='sending'&&
+        Number.isFinite(Date.parse(before.offerDispatchRequestedAt||''))&&
+        Date.now()-Date.parse(before.offerDispatchRequestedAt)>=5*60*1000;
+      if(before.status!=='Bereit'&&before.status!=='Entwurf'||
+         before.offerDispatchState!=='manual_review'&&!stalePending)
+        throw err('Kein prüfbarer Versandauftrag vorhanden',409);
       const values={
         offerDispatchState:resolution==='confirmed'?'confirmed':'not_sent',
         offerDispatchReviewedBy:user.email,

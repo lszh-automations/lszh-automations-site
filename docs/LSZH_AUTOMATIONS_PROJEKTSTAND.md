@@ -1,3 +1,17 @@
+### CRM V2: KPI-Übersicht nur auf Dashboard (23.10.2026)
+
+Die bisherige doppelte KPI-Leiste (Website Leads, Kunden, Offerten, Rechnungen, Projekte) wird in `crm-v2/public/index.html` in sämtlichen Arbeitsregistern `leads`, `kunden`, `offerten`, `rechnungen` und `projekte` vollständig ausgeblendet. Die Dashboard-KPI-Karten (Neue Leads, offene Offerten/Rechnungen, aktive Projekte, Zahlungseingänge) bleiben unverändert. Auch der leere Abstand des KPI-Containers entfällt via `#kpis[hidden]{display:none}`. Ein isolierter UI-Regressions-Test prüft Tabwechsel Dashboard → Arbeitsregister → Dashboard, Kartenanzahl, Sichtbarkeit und fehlende Leerfläche. Keine Daten-/Mail-/CRM-Statuslogik verändert.
+
+**Deployment vorbereitet, nicht automatisch live:** `scripts/deploy-crm-dashboard-kpis-live.ps1` erwartet die vom Nutzer bestätigte Live-Revision `lszh-crm-v2-00014-mad` mit 100 % Traffic. Vor dem Wechsel 0%-Kandidat, CRM-Tests, unveränderte Cloud-Run-Env-/Secret-Bindungen, bestehender mailaktiver Scheduler und HTTP-Schutzprüfungen; bei Fehler nach Trafficwechsel Rollback auf `00014-mad`. Keine neuen Mailereignisse, keine erneute Zustellung und kein Make-Eingriff. Live erst nach `DASHBOARD ONLY KPIS LIVE PASS` behaupten.
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-dashboard-kpis-live.ps1"
+```
+
+---
+
 ### Praxistest: automatische Lead-Aktualisierung im Live-Browser bestätigt (23.10.2026)
 
 Der Geschäftsführer hat nach dem erfolgreichen Deployment der produktiven Cloud-Run-Revision `lszh-crm-v2-00006-moz` selbst das öffentliche Website-Formular getestet und bestätigt: **Neuer Website-Lead erscheint automatisch im geöffneten Live-CRM, ohne manuelles Neuladen oder erneute Google-Anmeldung.** Die 30-Sekunden-Synchronisierung funktioniert damit auch im echten Browser. Das Website→Render→Cloud Run→Firestore→CRM-UI-Ziel ist praktisch verifiziert. Keine zusätzliche Änderung, kein Deployment, keine produktive Mail oder Vertragsannahme durch diese Dokumentation.

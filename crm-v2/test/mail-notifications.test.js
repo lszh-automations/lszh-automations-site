@@ -7,7 +7,7 @@ const T0=Date.parse('2026-10-23T12:00:00Z');
 const oneDay=24*60*60*1000;
 const lead=()=>({id:'web_012345678901234567890123456789ab',name:'Clara <Test>',
   company:'Muster GmbH',email:'clara@firma.ch',message:'Anfrage <script>alert(1)</script>',
-  status:'Neu',createdAt:new Date(T0).toISOString()});
+  status:'Neu',source:'LSZH Automations Website',createdAt:new Date(T0).toISOString()});
 function fakeDB(data=lead()){
   const mailEvents=new Map();
   const leads=new Map([[data.id,{...data}]]);
@@ -71,6 +71,14 @@ test('old leads and TEST_ONLY leads never receive newly enabled automated messag
   assert.equal(isEligible(l,EVENT_TYPES.INTERNAL_NEW,T0+100,T0),false);
   l.company='Firma';l.email='tester@example.com';
   assert.equal(isEligible(l,EVENT_TYPES.CUSTOMER_ACK,T0+100,T0),false);
+});
+test('manual CRM leads do not trigger website auto-mails',()=>{
+  const l=lead();
+  l.source='Manuell';
+  assert.equal(isEligible(l,EVENT_TYPES.CUSTOMER_ACK,T0+1000,T0),false);
+  assert.equal(isEligible(l,EVENT_TYPES.INTERNAL_NEW,T0+1000,T0),false);
+  l.source='LSZH Automations Website';l.id='manual-123';
+  assert.equal(isEligible(l,EVENT_TYPES.INTERNAL_24H,T0+oneDay,T0),false);
 });
 test('mail integration defaults to disabled and never calls the provider',async()=>{
   const db=fakeDB(), sent=[];

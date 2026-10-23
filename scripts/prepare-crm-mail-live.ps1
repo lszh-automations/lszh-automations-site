@@ -35,7 +35,7 @@ function Critical-Config($svc){
   if($values['CRM_INGEST_SECRET'] -notmatch 'secretKeyRef'){throw 'Website Secret darf kein Klartext sein'}
   return $values
 }
-function Probe([string]$url){
+function Probe([string]$url,[int]$expectedMailStatus){
   foreach($v in @(@('/','GET',200),@('/api/config','GET',200),@('/api/records/leads','GET',401),@('/api/internal/mail/tick','POST',404),@('/api/internal/website-leads','POST',401))){
     $code=0
     try{
@@ -45,7 +45,9 @@ function Probe([string]$url){
       if(!$_.Exception.Response -or !$_.Exception.Response.StatusCode){throw}
       $code=[int]$_.Exception.Response.StatusCode
     }
-    if($code -ne [int]$v[2]){throw ('Probe fehlgeschlagen: '+$v[0]+' HTTP '+$code)}
+    $expected=[int]$v[2]
+    if($v[0] -eq '/api/internal/mail/tick'){$expected=$expectedMailStatus}
+    if($code -ne $expected){throw ('Probe fehlgeschlagen: '+$v[0]+' HTTP '+$code+', erwartet '+$expected)}
   }
 }
 if(!(Get-Command gcloud.cmd -ErrorAction SilentlyContinue)){throw 'gcloud.cmd fehlt'}
@@ -165,8 +167,9 @@ try{
   $rev=[string]$next.status.latestReadyRevisionName
   $tagged=@($next.status.traffic|Where-Object{$_.tag -eq $tag})
   if(!$rev -or $tagged.Count -ne 1 -or [int]$tagged[0].percent -ne 0 -or $tagged[0].revisionName -ne $rev){throw 'Kandidat ist nicht 0 Prozent markiert'}
-  Probe $tagged[0].url
-  Probe $base
+  # New disabled mail revision returns 404, old live revision returns auth-required 401.
+  Probe $tagged[0].url 404
+  Probe $base 401
   Write-Host 'PREPARED PASS: Keine Kundennachrichten aktiviert; Scheduler PAUSED.'
   Write-Host ('Bisherige Live Revision weiterhin 100 Prozent: '+$previous)
   Write-Host ('Neue vorbereitete Revision mit 0 Prozent: '+$rev)

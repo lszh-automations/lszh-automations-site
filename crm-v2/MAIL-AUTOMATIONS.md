@@ -1,3 +1,24 @@
+## Make aktiv – letzte Produktivschaltung vorbereitet (23.10.2026)
+
+Der Geschäftsführer hat **Make-Szenario 8135270 aktiviert**; unmittelbar danach über die Make-App als `active` bestätigt. Vorhandene geschäftliche Gmail-Verbindung 11904991 war `ok`, Webhook-Warteschlange `0`, alle drei Mailfilter für `customer_ack`, `internal_new`, `internal_24h` vorhanden. Es wurden hierbei keine neuen Webhook-Daten oder Kundenmails abgeschickt.
+
+Cloud Run-Cutover erfolgreich laut Surface-Ausgabe: **31/31 CRM-Tests PASS**, alte Mail-Revision `lszh-crm-v2-00008-zog` nimmt **100 % Traffic** und bedient Website→Firestore unverändert, Mailversand **CRM_MAIL_ENABLED=false**; Cloud Scheduler `lszh-crm-v2-mail-tick` **PAUSED**. Die vorherige Revision `00006-moz` bleibt als Rückfall erhalten.
+
+**Neu:** `scripts/activate-crm-mail-live.ps1` erstellt aus der funktionierenden Revision eine zusätzliche Cloud-Run-Revision mit `CRM_MAIL_ENABLED=true` und `CRM_MAIL_ACTIVE_FROM=<UTC-Zeit bei Skriptlauf>`, anfänglich mit **0 % Traffic**. Das Skript prüft Quell-Image, alle CRM-/Website-/OAuth-/Secret-/Dienstkonto-Parameter, die OIDC-Konfiguration des pausierten Schedulers und die HTTP-Sperre (Mail-Tick ohne OIDC: 401). Nach dem Trafficwechsel auf 100 % aktualisiert es den pausierten Scheduler auf `* * * * *` (jede Minute) und aktiviert ihn **erst zum Schluss**. Bei Abbruch nach einem Trafficwechsel pausiert es Scheduler und setzt die alte Mail-deaktivierte Revision `00008-zog` auf 100 % zurück. Es werden **nur nach dem festgelegten UTC-Zeitpunkt gespeicherte Website-Leads** berücksichtigt; Altleads bleiben ausgeschlossen. Eindeutige Firestore-Ereignisse verhindern automatisches doppeltes Versenden; unklare Make-Ergebnisse erhalten `manual_review`.
+
+**Wichtig:** Dieses neue Skript versendet nach der Scheduler-Aktivierung **automatisch echte Kunden-Eingangsbestätigungen und interne Lead-Mails**. Es darf deshalb nur mit klarer Freigabe für den produktiven Versand ausgeführt werden. Noch NICHT ausgeführt; die drei Automationen sind trotz aktivem Make gegenwärtig nicht produktiv. Die erste echte Website-Anfrage nach dem Cutoff sowie die 24h-Erinnerung müssen anschliessend anhand von Firestore `mail_events`, Make-Ausführung und Gmail-Postfach geprüft werden. Die HTTP-Prüfung bestätigt lediglich den API-Schutz, **nicht** eine erfolgreiche OIDC-Scheduler-Ausführung oder E-Mail-Zustellung.
+
+Auf dem Surface:
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+if ($LASTEXITCODE -ne 0) { throw "Git-Pull fehlgeschlagen" }
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-mail-live.ps1"
+```
+
+Erwartete Schlussmeldung: `MAIL GO-LIVE PASS` und `SCHEDULER ENABLED`. Beim ersten tatsächlichen Scheduler-Lauf prüfen, dass die OIDC-Signatur vom Endpoint akzeptiert wird und keine Fehler in Cloud Scheduler oder Cloud Run auftreten. Rollback: Cloud Scheduler pausieren und Cloud Run Traffic auf `lszh-crm-v2-00008-zog=100` schalten.
+
 ## Produktionsumschaltung – vorbereitete Mail-Revision ohne Versand (23.10.2026)
 
 Das dokumentierte Live-CRM verwendet Revision `lszh-crm-v2-00006-moz` zu 100 %, der Mailkandidat `lszh-crm-v2-00008-zog` ist fertig deployed und hat 0 % Traffic. Die echte HTTP-POST-Prüfung des Mailendpunkts ergab **404 beim Kandidaten** (deaktiviert) und **401 bei der alten Live-Version** (bisheriger Login-Schutz). Cloud Scheduler `lszh-crm-v2-mail-tick` ist PAUSED; Make Szenario 8135270 ist inaktiv. Das Mail-Secret ist bereits in Secret Manager gespeichert.

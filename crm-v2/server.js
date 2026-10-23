@@ -12,6 +12,7 @@ const {saveWebsiteLead}=require('./lead-ingest');
 const {makeDispatcher}=require('./mail-dispatcher');
 const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
+const {createOfferSender}=require('./offer-send');
 const {renderInvoicePreview}=require('./invoice-preview');
 
 const PORT=Number(process.env.PORT||8080);
@@ -26,6 +27,10 @@ const mailDispatcher=makeDispatcher(db,PREFIX,{
   enabled:process.env.CRM_MAIL_ENABLED==='true',
   activeFrom:process.env.CRM_MAIL_ACTIVE_FROM,
   webhookUrl:process.env.CRM_MAIL_WEBHOOK_URL
+});
+const offerSender=createOfferSender(store,{
+  enabled:process.env.CRM_OFFER_MAIL_ENABLED==='true',
+  webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL
 });
 const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
 const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();
@@ -78,7 +83,7 @@ async function handler(req,res){
   if(req.method==='GET'&&(pathname==='/'||pathname==='/index.html'))
     return reply(res,200,fs.readFileSync(path.join(__dirname,'public','index.html'),'utf8'),'text/html; charset=utf-8');
   if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID}:{error:'not_configured'});
+    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled}:{error:'not_configured'});
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');
@@ -137,6 +142,21 @@ async function handler(req,res){
     if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
     return reply(res,201,{contact:await store.addContact(contactPath[1],await json(req),user)});
+  }
+  // Explicit one-click offer send, never called from the website or scheduler.
+  const sendAction=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/send(?:\/(resolve))?$/);
+  if(sendAction){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const [_,id,resolve]=sendAction;
+    const payload=await json(req);
+    if(resolve){
+      const allowed=['confirmed','not_sent'];
+      if(!allowed.includes(payload.resolution)||Object.keys(payload).some(k=>k!=='resolution'))
+        return reply(res,400,{error:'invalid_resolution'});
+      return reply(res,200,{record:await store.resolveOfferSend(id,payload.resolution,user)});
+    }
+    return reply(res,200,await offerSender.send(id,payload,user));
   }
   // Manual offer dispatch/follow-up bookkeeping. Does not send an email.
   const offerAction=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/(dispatch|followup)$/);

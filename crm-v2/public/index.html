@@ -474,7 +474,8 @@ function renderDashboard(){
 }
 function projectIsOverdue(project){
   if(!project?.dueDate||project.status==='Abgeschlossen')return false;
-  const date=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const now=new Date();
+  const date=[String(now.getFullYear()),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
   return /^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)&&project.dueDate<date;
 }
 function projectDoneCount(project){
@@ -515,7 +516,9 @@ function render(){
       if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
       else if(key==='dueDate' && state.tab==='projekte'){
-        td.textContent=rec.dueDate||'–';
+        td.textContent=rec.dueDate&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dueDate)
+          ?new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(rec.dueDate+'T12:00:00'))
+          :(rec.dueDate||'–');
         if(projectIsOverdue(rec))td.append(el('span','project-overdue','Überfällig'));
       }
       else td.textContent=valueText(key,rec[key]);
@@ -526,6 +529,9 @@ function render(){
     if(state.tab==='leads'){
       edit.textContent='Öffnen';
       edit.addEventListener('click',()=>openLeadDetail(rec));
+    }else if(state.tab==='projekte'){
+      edit.textContent='Öffnen';
+      edit.addEventListener('click',()=>openProjectEditor(rec));
     }else edit.addEventListener('click',()=>openEditor(rec));
     td.append(edit);row.append(td);tbody.append(row);
   }
@@ -858,7 +864,7 @@ function renderProjectProgress(){
   for(const row of rows)if(row._taskFields?.done.checked)completed++;
   $('projectProgress').textContent=completed+' von '+rows.length+' erledigt';
 }
-function addProjectTask(task={}){
+function addProjectTask(task={},focusInput=true){
   if($('projectTasks').children.length>=30){
     $('projectError').textContent='Maximal 30 Aufgaben je Projekt möglich.';
     $('projectError').hidden=false;
@@ -891,7 +897,7 @@ function addProjectTask(task={}){
   row.append(done,title,remove);
   $('projectTasks').append(row);
   renderProjectProgress();
-  title.focus();
+  if(focusInput)title.focus();
 }
 function projectTasksFromForm(){
   const tasks=[];
@@ -919,7 +925,7 @@ function openProjectEditor(record=null,draft=null){
     }
     $('projectFields').append(field);
   }
-  for(const task of Array.isArray(record?.tasks)?record.tasks:[])addProjectTask(task);
+  for(const task of Array.isArray(record?.tasks)?record.tasks:[])addProjectTask(task,false);
   renderProjectProgress();
   const customer=(state.records.kunden||[]).find(c=>c.id===record?.customerId);
   const offer=(state.records.offerten||[]).find(o=>o.id===record?.offerId);

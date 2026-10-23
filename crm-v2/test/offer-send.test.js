@@ -128,7 +128,7 @@ test('PDF generation failure is known not sent and can be handled separately',as
 
 test('TEST_ONLY mode rejects ordinary offers and customer addresses before claim',async()=>{
   const db=store();
-  const realOffer={...saved,title:'Customer production offer'};
+  const realOffer={...saved,leadId:'lead-1',title:'Customer production offer'};
   db.get=async(table,id)=>table==='offerten'?realOffer:person;
   const sender=createOfferSender(db,{
     enabled:true,webhookUrl:hook,testTo:'lars.schulthess@outlook.com',
@@ -144,7 +144,7 @@ test('TEST_ONLY mode rejects ordinary offers and customer addresses before claim
 
 test('TEST_ONLY mode sends only approved mailbox with TEST_ONLY subject',async()=>{
   const db=store();let sent=null;
-  db.get=async(table,id)=>table==='offerten'?{...saved,title:'TEST_ONLY CRM offer'}:
+  db.get=async(table,id)=>table==='offerten'?{...saved,leadId:'lead-1',title:'TEST_ONLY CRM offer'}:
     table==='leads'?{...person,email:'lars.schulthess@outlook.com'}:null;
   db.claimOfferSend=async()=>{
     db.calls.push(['claim']);
@@ -170,7 +170,7 @@ test('TEST_ONLY mode sends only approved mailbox with TEST_ONLY subject',async()
 
 test('TEST_ONLY mode rechecks claimed snapshot and never sends switched recipient',async()=>{
   const db=store();let requested=0;
-  db.get=async(table)=>table==='offerten'?{...saved,title:'TEST_ONLY CRM'}:
+  db.get=async(table)=>table==='offerten'?{...saved,leadId:'lead-1',title:'TEST_ONLY CRM'}:
     {email:'lars.schulthess@outlook.com'};
   const sender=createOfferSender(db,{
     enabled:true,webhookUrl:hook,testTo:'lars.schulthess@outlook.com',

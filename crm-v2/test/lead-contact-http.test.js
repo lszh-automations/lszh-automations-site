@@ -34,6 +34,7 @@ async function withApp(fn){
     './lead-ingest':{saveWebsiteLead:async()=>{throw Error('no website intake');}},
     './mail-dispatcher':{makeDispatcher:()=>({stats:()=>({enabled:false})})},
     './cloud-records':{buildStore:()=>store},
+    './offer-send':{createOfferSender:()=>({stats:()=>({enabled:false})})},
     './offer-preview':{renderOfferPreview:()=>''},
     './invoice-preview':{renderInvoicePreview:()=>''}
   };

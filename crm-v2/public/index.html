@@ -1144,8 +1144,19 @@ async function initialise(){
     const config=await api('/api/config');
     for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
     if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
-    google.accounts.id.initialize({client_id:config.clientId,callback:res=>signedIn(res.credential)});
+    // Let Google renew our login after page reload without persisting ID tokens
+    // in localStorage or cookies controlled by browser JavaScript.
+    // The browser may still require One Tap confirmation (FedCM / multiple accounts).
+    google.accounts.id.initialize({
+      client_id:config.clientId,
+      callback:res=>signedIn(res.credential),
+      auto_select:true,
+      button_auto_select:true
+    });
     google.accounts.id.renderButton($('googleButton'),{theme:'filled_black',size:'large',text:'signin_with',width:290});
+    // Returning users may be signed in automatically; if that is not allowed,
+    // Google offers One Tap and the regular sign-in button stays available.
+    google.accounts.id.prompt();
   }catch(err){$('error').textContent='CRM noch nicht eingerichtet: '+err.message;}
 }
 $('nav').addEventListener('click',event=>{

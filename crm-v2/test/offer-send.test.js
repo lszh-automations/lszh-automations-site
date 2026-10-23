@@ -228,3 +228,51 @@ test('production mode blocks synthetic TEST_ONLY quotes before sending',async()=
   assert.equal(called,0);
   assert.equal(db.calls.length,0);
 });
+
+
+test('productive offer PDF identifies legal issuer and keeps acceptance separate',()=>{
+  const pdf=makePdf(saved,person).toString('latin1');
+  assert.match(pdf,/LSZH Invest GmbH/);
+  assert.match(pdf,/Rummelmatt 8/);
+  assert.match(pdf,/5610 Wohlen AG/);
+  assert.match(pdf,/CHE-369\.474\.125/);
+  assert.match(pdf,/info@lszh-automations\.ch/);
+  assert.match(pdf,/Ein Auftrag kommt erst nach unserer ausdr/);
+  assert.match(pdf,/Auftragsbest.tigung zustande/);
+  assert.doesNotMatch(pdf,/CHE-369\.474\.125 MWST/);
+});
+
+test('productive offer email uses LSZH existing customer branding, contact name and Swiss date',()=>{
+  const {html,subject}=renderOfferEmail(saved,person);
+  assert.equal(subject,'Ihre Offerte Nr. 1000 | LSZH Automations');
+  assert.match(html,/Guten Tag Max Muster/);
+  assert.doesNotMatch(html,/Guten Tag Beispiel AG/);
+  assert.match(html,/23\.11\.2026/);
+  assert.match(html,/LSZH Invest GmbH/);
+  assert.match(html,/Rummelmatt 8/);
+  assert.match(html,/CHE-369\.474\.125/);
+  assert.match(html,/info@lszh-automations\.ch/);
+  assert.match(html,/#5b8cff/);
+  assert.match(html,/schriftliche Auftragsbestätigung/);
+  assert.doesNotMatch(html,/CHE-369\.474\.125 MWST/);
+  assert.doesNotMatch(html,/TEST_ONLY/);
+});
+
+test('offer email keeps HTML injection confined to escaped plain text',()=>{
+  const attack='<img src=x onerror=alert(1)>';
+  const mail=renderOfferEmail({...saved,title:attack},{
+    ...person,name:'<script>alert(1)</script>'
+  });
+  assert.doesNotMatch(mail.html,/<script>|<img/);
+  assert.match(mail.html,/&lt;script&gt;/);
+  assert.match(mail.html,/&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test('offer PDF supports multi-line offer titles without overlapping price rows',()=>{
+  const longTitle='Leistungsumfang fuer KMU Digitalisierung und Automatisierung '.repeat(4);
+  const pdf=makePdf({...saved,title:longTitle},person).toString('latin1');
+  assert.match(pdf,/Leistungsumfang/);
+  assert.match(pdf,/Einmalig/);
+  assert.match(pdf,/Monatlich/);
+  assert.match(pdf,/%%EOF/);
+});

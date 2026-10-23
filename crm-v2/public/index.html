@@ -897,19 +897,39 @@ function appendQualificationSection(body,lead){
     if(key==='mainProblem'||key==='frequency')item.input.maxLength=500;
     controls[key]=item.input;fields.append(item.wrap);
   }
-  const save=el('button','btn primary','Qualifizierung speichern');save.type='submit';
-  form.append(fields,save);
-  form.addEventListener('submit',async event=>{
-    event.preventDefault();save.disabled=true;$('leadDetailError').hidden=true;
+  const actions=el('div','lead-workflow-actions');
+  const canQualify=lead.status==='Kontaktiert';
+  const save=el('button','btn'+(canQualify?'':' primary'),'Qualifizierung speichern');
+  save.type='submit';
+  actions.append(save);
+  let qualify=null;
+  if(canQualify){
+    qualify=el('button','btn primary','Speichern & qualifizieren');
+    qualify.type='button';actions.append(qualify);
+  }
+  form.append(fields,actions);
+  const persistQualification=async(promote,button)=>{
+    save.disabled=true;
+    if(qualify)qualify.disabled=true;
+    $('leadDetailError').hidden=true;
     const updates=Object.fromEntries(Object.entries(controls).map(([key,input])=>[key,input.value]));
+    if(promote)updates.status='Qualifiziert';
     try{
       await api('/api/records/leads/'+encodeURIComponent(lead.id),{
         method:'PATCH',body:JSON.stringify(updates)
       });
       await reloadOpenLead(lead.id);
     }catch(error){showLeadWorkflowError('Qualifizierung konnte nicht gespeichert werden: '+error.message);}
-    finally{save.disabled=false;}
+    finally{
+      save.disabled=false;
+      if(qualify)qualify.disabled=false;
+    }
+  };
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    await persistQualification(false,save);
   });
+  if(qualify)qualify.addEventListener('click',()=>persistQualification(true,qualify));
   section.append(form);body.append(section);
 }
 

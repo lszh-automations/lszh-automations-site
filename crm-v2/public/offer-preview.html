@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>LSZH Offerte {{NUMBER}} – Testvorschau</title>
+<style>
+@page{size:A4;margin:16mm 18mm}
+*{box-sizing:border-box}
+body{margin:0;background:#edf1f7;color:#20314a;font:12px/1.55 Arial,Helvetica,sans-serif}
+.sheet{width:210mm;max-width:100%;min-height:297mm;margin:24px auto;background:#fff;padding:18mm;box-shadow:0 10px 35px #22345224}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:25px;border-bottom:3px solid #1b4770}
+.logo{font-weight:850;letter-spacing:.12em;font-size:23px;color:#173a60}
+.logo span{color:#458ac5;font-size:11px;letter-spacing:.16em}
+.small{font-size:10px;color:#687c92}
+.demo{background:#fff3d9;border:1px solid #e1bd77;color:#774e19;padding:11px 14px;font-weight:700;margin:24px 0}
+h1{font-size:29px;margin:24px 0 5px;color:#173a60}
+h2{font-size:13px;margin:27px 0 8px;color:#29577e;text-transform:uppercase;letter-spacing:.06em}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:25px}
+.address{font-size:12px;line-height:1.65}
+.address strong{font-size:13px}
+.field{margin-top:20px}
+table{width:100%;border-collapse:collapse;margin-top:17px;font-size:10.5px}
+th{text-align:left;color:#566e87;background:#edf3f9;border-bottom:1px solid #cad6e3;padding:11px 6px}
+td{border-bottom:1px solid #e3e9f1;padding:10px 6px;vertical-align:top}
+.right{text-align:right;white-space:nowrap}
+.totals{margin:20px 0 0 auto;max-width:310px;border-top:2px solid #29577e;padding-top:8px}
+.total-row{display:flex;justify-content:space-between;gap:20px;padding:6px 0;font-size:13px}
+.total-row strong{font-size:15px}
+.footer{border-top:1px solid #d5e0e9;padding-top:13px;margin-top:45px;font-size:10px;color:#71869b}
+.note{margin-top:18px;color:#71869b;font-size:10px}
+.print-btn{position:fixed;right:28px;top:25px;z-index:10;border:0;border-radius:9px;background:#1d527b;color:#fff;padding:13px 20px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px #102f4a25}
+@media(max-width:650px){.sheet{margin:0;padding:20px;min-height:0}.meta{grid-template-columns:1fr}.top{flex-wrap:wrap}.right{white-space:normal}.print-btn{position:sticky;top:0;float:right}}
+@media print{body{background:#fff}.sheet{box-shadow:none;width:auto;margin:0;padding:0;min-height:0}.print-btn{display:none}.demo,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid}.top,.meta,.totals,.field{break-inside:avoid}}
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">Drucken / als PDF speichern</button>
+<div class="sheet">
+  <div class="top">
+    <div><div class="logo">LSZH <span>AUTOMATIONS</span></div><div class="small">Ein Geschäftsbereich der LSZH Invest GmbH</div></div>
+    <div class="small" style="text-align:right">Wohlen AG · Schweiz<br>INTERNE CRM-TESTVORSCHAU</div>
+  </div>
+  <div class="demo">INTERNE TESTVORSCHAU – NICHT AN KUNDEN VERSENDEN</div>
+  <h1>Offerte</h1>
+  <div class="small">Offerten-Nr. {{NUMBER}} · Status: {{STATUS}}</div>
+  <div class="meta">
+    <div><div class="small">EMPFÄNGER</div><div class="address"><strong>{{COMPANY}}</strong>{{PERSON_AND_ADDRESS}}</div></div>
+    <div><div class="small">OFFERTENDATEN</div><div class="address">{{DATES}}</div></div>
+  </div>
+  <div class="field"><h2>{{TITLE}}</h2>{{DESCRIPTION}}</div>
+  <h2>Leistungspositionen</h2>
+  {{ITEM_TABLE}}
+  <div class="totals">
+    <div class="total-row"><span>Einmalig</span><strong>{{ONCE}}</strong></div>
+    <div class="total-row"><span>Monatlich</span><strong>{{MONTHLY}} / Monat</strong></div>
+  </div>
+  <p class="note">Preise in CHF. Ein MWST-Ausweis und finale Zahlungsbedingungen müssen vor dem produktiven Kundenversand geklärt werden.</p>
+  <div class="footer">LSZH Automations · LSZH Invest GmbH · Interner Vorschauentwurf. Kein Versand, keine Online-Annahme, keine Rechnung.</div>
+</div>
+</body></html>

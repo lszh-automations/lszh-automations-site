@@ -79,7 +79,7 @@ async function handler(req,res){
     const a=Buffer.from(secret),b=Buffer.from(supplied);
     if(a.length!==b.length||!crypto.timingSafeEqual(a,b))
       return reply(res,401,{error:'unauthorized'});
-    const result=await saveWebsiteLead(db,await json(req));
+    const result=await saveWebsiteLead(db,await json(req),new Date().toISOString(),PREFIX+'leads');
     return reply(res,result.created?201:200,{ok:true,confirmed:true,recordId:result.id,created:result.created});
   }
   if(!pathname.startsWith('/api/'))return reply(res,404,{error:'not_found'});

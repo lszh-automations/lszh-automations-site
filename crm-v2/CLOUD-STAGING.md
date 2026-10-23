@@ -72,6 +72,16 @@ Dies ersetzt die Aussage im älteren Erstentwurf, dass kein Deploy erfolgte, ist
 - Es werden keine Google-ID-Tokens in Local Storage oder Session Storage persistiert; jede vom Browser zurückgegebene Credential wird weiterhin durch die Cloud-API validiert. «Abmelden» deaktiviert die automatische Kontoauswahl.
 - Tests: `crm-v2/test/cloud-signin-ui.test.js`. Nach Änderung **Cloud-Staging neu deployen**, die bereits laufende Cloud-Run-Revision übernimmt GitHub-Änderungen nicht automatisch.
 
+## Update 23.10.2026 – Zweites Cloud-Staging-Deployment
+
+PowerShell-Ausgabe des zweiten Deploys vom Nutzer bestätigt:
+- `git pull --ff-only` hat die Google-One-Tap-Verbesserung und Tests ins zweite Worktree übernommen.
+- 15/15 Node-Tests bestanden; Cloud Build erfolgreich; Revision `lszh-crm-v2-staging-00002-fgh` erhält 100 % Traffic.
+- Dienst `lszh-crm-v2-staging` in `europe-west6`; aktuelle URL unverändert: `https://lszh-crm-v2-staging-ozx7mp2bka-oa.a.run.app`.
+- `gcloud run deploy` meldete Warnung zu initialer IAM-Policy, gefolgt von erfolgreichem `gcloud run services update --no-invoker-iam-check`. Browsererreichbarkeit ist separat zu bestätigen.
+- Test im echten Browser ausstehend: erneute Anmeldung nach F5, bestehender Testlead bleibt erhalten, Qualifiziert erzeugt genau eine Offerte, Gewonnen Kunde und Projekt. Die Tests waren unit-/simulierte Firestore-Tests und kein echter Lead-Workflow-E2E.
+- Produktiver Cloud-Run-Dienst `lszh-crm-v2`, Website-Intake und Make-Szenarien wurden durch das Staging-Skript nicht geändert. Kein Cutover.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

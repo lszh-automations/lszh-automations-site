@@ -52,13 +52,14 @@ function makePdf(offer,recipient={}){
   }
   function page(){
     commands=[];pages.push(commands);
-    rect(0,HEIGHT-103,WIDTH,103,[.05,.09,.15]);
-    rect(LEFT,HEIGHT-105,85,3,[.42,.78,.96]);
+    rect(0,HEIGHT-103,WIDTH,103,[.024,.063,.114]);
+    rect(LEFT,HEIGHT-105,150,3,[.357,.549,1]);
     text('LSZH',LEFT,HEIGHT-52,24,true,[1,1,1]);
-    text('AUTOMATIONS',LEFT+90,HEIGHT-52,11,true,[.47,.82,1]);
-    text('LSZH Invest GmbH  |  Schweiz',LEFT,HEIGHT-76,9,false,[.72,.81,.9]);
+    text('AUTOMATIONS',LEFT+90,HEIGHT-52,11,true,[.455,.847,1]);
+    text('Ein Geschaeftsbereich der LSZH Invest GmbH',LEFT,HEIGHT-76,9,false,[.72,.81,.9]);
     text('OFFERTEN',RIGHT-101,HEIGHT-50,11,true,[1,1,1]);
-    text('LSZH Automations  |  LSZH Invest GmbH',LEFT,34,8,false,[.47,.53,.59]);
+    text('LSZH Invest GmbH  |  Rummelmatt 8  |  5610 Wohlen AG',LEFT,43,8,false,[.47,.53,.59]);
+    text('UID: CHE-369.474.125  |  info@lszh-automations.ch',LEFT,29,8,false,[.47,.53,.59]);
     y=HEIGHT-144;
   }
   function check(height){if(y-height<70)page();}
@@ -67,7 +68,7 @@ function makePdf(offer,recipient={}){
   }
   function headingRow(){
     check(49);
-    rect(LEFT,y-23,RIGHT-LEFT,30,[.08,.15,.23]);
+    rect(LEFT,y-23,RIGHT-LEFT,30,[.024,.063,.114]);
     text('POS.',LEFT+8,y-13,8,true,[1,1,1]);
     text('LEISTUNG',LEFT+52,y-13,8,true,[1,1,1]);
     text('MENGE',LEFT+283,y-13,8,true,[1,1,1]);
@@ -77,7 +78,8 @@ function makePdf(offer,recipient={}){
   }
   page();
   line('Offerte Nr. '+safe(offer.number||'-'),19,34,true);
-  line(offer.title||'Leistungsangebot',12,29,true);
+  for(const part of wrap(offer.title||'Leistungsangebot',65))line(part,12,22,true);
+  y-=7;
   line('AN',9,18,true);
   const address=[
     recipient.company||'Empfänger',recipient.name||recipient.contactName||'',
@@ -107,7 +109,7 @@ function makePdf(offer,recipient={}){
     y-=height;
     rect(LEFT,y,RIGHT-LEFT,.6,[.72,.80,.86]);
   }
-  check(120);y-=26;
+  check(180);y-=26;
   rect(LEFT,y-56,RIGHT-LEFT,67,[.89,.94,.975]);
   text('Einmalig',LEFT+13,y-10,10);
   text(money(totals.oneTimeCHF),LEFT+13,y-37,15,true);
@@ -115,7 +117,9 @@ function makePdf(offer,recipient={}){
   text(money(totals.monthlyCHF)+' / Monat',LEFT+264,y-37,15,true);
   y-=83;
   line('Diese Offerte ist bis '+dateCH(offer.validUntil)+' gültig.',9,20);
-  line('Bei Fragen stehen wir Ihnen gerne zur Verfügung.',9,20);
+  line('Unverbindlich. Ein Auftrag kommt erst nach unserer ausdrücklichen',9,14);
+  line('schriftlichen Auftragsbestätigung zustande.',9,20);
+  line('Fragen? info@lszh-automations.ch',9,20);
   const objects=[null,'<< /Type /Catalog /Pages 2 0 R >>',null,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];

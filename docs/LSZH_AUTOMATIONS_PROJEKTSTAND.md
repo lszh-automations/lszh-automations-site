@@ -1,3 +1,25 @@
+### 23.10.2026 – CRM-Offerten-PDF Preview produktiv + Testmodus vorbereitet
+
+**Vom Benutzer per PowerShell bestätigt:** `scripts/deploy-crm-offer-send-preview-live.ps1` endete mit `CRM OFFER SEND PREVIEW LIVE PASS`. Neue produktive Cloud-Run-Revision `lszh-crm-v2-00030-ren` hat **100 % Traffic**. Verifizierter Rückfallanker ist `lszh-crm-v2-00028-lij`. Alle **71/71** bisherigen Tests erfolgreich. Bestehender Cloud-Scheduler und Make-Lead-Mails unverändert; **CRM_OFFER_MAIL_ENABLED weiterhin false**, noch kein automatischer Kundenversand.
+
+**Nächster Schritt implementiert, noch nicht ausgerollt:** Gezielter Testmodus für den echten CRM-Versandbutton. `crm-v2/offer-send.js` prüft bei `CRM_OFFER_MAIL_TEST_TO` **vor** der Versandreservierung und nochmals unmittelbar **nach** der atomaren Reservierung sowohl die gespeicherte Offerte (`title` beginnt mit `TEST_ONLY`) als auch die unveränderte Empfängeradresse (`lars.schulthess@outlook.com`). Bei Abweichung wird vor jedem HTTP-Aufruf an Make abgebrochen; bei einer Änderung während der Reservierung wird `preparation_failed` protokolliert. Testmails erhalten einen Betreff beginnend mit `[TEST_ONLY]`. `/api/config` liefert nur `offerMailEnabled`, `offerMailMode` und den erlaubten Testempfänger; `crm-v2/public/index.html` zeigt den Versandbutton im Testmodus ausschliesslich für passend markierte Testofferten. Neue Regressionstests prüfen Freigaben, Ablehnungen und Race-Schutz.
+
+**Make-Szenario 8144117:** Separat, **inaktiv**, Gmail-Verbindung weiterhin funktionstüchtig. Sein Gmail-Filter wurde an dynamische CRM-Testofferten angepasst: `kind=offer_send`, Event-ID mit `offer_send_`, Empfänger genau `lars.schulthess@outlook.com`, Betreff enthält `[TEST_ONLY]`. Echte Kunden-E-Mails werden vom Make-Filter abgewiesen.
+
+**Rollout-Skript:** `scripts/deploy-crm-offer-send-test-only-live.ps1`. Prüft die konkrete live bestätigte Revision `lszh-crm-v2-00030-ren`, den unveränderten bestehenden Kunden-Mailbetrieb, Scheduler und 74 CRM-Tests. Legt für die separate Make-Offerten-Webhook-URL ein Secret `lszh-crm-v2-offer-make-hook` im Google Secret Manager an bzw. verwendet eine aktivierte Version. Bei neuer Secret-Version wird die URL **im verdeckten PowerShell-Prompt** des Nutzers angefordert, niemals in Git gespeichert. Nur dem CRM-Dienstkonto wird Secret-Accessor auf dieses Secret erteilt. Baut Kandidat mit `CRM_OFFER_MAIL_ENABLED=true`, `CRM_OFFER_MAIL_TEST_TO=lars.schulthess@outlook.com` und `CRM_OFFER_MAIL_WEBHOOK_URL` aus Secret Manager zunächst mit **0 % Traffic**. Prüft Kandidaten-HTTP, Testmodus sowie alle übrigen unveränderten Umgebungsvariablen und Scheduler. Erst danach Traffic-Umschaltung auf 100 %, mit Rollback auf `00030-ren` bei Problemen.
+
+**Ausführung auf dem Surface (kein echter Kundenversand):**
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-offer-send-test-only-live.ps1"
+```
+Erfolgscode `CRM OFFER TEST ONLY LIVE PASS`. Falls nach der **neuen Offerten-Make-Webhook-URL** gefragt wird, die URL aus dem Webhook-Modul von Szenario `8144117` eingeben (nicht die Lead-Mail-Webhook-URL von `8135270`). Nicht in Git, Mail oder Chat posten.
+
+**Test nach dem Release:** Das separate Szenario `8144117` nur mit festem TEST_ONLY-Filter aktivieren; im CRM einen synthetischen Testlead mit der eigenen Outlook-Adresse erstellen und qualifizieren, die automatisch nummerierte Offerte `TEST_ONLY ...` nennen, Position und gültiges Ablaufdatum erfassen, Status `Bereit`, dann den speziellen Button **«TEST_ONLY: PDF ans Testpostfach senden»** auslösen. Empfang im Outlook-Postfach, PDF, Gmail-Receipt, CRM-Status `Versendet` und Wiedervorlage prüfen. Erst nach diesem Test und **separater Freigabe** die Einschränkung für echte Kunden ändern.
+
+---
+
 ### 23.10.2026 – Offerten-PDF Preview-Deploy: Cloud Run Tag-Guard korrigiert
 
 Beim ersten Aufruf von `scripts/deploy-crm-offer-send-preview-live.ps1` durch den Benutzer: **alle 71 CRM-Tests bestanden**, Vorprüfung bei `Unrecognised live CRM revision/tag: lszh-crm-v2-00028-lij; no changes made` abgebrochen. Es wurde **keine** neue Cloud-Run-Revision erstellt und **kein** Traffic umgestellt. Ursache im Vorprüfungsskript: bislang musste die frühere Release-Tag-Zuordnung im **selben Traffic-Eintrag** wie die 100-%-Revision stehen. Ein `gcloud run services update-traffic --to-revisions=...=100` kann jedoch separate 0-%-Tags erzeugen oder die Tag-Zuordnung entfernen.

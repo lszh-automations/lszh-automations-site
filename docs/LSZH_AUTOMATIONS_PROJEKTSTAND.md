@@ -1,3 +1,19 @@
+### CRM V2 – Leistungsbeschreibung neuer Offerten standardmässig leer (23.10.2026)
+
+Neue automatisch erzeugte Offerten aus der Lead-Qualifizierung erhalten `description: ''` und werden **nicht** mehr mit der Anfrage, dem bisherigen Ablauf oder den Qualifizierungsangaben des Leads vorausgefüllt. Dies betrifft beide bestehenden Firestore-Pfade: direkte Anlage eines qualifizierten Leads und späterer Statuswechsel auf `Qualifiziert`. Der Website-Lead behält sämtliche ursprünglichen Felder; die Offertennummerierung, Positionen, Preise, CRM-Zustände und der Mailbetrieb bleiben unverändert. Die Leistungsbeschreibung kann im Offerteneditor weiterhin freiwillig manuell erfasst werden. **Bereits erstellte Offerten, einschliesslich Nr. 1000, werden nicht rückwirkend verändert.**
+
+`crm-v2/test/cloud-records.test.js` prüft beide Erstellungspfade, den leeren Standardwert, die manuelle Bearbeitbarkeit und dass spätere Lead-Änderungen den Offertentext nicht überschreiben.
+
+Live-Rollout: `scripts/deploy-crm-empty-description-live.ps1` akzeptiert ausschliesslich die bereits produktiv bestätigte Vorversion mit Tag `crm-offer-tracking` auf 100 % Traffic, liest deren konkrete Revision als Rollback-Ziel, startet CRM-Tests und legt vor der Prüfung des Candidates eine Null-Traffic-Revision an. Cloud-Run-Umgebung, Mail-Scheduler, Identitäten und HTTP-Schutz bleiben unverändert. Der Live-Status wird erst nach `CRM EMPTY OFFER DESCRIPTION LIVE PASS` bestätigt.
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-empty-description-live.ps1"
+```
+
+---
+
 ### CRM V2 – Offertenversand dokumentieren und gezielt nachfassen (23.10.2026)
 
 **Ausgangslage:** Nummerierung, Offertenbearbeitung, gespeicherte PDF-/Druckansicht und Annahme/Abschluss inklusive automatischer Kunden-/Projektanlage funktionieren bereits. Es fehlten ein nachvollziehbarer Versandnachweis und die Wiedervorlagen zwischen Angebot und Kundenentscheid.
@@ -29,7 +45,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-of
 **Neue CRM-Funktionen (GitHub-Branch `feature/crm-v2-cloud-staging-20261023`, noch nicht live):**
 - **Kontaktverlauf im Lead-Detail:** Kontaktart Telefon, E-Mail, Besprechung oder Sonstiges; Ergebnis Erreicht, Nicht erreicht, Nachricht gesendet; verpflichtende Gesprächsnotiz; serverseitiger Zeitstempel und Bearbeiter. Append-only `contactHistory` (bis 100 Einträge pro Lead) via Google-ID-Token und Same-Origin-geschütztem `POST /api/records/leads/:id/contacts`. Firestore-Transaktion verhindert Überschreibungen bei gleichzeitigem Bearbeiten. Erfolgreicher dokumentierter Kontakt setzt einen Lead von `Neu` auf `Kontaktiert`; `Nicht erreicht` belässt den Status `Neu`. Kein E-Mail- oder Telefonversand wird vom Kontaktprotokoll ausgelöst.
 - **Wiedervorlage:** Am Lead `nextAction` (max. 180 Zeichen) und `followUpDate` (gültiges ISO-Datum) gemeinsam speichern, im Lead-Detail ändern oder mit «Als erledigt markieren» löschen. Eigene Spalte in Website Leads zeigt den Termin. Dashboard zeigt heute fällige und überfällige nächste Aktionen als einzelne anklickbare Leads sowie deren Anzahl bei «Jetzt wichtig». Lokal-datumsbasiert, aktualisiert bei Tageswechsel im offenen Dashboard. Nur offene Lead-Phasen `Neu`, `Kontaktiert`, `Qualifiziert`; keine zusätzlichen Scheduler- oder E-Mail-Reminders.
-- **Qualifizierung:** Im Lead-Detail die bereits bekannten Felder Ablauf, Systeme, Problem, Häufigkeit und gewünschtes Ergebnis sowie neue interne Felder `budgetRange`, `qualificationNotes` bearbeiten. Die Aktion «Speichern & qualifizieren» erfasst den Bedarf und setzt den Status in einer einzigen CRM-Transaktion auf `Qualifiziert`, wodurch wie bisher exakt eine nummerierte, bearbeitbare Offerte entsteht. Deren anfängliche Beschreibung enthält die vom Kunden bekannten Bedarfsangaben, **nicht** den internen Budgetrahmen und **nicht** die Qualifizierungsnotizen. Bestehende Offerten werden nicht ungefragt geändert.
+- **Qualifizierung:** Im Lead-Detail die bereits bekannten Felder Ablauf, Systeme, Problem, Häufigkeit und gewünschtes Ergebnis sowie neue interne Felder `budgetRange`, `qualificationNotes` bearbeiten. Die Aktion «Speichern & qualifizieren» erfasst den Bedarf und setzt den Status in einer einzigen CRM-Transaktion auf `Qualifiziert`, wodurch wie bisher exakt eine nummerierte, bearbeitbare Offerte entsteht. **Historischer Entwicklungsstand:** Damals enthielt der Entwurf vorbefüllte Bedarfsangaben. Dies wurde am 23.10.2026 durch die leere Standard-Leistungsbeschreibung ersetzt. Bestehende Offerten werden nicht ungefragt geändert.
 - **Datenregeln:** Verfügbare CRM-Bearbeiter unverändert (`CRM_ALLOWED_EMAILS`), Kontaktverlauf wird nicht über generische PATCH-Felder überschrieben, Firestore-Präfixe und Mail-Event-IDs bleiben unverändert. `crm-v2/lead-contact.js` enthält Validierungsregeln und die reine Offerten-Vorbefüllung.
 
 **Release:** `scripts/deploy-crm-contact-workflow-live.ps1` startet mit allen lokalen CRM-Regressionstests, prüft bestehende aktive Live-Revision mit dem Tag `crm-lead-age-traffic-light` bei 100 % Traffic, Cloud-Run-Identität und alle Environment-/Secret-Referenzen sowie den aktiven OIDC-Scheduler. Danach erstellt das Skript eine getaggte 0%-Revision, prüft HTTP-Auth (inkl. Kontakt-POST ohne Token = 401) und schaltet nur bei Erfolg um. Bei Fehler nach Umschaltung Rückfall auf die vorher erkannte Revision. **Keine echten Kontakte/Leads bei Deploy erzeugen, keine Mails versenden, keine bestehenden Events zurücksetzen.**

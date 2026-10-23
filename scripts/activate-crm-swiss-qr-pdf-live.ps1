@@ -76,8 +76,9 @@ function Http([string]$url){
   }
 }
 function CheckWeb([string]$url){
-  $home=Http ($url.TrimEnd('/')+'/')
-  if([int]$home.StatusCode -ne 200 -or [string]$home.Content -notmatch 'id="invoicePdf"'){
+  # $HOME is a read-only PowerShell automatic variable (case-insensitive).
+  $homepageResponse=Http ($url.TrimEnd('/')+'/')
+  if([int]$homepageResponse.StatusCode -ne 200 -or [string]$homepageResponse.Content -notmatch 'id="invoicePdf"'){
     throw ('CRM frontend missing Swiss QR invoice button at '+$url)
   }
   $config=Invoke-RestMethod -Uri ($url.TrimEnd('/')+'/api/config') -Method GET -TimeoutSec 30

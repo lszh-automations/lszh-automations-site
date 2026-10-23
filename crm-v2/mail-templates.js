@@ -30,6 +30,7 @@ function shell(content){
 }
 function isEligible(lead,kind,nowMs=Date.now(),notBeforeMs=0){
   if(!lead||!email.test(asText(lead.email,254)))return false;
+  if(/TEST_ONLY/i.test(asText(lead.name,180)+' '+asText(lead.company,180)) || /@example\.(?:com|org|net)$/i.test(asText(lead.email,254))) return false;
   const created=Date.parse(lead.createdAt||'');
   if(!Number.isFinite(created)||created<notBeforeMs)return false;
   if(kind===EVENT_TYPES.INTERNAL_24H)
@@ -39,6 +40,7 @@ function isEligible(lead,kind,nowMs=Date.now(),notBeforeMs=0){
 function renderMail(kind,lead){
   const id=asText(lead.id,100),name=asText(lead.name,180)||'Guten Tag';
   const firm=asText(lead.company,180)||'–';
+  const subjectFirm=firm.replace(/[\r\n\u0000-\u001f]+/g,' ').slice(0,100);
   const basic='<p><b>Kontakt:</b> '+escapeHtml(name)+'</p>'+
     '<p><b>Unternehmen:</b> '+escapeHtml(firm)+'</p>'+
     '<p><b>E-Mail:</b> '+escapeHtml(lead.email)+'</p>'+
@@ -60,14 +62,14 @@ function renderMail(kind,lead){
   if(kind===EVENT_TYPES.INTERNAL_NEW){
     return {
       to:INTERNAL_TO,
-      subject:'[LSZH CRM] Neuer Website-Lead: '+firm,
+      subject:'[LSZH CRM] Neuer Website-Lead: '+subjectFirm,
       html:shell('<h3>Neue Website-Anfrage eingegangen</h3>'+basic)
     };
   }
   if(kind===EVENT_TYPES.INTERNAL_24H){
     return {
       to:INTERNAL_TO,
-      subject:'[LSZH CRM] 24h-Erinnerung: '+firm+' – weiterhin Neu',
+      subject:'[LSZH CRM] 24h-Erinnerung: '+subjectFirm+' – weiterhin Neu',
       html:shell('<h3>Lead nach 24 Stunden noch auf «Neu»</h3>'+
         '<p>Dieser Lead wurde vor mindestens 24 Stunden erfasst und ist aktuell weiterhin im Status «Neu». '+
         'Bitte prüfen und bearbeiten.</p>'+basic)

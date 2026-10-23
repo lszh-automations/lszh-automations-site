@@ -1,4 +1,4 @@
-# LSZH CRM V2 – one internal TEST_ONLY mail through Make + business Gmail.
+# LSZH CRM V2 - one internal TEST_ONLY mail through Make + business Gmail.
 # Intentionally sends no customer email or real CRM data.
 # Never paste the secret webhook address into chat or commit it to GitHub.
 $ErrorActionPreference = 'Stop'
@@ -19,8 +19,8 @@ $payload = @{
   eventId = $eventId
   kind = "internal_new"
   to = "lars@lszh-automations.ch"
-  subject = "[TEST_ONLY] LSZH CRM V2 – Geschaeftliche Gmail Anbindung"
-  html = "<p><strong>TEST_ONLY</strong> – Das ist eine interne Testmail von LSZH CRM V2. Es wurden keine echten Kundendaten uebertragen.</p>"
+  subject = "[TEST_ONLY] LSZH CRM V2 - Geschaeftliche Gmail Anbindung"
+  html = "<p><strong>TEST_ONLY</strong> - Das ist eine interne Testmail von LSZH CRM V2. Es wurden keine echten Kundendaten uebertragen.</p>"
 }
 $bytes = [Text.Encoding]::UTF8.GetBytes(($payload | ConvertTo-Json -Compress))
 try {
@@ -29,7 +29,7 @@ try {
   $result = $null
   try {$result = $response.Content | ConvertFrom-Json} catch {}
   if ($status -ne 200 -or $result.ok -ne $true -or -not $result.messageId) {
-    Write-Warning "Unbestaetigte Mailannahme: HTTP $status – Versand anhand Make-Ausfuehrungen pruefen, NICHT blind wiederholen."
+    Write-Warning "Unbestaetigte Mailannahme: HTTP $status - Versand anhand Make-Ausfuehrungen pruefen, NICHT blind wiederholen."
     throw "Kein verifizierter Gmail-Versandnachweis aus Make-WebHookResponse."
   }
   Write-Host "PASS: Gmail-Send-Modul hat eine Nachricht-ID bestaetigt."

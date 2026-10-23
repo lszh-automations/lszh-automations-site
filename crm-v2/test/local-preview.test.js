@@ -176,3 +176,42 @@ test('Won lead produces customer, linked accepted offer and project atomically',
   const after=await call('GET','/api/records/projekte');
   assert.equal(after.body.records.filter(x=>x.offerId===offer.id).length,1);
 });
+
+test('quote line items persist their calculated one-time and monthly totals',async()=>{
+  const created=await call('POST','/api/records/offerten',{
+    title:'TEST: Positionen',customerId:'test-customer-1',description:'Für interne Vorschau.',
+    validUntil:'2026-11-30',status:'Entwurf',items:[
+      {title:'Einmalige Einrichtung',mode:'einmalig',qty:2,unitPriceCHF:249.95},
+      {title:'Monatlicher Support',mode:'monatlich',qty:1,unitPriceCHF:99}
+    ]
+  });
+  assert.equal(created.status,201);
+  assert.equal(created.body.record.oneTimeCHF,499.90);
+  assert.equal(created.body.record.monthlyCHF,99);
+  assert.equal(created.body.record.items.length,2);
+  const id=created.body.record.id;
+  const updated=await call('PATCH','/api/records/offerten/'+id,{
+    items:[{title:'Korrigierte Umsetzung',mode:'einmalig',qty:3,unitPriceCHF:200}]
+  });
+  assert.equal(updated.status,200);
+  assert.equal(updated.body.record.oneTimeCHF,600);
+  assert.equal(updated.body.record.monthlyCHF,0);
+  const data=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8'));
+  assert.equal(data.offerten.find(x=>x.id===id).oneTimeCHF,600);
+  assert.equal(data.offerten.find(x=>x.id===id).items[0].qty,3);
+  const printable=await call('GET','/preview/offerte/'+id);
+  assert.equal(printable.status,200);
+  assert.match(printable.body,/Korrigierte Umsetzung/);
+  assert.match(printable.body,/CHF 600.00/);
+  assert.match(printable.body,/Demo Büro AG/);
+  assert.match(printable.body,/NICHT AN KUNDEN VERSENDEN/);
+});
+test('quote API rejects negative or malformed line items without saving changes',async()=>{
+  const created=await call('POST','/api/records/offerten',{
+    title:'TEST: Ungültig',items:[{title:'Position',mode:'einmalig',qty:1,unitPriceCHF:-5}]
+  });
+  assert.equal(created.status,400);
+  assert.match(created.body.error,/Ungültiger Betrag/);
+  const missing=await call('GET','/preview/offerte/not-a-record');
+  assert.equal(missing.status,404);
+});

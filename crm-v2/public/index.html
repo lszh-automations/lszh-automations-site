@@ -326,7 +326,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     <p class="invoice-caption">Lokale Testrechnung ohne Versand, MWST-Ausweis und Swiss-QR-Zahlteil. Status «Bezahlt» wird manuell gesetzt.</p>
     <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
     <div class="invoice-actions">
-      <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht / PDF</button>
+      <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button>
+      <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
       <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
       <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
     </div>
@@ -372,7 +373,7 @@ const definitions={
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
-  rechnungen:{title:'Rechnungen',description:'Rechnungen erstellen, Zahlungen erfassen und als PDF ansehen (lokale Testversion).',fields:[
+  rechnungen:{title:'Rechnungen',description:'Rechnungen mit nummerierter PDF und Swiss-QR-Zahlteil (nach Zahlungsfreigabe).',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
@@ -1554,6 +1555,7 @@ function invoiceCHF(number){
 function markInvoiceUnsaved(){
   if(state.invoiceLocked)return;
   $('invoicePrint').disabled=true;
+  $('invoicePdf').disabled=true;
 }
 function refreshInvoiceTotal(){
   let cents=0;
@@ -1654,6 +1656,7 @@ function openInvoiceEditor(record=null,draft=null){
   $('invoiceAddLine').hidden=state.invoiceLocked;
   $('invoiceSave').hidden=state.invoiceLocked;
   $('invoicePrint').disabled=!record;
+  $('invoicePdf').disabled=!record||record.status!=='Offen';
   $('invoiceEditor').showModal();
 }
 
@@ -1762,6 +1765,22 @@ $('invoiceAddLine').addEventListener('click',()=>{addInvoiceLine();markInvoiceUn
 $('invoicePrint').addEventListener('click',()=>{
   if(!state.invoiceEditing||$('invoicePrint').disabled)return;
   openCloudPrint('rechnung',state.invoiceEditing.id);
+});
+$('invoicePdf').addEventListener('click',async()=>{
+  if(!state.invoiceEditing||$('invoicePdf').disabled)return;
+  const button=$('invoicePdf');button.disabled=true;
+  try{
+    const r=await fetch('/api/pdf/rechnung/'+encodeURIComponent(state.invoiceEditing.id),{
+      headers:{'Authorization':'Bearer '+state.token}
+    });
+    if(!r.ok){const error=await r.json().catch(()=>({}));throw new Error(error.error||'HTTP '+r.status);}
+    const blob=await r.blob(),url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    a.download='LSZH_Rechnung_'+state.invoiceEditing.number+'.pdf';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),300000);
+  }catch(error){window.alert('Swiss-QR-PDF nicht verfügbar: '+error.message);}
+  finally{button.disabled=false;}
 });
 $('invoiceForm').addEventListener('submit',async event=>{
   event.preventDefault();

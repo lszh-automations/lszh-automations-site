@@ -1,3 +1,18 @@
+## CRM V2 Lead-Auto-Refresh – PRODUKTIV seit 23.10.2026
+
+Der Geschäftsführer führte `scripts/deploy-crm-lead-refresh-live.ps1` erfolgreich auf dem Surface aus und übermittelte die vollständige Ausgabe.
+
+- **CRM-Testsuite: 23/23 PASS**, kein fehlgeschlagener Test.
+- Neue Cloud-Run-Revision **`lszh-crm-v2-00006-moz`**, erst mit `0 %` Traffic erstellt und anschliessend nach bestandenen HTTP-Checks auf **100 % produktiven Traffic** umgeschaltet.
+- **Aktuelle produktive Revision:** `lszh-crm-v2-00006-moz` (ersetzt als Traffic-Ziel `lszh-crm-v2-00004-mez`).
+- **Unmittelbare Rückfallrevision:** `lszh-crm-v2-00004-mez` (nun 0 % Traffic, weiterhin per Tag `crm-v2-candidate` erreichbar).
+- Gegen den neuen Kandidaten und anschliessend die Live-URL bestätigten HTTP-Probes: CRM HTML `200`, OAuth-Konfiguration `200` und Leads-API ohne Anmeldung `401`.
+- Bestehende Live-Revisionszuordnung und Secret-Manager-Bindung wurden vor der Bereitstellung geprüft; nach `--no-traffic` waren Secret-, OAuth-, Präfix- und Diensteinstellungen unverändert.
+- **Frontend-Funktion:** Website-Leads automatisch alle 30 Sekunden neu laden, beim Tab-Fokus/Zurückwechseln aktualisieren, manueller Knopf `↻ Aktualisieren`; keine Änderung offener Editierdialoge. Der eingeloggte Zustand bleibt während normaler Aktualisierungen bestehen.
+- Die alte Seite im Browser muss **einmalig** neu geladen und gegebenenfalls wieder angemeldet werden, um die neue UI-Version zu bekommen. Bei vollständigem Seiten-Reload kann Google abhängig vom Browser weiterhin eine Anmeldung verlangen, weil kein ID-Token persistent gespeichert wird.
+- **Nachkontrolle offen:** tatsächliche automatische Anzeige eines frisch eingesandten Leads im offenen Browser innerhalb ca. 30 Sekunden prüfen. Der frühere öffentliche Website→Firestore-End-to-End-Test war bereits erfolgreich und wurde bei diesem reinen UI-Deployment nicht erneut ausgeführt.
+- **Rollback falls erforderlich:** `gcloud.cmd run services update-traffic lszh-crm-v2 --project lszh-automations --region europe-west6 --to-revisions=lszh-crm-v2-00004-mez=100` – nur bei tatsächlich erkanntem Problem, nicht vorsorglich ausführen.
+
 ## Produktiver CRM-V2-Cutover erfolgreich – 23.10.2026
 
 Der Geschäftsführer hat nach ausdrücklicher Freigabe das Skript `scripts/cutover-crm-v2-live.ps1` auf dem Surface ausgeführt und die vollständige erfolgreiche PowerShell-Ausgabe übermittelt.

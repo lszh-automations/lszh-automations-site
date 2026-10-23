@@ -108,7 +108,7 @@ try {
   $dirty=((& git status --porcelain) -join '').Trim()
   CheckExit 'git status failed'
   if($dirty){throw 'Uncommitted local changes: release aborted'}
-  $template=Get-Content '.\crm-v2\mail-templates.js' -Raw
+  $template=Get-Content '.\crm-v2\mail-templates.js' -Raw -Encoding UTF8
   foreach($marker in @('function customerShell','AUTOMATION FÜR SCHWEIZER KMU',
     '#74d8ff','#5b8cff','#8e72ff','Rummelmatt 8')) {
     if(!$template.Contains($marker)){throw ('Missing reviewed mail design marker: '+$marker)}
@@ -129,7 +129,8 @@ try {
   if((EnvValue $old 'CRM_RECORD_PREFIX') -ne 'lszh_crm_v2_'){throw 'Unexpected Firestore namespace'}
   if((EnvValue $old 'CRM_WEBSITE_INTAKE_ENABLED') -ne 'true'){throw 'Website lead intake is not enabled'}
   $activeFrom=EnvValue $old 'CRM_MAIL_ACTIVE_FROM'
-  if(!$activeFrom -or ![DateTimeOffset]::TryParse($activeFrom,[ref]([DateTimeOffset]::MinValue))){
+  $parsedCutoff=[DateTimeOffset]::MinValue
+  if(!$activeFrom -or ![DateTimeOffset]::TryParse($activeFrom,[ref]$parsedCutoff)){
     throw 'Mail activation cutoff is missing/invalid'
   }
   $oldEnv=EnvSignature $old

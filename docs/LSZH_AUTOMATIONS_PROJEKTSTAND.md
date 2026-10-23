@@ -114,6 +114,13 @@ Der Geschäftsführer hat nach Behebung von Google `400 origin_mismatch` die Goo
 - Die Sichtprüfung des angemeldeten Dashboards ist kein vollständiger Beweis für die Korrektheit sämtlicher rollenbasierter Zugriffe, für das historische Airtable-Inventar oder die Restore-Fähigkeit des Backups.
 
 **Nächste kontrollierte Produktions-Gates:** Airtable-/Make-Altbestand bestimmen und Umgang festlegen, isolierten Restore nachweisen und Datenvollständigkeit kontrollieren; unmittelbar vor Cutover produktive Cloud-Run-Revision/Secret/Traffic erneut validieren. Kein Go-Live ohne ausdrückliche Freigabe.
+### 23.10.2026 – Freigabe für Live-CRM-V2-Websiteanbindung erteilt (Umschaltung noch ausstehend)
+
+Der Geschäftsführer hat nach erfolgreicher Kandidaten-Sicherheitsprüfung, OAuth-Anmeldung und ausdrücklicher Bestätigung des leeren Live-Datenbestands die **Freigabe für die produktive Umschaltung** erteilt. Ziel: Alle neuen Anfragen des öffentlichen Render-Kontaktformulars über den bestehenden Cloud-Run-Endpunkt direkt ins Live-CRM-V2/Firestore schreiben. **Airtable wird nicht benötigt; keine Bestandsmigration.**
+
+Neues Script `scripts/cutover-crm-v2-live.ps1`: überprüft die Altrevision `lszh-crm-v2-00002-6lh` (100 % Traffic), den getrennt getaggten Kandidaten `lszh-crm-v2-00004-mez` (0 %), Secret Manager, OAuth, Zielprefix `lszh_crm_v2_`, aktivierten Website-Eingang, Backup-Metadaten und öffentliche Website. Anschließend schaltet es **nur** die Cloud-Run-Traffic-Zuordnung auf die Kandidatenrevision, überprüft CRM-UI/API-Schutz und sendet einen explizit gekennzeichneten synthetischen Testlead über `https://lszh-automations.ch/api/lead` (bzw. offiziellen Redirect) mit eindeutiger submission_id. Die Antwort muss `confirmed:true` und eine `web_...`-ID enthalten; identische Wiederholung muss dieselbe ID bestätigen. Bei Fehler nach Umschaltungsversuch erfolgt automatischer Rollback auf die Altrevision; ein einzelner TEST_ONLY-Datensatz kann bei einem erst später auftretenden Fehler verbleiben.
+
+Der vollständige PowerShell-Skriptinhalt wurde im Cloud-Staging-Branch gespeichert und GitHub CI hat die PowerShell-Syntax und CRM-Regressionstests bestanden. **WICHTIG: Das Skript ist auf dem Computer des Nutzers NOCH NICHT ausgeführt worden; kein Cloud-Run-Traffic wurde von diesem Chat umgeschaltet.** Kein produktives Website-Render-Deployment oder Kundenmail ist Teil des Skripts. Das Backup ist erfolgreich exportiert, isolierter Restore bleibt ausstehend.
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

@@ -51,6 +51,28 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
 
+/* Simple project execution - one project, a status, a date and a checklist */
+.project-dialog{width:min(820px,calc(100vw - 30px));max-height:92vh}
+#projectForm{max-height:calc(92vh - 78px);overflow:auto}
+.project-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:22px 24px}
+.project-fields .wide{grid-column:1/-1}
+.project-fields select{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.project-tasks-head{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid var(--border);padding:18px 24px 12px}
+.project-tasks-head strong{font-size:15px}
+.project-tasks-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.project-tasks{display:grid;gap:8px;padding:0 24px 18px}
+.project-task{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #304357;background:#162331;border-radius:10px}
+.project-task-check{width:19px;height:19px;accent-color:#65d7b5;flex-shrink:0}
+.project-task-title{min-width:0;flex:1;background:#0b141e;border:1px solid #344255;color:var(--text);padding:10px 11px;border-radius:8px}
+.project-task-title.done{text-decoration:line-through;color:#a3b5c6}
+.project-task-delete{width:36px;height:38px;background:#273549;border:1px solid #42566d;border-radius:8px;color:#e9f4ff;font-size:18px}
+.project-tasks-empty{color:#9caabd;font-size:12px;padding:10px 0}
+.project-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border);padding:19px 24px}
+.project-error{margin:0;padding:0 24px 20px;color:#ffb6ad;font-size:13px}
+.project-overdue{font-size:11px;color:#ffbc8a;display:block;margin-top:3px}
+@media(max-width:650px){.project-fields{grid-template-columns:1fr;padding:16px}.project-fields .wide{grid-column:1}.project-tasks-head,.project-actions{padding-left:16px;padding-right:16px}.project-tasks{padding-left:16px;padding-right:16px}.project-actions .btn{flex:1}}
+
+
 /* Straightforward quote editor - local test version */
 .offer-dialog{width:min(1030px,calc(100vw - 30px));max-height:92vh}
 .offer-locked-notice{margin:20px 24px 0;padding:15px 17px;border:1px solid #536f90;border-radius:11px;background:#182d42;display:grid;gap:4px}
@@ -225,6 +247,24 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     </div>
   </form>
 </dialog>
+<dialog id="projectEditor" class="project-dialog" aria-labelledby="projectEditorTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / PROJEKTE</span><h2 id="projectEditorTitle">Projekt</h2></div><button class="btn" type="button" id="projectClose" aria-label="Schliessen">✕</button></div>
+  <form id="projectForm">
+    <div id="projectFields" class="project-fields"></div>
+    <div class="project-tasks-head">
+      <div><strong>Aufgaben</strong><p id="projectProgress">0 von 0 erledigt</p></div>
+      <button class="btn" type="button" id="projectAddTask">+ Aufgabe</button>
+    </div>
+    <div id="projectTasks" class="project-tasks"></div>
+    <div class="project-actions">
+      <button type="button" class="btn" id="projectCustomerOpen" hidden>Kunde öffnen</button>
+      <button type="button" class="btn" id="projectOfferOpen" hidden>Offerte öffnen</button>
+      <button type="button" class="btn" id="projectCancel">Schliessen</button>
+      <button type="submit" class="btn primary" id="projectSave">Speichern</button>
+    </div>
+    <p id="projectError" class="project-error" role="alert" hidden></p>
+  </form>
+</dialog>
 <dialog id="leadDetail" class="lead-dialog" aria-labelledby="leadDetailTitle">
   <div class="modal-head">
     <div><span class="eyebrow">WEBSITE-ANFRAGE</span><h2 id="leadDetailTitle">Lead</h2></div>
@@ -251,7 +291,7 @@ const definitions={
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
-  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['status','Status']]}
+  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
@@ -366,7 +406,8 @@ function renderDashboard(){
     {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
     {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
     {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
-    {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'}
+    {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'},
+    {n:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length,title:'Überfällige Projekttermine',description:'Zieltermin überschritten, Projekt nicht abgeschlossen',tab:'projekte',icon:'◷'}
   ].filter(x=>x.n>0);
   if(!priorities.length){
     const empty=el('div','dash-empty');
@@ -431,6 +472,15 @@ function renderDashboard(){
   lower.append(pipeline.panel,finance.panel);
   area.append(upper,lower);
 }
+function projectIsOverdue(project){
+  if(!project?.dueDate||project.status==='Abgeschlossen')return false;
+  const date=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return /^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)&&project.dueDate<date;
+}
+function projectDoneCount(project){
+  const tasks=Array.isArray(project?.tasks)?project.tasks:[];
+  return {total:tasks.length,done:tasks.filter(t=>t.done===true).length};
+}
 function render(){
   const dashboard=state.tab==='dashboard';
   const d=dashboard
@@ -463,6 +513,11 @@ function render(){
     for(const [key] of d.columns) {
       const td=el('td');
       if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
+      else if(key==='dueDate' && state.tab==='projekte'){
+        td.textContent=rec.dueDate||'–';
+        if(projectIsOverdue(rec))td.append(el('span','project-overdue','Überfällig'));
+      }
       else td.textContent=valueText(key,rec[key]);
       row.append(td);
     }
@@ -797,6 +852,7 @@ function openOfferEditor(record=null,draft=null){
 
 function openEditor(record=null,draft=null) {
   if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
+  if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
   state.editing=record;
   $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
   const form=$('editorForm');

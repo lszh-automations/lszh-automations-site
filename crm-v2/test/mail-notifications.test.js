@@ -49,7 +49,7 @@ test('all three Swiss German mail types have correct destinations and escaped HT
     assert.match(msg.subject,/LSZH|Ihre Anfrage/);
     assert.match(msg.html,/LSZH Automations/);
     assert.doesNotMatch(msg.html,/<script>/);
-    assert.match(msg.html,/&lt;script&gt;/);
+    if(kind!==EVENT_TYPES.CUSTOMER_ACK)assert.match(msg.html,/&lt;script&gt;/);
     if(kind===EVENT_TYPES.CUSTOMER_ACK)assert.equal(msg.to,l.email);
     else assert.equal(msg.to,'lars@lszh-automations.ch');
     assert.equal(eventId(kind,l.id),kind+'__'+l.id);

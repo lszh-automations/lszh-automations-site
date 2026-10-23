@@ -381,7 +381,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false};
+const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:''};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -1311,8 +1311,13 @@ function renderOfferWorkflow(offer){
     const dateField=el('label','','Nächstes Nachfassen');
     const dateInput=el('input');dateInput.type='date';dateInput.value=suggestedOfferFollowUp();dateInput.required=true;
     dateField.append(dateInput);row.append(dateField);
-    if(state.offerMailEnabled){
-      row.append(button('Automatisch mit PDF versenden',async()=>{
+    const testOnly=state.offerMailMode==='test_only';
+    const allowedAutoSend=state.offerMailEnabled&&(!testOnly||(
+      String(offer.title||'').startsWith('TEST_ONLY')&&
+      String(offerRecipient(offer)||'').trim().toLowerCase()===state.offerMailTestTo
+    ));
+    if(allowedAutoSend){
+      row.append(button(testOnly?'TEST_ONLY: PDF ans Testpostfach senden':'Automatisch mit PDF versenden',async()=>{
         if(!window.confirm('Soll Offerte Nr. '+(offer.number||'')+
           ' jetzt mit dem PDF-Anhang an '+offerRecipient(offer)+' versendet werden?'))return;
         try{
@@ -1326,7 +1331,9 @@ function renderOfferWorkflow(offer){
         }
       },true));
     }else{
-      area.append(el('p','','Automatischer PDF-Versand ist vorbereitet, aber noch nicht freigeschaltet. Der manuelle Versand bleibt verfügbar.'));
+      area.append(el('p','',testOnly?
+        'Testmodus: Automatischer Versand nur fuer TEST_ONLY-Offerten an das freigegebene Testpostfach. Echte Kundenofferten sind gesperrt.':
+        'Automatischer PDF-Versand ist vorbereitet, aber noch nicht freigeschaltet. Der manuelle Versand bleibt verfuegbar.'));
     }
     row.append(button('Versand dokumentieren',async()=>{
       if(!window.confirm('Wurde die Offerte tatsächlich an den Kunden versendet? Dieser Klick sendet selbst keine E-Mail.'))return;
@@ -1715,6 +1722,8 @@ async function initialise(){
   try{
     const config=await api('/api/config');
     state.offerMailEnabled=config.offerMailEnabled===true;
+    state.offerMailMode=config.offerMailMode||'disabled';
+    state.offerMailTestTo=String(config.offerMailTestTo||'').toLowerCase();
     for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
     if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
     // Let Google renew our login after page reload without persisting ID tokens

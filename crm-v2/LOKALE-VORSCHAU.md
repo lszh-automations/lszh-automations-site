@@ -55,6 +55,20 @@ Die lokale Vorschau prüft ungefähr jede Minute, ob ein Lead **24 Stunden nach 
 
 Bestehende lokale Datensätze bleiben erhalten. Alte `In Prüfung`-Status werden in der Lead-Ansicht als **bisheriger Status** angezeigt, bis sie manuell einer der fünf neuen Kategorien zugeordnet werden. Bereits qualifizierte Leads, für die noch keine Offerte existiert, bekommen einmalig einen verknüpften Test-Entwurf beim Laden. Historische unberührte Beispiel-Falschzuordnungen werden wie bisher nur unter den strengen Demo-Migrationsbedingungen korrigiert.
 
+## Offertenverwaltung V1: Positionen und Druckvorschau
+
+Im Register **Offerten** öffnet `Bearbeiten` jetzt einen übersichtlichen spezialisierten Offerten-Editor. Er ersetzt für Offerten das bisherige generische Formular.
+
+1. **Offerte öffnen** – Ein durch Qualifizierung automatisch erzeugter Entwurf trägt seine fortlaufende Nummer und den verknüpften Website-Lead.
+2. **Inhalt erfassen** – Titel, Beschreibung, Gültigkeitsdatum, Lead/Kunde und Status sind bearbeitbar.
+3. **Positionen hinzufügen** – Jede Position enthält Leistungsbezeichnung, Menge, Einheitspreis in CHF und Art `Einmalig` oder `Monatlich`. Die Summe pro Position und zwei getrennte Gesamtsummen werden sofort berechnet.
+4. **Speichern** – Die API validiert und speichert Positionen gemeinsam mit den daraus neu berechneten `oneTimeCHF` und `monthlyCHF` im lokalen JSON. Das Dashboard zeigt die aktualisierten Beträge. Bestehende Testofferten ohne Positionen werden beim Bearbeiten aus den bisherigen Beträgen als zwei Positionen dargestellt.
+5. **Druckansicht / PDF** – Nach dem Speichern öffnet die Schaltfläche eine interne A4-Offerten-Vorschau. Dort `Drucken / als PDF speichern` wählen und im Browser `Als PDF speichern` auswählen.
+
+Die Vorschau enthält die Offertennummer, Kundendaten aus dem zugeordneten Lead oder Bestandskunden, Leistungen, Positionen, CHF-Summen sowie einen deutlichen Hinweis **INTERNE TESTVORSCHAU – NICHT AN KUNDEN VERSENDEN**. Die Druckansicht funktioniert ohne Cloud-Verbindung unter `/preview/offerte/<ID>`. Nicht gespeicherte Änderungen blockieren die Druckvorschau bis zum Speichern.
+
+**Noch nicht produktionsreif:** Es wird noch kein serverseitiges PDF archiviert oder verschickt; Kunden können Offerten nicht online annehmen. Ein MWST-Ausweis und die definitiven Zahlungs-/Vertragsbedingungen müssen vor dem produktiven Einsatz geklärt werden. Bestehende Statusübergänge `Angenommen ↔ Gewonnen` samt Kunden- und Projektanlage bleiben erhalten. Die Druckvorschau ist nur für lokale Testdaten vorgesehen.
+
 ## Start auf Windows Surface (PowerShell) – einfache Vorschau ohne Auto-Sync
 
 Aus dem bereits vorhandenen Repository-Verzeichnis:

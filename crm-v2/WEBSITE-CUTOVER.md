@@ -102,6 +102,22 @@ Neue abgesicherte Kandidatenwerkzeuge (bisher **nicht** auf Live ausgeführt):
 
 Den Rückfallbefehl **jetzt nicht ausführen**. Vor dem Wechsel ausserdem Altbestand, Google OAuth Origins, Rollen/Negativtests und die unmittelbar vorherige aktuelle Sicherung kontrollieren.
 
+## 23.10.2026 – Live-Kandidaten-Preflight erfolgreich (noch KEIN Deploy)
+
+Der Geschäftsführer hat auf dem Surface nach `git pull --ff-only` den Befehl `scripts/prepare-crm-live-candidate.ps1` **ohne** `-Deploy` ausgeführt. Nutzerbestätigte PowerShell-Ausgabe:
+
+- Source Commit `8598f99` (Branch `feature/crm-v2-cloud-staging-20261023`, sauberer Worktree).
+- Bisherige Live-Revision `lszh-crm-v2-00002-6lh` weiterhin mit **100 % produktivem Traffic**.
+- Vorhandenes Live-Servicekonto und Secret-Manager-Referenz für Website-Intake geprüft.
+- Zielnamespace für den **späteren Kandidaten**: `lszh_crm_v2_`; Website-Intake Flag `true`.
+- **20/20** Node-CRM-Tests bestanden, 0 fehlgeschlagen.
+- Skript meldete ausdrücklich `READ ONLY abgeschlossen: kein Deployment, keine Cloud-Run-Aenderung`.
+
+**Nächster Schritt nur nach bewusstem Ausführen:**
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\prepare-crm-live-candidate.ps1" -Deploy
+
+Das ändert zwar die Konfiguration/erstellt eine Revision des bestehenden Cloud-Run-Dienstes, soll mit `--no-traffic` aber **keinen bestehenden Live-Traffic verlagern**. Danach unbedingt Ausgabe `PASS: 100% Live-Traffic weiterhin ...` sowie `KANDIDAT URL` überprüfen und anonymen Candidate-HTTP-Test ausführen. Ein durch Tag erreichbarer Kandidat kann technisch bereits auf **Live-Firestore-Daten** zugreifen; keine echten CRM-Schreibtests, solange keine ausdrückliche Freigabe vorliegt. Keinen produktiven Website-Cutover durchführen.
 ## Einmalige Voraussetzungen vor Live-Cutover
 
 1. **Render-Konfiguration prüfen:** Richtiger Workspace und Dienst `lszh-automations-site`; Umgebungsvariablen `CRM_LEAD_INGEST_URL` und `CRM_INGEST_SECRET` sind gesetzt. Secrets nie exportieren oder im Chat teilen. Live-Website-Formular-HTTP-Test nur mit ausdrücklicher Freigabe.

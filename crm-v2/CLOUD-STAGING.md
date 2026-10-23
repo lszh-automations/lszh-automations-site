@@ -123,6 +123,12 @@ Die Website-Codeprüfung zeigt: Das öffentliche Hauptformular nutzt bereits `PO
 
 **Kein Produktiv-Cutover:** Die Website bleibt auf dem bestehenden Cloud-Run-Ziel. Erst bestehende Live-Lead-Sammlung, Sequenznummern, Backup, OAuth, Render-Ziel/Secrets und Rückfallrevision prüfen. Siehe `crm-v2/WEBSITE-CUTOVER.md`.
 
+## Live-Cloud-Run-Preflight am 23.10.2026 bestätigt
+
+Aus dem vom Geschäftsführer ausgeführten Read-only-Skript: `lszh-crm-v2` läuft weiterhin mit Revision `lszh-crm-v2-00002-6lh` (100 % Traffic) und dem bestehenden Dienstkonto. Der Website-Intake-Schlüssel ist weiterhin als Secret-Manager-Referenz hinterlegt. `CRM_RECORD_PREFIX` und `CRM_WEBSITE_INTAKE_ENABLED` fehlen noch absichtlich in der alten produktiven Serverversion; vor einem späteren Deployment müssen sie ausdrücklich auf `lszh_crm_v2_` und `true` gesetzt werden. Staging verwendet weiterhin `lszh_crm_v2_staging_` und hat den Website-Eingang deaktiviert.
+
+Der neue **rein lesende** Firestore-Inventarbefehl `scripts/inventory-crm-firestore-readonly.ps1` zeigt lediglich die Anzahlen der fünf Collections und die Zähler `offer_sequence` / `invoice_sequence` für Live und Staging. Noch nicht ausgeführt; die Inventarzahlen sind **unbekannt**. Kein Produktiv-Deployment durchgeführt.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

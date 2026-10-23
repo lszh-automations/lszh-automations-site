@@ -124,11 +124,30 @@ try {
   if(!$allowed){throw 'Secret IAM verification failed'}
   Write-Host 'Secret IAM verified: CRM runtime identity has access; version unchanged'
   Write-Host '4/5 Deploy protected 0% release candidate'
-  $args=@('run','deploy',$service,'--source=.\crm-v2','--project='+$project,'--region='+$region,
-    '--no-traffic','--tag='+$tag,
-    '--update-secrets=CRM_INVOICE_IBAN='+$secret+':'+$version,
-    '--update-env-vars=CRM_INVOICE_QR_ENABLED=true,CRM_INVOICE_PRODUCTION_APPROVED=true','--quiet')
-  & gcloud.cmd @args
+  # Windows PowerShell 5.1: construct EACH gcloud flag as a complete quoted
+  # string. In array expressions, fragments such as '--project='+$project can
+  # split into separate argv tokens, causing 'unrecognized arguments'.
+  # Do not use PowerShell's automatic $args variable for native splatting.
+  [string[]]$deployArgs=@(
+    'run','deploy',$service,
+    '--source=.\crm-v2',
+    "--project=$project",
+    "--region=$region",
+    '--no-traffic',
+    "--tag=$tag",
+    "--update-secrets=CRM_INVOICE_IBAN=${secret}:$version",
+    '--update-env-vars=CRM_INVOICE_QR_ENABLED=true,CRM_INVOICE_PRODUCTION_APPROVED=true',
+    '--quiet'
+  )
+  # Fail BEFORE deploying if any token unexpectedly separated or blank.
+  if($deployArgs.Count -ne 10 -or
+     $deployArgs[4] -cne "--project=$project" -or
+     $deployArgs[5] -cne "--region=$region" -or
+     $deployArgs[7] -cne "--tag=$tag" -or
+     $deployArgs[8] -cne "--update-secrets=CRM_INVOICE_IBAN=${secret}:$version"){
+    throw 'Malformed gcloud deploy argv: abort before changes'
+  }
+  & gcloud.cmd @deployArgs
   Check 'Cloud Run protected candidate deployment failed'
   $after=Service
   if((LiveName $after) -ne $baseline){throw 'CRITICAL: customer traffic changed'}

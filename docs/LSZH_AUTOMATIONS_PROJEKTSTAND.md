@@ -1,3 +1,38 @@
+### CRM V2 – automatischer PDF-Offertenversand (Entwicklung 23.10.2026)
+
+**Ziel:** Aus der bereits gespeicherten, nummerierten und als `Bereit` markierten Offerte eine PDF-Datei erzeugen und nach ausdrücklichem Klick des angemeldeten CRM-Bearbeiters im LSZH-Design via Make/Gmail an den verknüpften Lead/Kunden senden. Erst nach einer Gmail-Nachrichten-ID und passendem Event-ID-Echo wird die Offerte als `Versendet` gespeichert. Das bestehende Mail-Szenario **8135270** für Website-Leads darf nicht verändert werden.
+
+**Implementiert auf Branch `feature/crm-v2-cloud-staging-20261023`, noch nicht für Kunden aktiviert:**
+- `crm-v2/offer-pdf.js`: serverseitiger A4-PDF-Generator ohne zusätzliche Abhängigkeiten. Verwendet **gespeicherte** Angebotspositionen, Totale, Gültigkeitsdatum und Anschrift. Eigener LSZH-Look (dunkles Blau, cyanfarbener Akzent), mehrseitige Positionstabelle. `crm-v2/offer-mail.js`: kundenseitige responsive HTML-Mailvorlage mit Offertennummer und Preisübersicht sowie PDF-Dateiname `LSZH-Offerte-NNNN.pdf`.
+- `crm-v2/offer-send.js`: POST an einen **separaten** Make-Webhook, nur wenn `CRM_OFFER_MAIL_ENABLED=true` und `CRM_OFFER_MAIL_WEBHOOK_URL` gesetzt und korrekt sind. Payload `{kind:'offer_send',eventId,to,subject,html,pdfFilename,pdfBase64}`. Verifiziert nach der Gmail-Aktion Antwort `{ok:true,eventId:<gleich>,messageId:<Gmail-Message-ID>}`. Ein HTTP-200 ohne Gmail-ID ist **keine** Zustellbestätigung.
+- `crm-v2/cloud-records.js`: Transaktion `claimOfferSend` reserviert die Offerte (Status `Bereit`) atomar und verhindert parallele Klicks, Statusänderungen oder manuellen Doppelversand; `finishOfferSend` setzt nur bei bestätigtem Gmail-Receipt auf `Versendet` und erstellt die Wiedervorlage. Bei Fehler vor Netzwerkübertragung Status `preparation_failed`, sichere Korrektur möglich. Bei verlorener/unklarer Antwort `manual_review` und **keine automatischen Wiederholungen**. `resolveOfferSend` ermöglicht erst nach manueller Postfachprüfung die Entscheidungen «gesendet» / «sicher nicht gesendet». Ein nach Prozessabbruch verwaister `sending`-Auftrag wird frühestens nach fünf Minuten manuell überprüfbar. Alte Offerten-/Kunden-/Projektdaten, PDF-Druckansicht und Mail-Event-Deduplizierung werden nicht verändert.
+- `crm-v2/server.js`: bestehende Google-CRM-Anmeldung und Same-Origin-Kontrolle für `POST /api/records/offerten/:id/send` und `POST /api/records/offerten/:id/send/resolve`. Öffentliche Konfigurationsantwort zeigt ausschliesslich den booleschen Wert `offerMailEnabled`, niemals den geheimen Make-Webhook.
+- `crm-v2/public/index.html`: Bei `Bereit` und aktivierter Freigabe Button **«Automatisch mit PDF versenden»** mit Empfängerbestätigung. Solange das Feature deaktiviert ist, weiterhin manueller Versand möglich. Unklare Zustellungen sind blockiert und werden mit konkreter Prüfaktion angezeigt. Nach bestätigtem Versand funktionieren Dashboard-Nachverfolgung, Angenommen/Abgelehnt sowie Kunden-/Projekterstellung wie bisher.
+
+**Make:** Neues eigenständiges Szenario [8144117](https://eu1.make.com/1728770/scenarios/8144117) «LSZH CRM V2 – Offertenversand PDF (TEST / INAKTIV)». Webhook → Gmail `sendAnEmail` (bestehende Verbindung `11904991`; Absender `info@lszh-automations.ch`; PDF-Anhang aus `toBinary(1.pdfBase64; "base64")`) → `WebhookRespond` mit Event-ID und Gmail-Message-ID. Szenario bleibt **inaktiv**. Gmail-Filter ist ausschliesslich für das freigegebene synthetische TEST_ONLY-Postfach `lars.schulthess@outlook.com` gesetzt; echte Kundenmails können dadurch derzeit nicht ausgelöst werden. Make-Webhook-URL ist geheim und wird nicht in GitHub gespeichert. Webhook wurde in Lernmodus versetzt, damit der nächste Testdatensatz die Felder ohne Versand erfasst.
+
+**Qualitätssicherung:** Automatische Tests für gültiges mehrseitiges PDF, Absender-E-Mail-Rendering, Feature-aus-Sperre, HTTP-Auth/Origin, genau einmalig reservierten Versandauftrag, prüfbare Gmail-Receipt-ID, unklare Antworten ohne Wiederholung, manuelle Rekonziliation und abgestürzte/in-flight-Aufträge. GitHub-CI prüft JavaScript und Windows-PowerShell-Skripte.
+
+**Sichere erste Bereitstellung (noch **ohne** automatischen Versand):**
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-offer-send-preview-live.ps1"
+```
+Dieses Skript fordert eine bekannte produktive Vorversion mit Tag `crm-offer-tracking` oder `crm-empty-quote-description`, prüft den bisherigen Kunden-Mailbetrieb und hält `CRM_OFFER_MAIL_ENABLED` **ausgeschaltet** (auch beim Null-Traffic-Kandidaten). Erfolgscode `CRM OFFER SEND PREVIEW LIVE PASS` bestätigt nur die sichere Vorschau, **nicht** den Produktivversand.
+
+**Webhook-Lernen ohne Kundenkontakt:** In Make Szenario 8144117 den geheimen Trigger-Webhook kopieren. `scripts/learn-crm-offer-send-webhook.ps1` erzeugt eine vollständig synthetische Offerte und sendet deren PDF-Base64 an den Webhook im Lernmodus; der Lernmodus verarbeitet den Datensatz **ohne Gmail-Versand**. Danach Make-Datenstruktur und Anhangsmapping überprüfen und einen echten Testversand ausschliesslich an das TEST_ONLY-Postfach verifizieren. Das Szenario und der produktive Versand bleiben bis zur geprüften Freigabe ausdrücklich inaktiv/deaktiviert. **Keine automatischen echten Kundenmails und keine produktiven Offertenversände ohne separate Prüfung/Freigabe.**
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\learn-crm-offer-send-webhook.ps1"
+```
+
+**Offen:** Lern-Payload bei Make verifizieren, isolierten TEST_ONLY-Gmail-Versand inkl. PDF-Anhang durchführen, Zustellnachweis und Rendering kontrollieren, vertraulichen Webhook per GCP Secret Manager an Cloud Run binden, Testmodus und schliesslich explizit autorisierten produktiven Versand aktivieren. Auch der Portal-Annahmelink bleibt späterer Arbeitsschritt.
+
+---
+
 ### CRM V2 – Leistungsbeschreibung neuer Offerten standardmässig leer (23.10.2026)
 
 Neue automatisch erzeugte Offerten aus der Lead-Qualifizierung erhalten `description: ''` und werden **nicht** mehr mit der Anfrage, dem bisherigen Ablauf oder den Qualifizierungsangaben des Leads vorausgefüllt. Dies betrifft beide bestehenden Firestore-Pfade: direkte Anlage eines qualifizierten Leads und späterer Statuswechsel auf `Qualifiziert`. Der Website-Lead behält sämtliche ursprünglichen Felder; die Offertennummerierung, Positionen, Preise, CRM-Zustände und der Mailbetrieb bleiben unverändert. Die Leistungsbeschreibung kann im Offerteneditor weiterhin freiwillig manuell erfasst werden. **Bereits erstellte Offerten, einschliesslich Nr. 1000, werden nicht rückwirkend verändert.**

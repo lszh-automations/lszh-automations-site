@@ -142,7 +142,7 @@ try {
     '--quiet'
   )
   # Fail BEFORE deploying if any token unexpectedly separated or blank.
-  if($deployArgs.Count -ne 10 -or
+  if($deployArgs.Count -ne 11 -or
      $deployArgs[4] -cne "--project=$project" -or
      $deployArgs[5] -cne "--region=$region" -or
      $deployArgs[7] -cne "--tag=$tag" -or

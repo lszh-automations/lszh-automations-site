@@ -11,6 +11,8 @@ const {LEAD_STATES,linkedOffers,makeDraft,setLeadStatus,setOfferStatus,queueRemi
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {renderOfferPreview}=require('./offer-preview');
 const {cleanProjectTasks}=require('./project-tasks');
+const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
+const {renderInvoicePreview}=require('./invoice-preview');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
@@ -35,7 +37,7 @@ const FIELDS = {
   leads: ['name','company','email','street','postalCode','city','country','message','currentProcess','systems','mainProblem','frequency','desiredResult','status'],
   kunden: ['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten: ['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
-  rechnungen: ['customerId','projectId','description','amountCHF','dueDate','status'],
+  rechnungen: ['customerId','projectId','description','invoiceDate','items','amountCHF','dueDate','status'],
   projekte: ['customerId','offerId','title','description','dueDate','tasks','status']
 };
 const STATUSES = {
@@ -196,8 +198,9 @@ function clean(table,input) {
     if(!Object.prototype.hasOwnProperty.call(input,key))continue;
     const v=input[key];
     if(key==='items'){
-      if(table!=='offerten')throw error('Ungültige Positionen');
-      out.items=quoteTotals(v).items;
+      if(table==='offerten')out.items=quoteTotals(v).items;
+      else if(table==='rechnungen')out.items=invoiceTotals(v).items;
+      else throw error('Ungültige Positionen');
       continue;
     }
     if(key==='tasks'){
@@ -291,6 +294,15 @@ async function handle(req,res){
     const db=store();
     return reply(res,200,{reminders:db.reminderPreviews||[],mode:'preview_only_not_sent'});
   }
+  const invoicePreview=url.pathname.match(/^\/preview\/rechnung\/([A-Za-z0-9_-]{1,100})$/);
+  if(req.method==='GET'&&invoicePreview){
+    const db=store();
+    const invoice=db.rechnungen.find(x=>x.id===invoicePreview[1]);
+    if(!invoice)return reply(res,404,{error:'Rechnung nicht gefunden'});
+    return reply(res,200,renderInvoicePreview(invoice,
+      db.kunden.find(c=>c.id===invoice.customerId),
+      db.projekte.find(p=>p.id===invoice.projectId)),'text/html; charset=utf-8');
+  }
   const parts=url.pathname.split('/').filter(Boolean);
   if(parts[0]!=='api'||parts[1]!=='records'||parts.length>4||!TABLES.includes(parts[2]))
     return reply(res,404,{error:'Nicht gefunden'});
@@ -306,6 +318,7 @@ async function handle(req,res){
   if(req.method==='POST'&&!id){
     const data=clean(tab,body);
     if(tab==='offerten' && Object.hasOwn(data,'items'))Object.assign(data,quoteTotals(data.items));
+    if(tab==='rechnungen' && Object.hasOwn(data,'items'))Object.assign(data,invoiceTotals(data.items));
     validate(tab,data);
     if(tab==='offerten' && data.leadId){
       const lead=db.leads.find(x=>x.id===data.leadId);
@@ -316,6 +329,19 @@ async function handle(req,res){
         throw error('Für diesen Lead existiert bereits eine Offerte');
     }
     const now=new Date().toISOString();
+    if(tab==='rechnungen'){
+      if(data.customerId&&!db.kunden.some(x=>x.id===data.customerId))throw error('Kunde nicht gefunden');
+      const project=data.projectId?db.projekte.find(x=>x.id===data.projectId):null;
+      if(data.projectId&&!project)throw error('Projekt nicht gefunden');
+      if(project?.customerId && data.customerId!==project.customerId)
+        throw error('Projekt und Rechnung müssen denselben Kunden haben');
+      if(!data.invoiceDate)data.invoiceDate=now.slice(0,10);
+      if(!Object.hasOwn(data,'items'))data.items=[];
+      const requested=data.status||'Entwurf';
+      if(requested==='Offen' && (!data.customerId||!data.dueDate||!data.items.length||!data.amountCHF))
+        throw error('Für eine offene Rechnung Kunde, Fälligkeit und Positionen mit Betrag angeben');
+      if(requested==='Bezahlt')throw error('Rechnung zuerst auf Offen setzen');
+    }
     if(tab==='projekte'){
       if(data.customerId && !db.kunden.some(x=>x.id===data.customerId))
         throw error('Kunde nicht gefunden');
@@ -341,6 +367,7 @@ async function handle(req,res){
     if(idx<0)return reply(res,404,{error:'Eintrag nicht gefunden'});
     const updates=clean(tab,body);
     if(tab==='offerten' && Object.hasOwn(updates,'items'))Object.assign(updates,quoteTotals(updates.items));
+    if(tab==='rechnungen' && Object.hasOwn(updates,'items'))Object.assign(updates,invoiceTotals(updates.items));
     if(!Object.keys(updates).length)throw error('Keine Änderung');
     const now=new Date().toISOString();
     const record=db[tab][idx];
@@ -351,8 +378,26 @@ async function handle(req,res){
       record.status==='Angenommen' ||
       (record.leadId && db.leads.some(lead=>lead.id===record.leadId && lead.status==='Gewonnen'))
     ))throw error('Angenommene Offerte ist gesperrt. Korrekturen benötigen Sonderrechte und eine nachvollziehbare neue Version.',403);
+    if(tab==='rechnungen' && isInvoiceLocked(record))
+      throw error('Bezahlte oder stornierte Rechnung ist schreibgeschützt',403);
     const merged={...record,...updates,updatedAt:now};
     validate(tab,merged);
+    if(tab==='rechnungen'){
+      if(merged.customerId&&!db.kunden.some(x=>x.id===merged.customerId))
+        throw error('Kunde nicht gefunden');
+      const project=merged.projectId?db.projekte.find(x=>x.id===merged.projectId):null;
+      if(merged.projectId&&!project)throw error('Projekt nicht gefunden');
+      if(project?.customerId && project.customerId!==merged.customerId)
+        throw error('Projekt und Rechnung müssen denselben Kunden haben');
+      if(merged.status==='Offen'&&(!merged.customerId||!merged.dueDate||
+        !Array.isArray(merged.items)||!merged.items.length||!(merged.amountCHF>0)))
+        throw error('Für eine offene Rechnung Kunde, Fälligkeit und Positionen mit Betrag angeben');
+      if(merged.status==='Bezahlt'&&record.status!=='Offen')
+        throw error('Rechnung zuerst auf Offen setzen');
+      if(record.status==='Offen' && Object.hasOwn(updates,'status')&&updates.status==='Entwurf')
+        throw error('Offene Rechnung nicht still in Entwurf zurücksetzen');
+      if(merged.status==='Bezahlt')updates.paidAt=now;
+    }
     if(tab==='projekte'){
       // Preserve links created when an offer is accepted; edits must not silently
       // reassign a won project to another customer or offer.

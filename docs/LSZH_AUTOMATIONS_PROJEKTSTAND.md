@@ -1,3 +1,25 @@
+### CRM V2 – Kontaktmanagement und Wiedervorlagen (23.10.2026)
+
+**Ziel:** Den Weg von Website-Lead → Kontaktaufnahme → Qualifizierung → Offerte ohne Medienbrüche unterstützen. Alle Änderungen im bestehenden Cloud-Run-CRM und dessen Firestore-Namespace; keine neuen Make-Szenarien oder automatischen Kundenmails.
+
+**Neue CRM-Funktionen (GitHub-Branch `feature/crm-v2-cloud-staging-20261023`, noch nicht live):**
+- **Kontaktverlauf im Lead-Detail:** Kontaktart Telefon, E-Mail, Besprechung oder Sonstiges; Ergebnis Erreicht, Nicht erreicht, Nachricht gesendet; verpflichtende Gesprächsnotiz; serverseitiger Zeitstempel und Bearbeiter. Append-only `contactHistory` (bis 100 Einträge pro Lead) via Google-ID-Token und Same-Origin-geschütztem `POST /api/records/leads/:id/contacts`. Firestore-Transaktion verhindert Überschreibungen bei gleichzeitigem Bearbeiten. Erfolgreicher dokumentierter Kontakt setzt einen Lead von `Neu` auf `Kontaktiert`; `Nicht erreicht` belässt den Status `Neu`. Kein E-Mail- oder Telefonversand wird vom Kontaktprotokoll ausgelöst.
+- **Wiedervorlage:** Am Lead `nextAction` (max. 180 Zeichen) und `followUpDate` (gültiges ISO-Datum) gemeinsam speichern, im Lead-Detail ändern oder mit «Als erledigt markieren» löschen. Eigene Spalte in Website Leads zeigt den Termin. Dashboard zeigt heute fällige und überfällige nächste Aktionen als einzelne anklickbare Leads sowie deren Anzahl bei «Jetzt wichtig». Lokal-datumsbasiert, aktualisiert bei Tageswechsel im offenen Dashboard. Nur offene Lead-Phasen `Neu`, `Kontaktiert`, `Qualifiziert`; keine zusätzlichen Scheduler- oder E-Mail-Reminders.
+- **Qualifizierung:** Im Lead-Detail die bereits bekannten Felder Ablauf, Systeme, Problem, Häufigkeit und gewünschtes Ergebnis sowie neue interne Felder `budgetRange`, `qualificationNotes` bearbeiten. Die erste Statusänderung auf `Qualifiziert` erzeugt wie bisher exakt eine nummerierte, bearbeitbare Offerte. Deren anfängliche Beschreibung enthält die vom Kunden bekannten Bedarfsangaben, **nicht** den internen Budgetrahmen und **nicht** die Qualifizierungsnotizen. Bestehende Offerten werden nicht ungefragt geändert.
+- **Datenregeln:** Verfügbare CRM-Bearbeiter unverändert (`CRM_ALLOWED_EMAILS`), Kontaktverlauf wird nicht über generische PATCH-Felder überschrieben, Firestore-Präfixe und Mail-Event-IDs bleiben unverändert. `crm-v2/lead-contact.js` enthält Validierungsregeln und die reine Offerten-Vorbefüllung.
+
+**Release:** `scripts/deploy-crm-contact-workflow-live.ps1` startet mit allen lokalen CRM-Regressionstests, prüft bestehende aktive Live-Revision mit dem Tag `crm-lead-age-traffic-light` bei 100 % Traffic, Cloud-Run-Identität und alle Environment-/Secret-Referenzen sowie den aktiven OIDC-Scheduler. Danach erstellt das Skript eine getaggte 0%-Revision, prüft HTTP-Auth (inkl. Kontakt-POST ohne Token = 401) und schaltet nur bei Erfolg um. Bei Fehler nach Umschaltung Rückfall auf die vorher erkannte Revision. **Keine echten Kontakte/Leads bei Deploy erzeugen, keine Mails versenden, keine bestehenden Events zurücksetzen.**
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-contact-workflow-live.ps1"
+```
+
+**Status:** Im Branch entwickelt und über GitHub Actions geprüft; für Produktivstatus ausdrücklich erst nach `CRM CONTACT WORKFLOW LIVE PASS` und manuellem Browser-Test im bestehenden CRM melden.
+
+---
+
 ### Website Leads – Ampel nach Eingangsalter (23.10.2026)
 
 Die Spalte **Eingegangen** im produktiven CRM V2 erhält eine kompakte, farbige Anzeige mit kleinem Punkt. **Grün**: Lead ist weniger als 8 Stunden alt. **Orange**: 8 bis unter 16 Stunden. **Rot**: mindestens 16 Stunden, bleibt auch nach 24 Stunden rot. Die Berechnung erfolgt stets gegen `createdAt` des ursprünglichen Website-Leads, statusunabhängig und ohne Backendänderung. Ungültige oder fehlende Zeitstempel erhalten die neutrale Anzeige «–».

@@ -8,6 +8,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {LEAD_STATES,linkedOffers,makeDraft,setLeadStatus,setOfferStatus,queueReminderPreviews}=require('./lead-lifecycle');
+const {quoteTotals,existingLines}=require('./offer-pricing');
+const {renderOfferPreview}=require('./offer-preview');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
@@ -31,7 +33,7 @@ const REQUIRED = {
 const FIELDS = {
   leads: ['name','company','email','street','postalCode','city','country','message','currentProcess','systems','mainProblem','frequency','desiredResult','status'],
   kunden: ['company','contactName','email','street','postalCode','city','country','notes','status'],
-  offerten: ['leadId','customerId','title','description','oneTimeCHF','monthlyCHF','validUntil','status'],
+  offerten: ['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen: ['customerId','projectId','description','amountCHF','dueDate','status'],
   projekte: ['customerId','offerId','title','description','dueDate','status']
 };
@@ -192,6 +194,11 @@ function clean(table,input) {
   for(const key of FIELDS[table]) {
     if(!Object.prototype.hasOwnProperty.call(input,key))continue;
     const v=input[key];
+    if(key==='items'){
+      if(table!=='offerten')throw error('Ungültige Positionen');
+      out.items=quoteTotals(v).items;
+      continue;
+    }
     if(MONEY.has(key)) {
       if(v===null || v===''){out[key]=null;continue;}
       const n=Number(v);
@@ -265,6 +272,15 @@ async function handle(req,res){
     return reply(res,200,{version:liveVersion()});
   if(req.method==='GET'&&url.pathname==='/api/config')return reply(res,200,{localDemo:true});
   if(req.method==='GET'&&url.pathname==='/api/me')return reply(res,200,{email:'Lokale Testversion'});
+  const printMatch=url.pathname.match(/^\/preview\/offerte\/([A-Za-z0-9_-]{1,100})$/);
+  if(req.method==='GET'&&printMatch){
+    const db=store();
+    const offer=db.offerten.find(x=>x.id===printMatch[1]);
+    if(!offer)return reply(res,404,{error:'Offerte nicht gefunden'});
+    const lead=db.leads.find(x=>x.id===offer.leadId);
+    const customer=db.kunden.find(x=>x.id===offer.customerId);
+    return reply(res,200,renderOfferPreview(offer,lead,customer),'text/html; charset=utf-8');
+  }
   if(req.method==='GET'&&url.pathname==='/api/reminders'){
     const db=store();
     return reply(res,200,{reminders:db.reminderPreviews||[],mode:'preview_only_not_sent'});
@@ -283,6 +299,7 @@ async function handle(req,res){
   const body=await jsonBody(req);
   if(req.method==='POST'&&!id){
     const data=clean(tab,body);
+    if(tab==='offerten' && Object.hasOwn(data,'items'))Object.assign(data,quoteTotals(data.items));
     validate(tab,data);
     if(tab==='offerten' && data.leadId){
       const lead=db.leads.find(x=>x.id===data.leadId);
@@ -308,6 +325,7 @@ async function handle(req,res){
     const idx=db[tab].findIndex(r=>r.id===id);
     if(idx<0)return reply(res,404,{error:'Eintrag nicht gefunden'});
     const updates=clean(tab,body);
+    if(tab==='offerten' && Object.hasOwn(updates,'items'))Object.assign(updates,quoteTotals(updates.items));
     if(!Object.keys(updates).length)throw error('Keine Änderung');
     const now=new Date().toISOString();
     const record=db[tab][idx];

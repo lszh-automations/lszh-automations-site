@@ -84,7 +84,7 @@ try{
     if($hook -notmatch '^https://hook[.]eu1[.]make[.]com/[A-Za-z0-9]+$'){throw 'Ungueltige Make URL'}
     $temp=Join-Path $env:TEMP ('lszh-mail-'+[guid]::NewGuid().ToString('N')+'.tmp')
     try{
-      [IO.File]::WriteAllText($temp,$hook,(New-Object Text.UTF8Encoding($false)))
+      [IO.File]::WriteAllText($temp,$hook,([System.Text.UTF8Encoding]::new($false)))
       $hook=$null
       & gcloud.cmd secrets versions add $secret ('--data-file='+$temp) --project $project --quiet | Out-Null
       Assert-Last 'Mail Secret-Version konnte nicht erstellt werden'

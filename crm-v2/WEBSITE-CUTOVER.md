@@ -1,3 +1,19 @@
+## Produktiver CRM-V2-Cutover erfolgreich – 23.10.2026
+
+Der Geschäftsführer hat nach ausdrücklicher Freigabe das Skript `scripts/cutover-crm-v2-live.ps1` auf dem Surface ausgeführt und die vollständige erfolgreiche PowerShell-Ausgabe übermittelt.
+
+- **Live-Cloud-Run-Dienst:** `lszh-crm-v2`; Revision `lszh-crm-v2-00004-mez` erhält **100 % produktiven Traffic**.
+- **Alte Rückfallrevision:** `lszh-crm-v2-00002-6lh` bleibt als benannter Rückfallpunkt erhalten. Kein Rollback ausgelöst.
+- **Render-Website:** `https://www.lszh-automations.ch` war erreichbar. **Keine neue Render-Bereitstellung und kein Wechsel der Website-URL**.
+- **Produktive CRM-Oberfläche:** `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` lieferte die erwartete CRM-V2-Oberfläche. Anonyme CRM-API-Anfragen blieben gesperrt.
+- **Echter Website-to-CRM-HTTP-Test:** `POST /api/lead` über die öffentliche Render-Website → bestehendes Cloud-Run-Ziel → produktive Firestore-Sammlung mit `confirmed:true` und Datensatz-ID.
+- **Testlead in Live:** `web_bc17917b879a4f4ab254456da78b68e5`, gekennzeichnet als `TEST_ONLY LSZH CRM V2`.
+- **Dublettentest:** identische Wiederholung derselben `submission_id` lieferte denselben Datensatz; keine zweite Lead-Erstellung.
+- **Website-Formularweg benötigt kein Airtable/Make.** Alte Datenmigration wurde vom Geschäftsführer ausdrücklich abgewählt; produktiver Startbestand war absichtlich leer.
+- **Backup vor Cutover:** kompletter Export `gs://lszh-firestore-backups-470613067122/backups/20261023-094036` mit `SUCCESSFUL`; isolierter Restore nicht getestet.
+
+**Produktivstatus:** CRM-V2-Cutover erfolgreich. Echte neue Website-Leads sollen ab jetzt in der produktiven CRM-V2-Firestore-Sammlung sichtbar sein. Die Anzeige des Testleads im angemeldeten Dashboard ist der nächste visuelle Abnahmeschritt; die HTTP-Speicherung ist bereits bestätigt. Website-Datenschutztext-Änderung befindet sich noch im unveröffentlichten Entwicklungsbranch und ist nicht automatisch auf Render veröffentlicht. Für weitere produktive Änderungen gesondert freigeben. Keine Kundenmail, Vertrag oder Rechnung durch diesen Cutover versandt.
+
 ## Verbindliche Geschäftsführerentscheidung – 23.10.2026: Kein Airtable-Import
 
 - Für **LSZH CRM V2** werden weder Airtable noch die bisherigen Airtable-Datensätze benötigt. **Keine Migration, keine Zuordnung historischer Airtable-IDs, keine Nachführung historischer CRM-Daten**.

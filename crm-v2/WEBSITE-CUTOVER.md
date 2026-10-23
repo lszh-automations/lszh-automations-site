@@ -118,6 +118,19 @@ Der Geschäftsführer hat auf dem Surface nach `git pull --ff-only` den Befehl `
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\prepare-crm-live-candidate.ps1" -Deploy
 
 Das ändert zwar die Konfiguration/erstellt eine Revision des bestehenden Cloud-Run-Dienstes, soll mit `--no-traffic` aber **keinen bestehenden Live-Traffic verlagern**. Danach unbedingt Ausgabe `PASS: 100% Live-Traffic weiterhin ...` sowie `KANDIDAT URL` überprüfen und anonymen Candidate-HTTP-Test ausführen. Ein durch Tag erreichbarer Kandidat kann technisch bereits auf **Live-Firestore-Daten** zugreifen; keine echten CRM-Schreibtests, solange keine ausdrückliche Freigabe vorliegt. Keinen produktiven Website-Cutover durchführen.
+### 23.10.2026 – Live-Kandidat mit 0 % Traffic erfolgreich bereitgestellt
+
+Vom Geschäftsführer übermittelte PowerShell-Ausgabe:
+- `git pull --ff-only` auf Commit `55a7a09`, danach `scripts/prepare-crm-live-candidate.ps1 -Deploy`.
+- **20/20** Node-Tests bestanden.
+- Neuer CRM-V2-Kandidat im bestehenden Cloud-Run-Dienst `lszh-crm-v2`: Revision `lszh-crm-v2-00004-mez`, **0 % produktiver Traffic**.
+- Getaggte Test-URL: `https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Weiterhin **100 % produktiver Traffic** auf Alt-Revision `lszh-crm-v2-00002-6lh`.
+- Cloud-Run-Dienstkonto und bisherige `CRM_INGEST_SECRET`-Referenz nach Deployment unverändert.
+- Kandidat konfiguriert für `CRM_RECORD_PREFIX=lszh_crm_v2_`, Website-Intake `true`, **also mit potenziellem Zugriff auf Live-Firestore**.
+- Kein Render-Deployment, keine produktive Website-Umstellung, kein Kundenversand und keine Live-Datenmigration.
+
+**Als Nächstes:** `scripts/check-crm-live-candidate-http.ps1 -CandidateUrl 'https://crm-v2-candidate---lszh-crm-v2-ozx7mp2bka-oa.a.run.app'` durch den Geschäftsführer ausführen (nur anonymes HTML/Config-GET und verbotene API-Aufrufe; erwartet 200/401). Danach Google-OAuth-Ursprünge und einen isolierten Restore- bzw. Datenbestandsabgleich vor endgültiger Traffic-Umstellung prüfen. Freigabe zum Go-live ist noch **nicht** erteilt.
 ## Einmalige Voraussetzungen vor Live-Cutover
 
 1. **Render-Konfiguration prüfen:** Richtiger Workspace und Dienst `lszh-automations-site`; Umgebungsvariablen `CRM_LEAD_INGEST_URL` und `CRM_INGEST_SECRET` sind gesetzt. Secrets nie exportieren oder im Chat teilen. Live-Website-Formular-HTTP-Test nur mit ausdrücklicher Freigabe.

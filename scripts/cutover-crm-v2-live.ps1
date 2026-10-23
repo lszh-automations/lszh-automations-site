@@ -55,7 +55,7 @@ function Http([string]$uri,[string]$method="GET",[string]$body="",[string]$origi
 }
 function RollBack {
   Write-Warning "Rueckfall auf die fruehere produktive Revision wird ausgefuehrt."
-  & gcloud.cmd run services update-traffic $service --project $Project --region $Region --to-revisions=($previous+"=100") --quiet
+  & gcloud.cmd run services update-traffic $service --project $Project --region $Region ("--to-revisions="+$previous+"=100") --quiet
   CheckExit "KRITISCH: Rollback-Kommando fehlgeschlagen; Cloud Run Traffic sofort manuell pruefen!"
   $after=DescribeService
   if((ActiveRevision $after) -ne $previous){
@@ -111,7 +111,7 @@ Write-Host "PASS: Kandidaten-API bleibt ohne Anmeldung gesperrt"
 try {
   Write-Host "2. Erteilte Freigabe umsetzen: CRM V2 Revision erhaelt 100 Prozent Traffic"
   $switchoverAttempted=$true
-  & gcloud.cmd run services update-traffic $service --project $Project --region $Region --to-revisions=($candidate+"=100") --quiet
+  & gcloud.cmd run services update-traffic $service --project $Project --region $Region ("--to-revisions="+$candidate+"=100") --quiet
   CheckExit "Cloud-Run-Traffic-Update fehlgeschlagen"
   $after=DescribeService
   if((ActiveRevision $after) -ne $candidate){throw "V2 hat nicht 100 Prozent Traffic"}

@@ -167,7 +167,7 @@ try {
   if((EnvValue $old 'CRM_RECORD_PREFIX') -ne 'lszh_crm_v2_'){throw 'Unexpected Firestore namespace'}
   if((EnvValue $old 'CRM_WEBSITE_INTAKE_ENABLED') -ne 'true'){throw 'Website lead intake is not enabled'}
   if((EnvValue $old 'CRM_OFFER_MAIL_ENABLED') -ne 'true'){
-    throw 'Current offer TEST_ONLY feature must stay enabled'
+    throw 'Current offer delivery must remain enabled'
   }
   if((EnvValue $old 'CRM_OFFER_MAIL_MODE') -ne 'production'){
     throw 'Current CRM offer mode must remain manual production'

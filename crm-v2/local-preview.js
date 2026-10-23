@@ -10,6 +10,7 @@ const crypto = require('node:crypto');
 const {LEAD_STATES,linkedOffers,makeDraft,setLeadStatus,setOfferStatus,queueReminderPreviews}=require('./lead-lifecycle');
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {renderOfferPreview}=require('./offer-preview');
+const {cleanProjectTasks}=require('./project-tasks');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.LOCAL_CRM_PORT || 8765);
@@ -35,7 +36,7 @@ const FIELDS = {
   kunden: ['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten: ['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen: ['customerId','projectId','description','amountCHF','dueDate','status'],
-  projekte: ['customerId','offerId','title','description','dueDate','status']
+  projekte: ['customerId','offerId','title','description','dueDate','tasks','status']
 };
 const STATUSES = {
   leads: LEAD_STATES,
@@ -199,6 +200,11 @@ function clean(table,input) {
       out.items=quoteTotals(v).items;
       continue;
     }
+    if(key==='tasks'){
+      if(table!=='projekte')throw error('Ungültige Projektaufgaben');
+      out.tasks=cleanProjectTasks(v);
+      continue;
+    }
     if(MONEY.has(key)) {
       if(v===null || v===''){out[key]=null;continue;}
       const n=Number(v);
@@ -310,6 +316,15 @@ async function handle(req,res){
         throw error('Für diesen Lead existiert bereits eine Offerte');
     }
     const now=new Date().toISOString();
+    if(tab==='projekte'){
+      if(data.customerId && !db.kunden.some(x=>x.id===data.customerId))
+        throw error('Kunde nicht gefunden');
+      if(data.offerId && !db.offerten.some(x=>x.id===data.offerId && x.status==='Angenommen'))
+        throw error('Nur angenommene Offerten dürfen einem Projekt zugeordnet werden');
+      if(data.offerId && db.projekte.some(x=>x.offerId===data.offerId))
+        throw error('Diese Offerte ist bereits einem Projekt zugeordnet');
+      if(!Object.hasOwn(data,'tasks'))data.tasks=[];
+    }
     const requestedStatus=data.status||STATUSES[tab][0];
     const record={...data,id:'local-'+crypto.randomUUID(),status:STATUSES[tab][0],createdAt:now,updatedAt:now};
     if(tab==='offerten')record.number=String(db.nextOffer++);
@@ -338,6 +353,20 @@ async function handle(req,res){
     ))throw error('Angenommene Offerte ist gesperrt. Korrekturen benötigen Sonderrechte und eine nachvollziehbare neue Version.',403);
     const merged={...record,...updates,updatedAt:now};
     validate(tab,merged);
+    if(tab==='projekte'){
+      // Preserve links created when an offer is accepted; edits must not silently
+      // reassign a won project to another customer or offer.
+      if(record.offerId && Object.hasOwn(updates,'offerId') && updates.offerId!==record.offerId)
+        throw error('Die verknüpfte angenommene Offerte kann nicht ersetzt werden');
+      if(record.offerId && Object.hasOwn(updates,'customerId') && updates.customerId!==record.customerId)
+        throw error('Der Kunde eines gewonnenen Projekts kann nicht geändert werden');
+      if(updates.customerId && !db.kunden.some(x=>x.id===updates.customerId))
+        throw error('Kunde nicht gefunden');
+      if(updates.offerId && !db.offerten.some(x=>x.id===updates.offerId && x.status==='Angenommen'))
+        throw error('Nur angenommene Offerten dürfen einem Projekt zugeordnet werden');
+      if(updates.offerId && db.projekte.some(x=>x.id!==record.id && x.offerId===updates.offerId))
+        throw error('Diese Offerte ist bereits einem Projekt zugeordnet');
+    }
     // Apply the linked status transition to all local records before one save.
     if(tab==='offerten' && Object.hasOwn(updates,'leadId') && updates.leadId){
       const lead=db.leads.find(x=>x.id===updates.leadId);

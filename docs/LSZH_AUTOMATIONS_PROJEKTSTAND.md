@@ -247,6 +247,14 @@ Beim ersten Test nach `git pull` schlugen **2 von 30** CRM-Tests fehl: Die bishe
 - Make Szenario 8135270 zuletzt bestaetigt INAKTIV mit gueltiger Geschaefts-Gmail-Verbindung und leerer Webhook-Queue. Scheduler `lszh-crm-v2-mail-tick` laut letzter gcloud-Ausgabe PAUSED. `CRM_MAIL_ENABLED=false` auf Kandidat aus vorherigem Cloud-Run-Deployment; Skript prueft das noch einmal in den eigentlichen Revisionsdetails.
 - **Status:** Skript erstellt, noch NICHT vom Surface ausgefuehrt; daher keine neue Live-Traffic-Verteilung durch diesen Schritt. Nutzer muss `git pull --ff-only` und `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\cutover-crm-mail-safe.ps1"` ausfuehren. Erst nach dem Ergebnis folgt die Aktivierung der 3 E-Mail-Automationen mit neuem Aktivierungszeitpunkt und zuletzt Scheduler-Resume.
 
+### 23.10.2026 – CRM-Mail-Go-Live: Make aktiviert, finales Scheduler-/Cloud-Run-Skript bereit
+
+- Der Geschäfts-Gmail-Make-Dispatcher **8135270** wurde vom Geschäftsführer aktiviert und durch Make als `active` verifiziert. Geschäftliche Gmail-Verbindung 11904991 `ok`; Webhook-Queue 0; alle drei Typfilter `customer_ack`, `internal_new`, `internal_24h` vorhanden. Noch kein neuer Kundenversand als Folge der Aktivierung ausgelöst.
+- Vorherige Surface-Ausgabe: `scripts/cutover-crm-mail-safe.ps1` erfolgreich abgeschlossen. **31/31 CRM-Tests**, Cloud Run **`lszh-crm-v2-00008-zog` bei 100 % Traffic**, CRM-Mailfunktion **OFF**, Website-Intake/OAuth-Schutz intakt; Cloud Scheduler `lszh-crm-v2-mail-tick` **PAUSED**.
+- GitHub hat nun `scripts/activate-crm-mail-live.ps1`: neue 0%-Mail-Revision mit `CRM_MAIL_ENABLED=true` und frischem UTC-`CRM_MAIL_ACTIVE_FROM`, Vorabprüfungen von Datenbank/Intake/Google OAuth/Secret-Servicekonto/Image, OIDC-Scheduler-Ziel und HTTP-API. Danach kontrollierte 100%-Trafficumschaltung; Scheduler wird danach auf 1 Minute umkonfiguriert und als LETZTER Schritt resumed. Bei Folgefehler: Scheduler pause + Rückfall auf bewährte `00008-zog`.
+- CI-Syntaxprüfung auf `scripts/activate-crm-mail-live.ps1` erweitert, Dokumentation `crm-v2/MAIL-AUTOMATIONS.md` fortgeschrieben.
+- **Stand:** Script auf GitHub, noch nicht vom Surface ausgeführt; produktiver Versand weiterhin nicht aktiv. Nach Skriptlauf sind Kunden-Bestätigung, interne Neu-Lead-Mail und die nach 24h bedingte interne Erinnerungsmail freigeschaltet. Frühere Leads als UTC-Aktivierungszeitpunkt werden nicht rückwirkend benachrichtigt. Ersten authentifizierten Scheduler-Aufruf sowie Mail-Sendehistorie danach gesondert prüfen (reiner 401-Smoketest bestätigt nur unauthentisierten Schutz).
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

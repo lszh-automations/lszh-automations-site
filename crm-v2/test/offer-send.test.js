@@ -240,6 +240,8 @@ test('productive offer PDF identifies legal issuer and keeps acceptance separate
   assert.match(pdf,/Ein Auftrag kommt erst nach unserer ausdr/);
   assert.match(pdf,/Auftragsbest.tigung zustande/);
   assert.doesNotMatch(pdf,/CHE-369\.474\.125 MWST/);
+  assert.match(pdf,/Keine MWST ausgewiesen - nicht MWST-registriert/);
+  assert.doesNotMatch(pdf,/(?:8[.,]1\s*%|MWST\s*CHF)/);
 });
 
 test('productive offer email uses LSZH existing customer branding, contact name and Swiss date',()=>{
@@ -255,6 +257,8 @@ test('productive offer email uses LSZH existing customer branding, contact name 
   assert.match(html,/#5b8cff/);
   assert.match(html,/schriftliche Auftragsbestätigung/);
   assert.doesNotMatch(html,/CHE-369\.474\.125 MWST/);
+  assert.match(html,/Keine MWST ausgewiesen.*nicht MWST-registriert/);
+  assert.doesNotMatch(html,/(?:8[.,]1\s*%|MWST\s*CHF)/);
   assert.doesNotMatch(html,/TEST_ONLY/);
 });
 

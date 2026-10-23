@@ -334,3 +334,77 @@ test('won project keeps customer and accepted-offer links when edited',async()=>
   assert.equal(allowed.body.record.customerId,project.customerId);
   assert.equal(allowed.body.record.offerId,offer.id);
 });
+
+test('invoice drafts receive a sequential number and line totals and print without payment QR',async()=>{
+  const made=await call('POST','/api/records/rechnungen',{
+    customerId:'test-customer-1',projectId:'test-project-1',description:'TEST: Rechnung',
+    invoiceDate:'2026-10-23',dueDate:'2026-11-07',status:'Entwurf',
+    items:[{title:'Umsetzung',qty:2,unitPriceCHF:199.95},{title:'Betreuung',qty:1,unitPriceCHF:49.90}]
+  });
+  assert.equal(made.status,201);
+  assert.match(made.body.record.number,/^RE-\d+$/);
+  assert.equal(made.body.record.amountCHF,449.80);
+  assert.equal(made.body.record.items.length,2);
+  const id=made.body.record.id;
+  const printable=await call('GET','/preview/rechnung/'+id);
+  assert.equal(printable.status,200);
+  assert.match(printable.body,/RE-\d+/);
+  assert.match(printable.body,/CHF 449.80/);
+  assert.match(printable.body,/Demo Büro AG/);
+  assert.match(printable.body,/KEINE GÜLTIGE ZAHLUNGSANWEISUNG/);
+  assert.doesNotMatch(printable.body,/data:image\/png;base64/);
+});
+test('invoice progresses from draft through open to paid; payment locks all changes',async()=>{
+  const made=await call('POST','/api/records/rechnungen',{
+    customerId:'test-customer-1',description:'TEST: Auftrag abgeschlossen',
+    dueDate:'2026-11-15',items:[{title:'Entwicklung',qty:2,unitPriceCHF:150}],
+    status:'Entwurf'
+  });
+  assert.equal(made.status,201);
+  const id=made.body.record.id;
+  const open=await call('PATCH','/api/records/rechnungen/'+id,{status:'Offen'});
+  assert.equal(open.status,200);
+  assert.equal(open.body.record.status,'Offen');
+  const paid=await call('PATCH','/api/records/rechnungen/'+id,{status:'Bezahlt'});
+  assert.equal(paid.status,200);
+  assert.equal(paid.body.record.status,'Bezahlt');
+  assert.ok(paid.body.record.paidAt);
+  for(const update of [
+    {status:'Offen'},
+    {description:'Geändert'},
+    {items:[{title:'Umgeschrieben',qty:1,unitPriceCHF:1}]}
+  ]){
+    const denied=await call('PATCH','/api/records/rechnungen/'+id,update);
+    assert.equal(denied.status,403);
+  }
+  const saved=JSON.parse(fs.readFileSync(path.join(tmp,'data.json'),'utf8'));
+  assert.equal(saved.rechnungen.find(x=>x.id===id).amountCHF,300);
+  assert.equal(saved.rechnungen.find(x=>x.id===id).status,'Bezahlt');
+});
+test('invoice cannot open with missing customer, due date or positive positions',async()=>{
+  const created=await call('POST','/api/records/rechnungen',{
+    description:'Testentwurf ohne Kunde',items:[],status:'Entwurf'
+  });
+  assert.equal(created.status,201);
+  const denied=await call('PATCH','/api/records/rechnungen/'+created.body.record.id,{status:'Offen'});
+  assert.equal(denied.status,400);
+  assert.match(denied.body.error,/Kunde, Fälligkeit und Positionen/);
+  const tooEarly=await call('PATCH','/api/records/rechnungen/'+created.body.record.id,{status:'Bezahlt'});
+  assert.equal(tooEarly.status,400);
+  const directAmount=await call('PATCH','/api/records/rechnungen/'+created.body.record.id,{amountCHF:999});
+  assert.equal(directAmount.status,400);
+  const mismatch=await call('POST','/api/records/rechnungen',{
+    customerId:'not-a-customer',description:'Test',status:'Entwurf'
+  });
+  assert.equal(mismatch.status,400);
+});
+test('invoice project reference must belong to the selected customer',async()=>{
+  const secondCustomer=await call('POST','/api/records/kunden',{company:'Anderer Kunde'});
+  assert.equal(secondCustomer.status,201);
+  const denied=await call('POST','/api/records/rechnungen',{
+    customerId:secondCustomer.body.record.id,projectId:'test-project-1',
+    description:'Falsche Zuordnung',status:'Entwurf'
+  });
+  assert.equal(denied.status,400);
+  assert.match(denied.body.error,/denselben Kunden/);
+});

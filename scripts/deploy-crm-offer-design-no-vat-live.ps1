@@ -126,6 +126,8 @@ try {
   $ui=Get-Content '.\crm-v2\public\index.html' -Raw -Encoding UTF8
   $routes=Get-Content '.\crm-v2\server.js' -Raw -Encoding UTF8
   $sender=Get-Content '.\crm-v2\offer-send.js' -Raw -Encoding UTF8
+  $pdf=Get-Content '.\crm-v2\offer-pdf.js' -Raw -Encoding UTF8
+  $mail=Get-Content '.\crm-v2\offer-mail.js' -Raw -Encoding UTF8
   if(!$pdf.Contains('Keine MWST ausgewiesen - nicht MWST-registriert.') -or
      !$mail.Contains('Keine MWST ausgewiesen') -or
      !$mail.Contains('nicht MWST-registriert') -or
@@ -133,8 +135,6 @@ try {
      !$mail.Contains('Rummelmatt 8')) {
     throw 'Approved no-MWST offer PDF/email templates missing; abort'
   }
-  $pdf=Get-Content '.\crm-v2\offer-pdf.js' -Raw -Encoding UTF8
-  $mail=Get-Content '.\crm-v2\offer-mail.js' -Raw -Encoding UTF8
   foreach($item in @('async function claimOfferSend(', 'async function finishOfferSend(',
     'async function resolveOfferSend(')) {
     if(!$backend.Contains($item)){throw ('Missing transactional offer send component: '+$item)}

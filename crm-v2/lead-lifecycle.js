@@ -54,7 +54,7 @@ function markWon(db,lead,now,selectedOffer){
       id:'local-project-'+offer.id,customerId:customer.id,offerId:offer.id,
       title:offer.title||('Projekt für '+lead.company),
       description:offer.description||lead.message||'',
-      dueDate:'',status:'Geplant',createdAt:now,updatedAt:now
+      dueDate:'',tasks:[],status:'Geplant',createdAt:now,updatedAt:now
     };
     if(db.projekte.some(x=>x.id===project.id))project.id+='-'+db.projekte.length;
     db.projekte.push(project);

@@ -8,7 +8,7 @@ const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
 const {cleanProjectTasks}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID}=require('node:crypto');
-const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,offerDescription}=require('./lead-contact');
+const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields}=require('./lead-contact');
 const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch}=require('./offer-tracking');
 
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
@@ -209,7 +209,7 @@ function buildStore(db,prefix){
           const offer=newRecord({
             number:String(counter.next),leadId:ref.id,customerId:'',
             title:'Automation für '+input.company,
-            description:offerDescription(input),items:[],oneTimeCHF:0,monthlyCHF:0,
+            description:'',items:[],oneTimeCHF:0,monthlyCHF:0,
             validUntil:'',status:'Entwurf'
           },user,date);
           tx.set(counter.reference,{next:counter.next+1},{merge:true});
@@ -295,7 +295,7 @@ function buildStore(db,prefix){
             if(occupied.exists)throw err('Offerten-Verknüpfung bereits vorhanden',409);
             const newOffer=newRecord({
               number:String(counter.next),leadId:id,customerId:'',
-              title:'Automation für '+merged.company,description:offerDescription(merged),
+              title:'Automation für '+merged.company,description:'',
               items:[],oneTimeCHF:0,monthlyCHF:0,validUntil:'',status:'Entwurf'
             },user,date);
             tx.set(counter.reference,{next:counter.next+1},{merge:true});

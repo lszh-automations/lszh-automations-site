@@ -195,3 +195,74 @@ test('fresh leads with linked offer are not deleted and other registers cannot b
     await assert.rejects(store.remove(table,'some-id'),{status:405});
   }
 });
+
+test('contact log is append-only, audited and marks a reached new lead as contacted',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  const missed=await store.addContact(lead.id,{
+    channel:'Telefon',outcome:'Nicht erreicht',note:'  Mailbox erreicht  '
+  },admin);
+  assert.equal(missed.note,'Mailbox erreicht');
+  assert.equal(missed.channel,'Telefon');
+  assert.equal(missed.createdBy,admin.email);
+  assert.match(missed.id,/^[a-f0-9-]{36}$/);
+  assert.equal((await store.get('leads',lead.id)).status,'Neu');
+  await store.addContact(lead.id,{channel:'Telefon',outcome:'Erreicht',note:'Bedarf besprochen'},admin);
+  const after=await store.get('leads',lead.id);
+  assert.equal(after.status,'Kontaktiert');
+  assert.equal(after.contactHistory.length,2);
+  assert.equal(after.contactHistory[0].note,'Mailbox erreicht');
+  assert.equal(after.contactHistory[1].note,'Bedarf besprochen');
+  assert.ok(after.lastContactAt);
+  await store.addContact(lead.id,{channel:'E-Mail',outcome:'Nachricht gesendet',note:'Termin angefragt'},admin);
+  assert.equal((await store.get('leads',lead.id)).status,'Kontaktiert');
+  await assert.rejects(store.update('leads',lead.id,{contactHistory:[]},admin),{status:400});
+});
+test('invalid contact entries are rejected; missing leads are not silently recreated',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  for(const entry of [
+    {channel:'SMS',outcome:'Erreicht',note:'Hallo'},
+    {channel:'Telefon',outcome:'Anderes',note:'Hallo'},
+    {channel:'Telefon',outcome:'Erreicht',note:' '},
+    {channel:'Telefon',outcome:'Erreicht',note:'x'.repeat(1501)},
+    {channel:'Telefon',outcome:'Erreicht',note:'Hallo',status:'Gewonnen'}
+  ])await assert.rejects(store.addContact(lead.id,entry,admin),{status:400});
+  assert.equal((await store.get('leads',lead.id)).contactHistory,undefined);
+  await assert.rejects(store.addContact('unknown-id',{
+    channel:'Telefon',outcome:'Erreicht',note:'Test'
+  },admin),{status:404});
+});
+test('follow-up and qualification data persist without affecting other records',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await assert.rejects(store.update('leads',lead.id,{nextAction:'Rückruf'},admin),{status:400});
+  await assert.rejects(store.update('leads',lead.id,{
+    nextAction:'Rückruf',followUpDate:'2026-02-30'
+  },admin),{status:400});
+  await store.update('leads',lead.id,{
+    nextAction:'Angebot besprechen',followUpDate:'2026-10-27',
+    currentProcess:'Excel',systems:'Google Workspace',mainProblem:'Doppelarbeit',
+    desiredResult:'Automatisierte Buchungen',budgetRange:'CHF 1’000–5’000',
+    qualificationNotes:'MVP zuerst'
+  },admin);
+  const saved=await store.get('leads',lead.id);
+  assert.equal(saved.status,'Neu');
+  assert.equal(saved.followUpDate,'2026-10-27');
+  assert.equal(saved.nextAction,'Angebot besprechen');
+  assert.equal(saved.budgetRange,'CHF 1’000–5’000');
+  await store.update('leads',lead.id,{status:'Kontaktiert'},admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offers=await store.list('offerten');
+  assert.equal(offers.length,1);
+  assert.match(offers[0].description,/Anfrage: Automationen prüfen/);
+  assert.match(offers[0].description,/Heutiger Ablauf: Excel/);
+  assert.match(offers[0].description,/Budgetrahmen: CHF 1’000–5’000/);
+  await store.update('leads',lead.id,{qualificationNotes:'Später ergänzt'},admin);
+  assert.equal((await store.list('offerten'))[0].description,offers[0].description);
+  await store.update('leads',lead.id,{nextAction:'',followUpDate:''},admin);
+  const done=await store.get('leads',lead.id);
+  assert.equal(done.nextAction,'');
+  assert.equal(done.followUpDate,'');
+  assert.equal((await store.list('offerten')).length,1);
+});

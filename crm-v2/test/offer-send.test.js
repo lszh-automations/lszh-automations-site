@@ -77,7 +77,7 @@ test('successful Make Gmail receipt changes offer to Versendet only after exact 
   const db=store();
   const outbound=[];
   const sender=createOfferSender(db,{
-    enabled:true,webhookUrl:hook,
+    enabled:true,webhookUrl:hook,mode:'production',
     async fetchImpl(uri,opts){
       assert.equal(uri,hook);
       outbound.push(JSON.parse(opts.body));
@@ -105,7 +105,7 @@ test('timeout or missing provider receipt goes to manual_review without retry',a
     async()=>({ok:true,json:async()=>({ok:true,eventId:'wrong',messageId:'gmail'})})
   ]){
     const db=store();let calls=0;
-    const sender=createOfferSender(db,{enabled:true,webhookUrl:hook,async fetchImpl(...args){
+    const sender=createOfferSender(db,{enabled:true,webhookUrl:hook,mode:'production',async fetchImpl(...args){
       calls++;return fetchImpl(...args);
     }});
     await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),
@@ -115,7 +115,7 @@ test('timeout or missing provider receipt goes to manual_review without retry',a
   }
 });
 test('PDF generation failure is known not sent and can be handled separately',async()=>{
-  const db=store(),sender=createOfferSender(db,{enabled:true,webhookUrl:hook,
+  const db=store(),sender=createOfferSender(db,{enabled:true,webhookUrl:hook,mode:'production',
     async fetchImpl(){throw Error('Network call must never happen');}});
   const original=saved.number;
   saved.number='invalid-number';
@@ -179,4 +179,51 @@ test('TEST_ONLY mode rechecks claimed snapshot and never sends switched recipien
   await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:403});
   assert.equal(db.calls[1][3],'preparation_failed');
   assert.equal(requested,0);
+});
+
+
+test('customer delivery stays disabled when test allowlist is missing but production mode is not explicitly set',async()=>{
+  for(const config of [
+    {enabled:true,webhookUrl:hook},
+    {enabled:true,webhookUrl:hook,mode:'test_only'},
+    {enabled:true,webhookUrl:hook,mode:'staging'},
+    {enabled:true,webhookUrl:hook,mode:'production',testTo:'lars.schulthess@outlook.com'},
+    {enabled:false,webhookUrl:hook,mode:'production'}
+  ]){
+    const db=store(),sender=createOfferSender(db,config);
+    assert.equal(sender.stats().enabled,false,JSON.stringify(config));
+    await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:503});
+    assert.equal(db.calls.length,0);
+  }
+});
+test('explicit production mode marks Make payload as production and retains the exact Gmail acknowledgement gate',async()=>{
+  const db=store(),outbound=[];
+  db.get=async(table,id)=>table==='offerten'?saved:null;
+  const sender=createOfferSender(db,{
+    enabled:true,webhookUrl:hook,mode:'production',
+    async fetchImpl(url,request){
+      outbound.push(JSON.parse(request.body));
+      return {ok:true,async json(){
+        return {ok:true,eventId:outbound[0].eventId,messageId:'gmail-production-confirmation'};
+      }};
+    }
+  });
+  assert.equal(sender.stats().mode,'production');
+  await sender.send(saved.id,{followUpDate:'2026-11-02'},user);
+  assert.equal(outbound[0].sendMode,'production');
+  assert.equal(outbound[0].to,person.email);
+  assert.doesNotMatch(outbound[0].subject,/\[TEST_ONLY\]/);
+  assert.equal(db.calls[1][3],'confirmed');
+});
+test('production mode blocks synthetic TEST_ONLY quotes before sending',async()=>{
+  const db=store(),original={...saved,title:'TEST_ONLY placeholder'};
+  let called=0;
+  db.get=async()=>original;
+  const sender=createOfferSender(db,{
+    enabled:true,webhookUrl:hook,mode:'production',
+    async fetchImpl(){called++;}
+  });
+  await assert.rejects(sender.send(saved.id,{followUpDate:'2026-11-02'},user),{status:403});
+  assert.equal(called,0);
+  assert.equal(db.calls.length,0);
 });

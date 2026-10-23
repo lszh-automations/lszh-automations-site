@@ -1,3 +1,7 @@
+## Stand nach erstem geschäftlichem Gmail-Test, 23.10.2026
+
+**30/30 Regressionstests auf dem Surface PASS.** Einmaliger interner Test über Make-Szenario 8135270 erfolgreich: Ausführung `1d1c977319374415930355e5329ece88` meldete `success`, Gmail Modul 2 `sendAnEmail` lieferte Message-ID **`1a168aef163cbf9f`**, und WebhookRespond Modul 3 wurde ausgeführt. Empfänger war nur `lars@lszh-automations.ch`, Absender `info@lszh-automations.ch`, Betreff begann mit `[TEST_ONLY]`. Der Test-Client erhielt zwar HTTP 200, aber keinen auswertbaren synchronen JSON-Versandbeleg; Ursache noch nicht abschliessend festgestellt. WebhookRespond liefert jetzt explizit `Content-Type: application/json; charset=utf-8`. **Den Test nicht wiederholen, da Gmail den Versand bereits bestätigt hat.** Keine automatische produktive Kundenbestätigung oder 24h-Erinnerung aktiviert. Produktive CRM-Revision unverändert `lszh-crm-v2-00006-moz`.
+
 # LSZH CRM V2 – Kunden- und Lead-Mails (Stand: 23.10.2026)
 
 ## Ziel
@@ -35,7 +39,7 @@ Google Cloud Scheduler (jede Minute, Google OIDC) → Cloud Run /api/internal/ma
 - `crm-v2/mail-dispatcher.js`: Firestore-Ereignisse und einmaliger, kontrollierter Gateway-Aufruf; bei Fehlern manuelle Prüfung.
 - `crm-v2/server.js`: neuer Cron-Endpunkt `POST /api/internal/mail/tick`, geschützt mit Google-signiertem OIDC-ID-Token einer genau vorgegebenen Servicekonto-Adresse.
 - `crm-v2/test/mail-notifications.test.js`: Testfälle für Mailinhalte, Empfänger, 24h-Bedingung, genau einmal, Timeouts und deaktivierten Modus.
-- Make-Szenario **8135270** `LSZH CRM V2 – Mailversand (nur interner TEST_ONLY Versand)` ist **aktiv, aber per Make-Filter auf `kind=internal_new`, `to=lars@lszh-automations.ch` und `eventId` mit `test_only_` eingeschränkt**. Der Webhook-Lerntest hat erfolgreich alle fünf Felder `eventId,kind,to,subject,html` erkannt. Gmail-v4-Modul (geschäftliches Konto `11904991`) und `WebhookRespond` mit `{ok:true,messageId:<Gmail-ID>}` sind verdrahtet. Es ist noch **keine interne Mailtest-Ausführung** bestätigt und der Filter verbietet produktive Kundennachrichten.
+- Make-Szenario **8135270** `LSZH CRM V2 – Mailversand (nur interner TEST_ONLY Versand)` ist **aktiv, aber per Make-Filter auf `kind=internal_new`, `to=lars@lszh-automations.ch` und `eventId` mit `test_only_` eingeschränkt**. Der Webhook-Lerntest hat erfolgreich alle fünf Felder `eventId,kind,to,subject,html` erkannt. Gmail-v4-Modul (geschäftliches Konto `11904991`) und `WebhookRespond` mit `{ok:true,messageId:<Gmail-ID>}` sind verdrahtet. Der interne Gmail-Versand wurde inzwischen anhand der Make-Modulausgabe bestätigt und der Filter verbietet produktive Kundennachrichten.
 - Geschäftliche Gmail-Verbindung 11904991 und Absenderalias `info@lszh-automations.ch` im verbundenen Make-Modul bestätigt.
 - `scripts/learn-crm-mail-webhook.ps1`: abgeschlossener Webhook-Lernaufruf. Für weitere Tests **nicht** verwenden, da das Szenario jetzt im eingeschränkten Testmodus aktiviert ist.
 - `scripts/test-crm-business-mail.ps1`: sendet **eine echte, ausdrücklich `TEST_ONLY` gekennzeichnete interne Mail** über Make und geschäftliches Gmail. Die Webhook-URL wird ausschliesslich verdeckt in PowerShell eingegeben; kein Kundendatum wird übertragen.

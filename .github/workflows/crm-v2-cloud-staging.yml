@@ -28,6 +28,8 @@ jobs:
           node --check offer-pricing.js
           node --check invoice-pricing.js
           node --check project-tasks.js
+          node --check mail-templates.js
+          node --check mail-dispatcher.js
       - name: Validate PowerShell cutover scripts (no cloud commands executed)
         shell: pwsh
         run: |

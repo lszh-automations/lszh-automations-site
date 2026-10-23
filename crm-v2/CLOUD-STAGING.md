@@ -82,6 +82,12 @@ PowerShell-Ausgabe des zweiten Deploys vom Nutzer bestätigt:
 - Test im echten Browser ausstehend: erneute Anmeldung nach F5, bestehender Testlead bleibt erhalten, Qualifiziert erzeugt genau eine Offerte, Gewonnen Kunde und Projekt. Die Tests waren unit-/simulierte Firestore-Tests und kein echter Lead-Workflow-E2E.
 - Produktiver Cloud-Run-Dienst `lszh-crm-v2`, Website-Intake und Make-Szenarien wurden durch das Staging-Skript nicht geändert. Kein Cutover.
 
+## Bestätigung aus dem Browser – 23.10.2026
+
+Der Nutzer bestätigt nach Revision `lszh-crm-v2-staging-00002-fgh` ausdrücklich, dass die zuletzt geprüften Abläufe funktionieren: Google-Login / erneutes Laden des Cloud CRM, Persistenz des bereits erstellten Testleads und `Qualifiziert` → automatische, verknüpfte Offerte. Diese Feststellung beruht auf dem Nutzertest im echten Browser, nicht auf einem unabhängigen API-Abruf.
+
+**Noch nicht dadurch nachgewiesen:** vollständiger E2E-Pfad `Angenommen/Gewonnen → Kunde → Projekt → Rechnung → Bezahlt` in der Cloud; Rollen-/Negativtests, Website-Eingangsmigration, Live-Datenübernahme, sichere Produktionsumschaltung. Cloud-Staging bleibt vom produktiven Website-Eingang getrennt.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

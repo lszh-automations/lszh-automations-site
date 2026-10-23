@@ -1,3 +1,29 @@
+## Interne Lead-Mails im LSZH-Design – Release vorbereitet (23.10.2026)
+
+Die zwei internen Benachrichtigungen `internal_new` (neuer Website-Lead) und `internal_24h` (nach 24 Stunden noch `Neu`) verwenden nun denselben LSZH-Markenauftritt wie die live geschaltete Kundenbestätigung: navyfarbener Header, Dreifarben-Akzentlinie, aufgeräumte Kontaktübersicht, Anfrage im eigenen Abschnitt und eine feste Schaltfläche «Live-CRM öffnen». Für beide Varianten werden ausschliesslich statische Links und inline-styles ohne externe Assets, JavaScript oder SVG verwendet; alle dynamischen Felder werden HTML-escaped.
+
+**Unverändert:** Kundenbestätigung, die zwei internen Betreffzeilen und Empfänger (`lars@lszh-automations.ch`), Website-Lead-Filter, automatisches einmaliges Versenden, 24h-Bedingung, Scheduler-Cutoff `2026-10-23T16:15:28Z`, Firestore-Outbox und Make/Gmail-Verbindung.
+
+Für zwei Offline-Vorschauen mit erfundenen Beispieldaten (ohne Versand):
+
+```powershell
+node.cmd .\scripts\preview-crm-internal-mails.js
+Start-Process (Join-Path $env:TEMP 'lszh-crm-interne-leadmail-vorschau.html')
+Start-Process (Join-Path $env:TEMP 'lszh-crm-interne-24h-vorschau.html')
+```
+
+**Produktionsumschaltung:** Nach erfolgreich durchlaufener GitHub-CI den autorisierten Surface-Checkout aktualisieren und das gesonderte Release-Skript ausführen. Es akzeptiert nur die vom letzten Go-Live bestätigte Live-Revision `lszh-crm-v2-00012-haz`, prüft die E-Mail- und CRM-Umgebungsvariablen, den aktiven OIDC-Scheduler und die HTTP-Schutzendpunkte, baut einen Kandidaten mit 0 % Live-Traffic und schaltet erst nach erfolgreicher Prüfung um. Bei Fehlschlag nach Umschaltung wird auf `00012-haz` zurückgeschaltet. **Kein SMTP-/Gmail-Testversand und keine Neuanlage von Mail-Events im Skript.**
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-internal-mail-design-live.ps1"
+```
+
+Status: Im GitHub-Branch integriert, produktiv erst nach bestätigtem `INTERNAL MAIL DESIGN LIVE PASS`. Der aktive Cloud-Scheduler und der bisherige E-Mail-Versand bleiben bis dahin unverändert.
+
+---
+
 ## LSZH-Kundenmail – produktiven Design-Rollout vorbereitet (23.10.2026)
 
 Das neue HTML liegt in `crm-v2/mail-templates.js` auf `feature/crm-v2-cloud-staging-20261023`. Kundenseitiges Branding ist fertig; interne Lead- und 24h-Mails bleiben unverändert. Make-Szenario 8135270 ist live aktiv, das Gmail-Modul übergibt unverändert `{{1.html}}`; deshalb wird das neue Design nicht in Make, sondern durch eine neue CRM-Cloud-Run-Revision aktiviert.

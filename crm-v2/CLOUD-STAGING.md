@@ -88,6 +88,18 @@ Der Nutzer bestätigt nach Revision `lszh-crm-v2-staging-00002-fgh` ausdrücklic
 
 **Noch nicht dadurch nachgewiesen:** vollständiger E2E-Pfad `Angenommen/Gewonnen → Kunde → Projekt → Rechnung → Bezahlt` in der Cloud; Rollen-/Negativtests, Website-Eingangsmigration, Live-Datenübernahme, sichere Produktionsumschaltung. Cloud-Staging bleibt vom produktiven Website-Eingang getrennt.
 
+## Erfolgreicher Cloud-End-to-End-Geschäftstest – 23.10.2026
+
+Der Nutzer bestätigt nach manueller Browserprüfung ausdrücklich, dass der komplette CRM-V2-Geschäftsprozess im Cloud-Run-Staging funktioniert:
+
+1. Testlead in Firestore gespeichert und nach Neuladen weiterhin vorhanden.
+2. Lead `Qualifiziert` erstellt automatisch eine verknüpfte Offerte.
+3. Offerte `Angenommen` legt Kunde und Projekt an.
+4. Projekt ermöglicht das Erstellen einer Rechnung.
+5. Rechnung wurde erfolgreich durch `Offen` bis `Bezahlt` geführt.
+
+Diese Abnahme beruht auf einem **realen Nutzertest im Cloud-Staging**, nicht auf einer selbst ausgeführten unabhängigen API-Prüfung. Das ist **keine Produktionsfreigabe**. Noch offen sind insbesondere Berechtigungs-/Negativtests, Verbindung des produktiven Website-Eingangs, Daten- und Nummernkreisprüfung, Backup/Rollback, reale interne Reminder-E-Mails und produktive Swiss-QR-Rechnungen.
+
 ## Noch offen vor Produktion
 
 1. Google-OAuth-Client, autorisierter Service-Ursprung und Workspace-Login einrichten.

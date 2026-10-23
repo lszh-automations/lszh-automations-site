@@ -2,6 +2,16 @@
 
 _Stand: 13.10.2026. Interne Arbeitsdokumentation. Keine Passwörter, API-Schlüssel oder Token hier eintragen._
 
+## Nachtrag 23.10.2026 – CRM V2: gesonderte Cloud-Staging-Infrastruktur
+
+- Der auf dem Surface getestete lokale CRM-V2-Fachprozess (Dashboard, Leads, Offerten, Kunden, Projekte und Rechnungen) wurde in einem eigenen Entwicklungsbranch erfolgreich durchgespielt. Keine automatischen Kundenmails oder echten Rechnungsversände.
+- Für die sichere Cloud-Übernahme wurde **feature/crm-v2-cloud-staging-20261023** direkt aus main erstellt. Die vollständige Oberfläche und die fachlichen Validierungen werden über einen neuen authentifizierten Firestore-Dienst eingebunden.
+- **Zielservice:** lszh-crm-v2-staging (neu), Sammlungen lszh_crm_v2_staging_*. **Der produktive Website-Lead-Eingang bleibt unverändert** auf lszh-crm-v2 mit seinen bestehenden Sammlungen und Secret-Manager-Zugängen. Staging-Website-Webhook ist hart deaktiviert.
+- Google-OAuth-Anmeldung mit Workspace-Mail-Allowlist ist vorgesehen; noch keine OAuth-Client-ID eingerichtet oder geprüft. Der Cloud Run Staging-Deploy wurde noch **nicht** durchgeführt. Echte Firestore-End-to-End-Tests fehlen.
+- Sieben pure simulierte Firestore-Funktionstests erfolgreich (Qualifizierung, Gewinnung, Offerten-Sperre, Projekt- und Rechnungsdaten, Remindervorschau). GitHub-Actions-Tests und separater PowerShell-Staging-Deploy eingerichtet.
+- **Keine Produktionsfreigabe oder Merge in main.** Vor Cutover: OAuth, echter Staging-Test, Live-Daten/Nummernkreis, Rollback/Backup, Dienstkontorechte, echte interne Erinnerungs-E-Mail und Swiss-QR-Zahlteil klären.
+- Technische Übergabe/Bedienung: siehe crm-v2/CLOUD-STAGING.md im Cloud-Staging-Branch. Lokale Preview weiter unverändert.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

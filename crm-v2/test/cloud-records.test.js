@@ -257,7 +257,9 @@ test('follow-up and qualification data persist without affecting other records',
   assert.equal(offers.length,1);
   assert.match(offers[0].description,/Anfrage: Automationen prüfen/);
   assert.match(offers[0].description,/Heutiger Ablauf: Excel/);
-  assert.match(offers[0].description,/Budgetrahmen: CHF 1’000–5’000/);
+  assert.doesNotMatch(offers[0].description,/Budgetrahmen/);
+  assert.doesNotMatch(offers[0].description,/Qualifizierungsnotizen/);
+  assert.doesNotMatch(offers[0].description,/MVP zuerst/);
   await store.update('leads',lead.id,{qualificationNotes:'Später ergänzt'},admin);
   assert.equal((await store.list('offerten'))[0].description,offers[0].description);
   await store.update('leads',lead.id,{nextAction:'',followUpDate:''},admin);

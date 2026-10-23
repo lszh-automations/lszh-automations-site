@@ -52,6 +52,28 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-crm-websi
 
 Das zweite Skript erzeugt einen **eigenen**, nicht ausgegebenen Staging-Secret-Manager-Schlüssel, aktiviert den Staging-Webhook vorübergehend und sendet eine künstliche Website-Anfrage an den realen Cloud-Run-HTTP-Endpunkt. Es prüft: `201` erstellt, identische Wiederholung `200` ohne Duplikat, geänderte Wiederholung `409`, fehlender Schlüssel `401`. Der Webhook wird in einem `finally` wieder deaktiviert; im Fehlerfall die finale Deaktivierungsausgabe prüfen. Es werden **keine Render-Einstellungen und keine Live-CRM-Daten verändert**. Der synthetische Testlead bleibt bewusst im Staging-Firestore sichtbar.
 
+## Produktiv-Preflight erfolgreich – 23.10.2026
+
+Der Geschäftsführer hat den Read-only-Befehl `scripts/preflight-crm-production.ps1` im Surface-Worktree ausgeführt:
+
+- **Live-Dienst** `lszh-crm-v2`, zuletzt bereitstehende und zu **100 %** bediente Revision `lszh-crm-v2-00002-6lh`
+- **Live-Service-URL** `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`
+- **Live-Servicekonto** `lszh-crm-v2@lszh-automations.iam.gserviceaccount.com`
+- **Website-Intake-Schlüssel**: Secret-Manager-Referenz vorhanden (kein Secret offengelegt)
+- **Live-Flag** `CRM_WEBSITE_INTAKE_ENABLED` und `CRM_RECORD_PREFIX` derzeit nicht gesetzt, da die bisherige Serverversion Standardwerte verwendet
+- **Staging** `CRM_RECORD_PREFIX=lszh_crm_v2_staging_`, `CRM_WEBSITE_INTAKE_ENABLED=false`
+- Das Read-only-Skript hat keine Cloud-Run- oder Firestore-Ressourcen verändert.
+
+**Neu vorbereitet: Firestore-Inventar ohne personenbezogene Inhalte.** Befehl aus dem Staging-Worktree:
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\inventory-crm-firestore-readonly.ps1"
+```
+
+Der Befehl ruft mit `gcloud auth print-access-token` ausschliesslich Firestore-REST-**COUNT**-Aggregationen und die `next`-Felder der Live-/Staging-Sequenzzähler ab. Er führt keine Schreiboperation aus und zeigt keine Lead-, Kontakt- oder Zahlungsdaten. Die tatsächlichen Inventarwerte **stehen noch aus**. Vor Live-Cutover zusätzlich ein überprüftes Firestore-Backup, einen vollständigen Nummernkreis-Abgleich und einen Rollback-Nachweis erstellen. Die reine Anzahlerhebung ersetzt keine Datenmigration.
+
 ## Produktions-Preflight – nur lesen
 
 ```powershell

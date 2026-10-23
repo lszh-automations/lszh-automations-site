@@ -56,8 +56,10 @@ function fakeFirestore(){
     create(ref,value){this.startedWriting=true;this.writes.push(['create',ref,clone(value)]);}
     set(ref,value,options){this.startedWriting=true;this.writes.push(['set',ref,clone(value),options]);}
     update(ref,value){this.startedWriting=true;this.writes.push(['update',ref,clone(value)]);}
+    delete(ref){this.startedWriting=true;this.writes.push(['delete',ref]);}
     commit(){
       for(const [kind,ref,value,opts] of this.writes){
+        if(kind==='delete'){storage.delete(ref.path);continue;}
         const prev=storage.get(ref.path);
         if(kind==='create')assert.equal(prev,undefined,'duplicate document');
         if(kind==='update')assert.notEqual(prev,undefined,'document missing for update');
@@ -159,4 +161,37 @@ test('24-hour new lead reminders are informational only',async()=>{
   const reminders=await store.reminders();
   assert.equal(reminders.length,1);
   assert.equal(reminders[0].delivery,'preview_only_not_sent');
+});
+
+test('a fresh lead can be deleted; processed leads cannot return to Neu or be deleted',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const fresh=await store.create('leads',newLead('Sofort löschbar AG'),admin);
+  const removed=await store.remove('leads',fresh.id);
+  assert.deepEqual(removed,{id:fresh.id,deleted:true});
+  assert.equal(await store.get('leads',fresh.id),null);
+  assert.equal((await store.list('leads')).length,0);
+  await assert.rejects(store.remove('leads',fresh.id),{status:404});
+  const lead=await store.create('leads',newLead('Bearbeitet GmbH'),admin);
+  await store.update('leads',lead.id,{status:'Kontaktiert'},admin);
+  for(const changedStatus of ['Kontaktiert','Qualifiziert','Verloren']){
+    if(changedStatus!=='Kontaktiert')await store.update('leads',lead.id,{status:changedStatus},admin);
+    await assert.rejects(store.update('leads',lead.id,{status:'Neu'},admin),{status:409});
+    await assert.rejects(store.remove('leads',lead.id),{status:409});
+    assert.equal((await store.get('leads',lead.id)).status,changedStatus);
+  }
+  await store.update('leads',lead.id,{status:'Gewonnen'},admin);
+  await assert.rejects(store.update('leads',lead.id,{status:'Neu'},admin),{status:409});
+  await assert.rejects(store.remove('leads',lead.id),{status:409});
+});
+test('fresh leads with linked offer are not deleted and other registers cannot be deleted',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  db.storage.set('lszh_crm_v2_staging_offerten/manual-offer',{
+    leadId:lead.id,status:'Entwurf',createdAt:new Date().toISOString()
+  });
+  await assert.rejects(store.remove('leads',lead.id),{status:409});
+  assert.ok(await store.get('leads',lead.id));
+  for(const table of ['kunden','offerten','rechnungen','projekte']){
+    await assert.rejects(store.remove(table,'some-id'),{status:405});
+  }
 });

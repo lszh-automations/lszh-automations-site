@@ -33,7 +33,7 @@ jobs:
       - name: Validate PowerShell cutover scripts (no cloud commands executed)
         shell: pwsh
         run: |
-          $scripts = @('../scripts/deploy-crm-cloud-staging.ps1', '../scripts/test-crm-website-intake-staging.ps1', '../scripts/preflight-crm-production.ps1', '../scripts/inventory-crm-firestore-readonly.ps1', '../scripts/prepare-crm-live-candidate.ps1', '../scripts/check-crm-live-candidate-http.ps1', '../scripts/cutover-crm-v2-live.ps1', '../scripts/deploy-crm-lead-refresh-live.ps1', '../scripts/learn-crm-mail-webhook.ps1', '../scripts/test-crm-business-mail.ps1')
+          $scripts = @('../scripts/deploy-crm-cloud-staging.ps1', '../scripts/test-crm-website-intake-staging.ps1', '../scripts/preflight-crm-production.ps1', '../scripts/inventory-crm-firestore-readonly.ps1', '../scripts/prepare-crm-live-candidate.ps1', '../scripts/check-crm-live-candidate-http.ps1', '../scripts/cutover-crm-v2-live.ps1', '../scripts/deploy-crm-lead-refresh-live.ps1', '../scripts/learn-crm-mail-webhook.ps1', '../scripts/test-crm-business-mail.ps1', '../scripts/prepare-crm-mail-live.ps1')
           foreach ($script in $scripts) {
             $tokens = $null
             $parseErrors = $null

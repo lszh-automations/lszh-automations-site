@@ -209,6 +209,17 @@ Beim ersten Test nach `git pull` schlugen **2 von 30** CRM-Tests fehl: Die bishe
 - Statische Prüfung nach der Änderung: Testdatei in V8 kompiliert; Script ist ASCII-only. **Vollständiger Node-Testlauf auf dem Benutzerrechner steht noch aus.**
 - Make Szenario 8135270 blieb aktiv nur für intern TEST_ONLY gefilterte Mails. Kontrolle per Make: **keine Ausführungen registriert**; bei diesem Versuch wurden keine Mails versendet.
 - Nächste Schritte: `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2` muss alle 30 Tests bestehen; nur dann den einmaligen internen Test durch `scripts/test-crm-business-mail.ps1` senden. Ergebnis und Make-Ausführung prüfen, bevor produktive Mails aktiviert werden.
+### 23.10.2026 – Geschäftliche Gmail-Testmail erfolgreich gesendet; synchrone Antwort uneindeutig
+
+- Benutzer: `git pull --ff-only` erfolgreich und **30/30 CRM-Regressionstests PASS**.
+- Einmaliger `scripts/test-crm-business-mail.ps1` erhielt **HTTP 200**, aber keinen per `ConvertFrom-Json` auswertbaren `ok:true`/`messageId`-Beleg. Skript stoppte mit Warnung; **kein wiederholter Versand auslösen**.
+- Live Make-Historie Szenario **8135270**, Ausführung **`1d1c977319374415930355e5329ece88`** um 12:14:16 UTC zeigt **`success`** und **alle drei Module fehlerfrei**: Webhook (1), geschäftliche Gmail-Send-Aktion (2), WebhookRespond (3).
+- Gmail-Modul-Ausgang bestätigte echte Nachricht **ID `1a168aef163cbf9f`**, Ordner `SENT`/`INBOX`; Absender `"LSZH Automations" <info@lszh-automations.ch>`, Empfänger `lars@lszh-automations.ch`, Betreff `[TEST_ONLY] LSZH CRM V2 - Geschaeftliche Gmail Anbindung`. Dies bestätigt **Versand durch Gmail**, nicht zwingend externe Postfachzustellung.
+- Make WebhookRespond Eingabe laut Modul-Ausführung `{"ok":true,"messageId":"1a168aef163cbf9f"}`. Weshalb der Windows-Client keinen JSON-Beleg erhielt, ist nicht abschliessend nachgewiesen. Mögliche Make-Standardantwort `200 Accepted` statt synchronem Antwortinhalt, falls der Webhook asynchron quittiert wurde.
+- In Make Antwortmodul 3 wurde zur korrekten Formatangabe der Header `Content-Type: application/json; charset=utf-8` ergänzt; weiterhin nur internes `TEST_ONLY`-Szenario aktiv.
+- GitHub `scripts/test-crm-business-mail.ps1` aktualisiert: diagnostiziert künftig insbesondere Make `Accepted` als **kein Gmail-Versandnachweis**, ohne automatisch zu wiederholen. **Nicht erneut ausführen, solange wir den einmaligen Versand bereits bestätigt haben.**
+- **Produktiver CRM-Service unverändert:** `lszh-crm-v2-00006-moz` 100 % Traffic; keine Kunden- oder 24h-Mailproduktivfunktion eingeschaltet. Nächster Schritt: Make-Produktionsfilter/Endpunkt und sicheren Cloud-Scheduler vorbereiten, vor echter Kundennachricht End-to-End-Abnahme.
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

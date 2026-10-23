@@ -191,6 +191,15 @@ Code im Branch `feature/crm-v2-cloud-staging-20261023`: `crm-v2/mail-templates.j
 **Make:** In Team `1728770` neu ein **inaktives** Szenario `8135270` `LSZH CRM V2 – Mailversand (TEST ONLY / INAKTIV)` mit generischem Webhook erstellt; aktuell Webhook-Lernmodus aktiviert. Webhook-URL ist ein Geheimnis und steht **nicht** in GitHub. Make Gmail-Send-Modul besitzt geschäftliche Verbindung **11904991** zu `lars@lszh-automations.ch`; Send-as-Alias `"LSZH Automations" <info@lszh-automations.ch>` ist vom Modul als verfügbar zurückgegeben worden. **Private Gmail-Verbindung nicht verwenden.** Mail-Modul/Response noch nicht verkabelt, bis eine synthetische Webhook-Nachricht das Schema bestätigt.
 
 **Sicherheit/Betrieb:** keine produktive E-Mail versendet; bestehende Website→CRM→Firestore-Verbindung unverändert, Live-Revision `lszh-crm-v2-00006-moz`. Versandmechanismus wird getrennt und default-off eingeführt, Ereignisse werden nur einmal beansprucht und unklare Send-Resultate als `manual_review` markiert (keine blinden Retries). Geplante Cloud-Scheduler-Auslösung etwa jede Minute; 24h-Mail liest Live-Status und sendet nur für `Neu`. Keine rückwirkenden Altlead-Mails (Aktivierungszeitpunkt erforderlich).
+### 23.10.2026 – Make CRM-V2-Maildispatcher: Webhook gelernt und interne Testfunktion aktiviert
+
+- Benutzer hat den synthetischen PowerShell-Lernaufruf abgeschlossen. Make-Inspektion für Szenario **8135270** zeigt `learning=false`, alle 5 Felder **`eventId, kind, to, subject, html`**, Webhook-Queue 0.
+- In Make Szenario 8135270: **Geschäftliches** Gmail-v4-Modul 2 verbunden (Connection 11904991, Status `ok`, Absenderalias `"LSZH Automations" <info@lszh-automations.ch>`). Modul 3 gibt nach erfolgreichem Gmail-Schritt `{"ok":true,"messageId":"{{2.id}}"}` als Antwort zurück.
+- Szenario jetzt **aktiv**, aber zwingender Make-Filter vor Gmail: **nur** `kind=internal_new`, `to=lars@lszh-automations.ch` und `eventId` mit `test_only_`. Dadurch sind Kundenmails und produktive Lead-Nachrichten bis zur ausdrücklichen Abnahme gesperrt. Keine interne Mailtest-Ausführung bestätigt.
+- Neues Skript `scripts/test-crm-business-mail.ps1` führt genau einen synthetischen **internen** Mailtest aus und fragt den Webhook-Link verdeckt ab. Das ursprüngliche `learn-crm-mail-webhook.ps1` bitte nicht wiederholen, nachdem das Szenario aktiv ist. PowerShell-Syntaxprüfung beider Skripte zum GitHub-CI-Workflow hinzugefügt.
+- **CRM Live noch unverändert:** Revision `lszh-crm-v2-00006-moz` mit 100 % Traffic. Servermail-Dispatcher ist nur Quellcode, noch nicht deployt/aktiviert. Keine automatischen produktiven Kunden-E-Mails oder 24h-Erinnerungen.
+- Nächster Schritt: Nutzer führt `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2`, `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-crm-business-mail.ps1` aus, danach Make-Execution und Gmail-Message-ID prüfen. **Nicht doppelt absenden, wenn Antwort unklar!**
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

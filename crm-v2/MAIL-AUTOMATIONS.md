@@ -1,3 +1,21 @@
+## LSZH-Kundenmail – produktiven Design-Rollout vorbereitet (23.10.2026)
+
+Das neue HTML liegt in `crm-v2/mail-templates.js` auf `feature/crm-v2-cloud-staging-20261023`. Kundenseitiges Branding ist fertig; interne Lead- und 24h-Mails bleiben unverändert. Make-Szenario 8135270 ist live aktiv, das Gmail-Modul übergibt unverändert `{{1.html}}`; deshalb wird das neue Design nicht in Make, sondern durch eine neue CRM-Cloud-Run-Revision aktiviert.
+
+Ein abgesichertes PowerShell-Release liegt unter `scripts/deploy-crm-customer-mail-design-live.ps1`. Es prüft die bekannte Live-Revision `lszh-crm-v2-00010-raf`, aktive Scheduler-Konfiguration, bestehenden Mail-Cutoff, Dienstkonto/Secrets/Env, alle CRM-Tests und anonyme HTTP-Schutzendpunkte. Die neue Revision wird zuerst mit **0 % Traffic** gebaut und geprüft; nur bei bestandenen Kontrollen wird 100 % Traffic auf sie umgeschaltet. Bei Fehlern nach Umschaltung erfolgt Rollback auf `00010-raf`. Keine direkten E-Mail-Testsendungen, kein Zurücksetzen von `mail_events`, keine Änderung an Make oder Scheduler.
+
+Auszuführen auf dem autorisierten Surface mit `gcloud.cmd`-Zugang:
+
+```powershell
+cd C:\Users\larss\Projects\lszh-crm-cloud-staging
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\deploy-crm-customer-mail-design-live.ps1"
+```
+
+**Status:** Quellcode und Deploy-Skript im Entwicklungsbranch versioniert; produktive Bereitstellung ist erst nach erfolgreichem Skriptlauf bestätigt. Das CI prüft das Skript inklusive PowerShell-Syntax, baut aber selbst **keinen** Cloud-Run-Dienst. Ein vorhandener Versand bleibt bis zur Umschaltung auf der alten Darstellung.
+
+---
+
 ## Kundenbestätigung im LSZH-Website-Design – vorbereitet, noch nicht deployed
 
 Die **ausschliesslich kundenseitige** Bestätigung wurde in `crm-v2/mail-templates.js` optisch an das produktive `index.html` angelehnt. Verbindliche LSZH-Website-Farben: Navy `#06101d`, dunkel `#0a1728`, Text `#0f1726`, Hintergrund `#f4f7fb`, Akzente Cyan `#74d8ff`, Blau `#5b8cff`, Violett `#8e72ff`. Header im Navy/Blau-Stil mit typografischer LSZH-Wortmarke und vereinfachtem L-Zeichen als E-Mail-kompatible Darstellung (das SVG der Website wird bewusst NICHT eingebettet, da E-Mail-Clients SVG nicht zuverlässig darstellen). Farbige Dreier-Akzentlinie, weisser Inhalt, personalisierte Anrede, verständlicher «Wie geht es weiter?»-Block, Signatur und dunkler Geschäftsfooter mit `LSZH Invest GmbH`, `Rummelmatt 8, 5610 Wohlen AG`, `info@lszh-automations.ch` sowie `https://lszh-automations.ch/`.

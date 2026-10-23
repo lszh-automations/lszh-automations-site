@@ -182,6 +182,15 @@ Im Entwicklungsbranch `feature/crm-v2-cloud-staging-20261023` angepasst:
 - Neue Browser-JavaScript-Syntax- und Refresh-Invariantentests `crm-v2/test/lead-auto-refresh-ui.test.js`; Inline-Skript zudem direkt in V8 syntaktisch erfolgreich kompiliert und zentrale Refresh-Invarianten überprüft.
 - `scripts/deploy-crm-lead-refresh-live.ps1` führt lokale CRM-Regressionstests aus, prüft vorher `lszh-crm-v2-00004-mez` (100% Traffic), erstellt eine neue 0%-Revision, bestätigt Secret-/OAuth-/Service-Konfiguration, prüft anonymes UI 200/config 200/API 401, wechselt nach PASS auf die neue Revision und hat automatischen Rollback auf die bisherige Live-Revision bei nachfolgendem Fehler. Keine Testdaten/CRM-Schreibvorgänge.
 - **Wichtig: Änderung NOCH NICHT produktiv ausgerollt.** Zuerst lokales `git pull --ff-only`, dann PowerShell-Rolloutskript ausführen, Ausgabe kontrollieren, einmalig CRM-Browser neu laden und neue Formulareinreichung ohne Reload auf Live beobachten. GitHub Actions-Run war beim Dokumentationszeitpunkt noch nicht unabhängig bestätigt.
+### 23.10.2026 – Drei E-Mail-Automationen in Arbeit (noch **nicht live**)
+
+Auf Wunsch des Geschäftsführers: (1) Kunden-Eingangsbestätigung beim neuen Website-Lead, (2) interne Sofort-Mail für `lars@lszh-automations.ch`, (3) interne Erinnerung nach 24 Stunden **nur falls Status weiterhin `Neu`**.
+
+Code im Branch `feature/crm-v2-cloud-staging-20261023`: `crm-v2/mail-templates.js`, `crm-v2/mail-dispatcher.js`, neuer (standardmässig deaktivierter) `POST /api/internal/mail/tick`-Endpunkt mit OIDC-Identitätsprüfung in `crm-v2/server.js`, Regressionstests `crm-v2/test/mail-notifications.test.js` und Lernskript `scripts/learn-crm-mail-webhook.ps1`. Ausführliche Betriebsanleitung `crm-v2/MAIL-AUTOMATIONS.md`.
+
+**Make:** In Team `1728770` neu ein **inaktives** Szenario `8135270` `LSZH CRM V2 – Mailversand (TEST ONLY / INAKTIV)` mit generischem Webhook erstellt; aktuell Webhook-Lernmodus aktiviert. Webhook-URL ist ein Geheimnis und steht **nicht** in GitHub. Make Gmail-Send-Modul besitzt geschäftliche Verbindung **11904991** zu `lars@lszh-automations.ch`; Send-as-Alias `"LSZH Automations" <info@lszh-automations.ch>` ist vom Modul als verfügbar zurückgegeben worden. **Private Gmail-Verbindung nicht verwenden.** Mail-Modul/Response noch nicht verkabelt, bis eine synthetische Webhook-Nachricht das Schema bestätigt.
+
+**Sicherheit/Betrieb:** keine produktive E-Mail versendet; bestehende Website→CRM→Firestore-Verbindung unverändert, Live-Revision `lszh-crm-v2-00006-moz`. Versandmechanismus wird getrennt und default-off eingeführt, Ereignisse werden nur einmal beansprucht und unklare Send-Resultate als `manual_review` markiert (keine blinden Retries). Geplante Cloud-Scheduler-Auslösung etwa jede Minute; 24h-Mail liest Live-Status und sendet nur für `Neu`. Keine rückwirkenden Altlead-Mails (Aktivierungszeitpunkt erforderlich).
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

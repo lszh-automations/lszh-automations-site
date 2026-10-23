@@ -926,3 +926,6 @@ Detailliertes Prüf-/Betriebsverfahren: [LSZH_GOOGLE_ARCHIVE_READER_RENDER_STAGI
 4. Kandidat mit 0 % Traffic bereitstellen; Tests und Rollback `00038-gic` absichern; erst nach ausdrücklicher Freigabe produktives Rechnungs-PDF aktivieren. **Keinen Rechnungs-Mailversand implementiert oder aktiviert**.
 
 SIX-Grundlage: https://www.six-group.com/de/products-services/banking-services/payment-standardization/standards/qr-bill.html (SPS IG QR-Bill 2.3/2.4). Bestehendes Draft-PR #2 zur älteren Swiss-QR-Staging/Airtable-Lösung nicht mit diesem Firestore-basierten CRM-V2-Nummernkreis zusammenführen.
+
+
+**QA-Nachtrag (23.10.2026):** Neues rein synthetisches Smoke-Fixture `crm-v2/scripts/invoice-qr-smoke.js` erzeugt ein internes Test-PDF aus Beispiel-IBAN und Fake-Kunde. CI-Workflow `.github/workflows/crm-v2-invoice-qr.yml` ist auf Entwicklungsbranch und Draft-PR beschränkt: installiert CRM-Abhängigkeiten, führt die CRM-Suite aus, prüft A4 und den Nicht-MWST-Text, rendert das PDF mit Poppler und versucht unabhängiges QR-Decoding mit OpenCV sowie Feldvergleich. **Workflow geschrieben, Ergebnis noch NICHT bestätigt; kein PASS behaupten.** Alle produktiven Betriebs-Gates bleiben deaktiviert.

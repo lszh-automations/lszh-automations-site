@@ -418,3 +418,25 @@ test('PDF preparation failure unlocks safe new send attempt without pretending t
   claim=await store.claimOfferSend(offer.id,{followUpDate:due},admin);
   assert.ok(claim.attemptId);
 });
+
+test('crashed send attempt remains non-retryable until five-minute manual review',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const due=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const until=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  await store.update('offerten',offer.id,{
+    status:'Bereit',validUntil:until,
+    items:[{title:'Automationen',qty:1,unitPriceCHF:100,mode:'einmalig'}]
+  },admin);
+  await store.claimOfferSend(offer.id,{followUpDate:due},admin);
+  await assert.rejects(store.resolveOfferSend(offer.id,'not_sent',admin),{status:409});
+  const raw=db.storage.get('lszh_crm_v2_staging_offerten/'+offer.id);
+  raw.offerDispatchRequestedAt=new Date(Date.now()-6*60000).toISOString();
+  const reconciled=await store.resolveOfferSend(offer.id,'not_sent',admin);
+  assert.equal(reconciled.offerDispatchState,'not_sent');
+  assert.equal(reconciled.status,'Bereit');
+  const second=await store.claimOfferSend(offer.id,{followUpDate:due},admin);
+  assert.ok(second.attemptId);
+});

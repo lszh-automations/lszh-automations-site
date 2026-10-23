@@ -1,3 +1,13 @@
+### 23.10.2026 – CRM TEST_ONLY-Deployment produktiv, Make aktiviert
+
+**Bestätigung per Benutzerlog:** `scripts/deploy-crm-offer-send-test-only-live.ps1` endete erfolgreich mit `CRM OFFER TEST ONLY LIVE PASS`. Alle **74/74 CRM-Tests bestanden**. Cloud-Run-Revision `lszh-crm-v2-00032-new` hat **100 % Produktiv-Traffic**, Rollback-Revision `lszh-crm-v2-00030-ren`. Separater Make-Offerten-Webhook als Secret `lszh-crm-v2-offer-make-hook` in Google Secret Manager Version 1 erstellt und Zugriff für CRM-Dienstkonto erteilt. `CRM_OFFER_MAIL_ENABLED=true` gilt **nur im stark eingeschränkten TEST_ONLY-Modus** (`CRM_OFFER_MAIL_TEST_TO=lars.schulthess@outlook.com`). Das bestehende Make-Lead-Mail-Szenario, Cloud Scheduler und E-Mail-Cutoff blieben unverändert.
+
+**Make geprüft und aktiviert:** Make-Szenario `8144117` wurde nach Prüfung des eingeschränkten Filters und der verbundenen Gmail-Anbindung aktiviert. Der Filter akzeptiert `kind=offer_send`, `eventId` enthält `offer_send_`, Empfänger ausschliesslich `lars.schulthess@outlook.com`, Betreff enthält `[TEST_ONLY]`. Das CRM kontrolliert zusätzlich vor und unmittelbar nach der Reservierung, dass der gespeicherte Offertentitel mit `TEST_ONLY` beginnt und die Lead-/Kunden-E-Mail exakt dem Testpostfach entspricht. Andere CRM-Offerten bleiben vom automatischen Versand ausgeschlossen.
+
+**Noch offen:** Echter End-to-End-Klick **aus dem CRM** wurde bislang nicht ausgeführt. Dafür einen synthetischen CRM-Lead mit der Outlook-Testadresse manuell erstellen, zu `Qualifiziert` führen, die automatisch erstellte Offerte öffnen und ihren Titel mit `TEST_ONLY` beginnen lassen; Positionszeile mit positivem Preis und künftiges Gültigkeitsdatum eintragen und Status `Bereit` speichern. Danach ausschliesslich den speziellen Button `TEST_ONLY: PDF ans Testpostfach senden` betätigen. Erwartung: Mail mit echtem CRM-Offerten-PDF trifft beim Testpostfach ein, Make-Gmail-Receipt wird bestätigt, CRM-Offerte wechselt auf `Versendet`, `sentTo` und Wiedervorlage gesetzt. Anschliessend Go-Live für reale Kunden gesondert und bewusst freigeben; **aktuelle TEST_ONLY-Beschränkung nicht aufheben**.
+
+---
+
 ### 23.10.2026 – CRM-Offerten-PDF Preview produktiv + Testmodus vorbereitet
 
 **Vom Benutzer per PowerShell bestätigt:** `scripts/deploy-crm-offer-send-preview-live.ps1` endete mit `CRM OFFER SEND PREVIEW LIVE PASS`. Neue produktive Cloud-Run-Revision `lszh-crm-v2-00030-ren` hat **100 % Traffic**. Verifizierter Rückfallanker ist `lszh-crm-v2-00028-lij`. Alle **71/71** bisherigen Tests erfolgreich. Bestehender Cloud-Scheduler und Make-Lead-Mails unverändert; **CRM_OFFER_MAIL_ENABLED weiterhin false**, noch kein automatischer Kundenversand.

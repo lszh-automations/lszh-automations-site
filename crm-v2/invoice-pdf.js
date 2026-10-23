@@ -182,7 +182,8 @@ async function makeInvoicePdf(invoice,customer,project,config){
     y-=height;
   }
   // The physical payment section cannot collide with invoice content.
-  if(y<SLIP+108){startPage();}
+  // Reserve at least 5mm clear space between invoice text and the 105mm payment part.
+  if(y<SLIP+128){startPage();}
   y-=27;
   page.drawRectangle({x:305,y:y-33,width:244,height:46,color:PALE});
   text(page,bold,'TOTAL CHF',319,y-8,11);

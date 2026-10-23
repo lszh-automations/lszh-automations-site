@@ -34,6 +34,11 @@ h1{font-size:clamp(28px,3.4vw,39px);letter-spacing:-.04em;line-height:1.15;margi
 .toolbar{padding:22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .toolbar p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .search{background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;min-width:235px}
+.lead-delete{margin-left:10px;width:27px;height:27px;padding:0;border:1px solid #844451;border-radius:7px;background:transparent;color:#ffa6ae;font-size:18px;line-height:1;cursor:pointer;vertical-align:middle}
+.lead-delete:hover{background:#42242f;border-color:#ffa6ae}
+.lead-delete:focus-visible{outline:2px solid #ffa6ae;outline-offset:2px}
+.lead-delete:disabled{opacity:.5;cursor:wait}
+.lead-age{color:var(--muted);white-space:nowrap;font-size:12px}
 .scroll{overflow:auto;width:100%}table{border-collapse:collapse;width:100%;min-width:700px}
 th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.09em;background:#111a27}
 th,td{padding:15px 18px;border-top:1px solid var(--border)}td{font-size:13px}td:first-child{font-weight:650}
@@ -324,7 +329,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 const definitions={
   leads:{title:'Website Leads',description:'Alle neuen Anfragen aus dem Website-Formular.',fields:[
     ['name','Name','text'],['company','Firma','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['message','Anfrage','textarea'],['currentProcess','Heutiger Ablauf','textarea'],['systems','Beteiligte Systeme','textarea'],['mainProblem','Grösstes Problem','text'],['frequency','Häufigkeit','text'],['desiredResult','Gewünschtes Ergebnis','textarea'],['status','Status','status']
-  ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['status','Status']]},
+  ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['createdAt','Eingegangen'],['status','Status']]},
   kunden:{title:'Kunden',description:'Stammdaten deiner Geschäftskunden.',fields:[
     ['company','Firma','text'],['contactName','Ansprechpartner','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['notes','Notizen','textarea'],['status','Status','status']
   ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
@@ -362,6 +367,40 @@ function valueText(key,value) {
   if(value==null||value==='')return '–';
   if(key==='amountCHF'||key==='oneTimeCHF'||key==='monthlyCHF')return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(value);
   return String(value);
+}
+function leadAge(createdAt,nowMs=Date.now()){
+  const start=Date.parse(createdAt||'');
+  if(!Number.isFinite(start))return '–';
+  const minutes=Math.max(0,Math.floor((nowMs-start)/60000));
+  if(minutes===0)return 'gerade eben';
+  if(minutes<60)return 'vor '+minutes+' Min.';
+  const hours=Math.floor(minutes/60);
+  if(hours<24)return 'vor '+hours+' Std.';
+  const days=Math.floor(hours/24);
+  if(days<30)return 'vor '+days+' '+(days===1?'Tag':'Tagen');
+  const months=Math.floor(days/30);
+  if(months<12)return 'vor '+months+' '+(months===1?'Monat':'Monaten');
+  const years=Math.floor(days/365);
+  return 'vor '+Math.max(1,years)+' '+(years===1?'Jahr':'Jahren');
+}
+function refreshLeadAges(){
+  document.querySelectorAll('[data-lead-created-at]').forEach(element=>{
+    element.textContent=leadAge(element.dataset.leadCreatedAt);
+  });
+}
+async function deleteNewLead(lead,button){
+  if(lead.status!=='Neu')return;
+  const label=lead.company||lead.name||'diesen Lead';
+  if(!window.confirm('Lead «'+label+'» wirklich dauerhaft löschen?'))return;
+  button.disabled=true;
+  try {
+    await api('/api/records/leads/'+encodeURIComponent(lead.id),{method:'DELETE'});
+    await loadAll();
+  }catch(error){
+    window.alert('Lead konnte nicht gelöscht werden: '+error.message);
+    // A different browser may have changed this record in the meantime.
+    await loadAll().catch(()=>{});
+  }finally{button.disabled=false;}
 }
 function formatCHF(value){
   return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
@@ -557,7 +596,16 @@ function render(){
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      if(key==='createdAt'&&state.tab==='leads'){
+        const age=el('span','lead-age',leadAge(rec.createdAt));
+        age.dataset.leadCreatedAt=rec.createdAt||'';
+        const timestamp=Date.parse(rec.createdAt||'');
+        if(Number.isFinite(timestamp))age.title=new Intl.DateTimeFormat('de-CH',{
+          day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+        }).format(new Date(timestamp));
+        td.append(age);
+      }
+      else if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
       else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
         td.textContent=rec.dueDate&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dueDate)
@@ -578,7 +626,16 @@ function render(){
       edit.textContent='Öffnen';
       edit.addEventListener('click',()=>openProjectEditor(rec));
     }else edit.addEventListener('click',()=>openEditor(rec));
-    td.append(edit);row.append(td);tbody.append(row);
+    td.append(edit);
+    if(state.tab==='leads'&&rec.status==='Neu'){
+      const remove=el('button','lead-delete','×');
+      remove.type='button';
+      remove.setAttribute('aria-label','Lead '+(rec.company||rec.name||'')+' löschen');
+      remove.title='Neuen Lead löschen';
+      remove.addEventListener('click',()=>deleteNewLead(rec,remove));
+      td.append(remove);
+    }
+    row.append(td);tbody.append(row);
   }
   table.append(tbody);wrap.append(table);area.append(wrap);
 }
@@ -636,6 +693,7 @@ function renderLeadDetail(lead){
   for(const value of statuses.leads){
     const option=el('option','',value);
     option.value=value;
+    if(value==='Neu'&&lead.status!=='Neu')option.disabled=true;
     statusSelect.append(option);
   }
   if(lead.status && !statuses.leads.includes(lead.status)){
@@ -725,7 +783,9 @@ function makeField(key,label,type,value) {
   if(type==='textarea')control=el('textarea');
   else if(type==='status'||order.includes(type)){
     control=el('select');
-    const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
+    const items=type==='status'?statuses[state.tab]
+      .filter(s=>state.tab!=='leads'||s!=='Neu'||!state.editing||state.editing.status==='Neu')
+      .map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
       ...(state.records[type]||[])
         .filter(r=>(type!=='leads'||state.tab!=='offerten'||['Qualifiziert','Gewonnen'].includes(r.status)||r.id===value)
@@ -1196,6 +1256,7 @@ $('search').addEventListener('input',render);
 $('refreshLeads').addEventListener('click',refreshLeads);
 // Refresh only while the signed-in CRM is visible; no expensive background polling.
 setInterval(refreshLeads,LEAD_REFRESH_INTERVAL_MS);
+setInterval(refreshLeadAges,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLeads();});
 window.addEventListener('focus',refreshLeads);
 $('add').addEventListener('click',()=>openEditor());

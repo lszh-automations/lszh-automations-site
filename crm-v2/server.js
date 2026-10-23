@@ -31,7 +31,8 @@ const mailDispatcher=makeDispatcher(db,PREFIX,{
 const offerSender=createOfferSender(store,{
   enabled:process.env.CRM_OFFER_MAIL_ENABLED==='true',
   webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
-  testTo:process.env.CRM_OFFER_MAIL_TEST_TO
+  testTo:process.env.CRM_OFFER_MAIL_TEST_TO,
+  mode:process.env.CRM_OFFER_MAIL_MODE
 });
 const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
 const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();

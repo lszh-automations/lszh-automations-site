@@ -19,14 +19,85 @@ function escapeHtml(value) {
 function paragraph(value){
   return escapeHtml(value).replace(/\r?\n/g,'<br>');
 }
-function shell(content){
-  return '<!doctype html><html lang="de-CH"><head><meta charset="UTF-8"></head>'+
-    '<body style="font-family:Arial,sans-serif;background:#f7f9fc;color:#182332;padding:24px">'+
-    '<div style="max-width:660px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px">'+
-    '<h2 style="margin-top:0">LSZH Automations</h2>'+content+
-    '<hr style="border:0;border-top:1px solid #e2e8f0;margin:25px 0">'+
-    '<p style="font-size:12px;color:#66758c">LSZH Automations · Geschäftsbereich der LSZH Invest GmbH · 5610 Wohlen AG</p>'+
-    '</div></body></html>';
+// Internal CRM notifications share the customer brand while prioritising
+// readable business fields and a fixed CRM action. No external assets/scripts.
+function internalShell(content,preheader){
+  return '<!doctype html><html lang="de-CH"><head>'+
+    '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>LSZH Automations – Interne CRM-Benachrichtigung</title></head>'+
+    '<body style="margin:0;padding:0;background-color:#f4f7fb;color:#0f1726;font-family:Arial,Helvetica,sans-serif;">'+
+    '<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">'+
+      escapeHtml(preheader)+'</div>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background-color:#f4f7fb;">'+
+    '<tr><td align="center" style="padding:28px 14px 36px;">'+
+    '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
+    '<tr><td bgcolor="#06101d" style="background-color:#06101d;padding:29px 32px;">'+
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
+      '<td width="53" valign="middle" style="width:53px;">'+
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
+        '<td width="43" height="43" align="center" valign="middle" bgcolor="#5b8cff" style="width:43px;height:43px;border-radius:12px;background-color:#5b8cff;color:#ffffff;font-size:27px;font-weight:800;line-height:43px;">L</td>'+
+        '</tr></table>'+
+      '</td>'+
+      '<td valign="middle" style="padding-left:10px;">'+
+        '<div style="color:#ffffff;font-size:18px;font-weight:700;line-height:23px;letter-spacing:-0.3px;">LSZH Automations</div>'+
+        '<div style="color:#b2bfd3;font-size:9px;font-weight:700;line-height:16px;letter-spacing:1.6px;">INTERNES CRM</div>'+
+      '</td></tr></table>'+
+    '</td></tr>'+
+    '<tr><td style="padding:0;">'+
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr>'+
+      '<td width="34%" height="4" bgcolor="#74d8ff" style="height:4px;font-size:0;line-height:0;background-color:#74d8ff;">&nbsp;</td>'+
+      '<td width="33%" height="4" bgcolor="#5b8cff" style="height:4px;font-size:0;line-height:0;background-color:#5b8cff;">&nbsp;</td>'+
+      '<td width="33%" height="4" bgcolor="#8e72ff" style="height:4px;font-size:0;line-height:0;background-color:#8e72ff;">&nbsp;</td>'+
+      '</tr></table>'+
+    '</td></tr>'+
+    '<tr><td style="background-color:#ffffff;padding:36px 34px 38px;">'+content+'</td></tr>'+
+    '<tr><td bgcolor="#0a1728" style="background-color:#0a1728;padding:24px 34px 26px;">'+
+      '<p style="margin:0 0 7px;color:#ffffff;font-size:13px;font-weight:700;line-height:20px;">LSZH Automations</p>'+
+      '<p style="margin:0 0 12px;color:#b2bfd3;font-size:11px;line-height:19px;">'+
+        'Ein Geschäftsbereich der LSZH Invest GmbH<br>Rummelmatt 8 · 5610 Wohlen AG · Schweiz</p>'+
+      '<p style="margin:0;padding-top:12px;border-top:1px solid #25354d;color:#93a4bc;font-size:10px;line-height:17px;">'+
+        'INTERNER CRM-HINWEIS · Automatisch erstellt · Nur für LSZH Automations</p>'+
+    '</td></tr></table>'+
+    '</td></tr></table></body></html>';
+}
+function internalField(label,value){
+  return '<tr><td width="116" valign="top" style="width:116px;padding:8px 12px 8px 0;color:#66758c;font-size:12px;line-height:20px;">'+
+    escapeHtml(label)+'</td>'+
+    '<td valign="top" style="padding:8px 0;color:#0f1726;font-size:14px;font-weight:600;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">'+
+    escapeHtml(value)+'</td></tr>';
+}
+function internalLeadMail(lead,name,firm,id,isReminder){
+  const title=isReminder?'Lead nach 24 Stunden noch auf «Neu»':'Neue Website-Anfrage eingegangen';
+  const eyebrow=isReminder?'24H-ERINNERUNG':'NEUER WEBSITE-LEAD';
+  const statusLabel=isReminder?'NOCH OFFEN':'NEU';
+  const description=isReminder
+    ?'Dieser Lead wurde vor mindestens 24 Stunden erfasst und ist aktuell weiterhin im Status «Neu». Bitte prüfen und bearbeiten.'
+    :'Über das Website-Formular ist eine neue Anfrage eingegangen. Die Kontaktdaten und das Anliegen findest du nachfolgend.';
+  return internalShell(
+    '<p style="margin:0 0 12px;color:#5b8cff;font-size:11px;font-weight:700;line-height:17px;letter-spacing:1.5px;">'+eyebrow+'</p>'+
+    '<h1 style="margin:0 0 16px;color:#06101d;font-size:26px;font-weight:700;line-height:35px;letter-spacing:-0.6px;">'+title+'</h1>'+
+    '<p style="margin:0 0 25px;color:#526278;font-size:14px;line-height:23px;">'+description+'</p>'+
+    '<p style="margin:0 0 17px;color:#5b8cff;font-size:11px;font-weight:700;letter-spacing:1.2px;">KONTAKTDATEN &nbsp;·&nbsp; '+statusLabel+'</p>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;">'+
+    '<tr><td style="padding:14px 20px;">'+
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">'+
+      internalField('Kontakt',name)+
+      internalField('Unternehmen',firm)+
+      internalField('E-Mail',lead.email)+
+      '</table>'+
+    '</td></tr></table>'+
+    '<p style="margin:27px 0 11px;color:#06101d;font-size:13px;font-weight:700;line-height:20px;">Anfrage</p>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:10px;">'+
+    '<tr><td style="padding:19px 20px;color:#344259;font-size:14px;line-height:23px;overflow-wrap:anywhere;word-break:break-word;">'+
+      (paragraph(lead.message)||'–')+
+    '</td></tr></table>'+
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;margin-top:27px;"><tr>'+
+    '<td bgcolor="#5b8cff" style="background-color:#5b8cff;border-radius:9px;">'+
+      '<a href="'+CRM_URL+'" style="display:inline-block;padding:13px 22px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;line-height:20px;">Live-CRM öffnen &rarr;</a>'+
+    '</td></tr></table>'+
+    '<p style="margin:24px 0 0;color:#8190a6;font-size:11px;line-height:19px;">Lead-ID: '+escapeHtml(id)+'</p>',
+    isReminder?'24h-Erinnerung: Website-Lead weiterhin Neu':'Neue Website-Anfrage im LSZH CRM'
+  );
 }
 
 // Dedicated, email-client-friendly customer layout in the live LSZH brand.
@@ -109,12 +180,6 @@ function renderMail(kind,lead){
   const id=asText(lead.id,100),name=asText(lead.name,180)||'Guten Tag';
   const firm=asText(lead.company,180)||'–';
   const subjectFirm=firm.replace(/[\r\n\u0000-\u001f]+/g,' ').slice(0,100);
-  const basic='<p><b>Kontakt:</b> '+escapeHtml(name)+'</p>'+
-    '<p><b>Unternehmen:</b> '+escapeHtml(firm)+'</p>'+
-    '<p><b>E-Mail:</b> '+escapeHtml(lead.email)+'</p>'+
-    '<p><b>Anfrage:</b><br>'+paragraph(lead.message)+'</p>'+
-    '<p><b>Lead-ID:</b> '+escapeHtml(id)+'</p>'+
-    '<p><a href="'+CRM_URL+'">Live-CRM öffnen</a></p>';
   if(kind===EVENT_TYPES.CUSTOMER_ACK){
     return {
       to:asText(lead.email,254).toLowerCase(),
@@ -126,16 +191,14 @@ function renderMail(kind,lead){
     return {
       to:INTERNAL_TO,
       subject:'[LSZH CRM] Neuer Website-Lead: '+subjectFirm,
-      html:shell('<h3>Neue Website-Anfrage eingegangen</h3>'+basic)
+      html:internalLeadMail(lead,name,firm,id,false)
     };
   }
   if(kind===EVENT_TYPES.INTERNAL_24H){
     return {
       to:INTERNAL_TO,
       subject:'[LSZH CRM] 24h-Erinnerung: '+subjectFirm+' – weiterhin Neu',
-      html:shell('<h3>Lead nach 24 Stunden noch auf «Neu»</h3>'+
-        '<p>Dieser Lead wurde vor mindestens 24 Stunden erfasst und ist aktuell weiterhin im Status «Neu». '+
-        'Bitte prüfen und bearbeiten.</p>'+basic)
+      html:internalLeadMail(lead,name,firm,id,true)
     };
   }
   throw Error('unsupported_mail_kind');

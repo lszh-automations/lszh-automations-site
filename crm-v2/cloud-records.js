@@ -9,6 +9,7 @@ const {cleanProjectTasks}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,offerDescription}=require('./lead-contact');
+const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch}=require('./offer-tracking');
 
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
 const STATUS={
@@ -189,6 +190,8 @@ function buildStore(db,prefix){
     if(table==='leads'&&input.status==='Gewonnen')throw err('Gewonnen setzt eine bestehende Offerte voraus');
     if(table==='rechnungen'&&input.status==='Bezahlt')throw err('Rechnung zuerst auf Offen setzen');
     if(table==='offerten'&&input.status==='Angenommen')throw err('Offerte zuerst speichern, dann auf Angenommen setzen');
+    if(table==='offerten'&&input.status==='Versendet')
+      throw err('Offertenversand muss separat dokumentiert werden',409);
     verify(table,input);
     if(table==='leads')followUpFields(input);
     const date=now(),ref=col(table).doc();
@@ -307,6 +310,13 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='offerten'){
+        // Once manually marked sent, the exact submitted offer must stay frozen.
+        if(input.status==='Versendet')
+          throw err('Versand nur über «Versand dokumentieren» erfassen',409);
+        if(before.status==='Versendet' &&
+           (Object.keys(input).some(key=>key!=='status') ||
+            !['Angenommen','Abgelehnt'].includes(input.status)))
+          throw err('Versendete Offerte darf nur angenommen oder abgelehnt werden',409);
         const wonLead=before.leadId?await tx.get(col('leads').doc(before.leadId)):null;
         if(before.status==='Angenommen'||wonLead?.data()?.status==='Gewonnen')
           throw err('Angenommene Offerte ist schreibgeschützt',403);
@@ -359,6 +369,45 @@ function buildStore(db,prefix){
     });
     const saved=await ref.get();return toObject(saved);
   }
+  async function recordOfferDispatch(id,payload,user){
+    const date=now(),today=date.slice(0,10);
+    const form=normalizeDispatchInput(payload,today);
+    const ref=col('offerten').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const offer=snap.data();
+      const lead=offer.leadId?await tx.get(col('leads').doc(offer.leadId)):null;
+      const customer=offer.customerId?await tx.get(col('kunden').doc(offer.customerId)):null;
+      const email=checkReadyForDispatch(offer,
+        lead?.data()?.email?lead.data():customer?.data(),today);
+      tx.update(ref,audit({
+        status:'Versendet',sentAt:date,sentBy:user.email,sentTo:email,
+        followUpDate:form.followUpDate,followUpCount:0,followUpHistory:[]
+      },user,date));
+    });
+    return toObject(await ref.get());
+  }
+  async function recordOfferFollowUp(id,payload,user){
+    const date=now(),today=date.slice(0,10);
+    const form=normalizeFollowUpInput(payload,today);
+    const ref=col('offerten').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const before=snap.data();
+      if(before.status!=='Versendet')
+        throw err('Nachfassen nur bei versendeten Offerten möglich',409);
+      const history=Array.isArray(before.followUpHistory)?before.followUpHistory:[];
+      if(history.length>=50)throw err('Maximale Anzahl Nachfassaktionen erreicht',409);
+      tx.update(ref,audit({
+        lastFollowUpAt:date,lastFollowUpBy:user.email,
+        followUpDate:form.followUpDate,followUpCount:history.length+1,
+        followUpHistory:[...history,{at:date,by:user.email,note:form.note}]
+      },user,date));
+    });
+    return toObject(await ref.get());
+  }
   async function addContact(id,payload,user){
     const details=validateContact(payload);
     const ref=col('leads').doc(id);
@@ -395,6 +444,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

@@ -23,7 +23,7 @@ main{padding:30px clamp(20px,4vw,66px);max-width:1600px;width:100%;margin:0 auto
 .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:29px}
 .eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
 h1{font-size:clamp(28px,3.4vw,39px);letter-spacing:-.04em;line-height:1.15;margin:7px 0}h2{font-size:22px;letter-spacing:-.02em;margin:0}
-.sub{color:var(--muted);margin:0}.identity{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.sub{color:var(--muted);margin:0}.identity{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}.sync-status{font-size:11px;color:var(--muted)}
 .btn{padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:650}
 .btn.primary{background:#a4d4f4;border-color:#a4d4f4;color:#091724}.btn:hover{filter:brightness(1.08)}
 .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;margin-bottom:28px}
@@ -233,7 +233,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   <main>
     <div class="head">
       <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Dashboard</h1><p id="pageDesc" class="sub"></p></div>
-      <div class="identity"><span id="who"></span><button class="btn" id="logout">Abmelden</button></div>
+      <div class="identity"><span id="who"></span><span class="sync-status" id="syncStatus" role="status" aria-live="polite"></span><button class="btn" id="refreshLeads" type="button" title="Neue Website-Leads laden">↻ Aktualisieren</button><button class="btn" id="logout">Abmelden</button></div>
     </div>
     <div id="dashboardIntro" class="dashboard-intro-wrapper" hidden></div>
     <div class="kpis" id="kpis"></div>
@@ -340,12 +340,14 @@ const definitions={
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
 const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null};
+const LEAD_REFRESH_INTERVAL_MS=30000;
+let leadsRefreshPending=false;
 const $=id=>document.getElementById(id);
 function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
 async function api(path,options={}) {
   const r=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{'Authorization':'Bearer '+state.token}:{}),...(options.headers||{})}});
   const result=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(result.error || 'HTTP '+r.status);
+  if(!r.ok){const err=new Error(result.error || 'HTTP '+r.status);err.status=r.status;throw err;}
   return result;
 }
 function titleOf(table,record) {return (record && (record.company || record.title || record.name || record.number)) || '–';}
@@ -1130,6 +1132,34 @@ async function loadAll(){
   state.reminders=reminders.reminders||[];
   render();
 }
+// Only update new website leads in the background. Never replace open editors or
+// overwrite form inputs while someone is preparing an offer/invoice/project.
+async function refreshLeads(){
+  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending)return;
+  const loginToken=state.token;
+  leadsRefreshPending=true;
+  $('refreshLeads').disabled=true;
+  try{
+    const result=await api('/api/records/leads');
+    if(state.token!==loginToken)return; // Late response after logout or re-login.
+    const incoming=Array.isArray(result.records)?result.records:[];
+    if(JSON.stringify(incoming)!==JSON.stringify(state.records.leads||[])){
+      state.records.leads=incoming;
+      render();
+    }
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    if(state.token!==loginToken)return;
+    if(err.status===401){
+      state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
+      $('error').textContent='Deine Google-Anmeldung ist abgelaufen. Bitte erneut anmelden.';
+      window.google?.accounts?.id?.prompt();
+    }else $('syncStatus').textContent='Aktualisierung fehlgeschlagen – bitte erneut versuchen';
+  }finally{
+    leadsRefreshPending=false;
+    $('refreshLeads').disabled=false;
+  }
+}
 async function signedIn(token){
   state.token=token;
   try {
@@ -1137,6 +1167,7 @@ async function signedIn(token){
     $('who').textContent=me.email;
     await loadAll();
     $('signin').hidden=true;$('workspace').hidden=false;$('error').textContent='';
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
   }catch(err){state.token='';$('error').textContent='Anmeldung fehlgeschlagen: '+err.message;}
 }
 async function initialise(){
@@ -1165,6 +1196,11 @@ $('nav').addEventListener('click',event=>{
   navigateTo(tab);
 });
 $('search').addEventListener('input',render);
+$('refreshLeads').addEventListener('click',refreshLeads);
+// Refresh only while the signed-in CRM is visible; no expensive background polling.
+setInterval(refreshLeads,LEAD_REFRESH_INTERVAL_MS);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLeads();});
+window.addEventListener('focus',refreshLeads);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
 $('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
@@ -1322,6 +1358,7 @@ $('editorForm').addEventListener('submit',async event=>{
 });
 $('logout').addEventListener('click',()=>{
   state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
+  $('syncStatus').textContent='';
   google.accounts.id.disableAutoSelect();$('error').textContent='';
 });
 initialise();

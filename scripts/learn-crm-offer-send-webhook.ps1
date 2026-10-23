@@ -23,7 +23,7 @@ const person={
 const pdf=makePdf(offer,person);
 const mail=renderOfferEmail(offer,person);
 process.stdout.write(JSON.stringify({
-  kind:'offer_send',eventId:'offer_send_TEST_ONLY_learning_20261023',
+  kind:'offer_send',sendMode:'test_only',eventId:'offer_send_TEST_ONLY_learning_20261023',
   offerId:'test-offer-999999',to:'lars.schulthess@outlook.com',
   subject:'[TEST_ONLY] '+mail.subject,
   html:'<p>[TEST_ONLY] Webhook field learning, synthetic PDF only.</p>',

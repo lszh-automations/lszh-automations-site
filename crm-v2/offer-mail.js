@@ -64,6 +64,8 @@ function renderOfferEmail(offer,recipient){
     '<tr><td style="padding-top:12px;color:#526278;font-size:13px;line-height:23px;">Monatliche Leistungen</td>'+
     '<td align="right" style="padding-top:12px;color:#06101d;font-size:15px;font-weight:700;">'+esc(money(totals.monthlyCHF))+' / Monat</td></tr>'+
     '</table></td></tr></table>'+
+    '<p style="margin:12px 0 0;color:#526278;font-size:12px;line-height:19px;">'+
+    'Keine MWST ausgewiesen – LSZH Invest GmbH ist nicht MWST-registriert.</p>'+
     '<p style="margin:23px 0 8px;color:#344259;font-size:14px;line-height:24px;">'+
     'Gültig bis: <strong>'+esc(dateCH(offer.validUntil))+'</strong></p>'+
     '<p style="margin:0 0 22px;color:#526278;font-size:12px;line-height:21px;">'+

@@ -341,3 +341,80 @@ test('directly qualified lead creates an offer with blank description; explicit 
   await store.update('leads',lead.id,{qualificationNotes:'Geändert'},admin);
   assert.equal((await store.get('offerten',offers[0].id)).description,'Manuell erstellte Leistungsbeschreibung');
 });
+
+test('automatic quote send is reserved atomically and blocks changes until Gmail confirms',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const validUntil=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const followUpDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  await store.update('offerten',offer.id,{
+    status:'Bereit',validUntil,
+    items:[{title:'LSZH Automation',qty:1,mode:'einmalig',unitPriceCHF:499}]
+  },admin);
+  const claim=await store.claimOfferSend(offer.id,{followUpDate},admin);
+  assert.equal(claim.to,lead.email);
+  assert.equal(claim.offer.status,'Bereit');
+  assert.match(claim.attemptId,/^[a-f0-9-]{36}$/);
+  assert.equal((await store.get('offerten',offer.id)).offerDispatchState,'sending');
+  await assert.rejects(store.claimOfferSend(offer.id,{followUpDate},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{title:'Changed during send'},admin),{status:409});
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate},admin),{status:409});
+  await assert.rejects(store.finishOfferSend(offer.id,'wrong','confirmed','fake'),{status:409});
+  const done=await store.finishOfferSend(offer.id,claim.attemptId,'confirmed','gmail-ABC');
+  assert.equal(done.status,'Versendet');
+  assert.equal(done.offerDispatchState,'confirmed');
+  assert.equal(done.offerDispatchProviderId,'gmail-ABC');
+  assert.equal(done.sentTo,lead.email);
+  assert.equal(done.followUpDate,followUpDate);
+  await assert.rejects(store.claimOfferSend(offer.id,{followUpDate},admin),{status:409});
+  const accepted=await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+  assert.equal(accepted.status,'Angenommen');
+  assert.equal((await store.list('kunden')).length,1);
+  assert.equal((await store.list('projekte')).length,1);
+});
+test('lost Make receipt requires manual reconciliation and never silently retries',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const validUntil=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const followUpDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  await store.update('offerten',offer.id,{
+    status:'Bereit',validUntil,
+    items:[{title:'Automation',qty:1,mode:'monatlich',unitPriceCHF:189}]
+  },admin);
+  let claim=await store.claimOfferSend(offer.id,{followUpDate},admin);
+  await store.finishOfferSend(offer.id,claim.attemptId,'manual_review','delivery_unconfirmed');
+  assert.equal((await store.get('offerten',offer.id)).offerDispatchState,'manual_review');
+  await assert.rejects(store.claimOfferSend(offer.id,{followUpDate},admin),{status:409});
+  await assert.rejects(store.update('offerten',offer.id,{title:'Unsafe'},admin),{status:409});
+  await assert.rejects(store.recordOfferDispatch(offer.id,{followUpDate},admin),{status:409});
+  const reviewed=await store.resolveOfferSend(offer.id,'not_sent',admin);
+  assert.equal(reviewed.status,'Bereit');
+  assert.equal(reviewed.offerDispatchState,'not_sent');
+  claim=await store.claimOfferSend(offer.id,{followUpDate},admin);
+  assert.notEqual(claim.attemptId,reviewed.offerDispatchAttemptId);
+  await store.finishOfferSend(offer.id,claim.attemptId,'manual_review');
+  const confirmed=await store.resolveOfferSend(offer.id,'confirmed',admin);
+  assert.equal(confirmed.status,'Versendet');
+  assert.equal(confirmed.offerDispatchProviderId,'manual_verification');
+  await assert.rejects(store.resolveOfferSend(offer.id,'not_sent',admin),{status:409});
+});
+test('PDF preparation failure unlocks safe new send attempt without pretending to mail',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);
+  await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0];
+  const until=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const due=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  await store.update('offerten',offer.id,{status:'Bereit',validUntil:until,
+    items:[{title:'Setup',qty:1,mode:'einmalig',unitPriceCHF:100}]},admin);
+  let claim=await store.claimOfferSend(offer.id,{followUpDate:due},admin);
+  const prepared=await store.finishOfferSend(offer.id,claim.attemptId,'preparation_failed');
+  assert.equal(prepared.status,'Bereit');
+  assert.equal(prepared.offerDispatchState,'preparation_failed');
+  claim=await store.claimOfferSend(offer.id,{followUpDate:due},admin);
+  assert.ok(claim.attemptId);
+});

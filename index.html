@@ -1024,7 +1024,7 @@ const legalTexts={
   `,
   datenschutz:`
     <h2>Datenschutzerklärung</h2>
-    <p><strong>Stand: 9. Oktober 2026</strong></p>
+    <p><strong>Stand: 23. Oktober 2026</strong></p>
 
     <h3>1. Verantwortlicher</h3>
     <p>
@@ -1038,20 +1038,21 @@ const legalTexts={
 
     <h3>2. Welche Daten wir über diese Website bearbeiten</h3>
     <p>Beim Absenden des Kontaktformulars bearbeiten wir die von Ihnen eingegebenen Angaben. Dazu gehören insbesondere Name, Firma, E-Mail-Adresse, die Geschäftsadresse, die Beschreibung Ihres Prozesses bzw. Automationswunsches, beteiligte Systeme, das geschilderte Problem, die Prozesshäufigkeit und ein allfälliges gewünschtes Ergebnis.</p>
-    <p>Wir verwenden diese Angaben ausschliesslich zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit.</p>
+    <p>Wir verwenden diese Angaben zur Bearbeitung Ihrer Anfrage, zur Beurteilung eines möglichen Automationsprojekts, zur Kontaktaufnahme sowie zur Vorbereitung und Durchführung einer geschäftlichen Zusammenarbeit. Zur sicheren und nachvollziehbaren Verarbeitung werden zudem eine eindeutige Übermittlungskennung, der Bearbeitungsstatus und Zeitangaben erfasst.</p>
 
-    <h3>3. Eingesetzte Dienstleister</h3>
-    <p>Zur technischen Verarbeitung von Anfragen setzen wir insbesondere folgende Kategorien von Dienstleistern ein:</p>
+    <h3>3. Eingesetzte Dienstleister und Kontaktformular</h3>
+    <p>Beim Absenden des öffentlichen Kontaktformulars werden die Angaben zunächst über den Website-Server bei Render übermittelt. Dieser leitet die Anfrage über eine geschützte serverseitige Verbindung an unser CRM auf Google Cloud Run weiter; die Angaben werden in Google Cloud Firestore gespeichert. Dieser Kontaktformularweg verwendet weder Make noch Airtable.</p>
+    <p>Für den Betrieb dieser Website und unserer weiteren Leistungen setzen wir insbesondere folgende Dienstleister ein:</p>
     <ul>
-      <li><strong>Make</strong> zur technischen Übermittlung und Automatisierung der Formulardaten,</li>
-      <li><strong>Airtable</strong> zur strukturierten Speicherung und Verwaltung von Anfragen und Projektinformationen,</li>
-      <li><strong>Google / Gmail</strong> für interne Benachrichtigungen und geschäftliche Kommunikation,</li>
-      <li><strong>Render</strong> für den Betrieb dieser Website und die serverseitige Verarbeitung der Secure-Transfer-Funktion.</li>
+      <li><strong>Render</strong> für das Hosting der öffentlichen Website und die serverseitigen Website-Schnittstellen,</li>
+      <li><strong>Google Cloud (Cloud Run und Firestore)</strong> für die Verarbeitung und Speicherung der eingehenden Kontaktanfragen und internen CRM-Daten,</li>
+      <li><strong>Google / Gmail</strong> für geschäftliche Kommunikation und gegebenenfalls interne Benachrichtigungen,</li>
+      <li><strong>Make und Airtable</strong> nur soweit diese für separat eingerichtete Automationsabläufe, bestehende Projekte oder andere Website-Funktionen wie den sicheren Zugangsdaten-Transfer verwendet werden, nicht für die Speicherung neuer Kontaktformular-Leads.</li>
     </ul>
     <p>Diese Anbieter bearbeiten Daten im Rahmen der von uns eingesetzten Dienste und ihrer jeweiligen vertraglichen und datenschutzrechtlichen Regelungen.</p>
 
     <h3>4. Bekanntgabe ins Ausland</h3>
-    <p>Bei der Nutzung internationaler Cloud- und Kommunikationsdienste können Personendaten auch ausserhalb der Schweiz bearbeitet werden, insbesondere in Staaten der Europäischen Union bzw. des Europäischen Wirtschaftsraums und in den USA. Soweit erforderlich, stützen wir solche Übermittlungen auf einen Angemessenheitsbeschluss oder auf gesetzlich vorgesehene Garantien, insbesondere anerkannte Standarddatenschutzklauseln.</p>
+    <p>Die produktive CRM-Datenbank von Google Cloud Firestore ist in Zürich (Region europe-west6) eingerichtet. Dies schliesst mögliche Zugriffe, Supportleistungen oder andere technische Bearbeitungen ausserhalb der Schweiz nicht aus. Bei internationalen Cloud- und Kommunikationsdiensten können Personendaten insbesondere in Staaten der Europäischen Union bzw. des Europäischen Wirtschaftsraums und in den USA bearbeitet werden. Soweit erforderlich, stützen wir solche Bekanntgaben auf einen Angemessenheitsbeschluss oder geeignete gesetzlich vorgesehene Garantien, insbesondere anerkannte Standarddatenschutzklauseln.</p>
 
     <h3>5. Aufbewahrung</h3>
     <p>Wir bewahren Personendaten nur so lange auf, wie dies für die Bearbeitung der Anfrage, eine mögliche Geschäftsbeziehung, vertragliche Pflichten oder gesetzliche Aufbewahrungspflichten erforderlich ist. Nicht mehr benötigte Daten werden gelöscht oder anonymisiert, soweit keine Pflicht oder ein berechtigter Grund zur weiteren Aufbewahrung besteht.</p>
@@ -1060,14 +1061,14 @@ const legalTexts={
     <p>Wir treffen angemessene technische und organisatorische Massnahmen, um Personendaten vor Verlust, unbefugtem Zugriff, Veränderung oder unzulässiger Weitergabe zu schützen. Zugriffe auf eingesetzte Systeme werden soweit möglich auf die für den jeweiligen Zweck erforderlichen Berechtigungen beschränkt.</p>
 
     <h3>7. KI-Live-Demos</h3>
-    <p>Für die freiwillig nutzbaren KI-Live-Demos werden die von Ihnen eingegebenen Texte bzw. hochgeladenen Testdokumente technisch über Make an einen KI-Dienst von OpenAI übermittelt, damit die gewünschte Analyse erstellt werden kann. LSZH Automations legt diese Inhalte nicht zusätzlich als eigene Website-Datenbank ab; im Rahmen der technischen Verarbeitung können jedoch Ausführungs- oder Dienstprotokolle bei den eingesetzten Anbietern entstehen und gemäss deren Einstellungen bzw. Aufbewahrungsregeln verarbeitet werden. Verwenden Sie in der öffentlichen Demo deshalb keine vertraulichen Informationen, Geschäftsgeheimnisse oder besonders schützenswerten Personendaten.</p>
+    <p>Für die freiwillig nutzbaren KI-Live-Demos können die von Ihnen eingegebenen Texte bzw. hochgeladenen Testdokumente je nach technischer Konfiguration direkt über unseren Website-Server oder über Make an einen KI-Dienst von OpenAI übermittelt werden, um die gewünschte Analyse zu erstellen. LSZH Automations legt diese Inhalte nicht zusätzlich als eigene Website-Datenbank ab; bei den beteiligten Anbietern können jedoch technische Protokolle entstehen, die nach deren jeweiligen Bedingungen aufbewahrt werden. Verwenden Sie in den öffentlichen Demos deshalb keine vertraulichen Informationen, Geschäftsgeheimnisse oder besonders schützenswerten Personendaten.</p>
 
     <h3>8. Sichere Übermittlung technischer Zugangsdaten</h3>
     <p>Für Kundenprojekte kann LSZH Automations einen zeitlich begrenzten Secure-Transfer-Link bereitstellen, über den beispielsweise ein dedizierter API-Schlüssel oder ein anderes technisches Secret übermittelt werden kann. Das eingegebene Secret wird auf dem LSZH-Webserver vor der Speicherung mit einem serverseitig verwahrten Schlüssel verschlüsselt. An Make und Airtable werden nur die verschlüsselte Nutzlast sowie notwendige Metadaten wie Unternehmen, System, Status und Ablaufzeitpunkt übermittelt. Der verwendete Kunden-Link wird nicht im Klartext gespeichert, sondern nur in Form eines kryptografischen Hashwerts.</p>
     <p>Nach dem einmaligen Abruf durch LSZH Automations wird die verschlüsselte Nutzlast aus der Transfer-Ablage gelöscht; zurück bleiben nur administrative Nachweisdaten zum Transfer. Die Funktion ist nicht für normale Benutzerpasswörter, Recovery-Codes oder MFA-Codes vorgesehen.</p>
 
     <h3>9. Cookies und Tracking</h3>
-    <p>Diese Version der Website verwendet keine Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Das Kontaktformular und die KI-Demos übermitteln Daten erst, wenn Sie die jeweilige Funktion aktiv auslösen.</p>
+    <p>Diese Version der Website verwendet keine zusätzlichen Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Die Hosting- und Cloud-Anbieter können technisch notwendige Zugriffs- und Sicherheitsprotokolle (beispielsweise IP-Adresse, Zugriffszeit und technische Browserdaten) verarbeiten. Das Kontaktformular und die KI-Demos übermitteln die jeweils eingegebenen Inhalte erst, wenn Sie die entsprechende Funktion aktiv nutzen.</p>
 
     <h3>10. Ihre Rechte</h3>
     <p>Im Rahmen des anwendbaren Schweizer Datenschutzrechts können Sie insbesondere Auskunft über die Bearbeitung Ihrer Personendaten verlangen und, soweit die gesetzlichen Voraussetzungen erfüllt sind, die Berichtigung, Herausgabe oder Löschung Ihrer Daten verlangen bzw. einer bestimmten Bearbeitung widersprechen.</p>

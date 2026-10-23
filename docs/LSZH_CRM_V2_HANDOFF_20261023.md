@@ -10,7 +10,7 @@
 - Cloud Run: `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`
 - **Live Revision: `lszh-crm-v2-00041-far` (100 % Traffic)**
 - **Rollback-Revision: `lszh-crm-v2-00038-gic`**
-- Swiss-QR-PDF nun im bestehenden Google-authentifizierten Live-CRM manuell downloadbar; geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Authentifizierter Download einer echten Rechnung und manuelle PDF-Abnahme stehen noch aus.
+- Swiss-QR-PDF nun im bestehenden Google-authentifizierten Live-CRM manuell downloadbar; geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Der E2E-PDF-Download RE-1001 und der QR-Scan wurden nachgewiesen. **ABNAHME GESPERRT:** Das LIVE-PDF von Revision 00041-far zeichnet vier übergrosse Scheren-Kreise über Rechnung und Zahlteil. Eine Korrektur ist in isoliertem Render-QA erfolgreich getestet, aber noch NICHT produktiv. **Keine QR-Rechnungs-PDFs extern versenden, bis der Layoutfix live bestätigt und visuell abgenommen ist.**
 - Bisheriger E-Mail-Cutoff unverändert: `2026-10-23T16:15:28Z`
 - CRM-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`
 - Produktiver Lead-Eingang: Render Website → Cloud Run → Firestore mit Namespace `lszh_crm_v2_`. Ein Airtable-Import wurde ausdrücklich **abgewählt**.

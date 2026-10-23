@@ -118,8 +118,8 @@ try {
   Write-Host "PASS: $candidate erhaelt 100 Prozent produktiven Traffic"
 
   Write-Host "3. Live-CRM-URL und anonymen API-Schutz kontrollieren"
-  $home=Http ($productionUrl+"/")
-  if($home.status -ne 200 -or $home.content -notmatch "LSZH"){throw "CRM V2 Live-HTML nicht erreichbar"}
+  $crmHomeResponse=Http ($productionUrl+"/")
+  if($crmHomeResponse.status -ne 200 -or $crmHomeResponse.content -notmatch "LSZH"){throw "CRM V2 Live-HTML nicht erreichbar"}
   $config=Http ($productionUrl+"/api/config")
   if($config.status -ne 200){throw "CRM V2 OAuth-Konfiguration fehlt"}
   $records=Http ($productionUrl+"/api/records/leads")

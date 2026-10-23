@@ -329,6 +329,13 @@ async function handle(req,res){
     if(!Object.keys(updates).length)throw error('Keine Änderung');
     const now=new Date().toISOString();
     const record=db[tab][idx];
+    // The local preview has NO authenticated roles. Accepted offers are
+    // immutable here, even if the request bypasses the visible editor.
+    // Future corrections must use real server-verified permission + audit trail.
+    if(tab==='offerten' && (
+      record.status==='Angenommen' ||
+      (record.leadId && db.leads.some(lead=>lead.id===record.leadId && lead.status==='Gewonnen'))
+    ))throw error('Angenommene Offerte ist gesperrt. Korrekturen benötigen Sonderrechte und eine nachvollziehbare neue Version.',403);
     const merged={...record,...updates,updatedAt:now};
     validate(tab,merged);
     // Apply the linked status transition to all local records before one save.

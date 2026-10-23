@@ -63,6 +63,18 @@ Bestehende lokale Datensätze bleiben erhalten. Alte `In Prüfung`-Status werden
 
 **Spätere Sonderrechte:** Für produktive Admin-Korrekturen brauchen wir Google-Login mit serverseitiger Rollenprüfung (z. B. Berechtigung `offer:correct`), eine Begründung sowie einen unveränderbaren Audit-Eintrag. Korrekturen sollten eine **neue Offertenversion** erzeugen, die ursprüngliche angenommene Fassung aufbewahren und bestehende Projekte/Verträge nicht still überschreiben. Diese privilegierte Änderungsfunktion ist noch **nicht** freigeschaltet. Die lokale Testversion hat keine echte Identitäts- oder Rollenverwaltung; daher existiert absichtlich kein Admin-Bypass.
 
+## Rechnungsverwaltung V1: Rechnung, Fälligkeit, Zahlung
+
+Im Register **Rechnungen** gibt es jetzt einen eigenen, bewusst einfachen Editor:
+
+- **Erstellen:** Kunde, optionales Projekt, Beschreibung, Rechnungsdatum und Fälligkeit wählen; eine oder mehrere Positionen (Leistung, Menge, Einzelpreis CHF) erfassen und speichern. Die nächste Rechnungsnummer wird fortlaufend als `RE-1001` usw. vergeben (bestehende `RE-1000` bleibt erhalten). Die Summe wird ausschliesslich aus Positionen auf Rappen genau berechnet und auf dem Dashboard übernommen.
+- **Projekt → Rechnung:** Ein bestehendes Projekt über `Projekte → Öffnen` aufrufen und `Rechnung erstellen` anklicken. Kunde, Projekt und Beschreibung sind vorausgefüllt, aber noch nichts gespeichert oder versendet.
+- **Vier Zahlungsstatus:** `Entwurf` → `Offen` → `Bezahlt`; `Storniert` für nicht zu bezahlende Rechnungen. `Offen` verlangt gültigen Kunden, Zieltermin und Positionen mit positivem Betrag. Von `Entwurf` direkt zu `Bezahlt` ist nicht möglich. Eine als `Bezahlt` oder `Storniert` markierte Rechnung wird schreibgeschützt; Änderungen werden auch in der lokalen API abgelehnt.
+- **Fälligkeit:** Überfällige offene Rechnungen werden im Rechnungsregister kenntlich gemacht und erscheinen im Dashboard unter `Jetzt wichtig`. Bezahlte Rechnungen zählen als Zahlungseingänge, offene Rechnungen als Forderungen.
+- **Druckansicht:** `Druckansicht / PDF` öffnet eine A4-HTML-Testvorschau der gespeicherten Rechnung. Mit `Drucken / als PDF speichern` kann sie lokal als PDF gespeichert werden. Eine Vorschau enthält eine deutliche Testkennzeichnung und ist **keine gültige Zahlungsaufforderung**.
+
+**Kein echter Swiss-QR-Zahlteil**: LSZH Invest GmbH benötigt vor dem produktiven Versand eine bestätigte Zahlungsempfängeradresse, IBAN/QR-IBAN, Bankdaten und eine geprüfte Rechnungs-/MWST-Konfiguration. Die lokale Vorschau erfindet keine Bankdaten, generiert keinen scheinbar gültigen Zahlcode und versendet keine E-Mail. Die Verknüpfung Projekt/Kunde wird auf der lokalen API geprüft. Die Rechnungen bleiben ausschliesslich in `crm-v2/.local-preview/data.json`; die produktive Cloud-CRM-API hat diese Rechnungserweiterung noch nicht.
+
 ## Projektverwaltung V1: einfacher Umsetzungsablauf
 
 Projekte werden nach **Gewonnen / Angenommen** automatisch mit dem richtigen Kunden und der akzeptierten Offerte angelegt. Der Standardstatus ist `Geplant`, die Aufgabenliste startet leer. Bereits bestehende lokale Projekte bleiben unverändert.

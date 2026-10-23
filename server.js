@@ -709,8 +709,15 @@ function staticFile(req, res) {
   if (pathname === '/crm-v2' || pathname.startsWith('/crm-v2/')) return send(res,404,'Not found','text/plain');
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/onboarding' || pathname === '/onboarding/') pathname = '/onboarding/index.html';
+  if (pathname === '/offerte-annehmen' || pathname === '/offerte-annehmen/') pathname = '/offerte-annehmen/index.html';
   if (pathname === '/secure' || pathname === '/secure/') pathname = '/secure/index.html';
   if (pathname === '/secure-admin' || pathname === '/secure-admin/') pathname = '/secure-admin/index.html';
+  if (pathname.startsWith('/offerte-annehmen/')) {
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  }
   if (pathname.startsWith('/secure/')) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
@@ -731,6 +738,7 @@ function staticFile(req, res) {
     });
   });
 }
+const offerAcceptance = require('./offerAcceptance')({send,readJson,sameOrigin,rateLimited,clientIp});
 const server=http.createServer(async (req,res)=>{
   let urlObj;
   try { urlObj=new URL(req.url,'http://local'); }
@@ -748,6 +756,9 @@ const server=http.createServer(async (req,res)=>{
 
   if (req.method==='POST' && pathname==='/api/lead') return handleWebsiteLead(req,res);
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/preview') return offerAcceptance.preview(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/accept') return offerAcceptance.accept(req,res);
+  if (req.method==='POST' && pathname==='/api/offer/document') return offerAcceptance.document(req,res);
   if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
   if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);

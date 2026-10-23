@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Offerte prüfen & annehmen | LSZH Automations</title>
+<style>
+:root{--ink:#142238;--muted:#68798c;--line:#dce4ec;--blue:#3e75bb;--dark:#071522}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fa;color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:#285e9d}
+main{width:min(730px,calc(100% - 30px));margin:40px auto 65px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:32px}
+.brand{font-size:21px;font-weight:800;letter-spacing:-.6px}.brand em{font-size:12px;font-style:normal;color:var(--blue);letter-spacing:1px}
+.pill{padding:6px 10px;border-radius:99px;background:#e8eef5;color:#53697c;font-size:12px;font-weight:700}
+.card{background:white;border:1px solid var(--line);border-radius:20px;padding:34px;box-shadow:0 18px 45px rgba(15,37,62,.06)}
+.kicker{text-transform:uppercase;letter-spacing:1.6px;color:var(--blue);font-size:11px;font-weight:800}
+h1{font-size:clamp(28px,5vw,39px);letter-spacing:-1.2px;line-height:1.15;margin:12px 0 16px}
+h2{font-size:19px;letter-spacing:-.4px;margin:30px 0 12px}
+p{color:#42566a;margin:0 0 16px}
+.summary{border-top:1px solid var(--line);margin-top:23px}
+.data{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid var(--line)}
+.data span{color:#697a8c}.data strong{text-align:right}
+.doc{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin:10px 0;color:var(--ink);text-decoration:none}
+.doc:hover{border-color:var(--blue);background:#f8fbff}
+.doc strong{display:block;font-size:14px}.doc small{font-size:12px;color:var(--muted)}
+.doc i{font-style:normal;color:var(--blue);font-weight:800}
+label.field{font-size:13px;font-weight:700;display:block;margin:15px 0 7px}
+input[type=text],input[type=email]{width:100%;padding:13px 14px;border:1px solid #bfcbd9;border-radius:11px;font:inherit;color:var(--ink)}
+input:focus{outline:3px solid #dceaff;border-color:var(--blue)}
+.check{display:flex;align-items:flex-start;gap:12px;margin:16px 0;cursor:pointer}
+.check input{margin-top:5px;min-width:18px;min-height:18px}
+.check span{font-size:13px;color:#435466}
+button{width:100%;padding:15px 20px;border:0;border-radius:11px;background:#15375d;color:#fff;font:inherit;font-weight:750;cursor:pointer}
+button:disabled{opacity:.42;cursor:not-allowed}
+.note{font-size:12px;color:var(--muted);margin:11px 0 0}
+.banner{padding:16px 19px;border-radius:12px;background:#eaf1f8;color:#285073;margin-bottom:22px}
+.banner.error{background:#fff0ef;color:#9c3838}
+.banner.success{background:#eaf7f2;color:#186848}
+footer{margin-top:26px;font-size:12px;color:#697a8c;text-align:center}
+.hidden{display:none}
+@media(max-width:560px){main{margin-top:24px}.card{padding:24px 19px}.data{display:grid;gap:3px}.data strong{text-align:left}.top{display:grid}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div class="brand">LSZH <em>AUTOMATIONS</em></div><span class="pill">Sichere Offertenprüfung</span></div>
+<section class="card">
+<div class="kicker">LSZH INVEST GMBH · WOHLen (AG)</div>
+<h1>Ihre Offerte. In Ruhe entscheiden.</h1>
+<p>Prüfen Sie vor einer verbindlichen Annahme zuerst die Offerte und die dazugehörigen Projektbedingungen. Ihre Make-Organisation bleibt Eigentum Ihres Unternehmens.</p>
+<div id="message" class="banner" role="status" aria-live="polite">Bitte öffnen Sie den persönlichen Link aus Ihrer Offerten-E-Mail.</div>
+<div id="review" class="hidden">
+<div class="summary">
+<div class="data"><span>Offertennummer</span><strong id="number"></strong></div>
+<div class="data"><span>Unternehmen</span><strong id="company"></strong></div>
+<div class="data"><span>Leistung</span><strong id="service"></strong></div>
+<div class="data"><span>Einmalige Umsetzung</span><strong id="once"></strong></div>
+<div class="data"><span>Laufende Betreuung</span><strong id="monthly"></strong></div>
+<div class="data"><span>Zahlungsmodell</span><strong id="payment"></strong></div>
+<div class="data"><span>Gültig bis</span><strong id="validUntil"></strong></div>
+</div>
+<h2>1. Dokumente herunterladen und prüfen</h2>
+<a id="quotePdf" class="doc" href="#" download><span><strong>Offerte als PDF</strong><small>Leistungsumfang, Preise und Zahlungsmodell</small></span><i>↗</i></a>
+<a id="termsPdf" class="doc" href="#" download><span><strong>Projektbedingungen als PDF</strong><small id="termsVersion"></small></span><i>↗</i></a>
+<h2>2. Wer nimmt die Offerte an?</h2>
+<form id="acceptForm">
+<label class="field" for="person">Vor- und Nachname</label>
+<input id="person" type="text" maxlength="120" minlength="4" autocomplete="name" required placeholder="Vor- und Nachname">
+<label class="field" for="email">Geschäftliche E-Mail-Adresse der Offertenempfängerin / des Offertenempfängers</label>
+<input id="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@unternehmen.ch">
+<h2>3. Verbindliche Bestätigung</h2>
+<label class="check"><input id="authorized" type="checkbox" required><span>Ich bin berechtigt, für das oben genannte Unternehmen diese Offerte anzunehmen.</span></label>
+<label class="check"><input id="terms" type="checkbox" required><span>Ich habe die Offerte und die Projektbedingungen der angegebenen Version zur Kenntnis nehmen können und akzeptiere sie als Bestandteil des Vertrags.</span></label>
+<button id="submit" type="submit">Offerte verbindlich annehmen</button>
+<p class="note">Mit diesem Klick nehmen Sie die oben bezeichnete Offerte für Ihr Unternehmen verbindlich an. Vorher können Sie Ihre Eingaben noch ändern. Die Zustimmung mit Dokumentversion und Zeitpunkt wird protokolliert.</p>
+</form>
+</div>
+<div id="completed" class="hidden" role="status" aria-live="polite">
+<h2>Vielen Dank – Ihre Annahme wurde gespeichert.</h2>
+<p id="receipt"></p>
+<p>Sie erhalten eine elektronische Bestätigung an die angegebene Geschäftsadresse. Falls sie ausbleibt, wenden Sie sich bitte an <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a>.</p>
+</div>
+</section>
+<footer>LSZH Automations · Geschäftsbereich der LSZH Invest GmbH · Rummelmatt 8, 5610 Wohlen AG · <a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></footer>
+</main>
+<script>
+(function(){
+'use strict';
+const params=new URLSearchParams(location.search);
+const code=params.get('code')||'';
+const demo=params.get('demo')==='1';
+const message=document.getElementById('message');
+const form=document.getElementById('acceptForm');
+const button=document.getElementById('submit');
+const review=document.getElementById('review');
+const completed=document.getElementById('completed');
+let current=null;
+history.replaceState(null,'',location.pathname);
+function setMessage(value,kind){message.textContent=value;message.className='banner'+(kind?' '+kind:'');message.classList.remove('hidden');}
+function money(value){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(Number(value)||0);}
+function txt(id,value){document.getElementById(id).textContent=String(value??'');}
+function showOffer(o){
+current=o;
+txt('number',o.number);txt('company',o.company);txt('service',o.service);
+txt('once',money(o.once));txt('monthly',money(o.monthly)+' / Monat');
+txt('payment',o.payment_model);
+const date=String(o.valid_until||'').split('-');
+txt('validUntil',date.length===3?date[2]+'.'+date[1]+'.'+date[0]:o.valid_until);
+txt('termsVersion','Vertragsversion '+o.terms_version);
+review.classList.remove('hidden');
+message.classList.add('hidden');
+}
+async function downloadVerifiedPdf(which){
+  if(demo){
+    setMessage('Dies ist eine Designvorschau. Es gibt keine echten Vertragsdokumente.','');
+    return;
+  }
+  if(!current || !/^[A-Za-z0-9_-]{32,80}$/.test(code))return;
+  const link=document.getElementById(which==='quote'?'quotePdf':'termsPdf');
+  link.setAttribute('aria-busy','true');
+  try{
+    const r=await fetch('/api/offer/document',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,which}),cache:'no-store',credentials:'same-origin'
+    });
+    if(!r.ok){
+      let payload={};try{payload=await r.json();}catch{}
+      throw new Error(payload.error||'archive_unavailable');
+    }
+    const blob=await r.blob();
+    if(blob.type!=='application/pdf'||blob.size<8)throw new Error('archive_unavailable');
+    const objectUrl=URL.createObjectURL(blob);
+    const name=(which==='quote'?'LSZH_Offerte_'+current.number:
+      'LSZH_Projektbedingungen_'+current.terms_version).replace(/[^A-Za-z0-9_.-]/g,'_');
+    const anchor=document.createElement('a');
+    anchor.href=objectUrl;anchor.download=name+'.pdf';
+    document.body.appendChild(anchor);
+    anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+  }catch(error){
+    setMessage(errors[error.message]||errors.archive_unavailable,'error');
+  }finally{link.removeAttribute('aria-busy');}
+}
+for(const [id,which] of [['quotePdf','quote'],['termsPdf','terms']]){
+  document.getElementById(id).addEventListener('click',e=>{
+    e.preventDefault();downloadVerifiedPdf(which);
+  });
+}
+async function request(path,payload){
+const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin'});
+let data={};try{data=await r.json();}catch{}
+if(!r.ok||!data.ok)throw new Error(data.error||'temporary_failure');
+return data;
+}
+const errors={
+not_available:'Die Online-Annahme ist noch nicht freigeschaltet. Sie können uns direkt kontaktieren.',
+invalid_or_expired:'Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte fordern Sie bei uns einen neuen Link an.',
+already_accepted_or_expired:'Diese Offerte kann nicht mehr angenommen werden. Möglicherweise ist sie bereits angenommen oder abgelaufen.',
+document_changed:'Die Dokumente wurden zwischenzeitlich geändert. Bitte laden Sie die Seite über den ursprünglichen Offertenlink erneut.',
+archive_changed:'Die archivierten Dokumente stimmen nicht mehr mit den vereinbarten Versionen überein. Bitte kontaktieren Sie uns.',
+archive_unavailable:'Die gesicherten Dokumente sind vorübergehend nicht abrufbar. Bitte kontaktieren Sie uns.',
+email_mismatch:'Bitte verwenden Sie die E-Mail-Adresse, an welche die Offerte verschickt wurde.',
+consent_required:'Bitte bestätigen Sie beide Erklärungen.',
+invalid_identity:'Bitte überprüfen Sie Ihren Namen und Ihre geschäftliche E-Mail-Adresse.',
+already_processing:'Ihre Annahme wird bereits verarbeitet.',
+rate_limited:'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
+temporarily_unavailable:'Die Verbindung ist derzeit gestört. Bitte versuchen Sie es später erneut oder kontaktieren Sie uns.'
+};
+if(demo){
+showOffer({number:'MUSTER-2026-001',company:'Muster KMU AG',service:'Automatisierter Anfrageprozess',
+once:1490,monthly:149,payment_model:'50 % bei Auftrag / 50 % nach Abnahme',
+valid_until:'2026-11-30',terms_version:'ENTWURF – nicht freigegeben',
+quote_sha256:'',terms_sha256:''});
+setMessage('Nur eine unverbindliche Designvorschau. Es wird kein Vertrag abgeschlossen.','');
+button.disabled=true;
+}else if(!/^[A-Za-z0-9_-]{32,80}$/.test(code)){
+setMessage('Bitte öffnen Sie den persönlichen, vollständigen Link aus Ihrer Offerten-E-Mail.','error');
+}else{
+setMessage('Ihre Offerte wird geladen …','');
+request('/api/offer/preview',{code}).then(d=>showOffer(d.offer)).catch(e=>setMessage(errors[e.message]||errors.temporarily_unavailable,'error'));
+}
+form.addEventListener('submit',async e=>{
+e.preventDefault();
+if(!current||demo||!form.reportValidity())return;
+button.disabled=true;button.textContent='Annahme wird sicher gespeichert …';
+setMessage('Bitte schliessen Sie die Seite nicht, bis die Annahme bestätigt wurde.','');
+try{
+const result=await request('/api/offer/accept',{
+code,name:document.getElementById('person').value,
+email:document.getElementById('email').value,
+authorized:document.getElementById('authorized').checked,
+accept_terms:document.getElementById('terms').checked,
+quote_sha256:current.quote_sha256,terms_sha256:current.terms_sha256
+});
+review.classList.add('hidden');message.classList.add('hidden');
+completed.classList.remove('hidden');
+txt('receipt','Offerte '+result.offer_number+' wurde verbindlich angenommen und protokolliert.'+
+(result.confirmation_email_pending?' Der Versand der E-Mail-Bestätigung wird noch verarbeitet.':''));
+}catch(err){
+setMessage(errors[err.message]||errors.temporarily_unavailable,'error');
+button.disabled=false;button.textContent='Offerte verbindlich annehmen';
+}
+});
+})();
+</script>
+</body>
+</html>

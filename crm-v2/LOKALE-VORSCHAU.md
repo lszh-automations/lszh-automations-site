@@ -55,6 +55,14 @@ Die lokale Vorschau prüft ungefähr jede Minute, ob ein Lead **24 Stunden nach 
 
 Bestehende lokale Datensätze bleiben erhalten. Alte `In Prüfung`-Status werden in der Lead-Ansicht als **bisheriger Status** angezeigt, bis sie manuell einer der fünf neuen Kategorien zugeordnet werden. Bereits qualifizierte Leads, für die noch keine Offerte existiert, bekommen einmalig einen verknüpften Test-Entwurf beim Laden. Historische unberührte Beispiel-Falschzuordnungen werden wie bisher nur unter den strengen Demo-Migrationsbedingungen korrigiert.
 
+## Angenommene Offerten: Sperre und künftige Sonderrechte
+
+**Verbindliche Regel:** Sobald die Offerte den Status **Angenommen** hat (oder der verknüpfte Lead **Gewonnen** ist), wird die Offerte in der lokalen Vorschau schreibgeschützt. Der Offerten-Editor zeigt einen klaren Hinweis, deaktiviert alle Eingaben und blendet die Aktionen zum Speichern, Hinzufügen und Entfernen von Positionen aus. Die gespeicherte A4-Druckansicht bleibt zugänglich.
+
+**Serverseitige Sperre:** Jeder `PATCH /api/records/offerten/:id` für angenommene Offerten wird mit HTTP 403 abgewiesen, unabhängig davon, ob Titel, Leistungen, Preise, Gültigkeit oder Status geändert werden sollen. Ein reiner Frontend-Schalter genügt nicht.
+
+**Spätere Sonderrechte:** Für produktive Admin-Korrekturen brauchen wir Google-Login mit serverseitiger Rollenprüfung (z. B. Berechtigung `offer:correct`), eine Begründung sowie einen unveränderbaren Audit-Eintrag. Korrekturen sollten eine **neue Offertenversion** erzeugen, die ursprüngliche angenommene Fassung aufbewahren und bestehende Projekte/Verträge nicht still überschreiben. Diese privilegierte Änderungsfunktion ist noch **nicht** freigeschaltet. Die lokale Testversion hat keine echte Identitäts- oder Rollenverwaltung; daher existiert absichtlich kein Admin-Bypass.
+
 ## Offertenverwaltung V1: Positionen und Druckvorschau
 
 Im Register **Offerten** öffnet `Bearbeiten` jetzt einen übersichtlichen spezialisierten Offerten-Editor. Er ersetzt für Offerten das bisherige generische Formular.

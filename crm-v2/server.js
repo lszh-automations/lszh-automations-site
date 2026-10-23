@@ -131,6 +131,13 @@ async function handler(req,res){
     const project=invoice.projectId?await store.get('projekte',invoice.projectId):null;
     return reply(res,200,renderInvoicePreview(invoice,customer,project),'text/html; charset=utf-8');
   }
+  // All contact entries require the existing Google-authenticated CRM session.
+  const contactPath=pathname.match(/^\/api\/records\/leads\/([A-Za-z0-9_-]{1,100})\/contacts$/);
+  if(contactPath){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,201,{contact:await store.addContact(contactPath[1],await json(req),user)});
+  }
   const parts=pathname.split('/').filter(Boolean);
   if(parts[0]!=='api'||parts[1]!=='records'||!store.TABLES.includes(parts[2])||parts.length>4)
     return reply(res,404,{error:'not_found'});

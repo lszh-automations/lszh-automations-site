@@ -33,9 +33,14 @@ function Config($rev,[string]$key){
   return $v[0]
 }
 function Signature($rev){
-  return (@(@($rev.spec.containers)[0].env|Sort-Object name|ForEach-Object {
-    [pscustomobject]@{name=$_.name;value=$_.value;valueFrom=($_.valueFrom|ConvertTo-Json -Depth 12 -Compress)}
-  })|ConvertTo-Json -Depth 16 -Compress)
+  $items=@(@($rev.spec.containers)[0].env|Sort-Object name|ForEach-Object {
+    [pscustomobject]@{
+      name=$_.name
+      value=$_.value
+      valueFrom=($_.valueFrom|ConvertTo-Json -Depth 12 -Compress)
+    }
+  })
+  return ($items|ConvertTo-Json -Depth 16 -Compress)
 }
 function HttpCode([string]$url){
   try {
@@ -83,7 +88,8 @@ try {
     @('CRM_INVOICE_QR_ENABLED','true'),
     @('CRM_INVOICE_PRODUCTION_APPROVED','true')
   )){
-    if([string](Config $old $pair[0]).value -cne [string]$pair[1]){
+    $value=Config $old ([string]$pair[0])
+    if([string]$value.value -cne [string]$pair[1]){
       throw ('Protected baseline mismatch: '+$pair[0])
     }
   }

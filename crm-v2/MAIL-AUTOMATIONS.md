@@ -1,3 +1,17 @@
+## Produktionsumschaltung – vorbereitete Mail-Revision ohne Versand (23.10.2026)
+
+Das dokumentierte Live-CRM verwendet Revision `lszh-crm-v2-00006-moz` zu 100 %, der Mailkandidat `lszh-crm-v2-00008-zog` ist fertig deployed und hat 0 % Traffic. Die echte HTTP-POST-Prüfung des Mailendpunkts ergab **404 beim Kandidaten** (deaktiviert) und **401 bei der alten Live-Version** (bisheriger Login-Schutz). Cloud Scheduler `lszh-crm-v2-mail-tick` ist PAUSED; Make Szenario 8135270 ist inaktiv. Das Mail-Secret ist bereits in Secret Manager gespeichert.
+
+Neu: `scripts/cutover-crm-mail-safe.ps1` führt den ersten Teil des Go-lives durch, **ohne produktive E-Mails einzuschalten**. Das Skript startet alle CRM-Regressionstests, kontrolliert alte/neue Revision und identische Konfiguration von Datenbank, Website-Intake, OAuth und Dienstkonto, prüft das pausierte Scheduler-Jobziel sowie das deaktivierte Mail-Gate. Erst dann setzt es 100 % Traffic auf `00008-zog` und testet fünf HTTP-Endpunkte erneut. Bei jedem fehlgeschlagenen Post-Switch-Test wird automatisch auf `00006-moz` zurückgeschaltet. Die vorherige funktionierende Revision bleibt als Rollback erhalten.
+
+Auf dem Surface nach `git pull --ff-only` auf dem Branch `feature/crm-v2-cloud-staging-20261023` ausführen:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\cutover-crm-mail-safe.ps1"
+```
+
+Zielausgabe: `CUTOVER PASS: lszh-crm-v2-00008-zog = 100 percent, mail OFF`. **Danach erst** die eigentliche Mail-Aktivierung: Gmail/Make prüfen, neuen UTC-Aktivierungszeitpunkt einführen (keine rückwirkenden Altlead-Mails), neue sendefähige Cloud-Run-Revision vorbereiten, Post-Switch-Sicherheit prüfen und den minütlichen Scheduler **als letzten Schritt** freigeben. Die Mailzustellung an echte Kunden muss dabei separat abgenommen werden; die bisherige Testmail hat nur den geschäftlichen Versand nachgewiesen.
+
 ## Cloud Scheduler Vorbereitung – Wiederaufnahme nach URI-Fehler
 
 Erster Lauf des PowerShell-Vorbereitungsskripts am 23.10.2026: **31/31 Tests PASS**, APIs aktiviert, Secret `lszh-crm-v2-mail-make-hook` mit Version 1 gespeichert und Berechtigung gesetzt, separates Scheduler-Dienstkonto erstellt. Abbruch beim Anlegen des Scheduler-Jobs, da die CLI `--uri` als leere Adresse erhielt. Daher keine Cloud-Run-Mailrevision deployed und keine Mail versendet.

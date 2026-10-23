@@ -18,6 +18,15 @@ Der Geschäftsführer bestätigt, dass in der Cloud-Version (`lszh-crm-v2-stagin
 
 **Nächste zielorientierte Schritte:** Live-Eingangsintegration ohne Downtime und mit überprüfbarem Rückfallweg vorbereiten; Vorhandene Live-Daten/Nummernkreis sowie Identitäts-/Zugriffsrechte und Backup prüfen. Erst nach Freigabe umschalten. Kundenversand bleibt gesperrt.
 
+### 23.10.2026 – Website-Anbindung und Vorbereitung des Produktivstarts
+
+- Analyse Website-`index.html` und Render-`server.js`: Hauptkontaktformular sendet bereits `POST /api/lead` und serverseitig über `CRM_LEAD_INGEST_URL` und `CRM_INGEST_SECRET` zu Firestore (direkt, ohne Make-/Airtable-Zwischenstufe). Ob die Live-Render-Umgebungsvariablen tatsächlich korrekt gesetzt sind, bleibt zu bestätigen.
+- Wichtigste Anpassung im Cloud-Staging-Entwicklungsbranch: Annahme von Website-Leads in `crm-v2/server.js` verwendet nun die konfigurierte Firestore-Sammlung. `lead-ingest.js` erlaubt ausschliesslich `lszh_crm_v2_leads` beziehungsweise `lszh_crm_v2_staging_leads`. Schutz gegen irrtümliches Schreiben synthetischer Staging-Leads in die Live-Lead-Sammlung.
+- Neue serverseitige Tests für identische Wiederholung (200), neue Einreichung (201), Konflikt (409), fehlendes Token (401) und deaktivierte Staging-Route (404).
+- `scripts/test-crm-website-intake-staging.ps1`: einmaliger künstlicher HTTP-End-to-End-Test auf Cloud Run mit eigenem Secret Manager-Schlüssel und Deaktivierung des Staging-Webhooks im Anschluss; erst nach erneutem Cloud-Staging-Deploy ausführen.
+- `scripts/preflight-crm-production.ps1`: reiner Lesecheck bestehender Cloud-Run-Revisionen, Servicekonto und Secret-Referenz. Produktivdateninventar, Backup und Render-Umgebung weiter offen.
+- Ausführlicher Cutover-Plan: `crm-v2/WEBSITE-CUTOVER.md`. **Keine Render-Veränderung, kein Merge in main, kein Live-Cloud-Run-Deployment, keine Kundenmails.**
+
 ## Geschäftsmodell / Eigentümerschaft
 
 - LSZH Automations erbringt Beratung, Entwicklung, Einrichtung, Tests, Dokumentation und optionale Wartung für Schweizer KMU.

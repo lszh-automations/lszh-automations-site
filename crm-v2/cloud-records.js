@@ -7,6 +7,8 @@ const {quoteTotals}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
 const {cleanProjectTasks}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
+const {randomUUID}=require('node:crypto');
+const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,offerDescription}=require('./lead-contact');
 
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
 const STATUS={
@@ -17,7 +19,7 @@ const STATUS={
   projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']
 };
 const FIELDS={
-  leads:['name','company','email','street','postalCode','city','country','message','currentProcess','systems','mainProblem','frequency','desiredResult','status'],
+  leads:['name','company','email','street','postalCode','city','country','message','currentProcess','systems','mainProblem','frequency','desiredResult','budgetRange','qualificationNotes','nextAction','followUpDate','status'],
   kunden:['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten:['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen:['customerId','projectId','description','invoiceDate','items','amountCHF','dueDate','status'],
@@ -55,6 +57,9 @@ function clean(table,input){
     }
     if(typeof value!=='string'||value.length>5000)throw err('Ungültiges Feld: '+field);
     const text=value.trim();
+    if(field==='nextAction'&&text.length>180)throw err('Nächste Aktion maximal 180 Zeichen');
+    if(field==='qualificationNotes'&&text.length>2000)throw err('Qualifizierungsnotizen maximal 2000 Zeichen');
+    if(field==='budgetRange'&&text.length>100)throw err('Budgetrahmen maximal 100 Zeichen');
     if(field==='email'&&text&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text))throw err('Ungültige E-Mail');
     if(field==='status'&&text&&!STATUS[table].includes(text))throw err('Ungültiger Status');
     if(['dueDate','validUntil','invoiceDate'].includes(field)&&text&&!/^\d{4}-\d{2}-\d{2}$/.test(text))
@@ -185,6 +190,7 @@ function buildStore(db,prefix){
     if(table==='rechnungen'&&input.status==='Bezahlt')throw err('Rechnung zuerst auf Offen setzen');
     if(table==='offerten'&&input.status==='Angenommen')throw err('Offerte zuerst speichern, dann auf Angenommen setzen');
     verify(table,input);
+    if(table==='leads')followUpFields(input);
     const date=now(),ref=col(table).doc();
     if(table==='kunden'){
       await ref.create(newRecord(input,user,date));
@@ -200,7 +206,7 @@ function buildStore(db,prefix){
           const offer=newRecord({
             number:String(counter.next),leadId:ref.id,customerId:'',
             title:'Automation für '+input.company,
-            description:input.message||'',items:[],oneTimeCHF:0,monthlyCHF:0,
+            description:offerDescription(input),items:[],oneTimeCHF:0,monthlyCHF:0,
             validUntil:'',status:'Entwurf'
           },user,date);
           tx.set(counter.reference,{next:counter.next+1},{merge:true});
@@ -255,6 +261,8 @@ function buildStore(db,prefix){
       const before=existing.data();
       const merged={...before,...input};
       verify(table,merged);
+      if(table==='leads'&&(Object.hasOwn(input,'nextAction')||Object.hasOwn(input,'followUpDate')))
+        followUpFields(merged);
       if(table==='kunden'){
         tx.update(ref,audit(input,user,date));return;
       }
@@ -284,7 +292,7 @@ function buildStore(db,prefix){
             if(occupied.exists)throw err('Offerten-Verknüpfung bereits vorhanden',409);
             const newOffer=newRecord({
               number:String(counter.next),leadId:id,customerId:'',
-              title:'Automation für '+merged.company,description:merged.message||'',
+              title:'Automation für '+merged.company,description:offerDescription(merged),
               items:[],oneTimeCHF:0,monthlyCHF:0,validUntil:'',status:'Entwurf'
             },user,date);
             tx.set(counter.reference,{next:counter.next+1},{merge:true});
@@ -351,6 +359,26 @@ function buildStore(db,prefix){
     });
     const saved=await ref.get();return toObject(saved);
   }
+  async function addContact(id,payload,user){
+    const details=validateContact(payload);
+    const ref=col('leads').doc(id);
+    const date=now(),entry={
+      id:randomUUID(),...details,createdAt:date,createdBy:user.email
+    };
+    await db.runTransaction(async tx=>{
+      const doc=await tx.get(ref);
+      if(!doc.exists)throw err('Lead nicht gefunden',404);
+      const before=doc.data();
+      const history=Array.isArray(before.contactHistory)?before.contactHistory:[];
+      if(history.length>=MAX_CONTACTS)
+        throw err('Kontaktverlauf hat die maximale Anzahl Einträge erreicht',409);
+      const updates={contactHistory:[...history,entry],lastContactAt:date};
+      if(before.status==='Neu'&&shouldMarkContacted(details.outcome))
+        updates.status='Kontaktiert';
+      tx.update(ref,audit(updates,user,date));
+    });
+    return entry;
+  }
   async function remove(table,id){
     // Deletion is deliberately restricted to unprocessed leads, never to
     // customers, offers, invoices or projects. Firestore transaction re-reads
@@ -367,6 +395,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

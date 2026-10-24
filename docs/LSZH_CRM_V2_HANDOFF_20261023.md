@@ -2,6 +2,15 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## ✅ Aktueller CRM-Live-Stand 24.10.2026 – SETTLEMENT LIVE PASS
+
+- **Vom Betreiber über die tatsächliche PowerShell-Ausgabe bestätigt:** `CRM INVOICE SETTLEMENT LIVE PASS`. Cloud Run `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`, **Live Revision `lszh-crm-v2-00046-faj` (100 % Traffic)**.
+- **Rollback-Revision `lszh-crm-v2-00043-wur`**. Freigabegeschützte Umschaltung über `scripts/activate-crm-invoice-settlement-live.ps1` abgeschlossen und Post-Cutover-HTTP-/Authentifizierungs-/Mail-Scheduler-Kontrollen in Stufe 4/4 erfolgreich.
+- **Mail-Cutoff unverändert:** `2026-10-23T16:15:28Z`. Existierender Lead-Mail-Scheduler und produktiver Offerten-Mailmodus unverändert. **Rechnungs-E-Mail-Gates bleiben AUS**; weder Kundenrechnungen noch Mahnungen wurden durch die Umschaltung versandt.
+- **Keine Live-Zahlung gebucht**, keine Seed-/Kundenänderung, kein Bankaufruf während Release. Feature-Code für Teilzahlung, Restbetrag, Korrektur/Audit und manuelles Mahnwesen ist auf der produktiven CRM-URL `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app` ausgerollt, aber ein tatsächlich authentifizierter Zahlungs-Live-End-to-End-Test steht aus.
+- **Nächster Schritt:** UI direkt im Live-CRM kontrollieren, ausschliesslich mit internen TEST_ONLY-Daten. `invoiceDispatchState=confirmed` ist zwingende Schutzbedingung für eine Zahlung. Für den echten Testsendebeleg ist der gesondert genehmigte Versand einer synthetischen Rechnung an ein freigegebenes internes Testpostfach nötig; **keine künstliche Sendebestätigung in produktiven Firestore-Daten, keine echte Zahlung, RE-1001 nicht bezahlen**.
+- Ausgangsnachweis: vom Betreiber übermittelte erfolgreiche Konsole inklusive `CRM INVOICE SETTLEMENT LIVE PASS`, `LIVE: lszh-crm-v2-00046-faj (100 percent)`, `ROLLBACK: lszh-crm-v2-00043-wur`.
+
 ## 24.10.2026 – Erster Settlement-Live-Cutover vor Freigabe abgebrochen
 
 - Betreiber führte `activate-crm-invoice-settlement-live.ps1` nach Git-Update aus. Stufe `1/4` (Revisionen, Umgebung) PASS, `2/4` brach wegen schreibgeschützter PowerShell-Automatikvariable `$HOME` ab (Skript nutzte irrtümlich `$home`; Variablennamen sind in PowerShell nicht case-sensitiv). **Freigabeabfrage und Traffic-Schaltung wurden nicht erreicht.** Keine Live-Mutation durch diesen Lauf.

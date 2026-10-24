@@ -1923,6 +1923,9 @@ async function signedIn(token){
   try {
     const me=await api('/api/me');
     $('who').textContent=me.email;
+    // Refresh the private TEST_ONLY recipient only after Google authentication.
+    const privateConfig=await api('/api/config');
+    state.invoiceMailTestTo=String(privateConfig.invoiceMailTestTo||'').toLowerCase();
     await loadAll();
     $('signin').hidden=true;$('workspace').hidden=false;$('error').textContent='';
     $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});

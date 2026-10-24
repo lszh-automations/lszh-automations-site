@@ -90,6 +90,12 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-payments-entry label{display:grid;gap:5px;font-size:11px;color:#b5cbdd}
 .invoice-payments-entry input,.invoice-payments-entry select{width:100%;min-width:0;border:1px solid #354b61;background:#091621;color:#e6f3ff;border-radius:8px;padding:9px}
 .invoice-payments-entry button{grid-column:1/-1;justify-self:end}
+.invoice-reminders{margin:14px 24px 4px;padding:18px;border:1px solid #41536c;border-radius:13px;background:#111c2d}
+.invoice-reminders h3{margin:0;font-size:15px}
+.invoice-reminders p{font-size:12px;color:#b7c9db}
+.invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:12px/1.6 inherit}
+.invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.invoice-reminder-history{font-size:11px;color:#a5bed4;margin-top:10px}
 @media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}}
 @media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}}
 .invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
@@ -349,6 +355,18 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
         <label>Zahlungsart<select id="invoicePaymentMethod"><option>Banküberweisung</option><option>TWINT</option><option>Bar</option><option>Karte</option><option>Andere</option></select></label>
         <label>Referenz / Buchungsvermerk<input id="invoicePaymentReference" maxlength="120" placeholder="z. B. Bank-Transaktions-ID"></label>
         <button class="btn primary" type="button" id="invoiceRecordPayment">Geprüfte Zahlung verbuchen</button>
+      </div>
+    </section>
+    <section id="invoiceReminderPanel" class="invoice-reminders" hidden aria-label="Zahlungserinnerungen">
+      <h3>Fälligkeitskontrolle und Mahnwesen</h3>
+      <p id="invoiceReminderNotice"></p>
+      <p id="invoiceReminderHistory" class="invoice-reminder-history"></p>
+      <div id="invoiceReminderActions" hidden>
+        <textarea id="invoiceReminderText" aria-label="Entwurf Zahlungserinnerung" readonly></textarea>
+        <div class="invoice-reminder-buttons">
+          <button class="btn" type="button" id="invoiceCopyReminder">Erinnerungstext kopieren</button>
+          <button class="btn" type="button" id="invoiceLogReminder">Externen Versand bestätigen</button>
+        </div>
       </div>
     </section>
     <div class="invoice-actions">
@@ -1654,6 +1672,42 @@ function addInvoiceLine(data={},isLoading=false){
 }
 // Invoice dispatch is always user initiated. Never call a scheduler, background
 // refresh or Make directly from the browser.
+function renderInvoiceReminders(invoice){
+  const panel=$('invoiceReminderPanel'),history=Array.isArray(invoice?.reminderHistory)?invoice.reminderHistory:[];
+  panel.hidden=!invoice;
+  if(!invoice)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  const levels=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+  const due=(Number(invoice.amountCHF||0)-(
+    Array.isArray(invoice.paymentHistory)&&invoice.paymentHistory.length?
+    invoice.paymentHistory.reduce((n,p)=>n+Number(p.amountCHF||0),0):invoice.status==='Bezahlt'?Number(invoice.amountCHF||0):0
+  ));
+  const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey()&&due>0;
+  const last=history[history.length-1];
+  const cooling=last&&Date.now()-Date.parse(last.at)<7*24*60*60*1000;
+  $('invoiceReminderHistory').textContent=history.length?
+    'Bisher dokumentiert: '+history.map(h=>h.kind+' ('+new Date(h.at).toLocaleDateString('de-CH')+')').join(' · '):
+    'Noch keine Zahlungserinnerung dokumentiert.';
+  const next=levels[history.length];
+  const possible=Boolean(next&&overdue&&!cooling&&invoice.invoiceDispatchState==='confirmed'&&customer?.email);
+  const reason=!overdue?'Keine überfällige offene Forderung.':
+    invoice.invoiceDispatchState!=='confirmed'?'Rechnungsversand nicht bestätigt.':
+    !customer?.email?'Kunden-E-Mail fehlt.':
+    !next?'Mahnfolge abgeschlossen – manuelle Entscheidung erforderlich.':
+    cooling?'Nächste Mahnstufe frühestens sieben Tage nach der letzten Erinnerung.':
+    'Nächster Schritt: '+next+'. Der Entwurf wird nicht automatisch verschickt.';
+  $('invoiceReminderNotice').textContent=reason;
+  $('invoiceReminderActions').hidden=!possible;
+  if(!possible)return;
+  $('invoiceReminderText').value='Betreff: '+next+' – '+invoice.number+' | LSZH Automations\n\n'+
+    'Guten Tag\n\n'+
+    'Zu unserer Rechnung '+invoice.number+' mit Fälligkeit '+invoice.dueDate+
+    ' ist aktuell noch ein Betrag von '+invoiceCHF(Math.max(0,due))+' offen.\n'+
+    'Wir bitten Sie, den ausstehenden Betrag unter Angabe der Rechnungsnummer anhand der bereits zugestellten Rechnung zu begleichen.\n\n'+
+    'Falls Sie die Zahlung bereits veranlasst haben, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n'+
+    'Freundliche Grüsse\nLSZH Automations\nLSZH Invest GmbH';
+  $('invoiceLogReminder').dataset.pendingId='';
+}
 function renderInvoicePayments(invoice){
   const panel=$('invoicePaymentsPanel'),entry=$('invoicePaymentEntry');
   panel.hidden=!invoice;
@@ -1684,6 +1738,7 @@ function renderInvoiceDispatch(invoice){
   const notice=$('invoiceDispatchNotice'),review=$('invoiceDispatchReview');
   review.replaceChildren();review.hidden=true;
   renderInvoicePayments(invoice);
+  renderInvoiceReminders(invoice);
   const customer=(state.records.kunden||[]).find(c=>c.id===invoice?.customerId);
   const to=String(customer?.email||'').trim();
   const isSynthetic=String(invoice?.description||'').startsWith('TEST_ONLY')||
@@ -1932,6 +1987,35 @@ $('invoiceSend').addEventListener('click',async()=>{
     await loadAll();
     const refreshed=(state.records.rechnungen||[]).find(x=>x.id===invoice.id);
     if(refreshed){state.invoiceEditing=refreshed;renderInvoiceDispatch(refreshed);}
+  }finally{button.disabled=false;}
+});
+$('invoiceCopyReminder').addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText($('invoiceReminderText').value);
+    window.alert('Entwurf kopiert. Bitte Empfänger und Inhalt vor dem manuellen Versand prüfen.');
+  }catch(error){window.alert('Kopieren nicht möglich: '+error.message);}
+});
+$('invoiceLogReminder').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceLogReminder');
+  if(!invoice||button.disabled)return;
+  const levels=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+  const next=levels[(invoice.reminderHistory||[]).length];
+  if(!next)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  if(!window.confirm('Hast du '+next+' für '+invoice.number+
+    ' wirklich manuell an '+customer?.email+' versendet?\n'+
+    'Dies protokolliert nur den bereits erfolgten Versand; das CRM sendet keine E-Mail.'))return;
+  const payload={reminderId:button.dataset.pendingId||(window.crypto?.randomUUID?.()||''),kind:next};
+  button.dataset.pendingId=payload.reminderId;button.disabled=true;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/reminders',{
+      method:'POST',body:JSON.stringify(payload)
+    });
+    button.dataset.pendingId='';
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    window.alert('Mahnprotokoll: '+error.message+'\nVor erneutem Versuch die Mahnhistorie prüfen.');
+    await loadAll().catch(()=>{});
   }finally{button.disabled=false;}
 });
 $('invoiceRecordPayment').addEventListener('click',async()=>{

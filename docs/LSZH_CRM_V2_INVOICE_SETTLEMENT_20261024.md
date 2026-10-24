@@ -1,6 +1,13 @@
 # LSZH CRM V2 – Rechnungsabwicklung: Zahlungsstatus, Buchung, Mahnwesen
 
-Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00051-bak` (100 %). Rechnungsversand für alle Kundentypen nach manuellem CRM-Klick aktiviert; echter Versand- und Zahlungs-Live-E2E noch offen.**
+Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00053-mup` (100 %). Neue KPI-Zahlungsübersicht LIVE; Rechnungsversand ausschliesslich per manuellem CRM-Klick.**
+## AKTUELL – 24.10.2026: Zahlungsübersicht LIVE PASS
+
+- Betreiber bestätigt `CRM INVOICE BALANCE LIVE PASS` auf `lszh-crm-v2-00053-mup` (**100 % Traffic**), Rollback `lszh-crm-v2-00051-bak`. Stufe 4/4 verifizierte HTTP-Auth, Invoice-UI, Scheduler und Traffic. Mail-Cutoff unverändert `2026-10-23T16:15:28Z`.
+- Neue Live-Anzeige: Gesamtbetrag, Zahlungen, **Noch offen** als Haupt-KPI sowie Prozent-/Fortschrittsbalken. Keine automatische Buchung: der Release verursachte keine E-Mail, Mahnung, Zahlung oder Firestore-Änderung.
+- Nächste manuelle UI-Abnahme anhand RE-1002: zuletzt gemeldete Buchung CHF 50.00 auf CHF 100.00, erwartete Restschuld CHF 50.00 und 50 % bezahlt. Ein erneuter Bezahl-/Korrektur-Live-E2E wurde durch den Release nicht ausgeführt.
+
+
 
 ## 24.10.2026 – Zahlungsübersicht Cloud Run ZERO TRAFFIC PASS bestätigt
 

@@ -353,6 +353,9 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div class="toolbar">
         <div><h2 id="listTitle">Website Leads</h2><p id="listHint"></p></div>
         <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <select id="statusFilter" class="invoice-due-filter" aria-label="Register nach Status filtern" hidden>
+            <option value="">Alle Status</option>
+          </select>
           <select id="invoiceDueFilter" class="invoice-due-filter" aria-label="Rechnungen nach Fälligkeit filtern" hidden>
             <option value="all">Alle Rechnungen</option>
             <option value="overdue">Überfällig</option>
@@ -513,10 +516,11 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',invoiceDueFilter:'all',records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
+const state={token:'',tab:'dashboard',invoiceDueFilter:'all',filterStatus:'',searchRows:[],searchInfo:{},searchTotal:null,searchPending:false,searchError:'',searchNonce:0,records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
+let searchDebounce=null;
 const $=id=>document.getElementById(id);
 function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
 async function api(path,options={}) {
@@ -719,11 +723,21 @@ function dashboardStats(records){
   };
 }
 function navigateTo(tab,record,invoiceDueFilter='all'){
+  clearTimeout(searchDebounce);
+  state.searchNonce++;
   state.tab=tab;
+  state.filterStatus='';
+  state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+  state.searchPending=false;state.searchError='';
+  const statusSelect=$('statusFilter');
+  statusSelect.replaceChildren(new Option('Alle Status',''));
+  for(const status of (statuses[tab]||[]))statusSelect.add(new Option(status,status));
+  statusSelect.value='';
   state.invoiceDueFilter=tab==='rechnungen'?invoiceDueFilter:'all';
   $('invoiceDueFilter').value=state.invoiceDueFilter;
   $('search').value='';
   render();
+  if(tab==='rechnungen'&&state.invoiceDueFilter!=='all')loadFilteredRows();
   if(record){
     if(tab==='leads')openLeadDetail(record);
     else openEditor(record);
@@ -974,20 +988,71 @@ function projectDoneCount(project){
   const tasks=Array.isArray(project?.tasks)?project.tasks:[];
   return {total:tasks.length,done:tasks.filter(t=>t.done===true).length};
 }
+// Search and status filters are sent to the authenticated server; they never
+// search just the first 50 records already loaded in the browser.
+function filterActive(){
+  return state.tab!=='dashboard'&&
+    (Boolean($('search').value.trim())||Boolean(state.filterStatus)||
+     (state.tab==='rechnungen'&&state.invoiceDueFilter!=='all'));
+}
+function filteredSearchUrl(tab,cursor=''){
+  const params=new URLSearchParams({pageSize:'50'});
+  const needle=$('search').value.trim();
+  if(needle)params.set('q',needle);
+  if(state.filterStatus)params.set('status',state.filterStatus);
+  if(tab==='rechnungen'&&state.invoiceDueFilter!=='all')
+    params.set('due',state.invoiceDueFilter);
+  if(cursor)params.set('cursor',cursor);
+  return '/api/records/'+tab+'?'+params.toString();
+}
+async function loadFilteredRows(){
+  const request=++state.searchNonce,tab=state.tab;
+  if(!filterActive()){
+    state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+    state.searchPending=false;state.searchError='';
+    render();return;
+  }
+  state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+  state.searchPending=true;state.searchError='';render();
+  try{
+    const result=await api(filteredSearchUrl(tab));
+    if(request!==state.searchNonce||tab!==state.tab)return;
+    state.searchRows=result.records||[];
+    state.searchInfo={hasMore:Boolean(result.hasMore),nextCursor:result.nextCursor,loading:false};
+    state.searchTotal=result.totalMatches;
+  }catch(err){
+    if(request!==state.searchNonce||tab!==state.tab)return;
+    state.searchError='Suche konnte nicht geladen werden: '+err.message;
+  }finally{
+    if(request===state.searchNonce&&tab===state.tab){
+      state.searchPending=false;render();
+    }
+  }
+}
 function renderPageMore(area){
-  const tab=state.tab,info=state.pageInfo[tab];
-  if(!info?.hasMore)return;
+  const tab=state.tab,filtered=filterActive();
+  const info=filtered?state.searchInfo:state.pageInfo[tab];
+  if(!info?.hasMore||state.searchPending)return;
   const shell=el('div','crm-page-more'),button=el('button','','Weitere 50 laden');
   button.type='button';button.disabled=Boolean(info.loading);
-  shell.append(el('p','','Suche und Filter betreffen die bereits geladenen Seiten.'),button);
+  shell.append(el('p','',filtered?
+    'Suche und Filter gelten für alle Datensätze, auch auf weiteren Seiten.':
+    'Weitere Datensätze aus diesem Register laden.'),button);
   button.addEventListener('click',async()=>{
     if(info.loading||!info.hasMore)return;
+    const request=state.searchNonce;
     info.loading=true;button.disabled=true;
     try{
-      const result=await api('/api/records/'+tab+'?pageSize=50&cursor='+encodeURIComponent(info.nextCursor));
-      const existing=new Set((state.records[tab]||[]).map(x=>x.id));
-      state.records[tab].push(...(result.records||[]).filter(x=>!existing.has(x.id)));
-      state.pageInfo[tab]={nextCursor:result.nextCursor,hasMore:result.hasMore,loading:false};
+      const result=await api(filtered?
+        filteredSearchUrl(tab,info.nextCursor):
+        '/api/records/'+tab+'?pageSize=50&cursor='+encodeURIComponent(info.nextCursor));
+      if(state.tab!==tab||(filtered&&request!==state.searchNonce))return;
+      const target=filtered?state.searchRows:state.records[tab];
+      const existing=new Set((target||[]).map(x=>x.id));
+      target.push(...(result.records||[]).filter(x=>!existing.has(x.id)));
+      const next={nextCursor:result.nextCursor,hasMore:result.hasMore,loading:false};
+      if(filtered){state.searchInfo=next;state.searchTotal=result.totalMatches;}
+      else state.pageInfo[tab]=next;
       render();
     }catch(err){
       info.loading=false;button.disabled=false;
@@ -1004,6 +1069,7 @@ function render(){
   $('pageTitle').textContent=d.title;
   $('pageDesc').textContent=d.description;
   $('recordsPanel').hidden=dashboard;
+  $('statusFilter').hidden=dashboard;
   $('invoiceDueFilter').hidden=state.tab!=='rechnungen';
   $('invoiceDueOverview').hidden=state.tab!=='rechnungen';
   if(state.tab==='rechnungen')renderInvoiceDueOverview();
@@ -1013,23 +1079,24 @@ function render(){
   renderKpis();
   if(dashboard){renderDashboard();return;}
   $('listTitle').textContent=d.title;
+  const filtered=filterActive();
   const available=state.summary?.counts?.[state.tab];
-  $('listHint').textContent=(state.records[state.tab]||[]).length+' geladen'+
-    (available!==undefined?' von '+available+' Einträgen':'')+
-    ' · Suche/Filter in geladenen Seiten';
+  $('listHint').textContent=filtered
+    ?(state.searchPending?'Suche läuft …':
+      state.searchError?'Suche nicht verfügbar':
+      state.searchRows.length+' geladen von '+(state.searchTotal??0)+' Treffern · gesamtes Register')
+    :(state.records[state.tab]||[]).length+' geladen'+
+      (available!==undefined?' von '+available+' Einträgen':'')+
+      ' · Weitere Seiten verfügbar';
   const needle=$('search').value.toLocaleLowerCase('de-CH');
-  const records=(state.records[state.tab]||[]).filter(record=>{
-    if(!JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle))return false;
-    if(state.tab!=='rechnungen'||state.invoiceDueFilter==='all')return true;
-    const due=invoiceDueInfo(record);
-    if(state.invoiceDueFilter==='open')return due.remaining>0;
-    return due.kind===state.invoiceDueFilter;
-  }).sort((a,b)=>state.tab==='rechnungen'&&state.invoiceDueFilter!=='all'?
-    String(a.dueDate||'9999-99-99').localeCompare(String(b.dueDate||'9999-99-99')):0);
+  const records=filtered?state.searchRows:(state.records[state.tab]||[]);
   const area=$('tableArea');area.replaceChildren();
   if(!records.length){
     const empty=el('div','empty');
-    empty.append(el('strong','',needle?'Keine passenden Einträge':'Noch keine Einträge'),el('div','',needle?'Versuche einen anderen Suchbegriff.':'Lege den ersten Datensatz über „Neu erfassen“ an.'));
+    empty.append(
+      el('strong','',filtered?(state.searchPending?'Suche läuft …':state.searchError||'Keine passenden Einträge'):'Noch keine Einträge'),
+      el('div','',filtered?'Prüfe die Suchbegriffe und Filter.':'Lege den ersten Datensatz über „Neu erfassen“ an.')
+    );
     area.append(empty);renderPageMore(area);return;
   }
   const wrap=el('div','scroll'),table=el('table'),thead=el('thead'),tr=el('tr');
@@ -2317,10 +2384,18 @@ $('nav').addEventListener('click',event=>{
   if(!tab||(tab!=='dashboard'&&!definitions[tab]))return;
   navigateTo(tab);
 });
-$('search').addEventListener('input',render);
+$('search').addEventListener('input',()=>{
+  clearTimeout(searchDebounce);
+  state.searchNonce++; // invalidate any in-flight older query immediately
+  searchDebounce=setTimeout(loadFilteredRows,350);
+});
+$('statusFilter').addEventListener('change',()=>{
+  state.filterStatus=$('statusFilter').value;
+  clearTimeout(searchDebounce);loadFilteredRows();
+});
 $('invoiceDueFilter').addEventListener('change',()=>{
   state.invoiceDueFilter=$('invoiceDueFilter').value;
-  render();
+  clearTimeout(searchDebounce);loadFilteredRows();
 });
 $('refreshLeads').addEventListener('click',async()=>{
   if(!state.token||document.querySelector('dialog[open]'))return;

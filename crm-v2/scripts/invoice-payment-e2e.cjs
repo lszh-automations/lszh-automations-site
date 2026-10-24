@@ -293,6 +293,36 @@ async function main(){
     assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149\.95/);
     await page.locator('#invoiceClose').click();
 
+    // Authenticated read-only pagination must cover records past the former 200
+    // browser limit and never reveal totals to unauthenticated callers.
+    const anon=await fetch(base+'/api/cockpit/summary');
+    assert.equal(anon.status,401,'anonymous global CRM summary forbidden');
+    const batch=db.batch();
+    for(let i=0;i<205;i++)batch.set(
+      db.collection('lszh_crm_v2_staging_kunden').doc('TEST_ONLY_CURSOR_'+String(i).padStart(4,'0')),
+      {company:'TEST_ONLY Pagination '+i,status:'Aktiv',
+        createdAt:'2026-10-20T12:00:00.000Z',updatedAt:'2026-10-20T12:00:00.000Z'}
+    );
+    await batch.commit();
+    const allIds=[],totalPageSizes=[];let cursor='';
+    for(let tries=0;tries<8;tries++){
+      const path='/api/records/kunden?pageSize=50'+(cursor?'&cursor='+encodeURIComponent(cursor):'');
+      const response=await expectOk(path,'GET');
+      totalPageSizes.push(response.records.length);
+      allIds.push(...response.records.map(x=>x.id));
+      cursor=response.nextCursor;
+      if(!response.hasMore)break;
+      assert.ok(cursor,'cursor required if more pages exist');
+    }
+    assert.equal(allIds.length,206,'page API reaches every synthetic customer');
+    assert.equal(new Set(allIds).size,206,'pages never repeat customers');
+    assert.deepEqual(totalPageSizes,[50,50,50,50,6]);
+    const global=(await expectOk('/api/cockpit/summary','GET')).summary;
+    assert.equal(global.counts.kunden,206,'aggregate scans beyond legacy 200');
+    assert.equal(global.counts.rechnungen,1);
+    assert.equal(global.openInvoiceCents,14995);
+    assert.equal(global.paidCents,5000);
+
     const production=await db.collection('lszh_crm_v2_rechnungen').limit(1).get();
     assert.equal(production.empty,true,'no production-prefix collection touched');
     assert.deepEqual(errors,[],'no uncaught browser errors');

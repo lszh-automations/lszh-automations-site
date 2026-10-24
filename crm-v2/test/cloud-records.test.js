@@ -600,3 +600,110 @@ test('manual invoice reminders require an overdue sent unpaid bill and are never
     reminderId:'00000000-0000-4000-8000-000000000010',kind:'1. Mahnung'},admin),{status:409});
   assert.equal((await store.get('rechnungen',inv.id)).reminderHistory.length,1);
 });
+
+
+test('all three manual reminder stages: strict sequence, 7-day boundary, immutable receipts and idempotent retries',async()=>{
+  // All date manipulation is restricted to this synthetic in-memory staging Firestore.
+  // It simulates time passing; no Gmail/Make dispatch or productive collection exists.
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{
+    company:'TEST_ONLY Mahnstufen AG',email:'debitoren@qa.invalid'
+  },admin);
+  const invoice=await store.create('rechnungen',{
+    customerId:customer.id,description:'TEST_ONLY Mahnstufenablauf',
+    invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',
+    items:[{title:'Test ohne Versand',qty:1,unitPriceCHF:199.95}]
+  },admin);
+  const raw=db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id);
+  raw.invoiceDispatchState='confirmed'; // Synthetic receipt is in-memory only.
+  const uuid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+  const first={reminderId:uuid(201),kind:'Zahlungserinnerung'};
+  const second={reminderId:uuid(202),kind:'1. Mahnung'};
+  const third={reminderId:uuid(203),kind:'2. Mahnung'};
+  const receipt=await store.recordInvoiceReminder(invoice.id,first,admin);
+  assert.equal(receipt.reminderHistory.length,1);
+  assert.deepEqual(receipt.reminderHistory.map(x=>x.kind),['Zahlungserinnerung']);
+  assert.equal(receipt.lastReminderKind,'Zahlungserinnerung');
+  assert.equal(receipt.reminderHistory[0].reminderId,first.reminderId);
+  assert.equal(receipt.reminderHistory[0].recipient,customer.email);
+  assert.equal(receipt.reminderHistory[0].by,admin.email);
+  assert.equal(receipt.reminderHistory[0].outstandingCHF,199.95);
+  assert.equal(receipt.reminderHistory[0].delivery,'operator_confirmed_external');
+  assert.ok(Number.isFinite(Date.parse(receipt.reminderHistory[0].at)));
+  assert.equal(receipt.status,'Offen');
+  assert.equal(receipt.paidAmountCHF,undefined,'logging a reminder must not fabricate payment');
+  const firstAt=receipt.reminderHistory[0].at;
+  const repeat=await store.recordInvoiceReminder(invoice.id,first,admin);
+  assert.equal(repeat.reminderHistory.length,1);
+  assert.equal(repeat.reminderHistory[0].at,firstAt,'retry must keep audit timestamp');
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:first.reminderId,kind:'1. Mahnung'
+  },admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
+  // Just below seven full 24-hour periods: forbidden.
+  raw.reminderHistory[0].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
+  // Just above seven full 24-hour periods: allowed.
+  raw.reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  const afterSecond=await store.recordInvoiceReminder(invoice.id,second,admin);
+  assert.deepEqual(afterSecond.reminderHistory.map(x=>x.kind),['Zahlungserinnerung','1. Mahnung']);
+  assert.equal(afterSecond.reminderHistory[1].by,admin.email);
+  assert.equal(afterSecond.reminderHistory[1].outstandingCHF,199.95);
+  assert.equal(afterSecond.reminderHistory[1].delivery,'operator_confirmed_external');
+  assert.equal(afterSecond.reminderHistory[1].recipient,customer.email);
+  assert.equal(afterSecond.lastReminderKind,'1. Mahnung');
+  assert.equal((await store.recordInvoiceReminder(invoice.id,second,admin)).reminderHistory.length,2);
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  raw.reminderHistory[1].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  raw.reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  const afterThird=await store.recordInvoiceReminder(invoice.id,third,admin);
+  assert.deepEqual(afterThird.reminderHistory.map(x=>x.kind),[
+    'Zahlungserinnerung','1. Mahnung','2. Mahnung'
+  ]);
+  assert.equal(afterThird.lastReminderKind,'2. Mahnung');
+  assert.equal(afterThird.reminderHistory[2].outstandingCHF,199.95);
+  assert.equal((await store.recordInvoiceReminder(invoice.id,third,admin)).reminderHistory.length,3);
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:uuid(204),kind:'2. Mahnung'
+  },admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:uuid(205),kind:'3. Mahnung'
+  },admin),{status:400});
+  const completed=await store.get('rechnungen',invoice.id);
+  assert.equal(completed.reminderHistory.length,3,'at most three audit entries');
+  assert.equal(completed.paymentHistory,undefined,'dunning never posts cash');
+  assert.equal(completed.status,'Offen','dunning never changes invoice status');
+});
+
+test('reminder prerequisites: no pending invoice send, no early dunning, no customer email, no settled invoice',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'TEST_ONLY Block AG',email:'a@qa.invalid'},admin);
+  const missingEmail=await store.create('kunden',{company:'TEST_ONLY No Email AG'},admin);
+  const mk=async(cId,dueDate,status='Offen')=>store.create('rechnungen',{
+    customerId:cId,description:'TEST_ONLY blocked reminder',status,dueDate,
+    items:[{title:'Test',qty:1,unitPriceCHF:90}]
+  },admin);
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',
+    year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const delayed=await mk(customer.id,today);
+  const stale=await mk(missingEmail.id,'2020-01-01');
+  const paid=await mk(customer.id,'2020-01-01');
+  const cancelled=await mk(customer.id,'2020-01-01');
+  const noSend=await mk(customer.id,'2020-01-01');
+  const coll='lszh_crm_v2_staging_rechnungen/';
+  for(const x of [delayed,stale,paid,cancelled])
+    db.storage.get(coll+x.id).invoiceDispatchState='confirmed';
+  db.storage.get(coll+paid.id).status='Bezahlt';
+  db.storage.get(coll+cancelled.id).status='Storniert';
+  const payload={reminderId:'00000000-0000-4000-8000-000000000211',kind:'Zahlungserinnerung'};
+  for(const invoice of [delayed,stale,paid,cancelled,noSend]){
+    await assert.rejects(store.recordInvoiceReminder(invoice.id,payload,admin),{status:409});
+    const fresh=await store.get('rechnungen',invoice.id);
+    assert.equal(fresh.reminderHistory,undefined);
+  }
+  await assert.rejects(store.recordInvoiceReminder(noSend.id,{
+    ...payload,evil:'ignored'
+  },admin),{status:400});
+});

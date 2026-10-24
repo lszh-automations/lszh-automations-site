@@ -3,6 +3,15 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – MANUELLER RECHNUNGSVERSAND FÜR ALLE KUNDENTYPEN LIVE PASS
+
+- **Betreiber bestätigte erfolgreiches produktives Cloud-Run-Cutover:** `CRM INVOICE MANUAL ALL LIVE PASS`; neue Revision **`lszh-crm-v2-00051-bak` mit 100 % Traffic**, vorherige `lszh-crm-v2-00049-doh` als Rollback. Abschlussprüfungen Stufe 4/4 für HTTP-Authentisierung, Rechnungs-UI, Mail-Scheduler und Traffic PASS; Mail-Cutoff unverändert `2026-10-23T16:15:28Z`.
+- **Aktueller verbindlicher Produktentscheid:** Rechnungen werden ausschliesslich durch bewussten, bestätigten Klick auf **«Rechnung senden»** im Google-authentifizierten CRM per Make/Gmail versendet. Die pauschale Sperre für interne/Eigenrechnungen und `TEST_ONLY`-markierte Rechnungen ist **im Produktionsmodus entfernt**, inklusive für **RE-1002**. Das gilt nur, sofern die Rechnung tatsächlich gespeichert und `Offen` ist, noch keinen bestätigten/ungeklärten Versand besitzt und der verknüpfte Kunde eine vollständige, gültige E-Mail-/QR-Rechnungsanschrift hat.
+- Weiterhin: Versanddialog mit Empfänger/Nummer/Betrag, tatsächliche Gmail-`messageId`-Bestätigung, atomarer Dubletten- und Retry-Schutz, bei unklarer Quittung `manual_review`. Manuelle Zahlungseingänge und Teilzahlungen erst nach `invoiceDispatchState=confirmed`; keine automatische Rechnungs- oder Mahnmail, keine manuelle/Post-Zustellung vorgesehen.
+- **Keine Rechnung durch den Release versandt**, keine Mahnung, Zahlung, Firestore-Seed oder Bankaktion ausgelöst. Erster echter manueller CRM-Rechnungsversand und Zahlungserfassung **noch nicht verifiziert**. Interne Testrechnungen enthalten potenziell die reale Firmen-IBAN und können echte Zahlungsforderungen darstellen; vor bewusstem Versand Empfänger, Betrag, Inhalt und PDF prüfen. `RE-1001` nicht als echte Zahlung buchen.
+- Release-Skripte: `scripts/prepare-crm-invoice-manual-all-zero-traffic.ps1`, `scripts/activate-crm-invoice-manual-all-live.ps1` erfolgreich verwendet; **nicht wiederholen**, da Baseline nun veraltet ist. Nutzer bestätigte erfolgreiche Nachprüfung und 100 % Traffic.
+- CRM: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+
 ### TEST_ONLY-Cutover nach erfolgreicher Null-Traffic-QA
 
 - Vorbereitung für **zweiten, noch nicht ausgeführten** Schritt: \`scripts/activate-crm-invoice-mail-testonly-live.ps1\`. Erkennt exakt den einzig getaggten 0%-Kandidaten \`crm-invoice-testonly-qa\`, vergleicht alle existierenden Live-Konfigurationen/Secrets ausser den vier streng begrenzten Testmodusvariablen, kontrolliert Scheduler und anonyme API-Sperren und fordert die explizite Eingabe \`LIVE TEST_ONLY RECHNUNG\`. Danach 100%-Traffic auf den freigegebenen Kandidaten, mit automatischem Rückrollen zu \`lszh-crm-v2-00046-faj\` bei Fehlern.

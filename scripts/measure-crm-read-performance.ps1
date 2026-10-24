@@ -35,6 +35,16 @@ function Endpoint([string]$requestUrl){
   }catch{return $null}
   return $null
 }
+function AddLogEntries([object]$value,[System.Collections.Generic.List[object]]$target){
+  # Windows PowerShell 5.1 ConvertFrom-Json can wrap a root JSON array
+  # as one pipeline object. Flatten containers before reading HTTP properties.
+  if($null -eq $value){return}
+  if($value -is [System.Array]){
+    foreach($item in $value){AddLogEntries $item $target}
+    return
+  }
+  if($value -is [pscustomobject]){[void]$target.Add($value)}
+}
 function ReadRevisionLog([string]$revision){
   # Windows PowerShell 5.1 via gcloud.cmd may strip embedded double quotes.
   # Use quote-free Cloud Logging values and --freshness instead of timestamps.
@@ -49,14 +59,20 @@ function ReadRevisionLog([string]$revision){
   $raw=(& gcloud.cmd logging read $filter "--freshness=${Hours}h" "--project=$project" "--limit=$MaxLogEntries" '--format=json') -join [Environment]::NewLine
   Check ('Failed to read sanitized HTTP statistics for '+$revision)
   if(!$raw.Trim()){return @()}
-  $entries=@(ConvertFrom-Json -InputObject $raw)
-  $points=New-Object System.Collections.Generic.List[object]
+  $entries=New-Object 'System.Collections.Generic.List[object]'
+  AddLogEntries (ConvertFrom-Json -InputObject $raw) $entries
+  $points=New-Object 'System.Collections.Generic.List[object]'
   foreach($entry in $entries){
-    if(!$entry.httpRequest){continue}
-    $kind=Endpoint ([string]$entry.httpRequest.requestUrl)
+    $request=$entry.httpRequest
+    if(!$request -or $request -is [System.Array]){continue}
+    $kind=Endpoint ([string]$request.requestUrl)
     if(!$kind){continue}
-    $status=[int]$entry.httpRequest.status
-    $latency=[string]$entry.httpRequest.latency
+    # Malformed request logs are ignored, never cast a list of statuses.
+    if($null -eq $request.status -or $request.status -is [System.Array]){continue}
+    [int]$status=0
+    if(![int]::TryParse([string]$request.status,[ref]$status)){continue}
+    if($status -lt 100 -or $status -gt 599){continue}
+    $latency=[string]$request.latency
     if($latency -notmatch '^([0-9]+(?:\.[0-9]+)?)s$'){continue}
     [double]$seconds=0
     if(![double]::TryParse($matches[1],[Globalization.NumberStyles]::Float,$culture,[ref]$seconds)){continue}

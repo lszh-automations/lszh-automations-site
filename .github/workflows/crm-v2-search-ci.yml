@@ -37,3 +37,22 @@ jobs:
           new Function(inline[1]);
           console.log('CRM UI JavaScript parse PASS');
           NODE
+
+  powershell-parse:
+    name: Validate search staging script syntax without execution
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Windows PowerShell parser (no deployment)
+        shell: powershell
+        run: |
+          $path='scripts/prepare-crm-search-zero-traffic.ps1'
+          $tokens=$null
+          $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path).Path,[ref]$tokens,[ref]$errors) | Out-Null
+          if($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host 'CRM SEARCH POWERSHELL PARSER PASS'

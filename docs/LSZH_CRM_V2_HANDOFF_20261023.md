@@ -3,6 +3,16 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – Mahnprotokoll inklusive aller drei Stufen erfolgreich LIVE
+
+- **Vom Betreiber bestätigter Release:** `CRM INVOICE DUNNING AUDIT LIVE PASS`, Cloud Run Revision **`lszh-crm-v2-00057-qek` (100 % Traffic)**. **Rollback `lszh-crm-v2-00055-ved`**. CRM: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Step 4/4 bestätigt HTTP-Authentifizierung, Rechnungsoberfläche samt verbesserter Audit-Ansicht, bestehenden Mail-Scheduler und exakten Live-Traffic. Mail-Cutoff **unverändert `2026-10-23T16:15:28Z`**. Zuvor vorhandener Windows-PowerShell-5.1-/Umlaut-QA-Markerfehler wurde mit ASCII-basierten Prüfmarkern behoben; der bereits erstellte 0%-Kandidat `00057-qek` wurde erfolgreich freigeschaltet (kein zweiter Build nötig).
+- **Verbesserte Mahnhistorie ist produktiv:** für jede manuell bestätigte Stufe separate Anzeige von Stufe, Datum/Uhrzeit, Empfänger, bestätigendem Benutzer, damaligem offenen Restbetrag und Protokoll-ID. Sie dokumentiert explizit die **Erklärung des Operators über zuvor manuell extern versendete Mahnungen** (`operator_confirmed_external`), keinen unabhängig geprüften Gmail-Versandbeleg.
+- **Vollständiger Mahnablauf in isolierten automatischen Tests PASS:** Zahlungserinnerung → 1. Mahnung → 2. Mahnung, Reihenfolge und mindestens sieben volle Tage Abstand, Sperre nach dritter Stufe, eindeutige/idempotente Protokoll-IDs, Voraussetzungen Rechnung überfällig/versendet/noch offen, Restschuld nach Teilzahlung, Stop nach Vollzahlung. Es wurden **keine produktiven Mahnungen simuliert oder versendet**.
+- Das Release-Skript führte **keine Rechnungs-E-Mail, Mahnung, Zahlungsbuchung, Firestore-Testbefüllung oder Bankaktion** aus. Manueller Rechnungsversand und bereits eingerichtete Sicherheitsmechanismen sind unverändert; es gibt **keinen automatischen Mahnversand**.
+- **Nächster Betriebscheck:** CRM mit `Strg+F5` aktualisieren, bestehende Rechnung öffnen und unter `Fälligkeitskontrolle und Mahnwesen` die neue Historie prüfen. Die Live-Umschaltung ist bestätigt; eine gesonderte sichtbare UI-Abnahme durch den Betreiber ist noch ausstehend. Für RE-1002 (Fälligkeit 31.10.2026) bleibt Mahnung vor dem 01.11.2026 gesperrt. **Keine fiktive Protokollierung zum Test durchführen.**
+- Ältere Abschnitte, die `00057-qek` nur als 0%-Kandidaten und `00055-ved` als aktuellen Live-Stand bezeichnen, sind historische Zwischenstände und ab jetzt überholt. Nächste Deployments benötigen neue Baseline-Pins; die bereits benutzten Release-Skripte nicht erneut ausführen.
+
 ## 24.10.2026 – Mahnprotokoll-Release: 0%-Kandidat gebaut, QA-Check korrigiert, Live weiter unverändert
 
 - Der Betreiber führte `scripts/prepare-crm-invoice-dunning-audit-live.ps1 -DeployCandidate` aus: **120/120 CRM-Tests PASS**, produktive Ausgangsversion `lszh-crm-v2-00055-ved` weiterhin **100 % Traffic**, Cloud Run baute die neue Revision **`lszh-crm-v2-00057-qek` bei 0 % Traffic**, Tag `crm-invoice-audit-qa`, URL `https://crm-invoice-audit-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.

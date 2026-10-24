@@ -70,9 +70,12 @@ jobs:
   powershell-parse:
     name: Validate Windows PowerShell 5.1 release scripts (syntax only)
     runs-on: windows-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Parse invoice release and synthetic gateway scripts without execution
         shell: powershell
         run: |
@@ -103,3 +106,14 @@ jobs:
             }
             Write-Host ("PowerShell 5.1 parser PASS: " + $path)
           }
+      - name: Run all CRM regression tests with Windows CRLF invoice HTML
+        shell: powershell
+        run: |
+          $invoiceHtml = Join-Path (Get-Location).Path 'crm-v2/public/index.html'
+          $html = [System.IO.File]::ReadAllText($invoiceHtml)
+          $html = [System.Text.RegularExpressions.Regex]::Replace($html, "\r\n|\r|\n", "`r`n")
+          [System.IO.File]::WriteAllText($invoiceHtml, $html, (New-Object System.Text.UTF8Encoding($false)))
+          npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd test --prefix crm-v2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

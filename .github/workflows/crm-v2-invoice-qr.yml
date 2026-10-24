@@ -86,7 +86,9 @@ jobs:
             "scripts/prepare-crm-invoice-mail-production-live.ps1",
             "scripts/activate-crm-invoice-mail-production-live.ps1",
             "scripts/prepare-crm-invoice-manual-all-zero-traffic.ps1",
-            "scripts/activate-crm-invoice-manual-all-live.ps1"
+            "scripts/activate-crm-invoice-manual-all-live.ps1",
+            "scripts/prepare-crm-invoice-balance-live.ps1",
+            "scripts/activate-crm-invoice-balance-live.ps1"
           )
           foreach ($path in $paths) {
             $fullPath = Join-Path (Get-Location).Path $path

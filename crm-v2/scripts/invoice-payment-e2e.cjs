@@ -117,7 +117,11 @@ async function main(){
     const row=page.locator('#tableArea tbody tr').filter({hasText:invoice.number});
     await row.getByRole('button',{name:'Bearbeiten'}).click();
     await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
-    assert.match(await page.locator('#invoicePaymentSummary').innerText(),/199.95/);
+    assert.match(await page.locator('#invoicePaymentTotal').innerText(),/199.95/);
+    assert.match(await page.locator('#invoicePaymentOpen').innerText(),/199.95/);
+    assert.match(await page.locator('#invoicePaymentReceived').innerText(),/0.00/);
+    assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'0 % bezahlt');
+    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'0');
     assert.equal(await page.locator('#invoiceSend').isDisabled(),true,
       'No outgoing invoice email in E2E');
     await page.locator('#invoiceReminderActions').waitFor({state:'visible'});
@@ -127,12 +131,15 @@ async function main(){
     await page.locator('#invoicePaymentAmount').fill('50.00');
     await page.locator('#invoicePaymentReference').fill('TEST_ONLY E2E-PART-1');
     await page.locator('#invoiceRecordPayment').click();
-    await page.waitForFunction(()=>document.querySelector('#invoicePaymentSummary')?.textContent?.includes('149.95'));
+    await page.waitForFunction(()=>document.querySelector('#invoicePaymentOpen')?.textContent?.includes('149.95'));
     const partial=(await store.get('rechnungen',invoice.id));
     assert.equal(partial.status,'Teilbezahlt');
     assert.equal(partial.outstandingCHF,149.95);
     assert.equal(partial.paymentHistory.length,1);
-    assert.match(await page.locator('#invoicePaymentSummary').innerText(),/149.95/);
+    assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149.95/);
+    assert.match(await page.locator('#invoicePaymentReceived').innerText(),/50.00/);
+    assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'25 % bezahlt');
+    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'25');
     assert.match(await page.locator('#invoicePaymentStatus').innerText(),/Überfällig/);
 
     // In emulator only, click the UI's operator-confirmation after a
@@ -152,6 +159,9 @@ async function main(){
     assert.equal(full.status,'Bezahlt');
     assert.equal(full.outstandingCHF,0);
     assert.equal(full.paymentHistory.length,2);
+    assert.match(await page.locator('#invoicePaymentOpen').innerText(),/0.00/);
+    assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'100 % bezahlt');
+    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'100');
     assert.equal(await page.locator('#invoicePaymentEntry').isVisible(),false);
     assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false);
 
@@ -163,6 +173,8 @@ async function main(){
     assert.equal(corrected.outstandingCHF,149.95);
     assert.equal(corrected.paymentHistory.length,2);
     assert.ok(corrected.paymentHistory[1].voidedAt);
+    assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149.95/);
+    assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'25 % bezahlt');
     assert.match(await page.locator('#invoicePaymentHistory').innerText(),/KORRIGIERT/);
 
     // Explicit negative tests against the actual HTTP API.

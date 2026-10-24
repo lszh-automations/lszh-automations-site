@@ -344,7 +344,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   <main>
     <div class="head">
       <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Dashboard</h1><p id="pageDesc" class="sub"></p></div>
-      <div class="identity"><span id="who"></span><span class="sync-status" id="syncStatus" role="status" aria-live="polite"></span><button class="btn" id="refreshLeads" type="button" title="Neue Website-Leads laden">↻ Aktualisieren</button><button class="btn" id="logout">Abmelden</button></div>
+      <div class="identity"><span id="who"></span><span class="sync-status" id="syncStatus" role="status" aria-live="polite"></span><button class="btn" id="refreshLeads" type="button" title="Alle Registerseiten und Gesamtauswertung aktualisieren">↻ Aktualisieren</button><button class="btn" id="logout">Abmelden</button></div>
     </div>
     <div id="dashboardIntro" class="dashboard-intro-wrapper" hidden></div>
     <div class="kpis" id="kpis"></div>
@@ -2322,7 +2322,16 @@ $('invoiceDueFilter').addEventListener('change',()=>{
   state.invoiceDueFilter=$('invoiceDueFilter').value;
   render();
 });
-$('refreshLeads').addEventListener('click',refreshLeads);
+$('refreshLeads').addEventListener('click',async()=>{
+  if(!state.token||document.querySelector('dialog[open]'))return;
+  $('refreshLeads').disabled=true;
+  try{
+    await loadAll();
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    $('syncStatus').textContent='Aktualisierung fehlgeschlagen: '+err.message;
+  }finally{$('refreshLeads').disabled=false;}
+});
 // Refresh only while the signed-in CRM is visible; no expensive background polling.
 setInterval(refreshLeads,LEAD_REFRESH_INTERVAL_MS);
 setInterval(refreshLeadAges,60000);

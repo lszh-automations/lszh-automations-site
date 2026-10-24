@@ -278,6 +278,27 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .dash-finance-item{padding:13px 0;display:flex;align-items:baseline;justify-content:space-between;gap:15px;border-bottom:1px solid var(--border)}
 .dash-finance-item:last-child{border-bottom:0}
 .dash-finance-item span{color:#b8c9dc;font-size:12px}
+.dash-finance-item strong{font-size:14px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dash-finance-item--priority strong{font-size:20px;color:#a9d9f6}
+.dash-finance-note{font-size:11px;line-height:1.6;color:#a1b8cf;margin:14px 0 0}
+.dash-receivable-amount{color:#d8ebf8;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.dash-receivable-overdue{color:#ffbc8a!important}
+.dash-data-scope{margin:0 0 18px;padding:13px 16px;border:1px solid #35536e;background:#11243a;border-radius:11px;font-size:12px;color:#b8d4e9;line-height:1.6}
+.dash-data-scope--limited{background:#3a2c1e;border-color:#8a6041;color:#f7d1a3}
+.dash-meter-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#bdcfe0;margin:18px 0 7px}
+.dash-meter{height:11px;width:100%;appearance:none;-webkit-appearance:none;border:0;border-radius:99px;overflow:hidden;background:#30465d}
+.dash-meter::-webkit-progress-bar{background:#30465d}
+.dash-meter::-webkit-progress-value{background:#72c5e6}
+.dash-meter::-moz-progress-bar{background:#72c5e6}
+.dash-section-footnote{font-size:11px;line-height:1.5;color:#93a9bc;margin:12px 0 0}
+.dash-project-row{display:grid;grid-template-columns:110px minmax(0,1fr) 33px;align-items:center;gap:12px;margin:17px 0;font-size:12px;color:#c6d8e9}
+.dash-project-track{height:10px;background:#23374a;border-radius:99px;overflow:hidden}
+.dash-project-fill{height:100%;border-radius:99px;background:#80c2e8}
+.dash-project-fill--waiting{background:#e5ba75}
+.dash-project-fill--done{background:#70d6b3}
+.dash-project-row strong{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:620px){.dash-receivable-amount{font-size:12px}.dash-project-row{grid-template-columns:105px minmax(0,1fr) 25px;gap:8px}}
+
 .dash-finance-item strong{font-size:17px;letter-spacing:-.025em;white-space:nowrap}
 .dash-finance-note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}
 @media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
@@ -602,6 +623,60 @@ function invoiceDueTotals(invoices,today=localDateKey()){
   }
   return result;
 }
+// Read-only business cockpit. Amounts always use integer Swiss rappen;
+// actual booked payments are distinct from legacy paid flags and quote volume.
+function cockpitMetrics(records,today=localDateKey()){
+  const invoices=records.rechnungen||[],offers=records.offerten||[];
+  const projects=records.projekte||[];
+  const summary={
+    invoiceCount:invoices.length,openCount:0,openCents:0,overdueCount:0,overdueCents:0,
+    soonCount:0,soonCents:0,bookedCents:0,legacyPaidCount:0,
+    openOfferCount:0,openOfferCents:0,acceptedMonthlyCents:0,
+    projectActive:0,projectWaiting:0,projectDone:0,projectOverdue:0,
+    tasksDone:0,tasksTotal:0,receivables:[]
+  };
+  const moneyCents=value=>{
+    const n=Number(value);
+    return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n*100)):0;
+  };
+  for(const inv of invoices){
+    if(!inv||!['Offen','Teilbezahlt','Bezahlt'].includes(inv.status))continue;
+    const history=Array.isArray(inv.paymentHistory)?inv.paymentHistory:[];
+    const booked=history.reduce((sum,p)=>sum+(p.voidedAt?0:moneyCents(p.amountCHF)),0);
+    summary.bookedCents+=booked;
+    if(inv.status==='Bezahlt'&&!history.length)summary.legacyPaidCount++;
+    const info=invoiceDueInfo(inv,today);
+    if(!info.remaining)continue;
+    summary.openCount++;
+    summary.openCents+=info.remaining;
+    if(info.kind==='overdue'){summary.overdueCount++;summary.overdueCents+=info.remaining;}
+    if(info.kind==='soon'){summary.soonCount++;summary.soonCents+=info.remaining;}
+    summary.receivables.push({invoice:inv,info});
+  }
+  for(const offer of offers){
+    if(['Entwurf','Bereit','Versendet'].includes(offer.status)){
+      summary.openOfferCount++;
+      summary.openOfferCents+=moneyCents(offer.oneTimeCHF);
+    }
+    if(offer.status==='Angenommen')summary.acceptedMonthlyCents+=moneyCents(offer.monthlyCHF);
+  }
+  for(const project of projects){
+    if(project.status==='Abgeschlossen')summary.projectDone++;
+    if(['Geplant','In Arbeit','Wartet auf Kunde'].includes(project.status))summary.projectActive++;
+    if(project.status==='Wartet auf Kunde')summary.projectWaiting++;
+    if(project.status!=='Abgeschlossen'&&typeof project.dueDate==='string'&&
+       /^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)&&project.dueDate<today)summary.projectOverdue++;
+    const tasks=Array.isArray(project.tasks)?project.tasks:[];
+    summary.tasksTotal+=tasks.length;
+    summary.tasksDone+=tasks.filter(t=>t.done===true).length;
+  }
+  const rank={overdue:0,soon:1,open:2};
+  summary.receivables.sort((a,b)=>
+    (rank[a.info.kind]??3)-(rank[b.info.kind]??3)||
+    String(a.invoice.dueDate||'9999-99-99').localeCompare(String(b.invoice.dueDate||'9999-99-99'))||
+    String(a.invoice.number||'').localeCompare(String(b.invoice.number||'')));
+  return summary;
+}
 function renderInvoiceDueOverview(){
   const invoices=state.records.rechnungen||[];
   const totals=invoiceDueTotals(invoices);
@@ -611,26 +686,18 @@ function renderInvoiceDueOverview(){
   $('invoiceDueNote').textContent='Nur '+invoices.length+' geladene Rechnungen (max. 200 je Register). Fälligkeit nach Schweizer Kalenderdatum; Teilzahlungen und Korrekturen berücksichtigt. Mahnungen ausschliesslich manuell nach Prüfung.';
 }
 function dashboardStats(records){
-  // Calculate only from loaded CRM data. Do not treat open offers as revenue.
-  const leads=records.leads||[];
-  const offers=records.offerten||[];
-  const invoices=records.rechnungen||[];
-  const projects=records.projekte||[];
-  const openOffers=offers.filter(x=>['Entwurf','Bereit','Versendet'].includes(x.status));
-  const received=x=>Array.isArray(x.paymentHistory)&&x.paymentHistory.length?x.paymentHistory.reduce((n,p)=>n+(p.voidedAt?0:Number(p.amountCHF||0)),0):(x.status==='Bezahlt'?Number(x.amountCHF||0):0);
-  const remaining=x=>Math.max(0,Number(x.amountCHF||0)-received(x));
-  const money=value=>Number.isFinite(Number(value))?Math.max(0,Number(value)):0;
+  const result=cockpitMetrics(records);
   return {
-    newLeads:leads.filter(x=>x.status==='Neu').length,
-    openOffers:openOffers.length,
-    openInvoices:invoices.filter(x=>['Offen','Teilbezahlt'].includes(x.status)).length,
-    openInvoiceAmount:invoices.filter(x=>['Offen','Teilbezahlt'].includes(x.status)).reduce((n,x)=>n+money(remaining(x)),0),
-    activeProjects:projects.filter(x=>['Geplant','In Arbeit','Wartet auf Kunde'].includes(x.status)).length,
-    waitingProjects:projects.filter(x=>x.status==='Wartet auf Kunde').length,
-    paidAmount:invoices.reduce((n,x)=>n+money(received(x)),0),
-    openOfferVolume:openOffers.reduce((n,x)=>n+money(x.oneTimeCHF),0),
-    acceptedMonthly:offers.filter(x=>x.status==='Angenommen').reduce((n,x)=>n+money(x.monthlyCHF),0),
-    leadCount:leads.length
+    newLeads:(records.leads||[]).filter(x=>x.status==='Neu').length,
+    openOffers:result.openOfferCount,
+    openInvoices:result.openCount,
+    openInvoiceAmount:result.openCents/100,
+    activeProjects:result.projectActive,
+    waitingProjects:result.projectWaiting,
+    paidAmount:result.bookedCents/100,
+    openOfferVolume:result.openOfferCents/100,
+    acceptedMonthly:result.acceptedMonthlyCents/100,
+    leadCount:(records.leads||[]).length
   };
 }
 function navigateTo(tab,record,invoiceDueFilter='all'){
@@ -662,9 +729,9 @@ function renderKpis(){
   const items=[
     {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
     {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
-    {title:'Offene Rechnungen',value:formatCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Zahlung(en) offen',tab:'rechnungen'},
+    {title:'Offene Forderungen',value:invoiceCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Rechnungen mit Restbetrag',tab:'rechnungen'},
     {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'},
-    {title:'Zahlungseingänge',value:formatCHF(stats.paidAmount),note:'Als bezahlt markierte Rechnungen',tab:'rechnungen'}
+    {title:'Verbuchte Zahlungen',value:invoiceCHF(stats.paidAmount),note:'Manuell erfasste Beträge · alle Zeiten',tab:'rechnungen'}
   ];
   for(const item of items){
     const card=el('button','kpi dash-kpi');
@@ -689,6 +756,15 @@ function renderDashboard(){
   const stamp=el('span','dash-meta','Stand: '+new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()));
   intro.append(introText,stamp);
   $('dashboardIntro').replaceChildren(intro);
+  const scope=el('p','dash-data-scope');
+  const tables=['leads','kunden','offerten','rechnungen','projekte'];
+  const limitTables=tables.filter(name=>(state.records[name]||[]).length>=200);
+  const lengths=tables.map(name=>definitions[name].title+': '+(state.records[name]||[]).length).join(' · ');
+  scope.textContent='Datenbasis: nur aktuell aus dem CRM geladene Register (höchstens 200 pro Register). '+
+    lengths+(limitTables.length?' · ACHTUNG: Mindestens ein Register erreicht die 200er-Grenze; Kennzahlen sind möglicherweise unvollständig.':
+    ' · Keine Bankdaten oder automatische Buchhaltung.');
+  if(limitTables.length)scope.classList.add('dash-data-scope--limited');
+  area.append(scope);
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
@@ -775,21 +851,74 @@ function renderDashboard(){
     row.append(el('span','dash-pipeline-label',stages[i]),track,el('strong','dash-pipeline-value',String(count)));
     pipeline.body.append(row);
   }
-  const finance=dashboardPanel('Finanzübersicht','Werte in CHF, aus dem aktuellen Status der Datensätze.');
+  const finance=dashboardPanel('Finanz- und Forderungsüberblick',
+    'CHF-Beträge rappen-genau; Zahlungen, offene Forderungen und Offerten strikt getrennt.');
+  const cockpit=cockpitMetrics(state.records);
   const financeRows=[
-    ['Offenes Offertenvolumen',formatCHF(stats.openOfferVolume)],
-    ['Monatlich aus angenommenen Offerten',formatCHF(stats.acceptedMonthly)],
-    ['Bezahlte Rechnungen',formatCHF(stats.paidAmount)]
+    ['Offene Forderungen',invoiceCHF(cockpit.openCents/100),true],
+    ['Davon überfällig',invoiceCHF(cockpit.overdueCents/100),true],
+    ['Innerhalb 7 Tagen fällig',invoiceCHF(cockpit.soonCents/100),false],
+    ['Erfasste Zahlungseingänge (alle Zeiten)',invoiceCHF(cockpit.bookedCents/100),false],
+    ['Offenes einmaliges Offertenvolumen',invoiceCHF(cockpit.openOfferCents/100),false],
+    ['Vereinbarte Monatswerte aus angenommenen Offerten',invoiceCHF(cockpit.acceptedMonthlyCents/100),false]
   ];
   const financeList=el('div','dash-finance');
-  for(const [label,value] of financeRows){
-    const row=el('div','dash-finance-item');
+  for(const [label,value,highlight] of financeRows){
+    const row=el('div','dash-finance-item'+(highlight?' dash-finance-item--priority':''));
     row.append(el('span','',label),el('strong','',value));financeList.append(row);
   }
-  finance.body.append(financeList,el('p','dash-finance-note',
-    'Offertenvolumen ist kein Umsatz. Die Monatszahl summiert vereinbarte Monatsbeträge, nicht tatsächliche Zahlungen. Es werden maximal 200 Datensätze je Register geladen.'));
+  const denom=cockpit.openCents+cockpit.bookedCents;
+  const progress=denom?Math.round(cockpit.bookedCents/denom*100):0;
+  const meterTitle=el('div','dash-meter-head');
+  meterTitle.append(el('span','','Anteil verbuchter Beträge am dargestellten Rechnungsportfolio'),
+    el('strong','',progress+' %'));
+  const meter=el('progress','dash-meter');meter.max=100;meter.value=progress;
+  meter.setAttribute('aria-label','Anteil verbuchter Beträge im geladenen Rechnungsportfolio');
+  finance.body.append(financeList,meterTitle,meter,el('p','dash-finance-note',
+    'Die erfassten Zahlungen sind manuelle Buchungen, keine bestätigten Bankkontostände. '+
+    'Historische „Bezahlt“-Markierungen ohne Einzelbuchung werden nicht als Zahlungseingang gezählt'+
+    (cockpit.legacyPaidCount?' ('+cockpit.legacyPaidCount+' solche Altrechnungen).':'.')+
+    ' Offerten und Monatswerte sind weder Zahlungseingänge noch realisierter Umsatz. '+
+    'Der Prozentwert ist keine Bilanz- oder Cashflow-Kennzahl.'));
+  const receivables=dashboardPanel('Offene Forderungen im Blick',
+    'Älteste überfällige zuerst, danach bald fällige. Direkter Sprung zur Rechnung.');
+  if(!cockpit.receivables.length)receivables.body.append(el('p','dash-empty','Keine offenen Restbeträge in den geladenen Rechnungen.'));
+  for(const item of cockpit.receivables.slice(0,6)){
+    const inv=item.invoice,info=item.info;
+    const button=el('button','dash-lead');button.type='button';
+    const copy=el('span','dash-lead-info');
+    copy.append(el('strong','',inv.number||'Rechnung'),el('small','',
+      (inv.dueDate?'Fällig: '+inv.dueDate.slice(8,10)+'.'+inv.dueDate.slice(5,7)+'.'+inv.dueDate.slice(0,4):'Ohne Fälligkeit')+
+      ' · '+(info.kind==='overdue'?'Überfällig':info.kind==='soon'?'Bald fällig':'Offen')+
+      ' · '+(inv.status||'')));
+    button.append(copy,el('span','dash-receivable-amount'+(info.kind==='overdue'?' dash-receivable-overdue':''),invoiceCHF(info.remaining/100)));
+    button.addEventListener('click',()=>navigateTo('rechnungen',inv));
+    receivables.body.append(button);
+  }
+  receivables.body.append(el('p','dash-section-footnote',
+    'Auswahl: maximal sechs der geladenen offenen Rechnungen. Keine Zahlung oder Mahnung durch Öffnen der Rechnung.'));
+  const projectPanel=dashboardPanel('Projektstatus',
+    'Status und Aufgabenfortschritt der geladenen Projekte; kein finanzieller Umsatz.');
+  const groups=[
+    ['Aktiv',cockpit.projectActive,''],
+    ['Wartet auf Kunde',cockpit.projectWaiting,'waiting'],
+    ['Abgeschlossen',cockpit.projectDone,'done'],
+    ['Termin überschritten',cockpit.projectOverdue,'waiting']
+  ];
+  const projectsTotal=(state.records.projekte||[]).length;
+  for(const [label,count,tone] of groups){
+    const line=el('div','dash-project-row'),track=el('div','dash-project-track');
+    const fill=el('div','dash-project-fill'+(tone?' dash-project-fill--'+tone:''));
+    fill.style.width=(projectsTotal?Math.round(count/projectsTotal*100):0)+'%';
+    track.append(fill);line.append(el('span','',label),track,el('strong','',String(count)));
+    projectPanel.body.append(line);
+  }
+  projectPanel.body.append(el('p','dash-section-footnote',
+    cockpit.tasksDone+' von '+cockpit.tasksTotal+' Projektaufgaben erledigt. '+
+    'Statusgruppen können sich überschneiden: „Wartet auf Kunde“ zählt auch als aktiv.'));
   lower.append(pipeline.panel,finance.panel);
-  area.append(upper,followUps.panel,offerTasks.panel,lower);
+  const operations=el('div','dash-grid');operations.append(receivables.panel,projectPanel.panel);
+  area.append(upper,lower,operations,followUps.panel,offerTasks.panel);
 }
 function projectIsOverdue(project){
   if(!project?.dueDate||project.status==='Abgeschlossen')return false;

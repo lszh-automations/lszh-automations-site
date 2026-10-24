@@ -46,3 +46,12 @@ test('Cloud Logging array entries are flattened and status fields validated befo
   assert.doesNotMatch(script,/\$entries=@\(ConvertFrom-Json/);
   assert.doesNotMatch(script,/\$status=\[int\]\$entry\.httpRequest\.status/);
 });
+
+test('HTTP error breakdown exposes safe status classes without raw request data',()=>{
+  assert.match(script,/function PrintFailureBreakdown\(/);
+  assert.match(script,/\.status -eq 401 -or \$_.status -eq 403/);
+  assert.match(script,/\.status -ge 500/);
+  assert.match(script,/PrintFailureBreakdown \$errors/);
+  assert.match(script,/401\/403 auth=/);
+  assert.doesNotMatch(script,/Write-Host\s+\$entry\b/);
+});

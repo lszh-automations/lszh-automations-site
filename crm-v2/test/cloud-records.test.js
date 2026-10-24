@@ -561,3 +561,26 @@ test('invoice payment rejects future booking date, fake amount, unsafe fields an
   ])await assert.rejects(store.recordInvoicePayment(inv.id,invalid,admin));
   assert.equal((await store.get('rechnungen',inv.id)).paymentHistory,undefined);
 });
+
+test('manual invoice reminders require an overdue sent unpaid bill and are never automatic',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'Remind AG',email:'debitoren@remind.ch'},admin);
+  const inv=await store.create('rechnungen',{customerId:customer.id,description:'Automation',
+    invoiceDate:'2026-09-01',dueDate:'2026-10-01',status:'Offen',
+    items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
+  const first={reminderId:'00000000-0000-4000-8000-000000000008',kind:'Zahlungserinnerung'};
+  await assert.rejects(store.recordInvoiceReminder(inv.id,first,admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const saved=await store.recordInvoiceReminder(inv.id,first,admin);
+  assert.equal(saved.reminderHistory.length,1);
+  assert.equal(saved.reminderHistory[0].delivery,'operator_confirmed_external');
+  assert.equal(saved.reminderHistory[0].recipient,customer.email);
+  assert.equal((await store.recordInvoiceReminder(inv.id,first,admin)).reminderHistory.length,1);
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    ...first,kind:'1. Mahnung'},admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    reminderId:'00000000-0000-4000-8000-000000000009',kind:'2. Mahnung'},admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    reminderId:'00000000-0000-4000-8000-000000000010',kind:'1. Mahnung'},admin),{status:409});
+  assert.equal((await store.get('rechnungen',inv.id)).reminderHistory.length,1);
+});

@@ -273,6 +273,26 @@ async function main(){
     assert.equal(same.status,200,'duplicate payment ID is idempotent');
     assert.equal((await store.get('rechnungen',invoice.id)).paymentHistory.length,2);
 
+    // New business cockpit derives exact rappen figures from real authenticated
+    // emulator records, excluding the reversed payment. Navigation is read-only.
+    await page.locator('#invoiceClose').click();
+    await page.locator('#nav button[data-tab="dashboard"]').click();
+    await page.locator('#dashboardArea .dash-finance').waitFor({state:'visible'});
+    const kpiText=await page.locator('#kpis').innerText();
+    assert.match(kpiText,/Offene Forderungen[\s\S]*149\.95/);
+    assert.match(kpiText,/Verbuchte Zahlungen[\s\S]*50\.00/);
+    const financeText=await page.locator('#dashboardArea .dash-finance').innerText();
+    assert.match(financeText,/Offene Forderungen[\s\S]*149\.95/);
+    assert.match(financeText,/Davon überfällig[\s\S]*149\.95/);
+    assert.match(financeText,/Erfasste Zahlungseingänge[\s\S]*50\.00/);
+    assert.match(await page.locator('#dashboardArea .dash-data-scope').innerText(),/maximal 200 pro Register/);
+    const actionable=page.locator('#dashboardArea .dash-lead').filter({hasText:invoice.number});
+    assert.ok(await actionable.count()>0,'unpaid invoice can be opened from cockpit');
+    await actionable.last().click();
+    await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
+    assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149\.95/);
+    await page.locator('#invoiceClose').click();
+
     const production=await db.collection('lszh_crm_v2_rechnungen').limit(1).get();
     assert.equal(production.empty,true,'no production-prefix collection touched');
     assert.deepEqual(errors,[],'no uncaught browser errors');

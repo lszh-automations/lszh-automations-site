@@ -1212,3 +1212,10 @@ Nach Source-Rekonstruktion und zusätzlichem Regressionstest: isolierter Render-
 **QA:** GitHub Actions Run `40083793125` mit **105/105 Node-Tests PASS**, 31-Feld-QR-Scan/A4-Geometrie PASS und Windows-PowerShell-5.1-Parser PASS. Der Run enthält keine produktive E-Mail-/Firestore-/Cloud-Run-Ausführung. Letztbestätigte Live-Revision aus Hand-off `lszh-crm-v2-00043-wur` (100%) und Null-Traffic-Mail-Kandidat `00045-lec` werden durch diese Commits nicht verändert.
 
 **Vollständiges Übergabedokument:** `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`. Noch offen: isolierter Browser/Firestore End-to-End Test und separat autorisierter Rollout. Neue Rechnungsmails/Mahnungen nicht automatisch aktivieren; reale Kundenmails erfordern separate explizite Freigabe.
+
+
+### 24.10.2026 – Rechnungsabwicklung Browser/API/Firestore-E2E technisch PASS (keine Live-Änderung)
+
+GitHub Actions Run `40084290731` **SUCCESS**: echte Chromium-Browseroberfläche und der echte Node-CRM-HTTP-Server gegen den *lokalen* Firestore-Emulator mit Namespace `lszh_crm_v2_staging_`. Getestet wurden Testkunde/Rechnung CHF 199.95, Teilzahlung CHF 50.00 → CHF 149.95 Rest, manuelle Zahlungserinnerung und Cooldown, Vollzahlung CHF 149.95 → Bezahlt, Korrektur der Vollzahlung → wieder CHF 149.95 offen; Originalbuchung und Audit erhalten, Idempotenz und Autorisierung geprüft. Google-Token und SMTP/Make-Receipt **nur simuliert**, keinerlei wirklicher Rechnungs-/Mahn-Mail-Versand. E2E-Log `INVOICE E2E PASS`, `INVOICE E2E NO SEND`.
+
+Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependency-Install **SUCCESS** (alte Fehler wegen fehlendem `pdf-lib`). Alle Aktivitäten nur auf Branch `feature/crm-v2-invoice-settlement-20261024`, Draft PR #14. Kein Merge, kein Cloud-Run-Deploy, kein Firestore-Production-Schreibzugriff. Dokumentation `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`. Remote Cloud-Run-Staging-Authentifizierung/Sandbox-Smoke-Test vor Live-Freigabe weiterhin offen.

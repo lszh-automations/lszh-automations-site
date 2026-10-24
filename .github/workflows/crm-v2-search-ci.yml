@@ -63,4 +63,25 @@ jobs:
               exit 1
             }
             Write-Host "CRM SEARCH POWERSHELL PARSER PASS: $path"
+      - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
+        shell: powershell
+        run: |
+          $source=[IO.File]::ReadAllText((Resolve-Path 'scripts/measure-crm-read-performance.ps1').Path)
+          $start=$source.IndexOf('function AddLogEntries(')
+          $end=$source.IndexOf('function ReadRevisionLog(', $start)
+          if($start -lt 0 -or $end -le $start) { throw 'Telemetry JSON flattener missing' }
+          . ([scriptblock]::Create($source.Substring($start,$end-$start)))
+          $fixture='[{"httpRequest":{"status":200,"requestUrl":"https://test.invalid/api/cockpit/summary","latency":"0.1s"}},{"httpRequest":{"status":401,"requestUrl":"https://test.invalid/api/records/leads","latency":"0.2s"}}]'
+          $decoded=ConvertFrom-Json -InputObject $fixture
+          $boxed=New-Object 'System.Object[]' 1
+          $boxed[0]=$decoded
+          $doubleBox=New-Object 'System.Object[]' 1
+          $doubleBox[0]=$boxed
+          $entries=New-Object 'System.Collections.Generic.List[object]'
+          AddLogEntries $doubleBox $entries
+          if($entries.Count -ne 2) { throw 'Wrong number of flattened request entries' }
+          if([int]$entries[0].httpRequest.status -ne 200 -or [int]$entries[1].httpRequest.status -ne 401) {
+            throw 'HTTP statuses were grouped rather than decoded per request'
+          }
+          Write-Host 'CRM TELEMETRY WINDOWS JSON FLATTEN PASS'
           }

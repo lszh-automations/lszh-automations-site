@@ -3,6 +3,15 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL – 24.10.2026: CRM ZAHLUNGSÜBERSICHT LIVE PASS
+
+- **Vom Betreiber bestätigt:** `CRM INVOICE BALANCE LIVE PASS`, aktiver Cloud-Run-Dienst `lszh-crm-v2-00053-mup` mit **100 % Traffic**. Rollback-Revision `lszh-crm-v2-00051-bak`.
+- Finaler Release-Schritt `4/4` prüfte HTTP-Authentifizierung, Rechnungs-UI, Mail-Scheduler und Traffic erneut erfolgreich. Mail-Cutoff unverändert: `2026-10-23T16:15:28Z`. Live-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- **Neu live:** Zahlungs-KPIs `Gesamtbetrag`, `Eingegangen`, prominent `Noch offen`, Prozent-/Fortschrittsbalken und formatiertes Schweizer Fälligkeitsdatum. Bereits verbuchte Teilzahlungen und Korrekturen werden nur visualisiert; keine Veränderungen am vorhandenen Buchungsverlauf durch diesen Release.
+- **Unverändert:** Rechnungsversand ausschliesslich durch ausdrücklichen CRM-Klick, bestätigte Gmail-Quittung vor Zahlungserfassung, Dublettenschutz, Audit, keine automatische Rechnungs- oder Mahnmail. Release hat selbst **keine E-Mail, Mahnung, Zahlung, Firestore-Seed oder Bankaktion** ausgelöst.
+- **Nächster operativer UI-Check:** CRM mit `Strg+F5` laden, RE-1002 öffnen. Erwartet auf Basis des letzten Nutzer-Screenshots: CHF 100.00 Gesamt, CHF 50.00 eingegangen, CHF 50.00 offen, 50 % bezahlt. Sichtprüfung dieser Darstellung durch den Betreiber noch ausstehend. **Erfolg des Cutovers nicht mit dieser separaten UI-Abnahme verwechseln.**
+- Die Release-Skripte `scripts/prepare-crm-invoice-balance-live.ps1` und `scripts/activate-crm-invoice-balance-live.ps1` sind ausgeführt; ihre Baseline `00051-bak` ist nun historisch. Bei weiteren Deployments neue Revisions-Pins erstellen.
+
 ## 24.10.2026 – Zahlungsübersicht Cloud Run ZERO TRAFFIC PASS bestätigt
 
 - **Operator-Ausgabe verifiziert:** `CRM INVOICE BALANCE ZERO TRAFFIC PASS` nach erneutem `scripts/prepare-crm-invoice-balance-live.ps1 -DeployCandidate` mit korrigierten Windows-CRLF-Tests; Kandidat `lszh-crm-v2-00053-mup` (0 % Traffic), Tag `crm-invoice-balance-qa`, Kandidaten-URL `https://crm-invoice-balance-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`. **Produktiv weiterhin `lszh-crm-v2-00051-bak` (100 %)**.

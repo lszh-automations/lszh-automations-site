@@ -710,3 +710,49 @@ test('reminder prerequisites: no pending invoice send, no early dunning, no cust
     ...payload,evil:'ignored'
   },admin),{status:400});
 });
+
+
+test('manual reminder logs current remaining balance after partial payment and stops after settlement',async()=>{
+  // Synthetic ledger only. No real bank actions or external sends.
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'TEST_ONLY Teilmahnung AG',email:'billing@qa.invalid'},admin);
+  const inv=await store.create('rechnungen',{
+    customerId:customer.id,description:'TEST_ONLY Mahnung nach Teilzahlung',
+    invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',
+    items:[{title:'Test Service',qty:1,unitPriceCHF:100}]
+  },admin);
+  const key='lszh_crm_v2_staging_rechnungen/'+inv.id;
+  db.storage.get(key).invoiceDispatchState='confirmed';
+  const first={reminderId:'00000000-0000-4000-8000-000000000301',kind:'Zahlungserinnerung'};
+  const second={reminderId:'00000000-0000-4000-8000-000000000302',kind:'1. Mahnung'};
+  const third={reminderId:'00000000-0000-4000-8000-000000000303',kind:'2. Mahnung'};
+  let record=await store.recordInvoiceReminder(inv.id,first,admin);
+  assert.equal(record.reminderHistory[0].outstandingCHF,100);
+  const today=new Intl.DateTimeFormat('sv-SE',{
+    timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(new Date());
+  const firstPay=await store.recordInvoicePayment(inv.id,{
+    paymentId:'00000000-0000-4000-8000-000000000311',
+    amountCHF:'40.00',paidOn:today,method:'Banküberweisung',reference:'TEST_ONLY PART 1'
+  },admin);
+  assert.equal(firstPay.status,'Teilbezahlt');
+  assert.equal(firstPay.outstandingCHF,60);
+  db.storage.get(key).reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  record=await store.recordInvoiceReminder(inv.id,second,admin);
+  assert.equal(record.reminderHistory[0].outstandingCHF,100,'first audit record unchanged');
+  assert.equal(record.reminderHistory[1].outstandingCHF,60,'second stage uses current rest');
+  assert.equal(record.status,'Teilbezahlt');
+  const final=await store.recordInvoicePayment(inv.id,{
+    paymentId:'00000000-0000-4000-8000-000000000312',
+    amountCHF:'60.00',paidOn:today,method:'Banküberweisung',reference:'TEST_ONLY FINAL'
+  },admin);
+  assert.equal(final.status,'Bezahlt');
+  assert.equal(final.outstandingCHF,0);
+  db.storage.get(key).reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(inv.id,third,admin),{status:409});
+  const confirmed=await store.get('rechnungen',inv.id);
+  assert.equal(confirmed.reminderHistory.length,2);
+  assert.equal(confirmed.reminderHistory[0].outstandingCHF,100);
+  assert.equal(confirmed.reminderHistory[1].outstandingCHF,60);
+  assert.equal(confirmed.status,'Bezahlt');
+});

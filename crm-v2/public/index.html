@@ -2245,7 +2245,7 @@ async function refreshLeads(){
     if(state.token!==loginToken)return; // Late response after logout or re-login.
     const incoming=Array.isArray(result.records)?result.records:[];
     if(JSON.stringify(incoming)!==JSON.stringify(state.records.leads||[])){
-      state.records.leads=incoming;
+      state.records.leads=[...incoming,...(state.records.leads||[]).filter(x=>!incoming.some(y=>y.id===x.id))];
       render();
     }
     $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});

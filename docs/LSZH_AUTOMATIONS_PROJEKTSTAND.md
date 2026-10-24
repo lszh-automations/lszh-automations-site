@@ -1280,3 +1280,14 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - Windows-PowerShell `prepare-crm-invoice-settlement-live-test.ps1 -DeployCandidate` erfolgreich: **105/105 Tests PASS**, produktive Umgebung/IBAN-Schutz/Mail-Gates unverändert, neue Cloud-Run-Revision **`lszh-crm-v2-00046-faj` mit 0 % Traffic** und Tag `crm-settlement-qa` erreichbar. Aktive produktive Revision **`lszh-crm-v2-00043-wur` mit 100 % Traffic**.
 - Freigabegeschütztes Cutover-Skript `scripts/activate-crm-invoice-settlement-live.ps1` mit lesender Prüfung von Cloud Run/Tag/Secrets, CRM-Frontend, Auth-Schutz, Mail-Scheduler und **automatischem Rollback auf `00043-wur`** bei fehlschlagenden Nachkontrollen erstellt. Windows PowerShell 5.1 Parser und QR/Regression CI **PASS** (GitHub Run `40086646024`), CRM-Staging CI **PASS** (Run `40086648413`). Skript wurde **noch nicht vom Benutzer ausgeführt**.
 - Keine produktiven Kundennachrichten, Rechnungsbuchungen oder Firestore-Schreibvorgänge durch den Build/diese Vorbereitung. Nach Live-Cutover ist für einen vollständigen TEST_ONLY-Zahlungs-E2E ein tatsächlicher bestätigter Test-Rechnungsversand an das interne Testpostfach separat freizugeben; die Invoice-Mail-Gates bleiben gesperrt. Siehe `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`.
+
+
+### 24.10.2026 – CRM V2 Suche und Filter: Entwicklung, noch nicht deployed
+
+- **Produktiv vom Nutzer bestätigt:** Cloud Run `lszh-crm-v2-00061-tol` (100% Traffic), Paginierung funktioniert im Browser; `00059-puj` ist Rollback.
+- **Isolierter Entwicklungsbranch:** `feature/crm-v2-server-search-20261024`, von `feature/crm-v2-invoice-settlement-20261024` abgezweigt.
+- Read-only `searchPage` in `crm-v2/cloud-records.js`: serverseitige Suche über alle Dokumente, Statusfilter, Rechnungsfälligkeit, 50 Treffer pro Seite, Cursor und vollständige Trefferzahl. CRM-UI und authentifizierte API entsprechend erweitert. Normale Paginierung und Dashboard bleiben unabhängig.
+- Verknüpfte Kunden-/Lead-Namen werden in den entsprechenden Registern mit durchsucht. Nur freigegebene Suchfelder, keine Interna oder Notizen; keine Änderung an Versand, Buchung, Authentication oder Datenmutation.
+- **Skalierung:** Ein Suchlauf streamt die jeweiligen Firestore-Dokumente und kostet O(N) Reads je Abfrage. Bei wachsendem Volumen Suchindex einplanen; in Produktion Firestore-Lesekosten beobachten.
+- Zusätzliche Regressionstests in `crm-v2/test/crm-search.test.js` und Node/UI-CI in `.github/workflows/crm-v2-search-ci.yml`. Tests noch nicht als bestanden bestätigt.
+- **Freigabe offen:** Noch kein Cloud-Run-Deploy, kein Traffic-Switch und keine Firestore-Datenänderung. Erst Tests und isolierten 0%-Kandidaten prüfen, dann gesonderte Produktivfreigabe.

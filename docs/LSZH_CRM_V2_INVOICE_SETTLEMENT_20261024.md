@@ -1,6 +1,13 @@
 # LSZH CRM V2 – Rechnungsabwicklung: Zahlungsstatus, Buchung, Mahnwesen
 
-Stand 24.10.2026 – **QA im GitHub-Branch, KEIN produktiver Deploy**.
+Stand 24.10.2026 – **Rechnungsabwicklung auf produktiver CRM-Revision `lszh-crm-v2-00046-faj` live (100 %); echter Live-Zahlungs-End-to-End-Test noch offen.**
+
+
+## Live-Abnahme 24.10.2026 – Release erfolgreich
+
+**Betreiberbestätigung:** `CRM INVOICE SETTLEMENT LIVE PASS`. Cloud Run `lszh-crm-v2-00046-faj` empfängt 100 % produktiven Traffic; `lszh-crm-v2-00043-wur` ist bestätigte Rollback-Revision. Das Freigabe-/Rollback-Skript `scripts/activate-crm-invoice-settlement-live.ps1` hat nach der Traffic-Umschaltung die CRM-Oberfläche, Authentisierungsschutz, Scheduler-Vertrag und Mail-Einstellungen erneut geprüft. Mail-Cutoff `2026-10-23T16:15:28Z` unverändert. Keine Testzahlung, kein Bankaufruf, keine Kunden-E-Mail, keine Mahnung, kein Live-Firestore-Seed durch das Release. Die Rechnungsmail-Freigabegates bleiben deaktiviert.
+
+**Abgrenzung:** Unit-Tests/isolierte Chromium-Emulator-E2E und die Live-Smokekontrollen sind PASS. Ein authentifizierter Live-End-to-End-Test von tatsächlichem TEST_ONLY-Versandbeleg, Teilzahlung, Vollzahlung, Korrektur und Mahnprotokollierung ist **noch nicht** nachgewiesen. Jede manuelle Zahlungsbuchung verlangt weiterhin einen bestätigten Versandnachweis. `RE-1001` ist weiterhin die interne Testrechnung und darf nicht bezahlt werden.
 
 ## Ausgangslage
 - Nutzer bestätigt am 24.10.2026: synthetische Rechnungsmail im Outlook-Postfach angekommen, LSZH-Design passt, der Test funktioniert. Betrifft ausschliesslich die zuvor genehmigte `TEST_ONLY`-Rechnung RE-9099999, **nicht** einen realen Kundenversand.

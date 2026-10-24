@@ -3,6 +3,15 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – CRM-COCKPIT LIVE PASS (100 %)
+
+- **Vom Betreiber bestätigte PowerShell-Abschlussmeldung:** `CRM COCKPIT LIVE PASS`; aktive Cloud-Run-Revision **`lszh-crm-v2-00059-puj` mit 100 % Traffic**. Rollback: **`lszh-crm-v2-00057-qek`**. CRM URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Nach Umschaltung wurden in Schritt **4/4 HTTP Authentifizierung, Rechnungs-UI, Mail-Scheduler und Traffic** erneut erfolgreich geprüft. Mail-Cutoff unverändert **`2026-10-23T16:15:28Z`**. Release hat **keine Rechnungsmail, Mahnung, Zahlung, Firestore-Testdaten oder Bankaktion** ausgelöst. Manuelle Rechnungs- und Mahnfreigaben sowie Buchungsschutz bleiben unverändert.
+- **Jetzt produktiv:** schreibgeschütztes Unternehmens-Cockpit mit rappen-genauen offenen und überfälligen Forderungen, verbuchten Zahlungseingängen (ohne Altrechnungen nur mit Status `Bezahlt` ohne Zahlungshistorie), Offertenvolumen/angenommenen Monatswerten getrennt vom tatsächlichen Umsatz, priorisierten Rechnungen mit Drilldown und Projekt-/Aufgabenfortschritt.
+- **Datenumfang:** Es werden maximal 200 Datensätze je CRM-Register ausgewertet. Bei erreichter Grenze kann die Cockpit-Gesamtsicht unvollständig sein; Zahlungseingänge sind CRM-Buchungen und keine bestätigten Bankbewegungen.
+- **Noch offen:** separate manuelle Sichtprüfung des Cockpits durch Betreiber nach `Strg+F5`; die technische Umschaltung und Nachprüfungen sind bereits erfolgreich. Nicht mit dieser noch ausstehenden visuellen Abnahme verwechseln.
+- Die früheren Einträge zu `00059-puj` als 0%-Kandidat oder `00057-qek` als aktueller Live-Stand sind historische Zwischenstände und hiermit überholt. Bereits ausgeführte Cockpit-Release-Skripte nicht erneut für spätere Releases verwenden; neue Baseline `00059-puj` für Folgearbeiten.
+
 ## AKTUELL 24.10.2026 – CRM-Cockpit ZERO TRAFFIC PASS, Live-Schaltung noch offen
 
 - **Betreiber bestätigt:** `CRM COCKPIT ZERO TRAFFIC PASS` nach Schritt 4/4. Neuer Cloud-Run-Kandidat **`lszh-crm-v2-00059-puj` (0 % Traffic)**, QA-Tag `crm-cockpit-qa`, URL `https://crm-cockpit-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.

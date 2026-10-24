@@ -652,3 +652,8 @@ Nach Source-Rekonstruktion und zusätzlichem Regressionstest: isolierter Render-
 - Neu: `scripts/activate-crm-search-live.ps1` auf `feature/crm-v2-server-search-20261024` mit genau gepinnten Revisionen 00061->00063, Live-/QA-Tag-/IAM-/Env-/IBAN-/Gmail-/Scheduler-/HTTP-Checks, `gcloud run services update-traffic` auf Kandidat=100% und automatischem Rollback bei fehlgeschlagener Nachpruefung.
 - Die GitHub-Actions-Konfiguration validiert den Parser des Staging- und Live-Skripts auf Windows (ohne Ausfuehrung). CI-Ergebnis nur nach Beobachtung als PASS bezeichnen.
 - **NOCH NICHT LIVE:** keine Traffic-Umschaltung durch Dokumentation/GitHub-Commits. Betreiber: `git pull --ff-only`, PowerShell 5.1 Parser pruefen, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-search-live.ps1"` ausfuehren. Anschliessend Ausgabelog `CRM SEARCH LIVE PASS` und Revision 00063=100% pruefen.
+
+
+### 24.10.2026 – LIVE-Abnahme CRM Suche
+
+Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-00063-baz` bedient 100 % Traffic; Rollback `lszh-crm-v2-00061-tol`. Mail-Cutoff unverändert. Das Skript führte nur einen Traffic-Wechsel und HTTP-Kontrollen aus, keine Rechnungs-, Mahnungs-, Zahlungs- oder Firestore-Schreibaktion. 137/137 Node-Tests bestanden. Der Betreiber hat im Anschluss die neue Suche im produktiven CRM ausdrücklich als funktionierend bestätigt. Arbeitspaket abgeschlossen. Skalierungshinweis: Suche liest registerweit Firestore-Dokumente.

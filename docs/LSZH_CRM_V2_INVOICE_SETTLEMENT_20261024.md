@@ -2,6 +2,12 @@
 
 Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00051-bak` (100 %). Rechnungsversand für alle Kundentypen nach manuellem CRM-Klick aktiviert; echter Versand- und Zahlungs-Live-E2E noch offen.**
 
+## 24.10.2026 – RE-1002 Gmail-Versand durch Make unabhängig bestätigt; Live-Zahlungsbuchung noch offen
+
+- Make `8144117`, Execution `8c54a277ebbb433d800cec93699e6f90` am 24.10.2026 11:45:05 UTC: `success`, alle drei Module erfolgreich, produktive `invoice_send`-Nachricht für **RE-1002** ans intern freigegebene Outlook-Postfach `lars.schulthess@outlook.com`; Gmail `SENT`, Message-ID `1a16dba99c2f2719`, WebhookRespond HTTP 200 mit passendem Event und Gmail-ID. Damit ist der Gmail-Versand/Antwortweg unabhängig bestätigt.
+- **CRM-Zahlungsfreigabe ist noch per UI/Firestore zu bestätigen:** das Backend akzeptiert Teilzahlungen nur bei tatsächlich persistiertem `invoiceDispatchState=confirmed`, offenem Restbetrag und Status `Offen`/`Teilbezahlt`. Die verbundene Make-Ausgabe allein beweist diesen CRM-Readback nicht. Nach Neuladen von RE-1002 im produktiven CRM sollte die Buchungsmaske sichtbar sein, sofern die Quittung gespeichert wurde.
+- Kein Bankzugriff und keine automatische Zahlung. Der Betreiber darf nur **wirklich erhaltene** Beträge mit Betrag, Datum, Zahlungsart und Referenz verbuchen; der Bestätigungsdialog verlangt explizite Prüfung des Bankauszugs/Belegs. Der isolierte Emulator hat Teil-/Vollzahlung und Korrektur bereits getestet; reales Live-Zahlungs-E2E noch offen.
+
 ## AKTUELL 24.10.2026 – Vollständiger manueller Rechnungsversand LIVE
 
 - **`CRM INVOICE MANUAL ALL LIVE PASS`** vom Betreiber bestätigt. Live-Revision `lszh-crm-v2-00051-bak` auf **100 % Traffic**, Rollback `lszh-crm-v2-00049-doh`. Die HTTP-/Authentisierungs-/UI-, Scheduler- und Traffic-Nachprüfungen in Stufe 4/4 bestanden; Mail-Cutoff unverändert `2026-10-23T16:15:28Z`.

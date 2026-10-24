@@ -89,9 +89,14 @@ try {
   if($sha -cne $remoteSha) { throw 'Local branch is not exactly the fetched origin branch.' }
   Write-Host ('SOURCE COMMIT: ' + $sha)
 
-  Write-Host '1/4: Run all invoice / CRM regression tests locally'
+  Write-Host '1/4: Install test dependencies (without writing package-lock) and run CRM tests'
+  & npm.cmd install --prefix '.\crm-v2' '--no-package-lock' '--no-audit' '--no-fund'
+  AssertExit 'Cannot install CRM dependencies'
   & npm.cmd test --prefix '.\crm-v2'
   AssertExit 'CRM test suite FAILED; no deploy permitted'
+  $dirtyAfter = ((& git status --porcelain) -join '').Trim()
+  AssertExit 'Cannot verify Git status after tests'
+  if($dirtyAfter) { throw 'Worktree became dirty during test installation; no deploy.' }
 
   Write-Host '2/4: Check exact current live traffic + protected settings'
   $before = ReadService

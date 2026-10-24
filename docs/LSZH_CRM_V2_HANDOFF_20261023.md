@@ -684,3 +684,12 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 - **Isolierte Google-Cloud-Kandidatenpruefung bestaetigt:** `CRM READ PERFORMANCE ZERO TRAFFIC PASS`; Revision `lszh-crm-v2-00065-xuk` bei **0% Traffic**, getaggte Adresse `https://crm-read-perf-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`. Live bleibt `lszh-crm-v2-00063-baz` bei 100%. Keine Mail-, Mahnungs-, Zahlungs-, Offerten- oder Firestore-Schreibaktion durch Stage-Release.
 - **Live-Rollout vorbereitet (NICHT vollzogen):** `scripts/activate-crm-read-performance-live.ps1` im Branch `feature/crm-v2-read-performance-20261024` pinnt Live 00063 und Kandidat 00065 sowie das 0%-Tag, geprueften HTTP-Kandidaten-URL, OAuth-401, Firestore-Prefix, IBAN-/Make-Secrets, Rechnungs-/Angebotsmail-Modi, Mail-Scheduler und unveraenderten Cutoff. Nach Umschaltung auf 100% wird HTTP/IAM/Scheduler erneut geprueft; bei Fehlern wird Rueckschaltung auf 00063 versucht.
 - **Naechster Betreiber-Schritt:** `git pull --ff-only`, anschliessend `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-read-performance-live.ps1"`. Ausschliesslich `CRM READ PERFORMANCE LIVE PASS` mit 00065=100% bestaetigt die erfolgreiche Produktivschaltung. Eine separate automatische Traffic-Aenderung durch GitHub-Dokumentation findet nicht statt.
+
+
+### 24.10.2026 – CRM V2 Lese-Performance: PRODUKTIV LIVE 00065-xuk
+
+- Betreiber hat die Live-Release-Ausgabe `CRM READ PERFORMANCE LIVE PASS` bestaetigt. Produktivrevision **`lszh-crm-v2-00065-xuk` mit 100 % Traffic**, vorherige Revision **`lszh-crm-v2-00063-baz` als Rollback**.
+- Freigegebene Leistungsoptimierung: Firestore-Statusindex fuer Statusfilter, eingeschraenkter Status-IN-Leseweg bei Rechnungsfaelligkeit und in-flight Singleflight fuer gleichzeitig angeforderte Dashboard-Statistiken (ohne anhaltenden Cache).
+- **143/143 automatische Tests bestanden**, vorab `CRM READ PERFORMANCE ZERO TRAFFIC PASS` bei 0%-Kandidat; nach Trafficwechsel erfolgreich gepruefte Live-Oberflaeche, API-Zugriffsschutz, Mail-Sicherungen und Scheduler.
+- Mail-Cutoff unveraendert `2026-10-23T16:15:28Z`. Release veraenderte nur Traffic, kein Rechnungs-/Mahnungs-/Zahlungsversand und keine Firestore-Schreibaktion durch das Release-Skript.
+- **Naechste Empfehlung:** nach Release Nutzung und Latenz/Firestore-Leseverbrauch messen; fuer freie Volltextsuche bei groesserem Datenvolumen einen geeigneten Suchindex evaluierten. Ohne Messung keine erzielte Kosten-/Latenzverbesserung quantifizieren.

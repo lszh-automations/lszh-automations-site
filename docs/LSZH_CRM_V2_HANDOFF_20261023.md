@@ -3,6 +3,12 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – Zahlungsübersicht im Live-CRM vom Betreiber visuell abgenommen
+
+- Nach erfolgreichem Release `lszh-crm-v2-00053-mup` (100 % Traffic) und Bitte um Kontrolle der neuen Zahlungsübersicht bei RE-1002 bestätigt der Betreiber: **«super es funktioiert»**. Damit ist die Darstellung der Gesamt-/Eingegangen-/Noch-offen-Beträge und des Zahlungsfortschritts im produktiven CRM aus Betreibersicht erfolgreich abgenommen.
+- **Keine neue Buchung oder E-Mail durch diese UI-Abnahme.** Bestehende Zahlungs-/Rechnungseinträge bleiben unberührt; sie ist kein Nachweis einer zusätzlichen echten Bankzahlung.
+- UI-Aufgabe abgeschlossen. Nächste mögliche funktionale Etappe: Fälligkeitskontrolle und manuelles Mahnwesen prüfen, ohne automatische Mahnmails oder unberechtigte Protokolleinträge zu erzeugen. Die aktuelle Produktivrevision und Rollback-Revision bleiben unverändert.
+
 ## AKTUELL – 24.10.2026: CRM ZAHLUNGSÜBERSICHT LIVE PASS
 
 - **Vom Betreiber bestätigt:** `CRM INVOICE BALANCE LIVE PASS`, aktiver Cloud-Run-Dienst `lszh-crm-v2-00053-mup` mit **100 % Traffic**. Rollback-Revision `lszh-crm-v2-00051-bak`.

@@ -21,13 +21,14 @@ function fakeFirestore(){
     return {exists:val!==undefined,id:ref.id,ref,data:()=>val===undefined?undefined:clone(val)};
   }
   class Query{
-    constructor(name,filter=null,order=null,limit=200){this.name=name;this.filter=filter;this.order=order;this.max=limit;}
+    constructor(name,filter=null,order=null,limit=200,cursor=null){this.name=name;this.filter=filter;this.order=order;this.max=limit;this.cursor=cursor;}
     where(field,operator,value){
       assert.equal(operator,'==');
-      return new Query(this.name,{field,value},this.order,this.max);
+      return new Query(this.name,{field,value},this.order,this.max,this.cursor);
     }
-    limit(n){return new Query(this.name,this.filter,this.order,n);}
-    orderBy(field,direction){return new Query(this.name,this.filter,{field,direction},this.max);}
+    limit(n){return new Query(this.name,this.filter,this.order,n,this.cursor);}
+    startAfter(doc){return new Query(this.name,this.filter,this.order,this.max,doc);}
+    orderBy(field,direction){return new Query(this.name,this.filter,{field,direction},this.max,this.cursor);}
     async get(){
       let docs=[...storage.keys()].filter(key=>key.startsWith(this.name+'/'))
         .map(key=>{const id=key.slice(this.name.length+1);return snapshot(new Doc({name:this.name},id));});
@@ -35,8 +36,10 @@ function fakeFirestore(){
       if(this.order)docs.sort((a,b)=>{
         const x=String(a.data()[this.order.field]||'');
         const y=String(b.data()[this.order.field]||'');
-        return this.order.direction==='desc'?y.localeCompare(x):x.localeCompare(y);
+        const byValue=this.order.direction==='desc'?y.localeCompare(x):x.localeCompare(y);
+        return byValue||(this.order.direction==='desc'?b.id.localeCompare(a.id):a.id.localeCompare(b.id));
       });
+      if(this.cursor){const at=docs.findIndex(x=>x.id===this.cursor.id);docs=at>=0?docs.slice(at+1):[];}
       docs=docs.slice(0,this.max);
       return {docs,empty:docs.length===0};
     }
@@ -46,6 +49,7 @@ function fakeFirestore(){
     doc(id){return new Doc(this,id||('generated-'+(++seq)));}
     where(field,op,value){return new Query(this.name).where(field,op,value);}
     orderBy(field,direction){return new Query(this.name).orderBy(field,direction);}
+    async *stream(){for(const [key] of storage){if(key.startsWith(this.name+'/'))yield snapshot(new Doc(this,key.slice(this.name.length+1)));}}
   }
   class Transaction{
     constructor(){this.writes=[];this.startedWriting=false;}
@@ -755,4 +759,32 @@ test('manual reminder logs current remaining balance after partial payment and s
   assert.equal(confirmed.reminderHistory[0].outstandingCHF,100);
   assert.equal(confirmed.reminderHistory[1].outstandingCHF,60);
   assert.equal(confirmed.status,'Bezahlt');
+});
+
+test('paginated Firestore reads cover 230 records with stable ties, no duplicates, and safe cursors',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  for(let i=0;i<230;i++)db.storage.set('lszh_crm_v2_staging_kunden/'+String(i).padStart(4,'0'),{
+    company:'TEST_ONLY Customer '+i,createdAt:'2026-10-24T17:00:00.000Z',status:'Aktiv'
+  });
+  let cursor='',round=0;const ids=[];
+  do{
+    const page=await store.listPage('kunden',50,cursor);
+    ids.push(...page.records.map(x=>x.id));
+    round++;
+    if(!page.hasMore)break;
+    assert.ok(page.nextCursor);
+    cursor=page.nextCursor;
+    assert.ok(round<10);
+  }while(true);
+  assert.equal(round,5);
+  assert.equal(ids.length,230);
+  assert.equal(new Set(ids).size,230);
+  assert.equal(ids[0],'0229');
+  assert.equal(ids.at(-1),'0000');
+  await assert.rejects(store.listPage('kunden',101),{status:400});
+  await assert.rejects(store.listPage('kunden',50,'../../invalid'),{status:400});
+  await assert.rejects(store.listPage('kunden',50,'does-not-exist'),{status:409});
+  const count=[];
+  for await(const row of store.scan('kunden'))count.push(row.id);
+  assert.equal(count.length,230);
 });

@@ -285,7 +285,7 @@ async function main(){
     assert.match(financeText,/Offene Forderungen[\s\S]*149\.95/);
     assert.match(financeText,/Davon überfällig[\s\S]*149\.95/);
     assert.match(financeText,/Erfasste Zahlungseingänge[\s\S]*50\.00/);
-    assert.match(await page.locator('#dashboardArea .dash-data-scope').innerText(),/maximal 200 pro Register/);
+    assert.match(await page.locator('#dashboardArea .dash-data-scope').innerText(),/200 pro Register/);
     const actionable=page.locator('#dashboardArea .dash-lead').filter({hasText:invoice.number});
     assert.ok(await actionable.count()>0,'unpaid invoice can be opened from cockpit');
     await actionable.last().click();

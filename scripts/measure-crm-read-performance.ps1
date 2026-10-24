@@ -83,6 +83,13 @@ function ReadRevisionLog([string]$revision){
   # package the results in another object[] when there is only one request.
   return $points.ToArray()
 }
+function PrintFailureBreakdown([object[]]$errors){
+  if(!$errors -or $errors.Count -eq 0){return}
+  $auth=@($errors|Where-Object {$_.status -eq 401 -or $_.status -eq 403}).Count
+  $otherClient=@($errors|Where-Object {$_.status -ge 400 -and $_.status -lt 500 -and $_.status -ne 401 -and $_.status -ne 403}).Count
+  $server=@($errors|Where-Object {$_.status -ge 500}).Count
+  Write-Host ('    HTTP errors: 401/403 auth='+$auth+', other 4xx='+$otherClient+', 5xx='+$server)
+}
 function PrintLatency([object[]]$points,[string]$revision){
   Write-Host ''
   Write-Host ('REVISION '+$revision+' - Cloud Run Request Logs')
@@ -93,12 +100,14 @@ function PrintLatency([object[]]$points,[string]$revision){
     [double[]]$latencies=@($okay|ForEach-Object {$_.ms})
     if(!$latencies.Count){
       Write-Host ('  '+$group+': 0 successful timings, '+$errors.Count+' errors')
+      PrintFailureBreakdown $errors
       continue
     }
     $p50=Quantile $latencies 0.5
     $p95=Quantile $latencies 0.95
     Write-Host ('  '+$group+': '+$latencies.Count+' successful, '+$errors.Count+
       ' errors; p50='+$p50+' ms, p95='+$p95+' ms')
+    PrintFailureBreakdown $errors
     if($latencies.Count -lt 20){
       Write-Host '    Note: p95 is unreliable with fewer than 20 samples.'
     }

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/crm-v2-cloud-staging-20261023
+      - feature/crm-v2-invoice-settlement-20261024
     paths:
       - "crm-v2/**"
       - "scripts/*crm-invoice*.ps1"

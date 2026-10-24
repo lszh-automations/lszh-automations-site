@@ -227,6 +227,13 @@ async function handler(req,res){
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
     return reply(res,200,{record:await store.recordInvoicePayment(invoicePayment[1],await json(req),user)});
   }
+  // Human-confirmed external reminder log. Absolutely no outgoing mail here.
+  const invoiceReminder=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/reminders$/);
+  if(invoiceReminder){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,200,{record:await store.recordInvoiceReminder(invoiceReminder[1],await json(req),user)});
+  }
   // Invoices have a separate manual state-machine and Gmail receipt. Never
   // called by the existing lead scheduler, website intake or quote sender.
   const invoiceSendAction=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/send(?:\/(resolve))?$/);

@@ -125,8 +125,20 @@ async function handler(req,res){
       'Content-Disposition':'attachment; filename="TEST_ONLY_LSZH_Swiss_QR.pdf"'});
     return res.end(fs.readFileSync(sample));
   }
-  if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo,invoiceMailEnabled:invoiceSenderStatus.enabled,invoiceMailMode:invoiceSenderStatus.mode,invoiceMailTestTo:invoiceSenderStatus.testTo}:{error:'not_configured'});
+  if(req.method==='GET'&&pathname==='/api/config'){
+    // The CRM OAuth clientId is public; the private TEST_ONLY invoice recipient is not.
+    // Only an authenticated, allowlisted CRM operator may read the test mailbox.
+    const authorised=Boolean(req.headers.authorization)&&Boolean(await userFrom(req));
+    return reply(res,configured()?200:503,configured()?{
+      clientId:CLIENT_ID,
+      offerMailEnabled:offerSender.stats().enabled,
+      offerMailMode:offerSender.stats().mode,
+      offerMailTestTo:offerSender.stats().testTo,
+      invoiceMailEnabled:invoiceSenderStatus.enabled,
+      invoiceMailMode:invoiceSenderStatus.mode,
+      invoiceMailTestTo:authorised?invoiceSenderStatus.testTo:''
+    }:{error:'not_configured'});
+  }
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');

@@ -634,3 +634,12 @@ Nach Source-Rekonstruktion und zusätzlichem Regressionstest: isolierter Render-
 - **Skalierung:** Ein Suchlauf streamt die jeweiligen Firestore-Dokumente und kostet O(N) Reads je Abfrage. Bei wachsendem Volumen Suchindex einplanen; in Produktion Firestore-Lesekosten beobachten.
 - Zusätzliche Regressionstests in `crm-v2/test/crm-search.test.js` und Node/UI-CI in `.github/workflows/crm-v2-search-ci.yml`. Tests noch nicht als bestanden bestätigt.
 - **Freigabe offen:** Noch kein Cloud-Run-Deploy, kein Traffic-Switch und keine Firestore-Datenänderung. Erst Tests und isolierten 0%-Kandidaten prüfen, dann gesonderte Produktivfreigabe.
+
+
+### 24.10.2026 – CRM Suche: lokale 137/137 Tests PASS, Stage-Skript vorbereitet
+
+- Nutzer hat per PowerShell `npm.cmd test --prefix .\crm-v2` auf dem Branch `feature/crm-v2-server-search-20261024` ausgefuehrt: **137/137 Tests bestanden, 0 Fehler**. Darunter vier neue Tests fuer serverweite Suche, verknuepfte Kunden, Rechnungsfaelligkeit und boesartige Eingaben.
+- Die neuen Dateien wurden unveraendert produktiver CRM-Version nur auf Entwicklungsbranch geschrieben. `scripts/prepare-crm-search-zero-traffic.ps1` implementiert ein standardmaessig read-only Preflight und optional `-DeployCandidate`, aber keine Live-Freigabe.
+- Guard: 100%-Live `lszh-crm-v2-00061-tol`, OAuth-HTTP 401, Mail/Scheduler/IAM/Secrets/IBAN-Umgebung unveraendert, UI-Sicherungen und serverweite Search-Markierungen im Kandidaten, 0%-Tag `crm-search-qa`, Regressionstests erneut vor Deployment.
+- GitHub Actions `.github/workflows/crm-v2-search-ci.yml` prueft Node-/UI-Regressionstests sowie Windows-PowerShell-Parser der Release-Datei. **CI-Workflow und Cloud-Run-Staging noch nicht als bestanden nachgewiesen.**
+- Naechster Betreiber-Schritt: `git pull --ff-only`; read-only `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\prepare-crm-search-zero-traffic.ps1"`. Nur bei Preflight-PASS optional noch einmal mit `-DeployCandidate` fuer 0%-Staging ausfuehren. Keine Freigabe fuer 100%-Traffic ohne gesonderte Abnahme.

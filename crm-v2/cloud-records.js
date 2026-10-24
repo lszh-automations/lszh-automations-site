@@ -360,6 +360,13 @@ function buildStore(db,prefix){
       }
       if(table==='rechnungen'){
         if(isInvoiceLocked(before))throw err('Bezahlte oder stornierte Rechnung ist schreibgeschützt',403);
+        if(['sending','manual_review'].includes(before.invoiceDispatchState))
+          throw err('Rechnungsversand läuft oder muss zuerst geprüft werden',409);
+        if(before.invoiceDispatchState==='confirmed'){
+          if(Object.keys(input).some(k=>k!=='status')||
+             !['Bezahlt','Storniert'].includes(input.status))
+            throw err('Versendete Rechnung: nur noch Bezahlt oder Storniert möglich',409);
+        }
         await assertCustomer(tx,merged.customerId);
         const project=await assertProject(tx,merged.projectId);
         if(project?.data()?.customerId && merged.customerId!==project.data().customerId)
@@ -370,6 +377,100 @@ function buildStore(db,prefix){
       }
     });
     const saved=await ref.get();return toObject(saved);
+  }
+
+  // Exactly-once claim: the offer sender uses the same transaction-first pattern.
+  // Never infer a sent invoice from a webhook HTTP 200 without the matching Gmail messageId.
+  async function claimInvoiceSend(id,user){
+    const date=now(),ref=col('rechnungen').doc(id);
+    let claimed=null;
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const invoice=snap.data();
+      if(invoice.status!=='Offen')throw err('Versand nur für offene Rechnungen erlaubt',409);
+      if(invoice.invoiceDispatchState==='confirmed'||invoice.invoiceSentAt)
+        throw err('Rechnung wurde bereits versendet',409);
+      if(['sending','manual_review'].includes(invoice.invoiceDispatchState))
+        throw err('Versand läuft oder muss manuell geprüft werden',409);
+      if(!/^RE-[0-9]{1,10}$/.test(String(invoice.number||''))||
+         !invoice.customerId||!invoice.dueDate||
+         !Array.isArray(invoice.items)||!invoice.items.length||
+         !(Number(invoice.amountCHF)>0))
+        throw err('Rechnung ist noch nicht versandbereit',409);
+      const customerSnap=await tx.get(col('kunden').doc(invoice.customerId));
+      if(!customerSnap.exists)throw err('Rechnungskunde fehlt',409);
+      const customer=customerSnap.data();
+      const to=String(customer.email||'').trim().toLowerCase();
+      if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(to)||
+         !customer.company||!customer.street||!customer.postalCode||!customer.city)
+        throw err('Kunden-E-Mail oder Rechnungsanschrift unvollständig',409);
+      const projectSnap=invoice.projectId?
+        await tx.get(col('projekte').doc(invoice.projectId)):null;
+      if(invoice.projectId&&!projectSnap?.exists)throw err('Projekt der Rechnung fehlt',409);
+      const attemptId=randomUUID();
+      tx.update(ref,audit({
+        invoiceDispatchState:'sending',invoiceDispatchAttemptId:attemptId,
+        invoiceDispatchRequestedAt:date,invoiceDispatchRequestedBy:user.email,
+        invoiceDispatchTo:to,invoiceDispatchError:''
+      },user,date));
+      claimed={id,attemptId,to,invoice:{id,...invoice},
+        customer:{id:invoice.customerId,...customer,email:to},
+        project:projectSnap?.exists?{id:invoice.projectId,...projectSnap.data()}:null,
+        isSynthetic:/^TEST_ONLY\\b/i.test(String(invoice.description||''))||
+          /^TEST_ONLY\\b/i.test(String(customer.company||''))||
+          String(customer.company).trim().toLowerCase()==='lszh invest gmbh'};
+    });
+    return claimed;
+  }
+  async function finishInvoiceSend(id,attemptId,status,receipt=''){
+    if(!['confirmed','preparation_failed','manual_review'].includes(status))
+      throw err('Ungültiges Versandresultat');
+    const date=now(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const previous=snap.data();
+      if(previous.invoiceDispatchState!=='sending'||previous.invoiceDispatchAttemptId!==attemptId)
+        throw err('Rechnungsversand wurde bereits verarbeitet',409);
+      const values={
+        invoiceDispatchState:status,invoiceDispatchResultAt:date,
+        invoiceDispatchError:status==='manual_review'?String(receipt).slice(0,100):''
+      };
+      if(status==='confirmed')Object.assign(values,{
+        invoiceSentAt:date,invoiceSentBy:previous.invoiceDispatchRequestedBy,
+        invoiceSentTo:previous.invoiceDispatchTo,
+        invoiceDispatchProviderId:String(receipt).slice(0,200)
+      });
+      tx.update(ref,audit(values,{email:previous.invoiceDispatchRequestedBy},date));
+    });
+    return toObject(await ref.get());
+  }
+  async function resolveInvoiceSend(id,resolution,user){
+    if(!['confirmed','not_sent'].includes(resolution))throw err('Ungültige Prüfung');
+    const date=now(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const before=snap.data();
+      const stale=before.invoiceDispatchState==='sending'&&
+        Number.isFinite(Date.parse(before.invoiceDispatchRequestedAt||''))&&
+        Date.now()-Date.parse(before.invoiceDispatchRequestedAt)>=5*60*1000;
+      if(before.status!=='Offen'||!['manual_review'].includes(before.invoiceDispatchState)&&!stale)
+        throw err('Kein manuell prüfbarer Rechnungsversand',409);
+      const values={
+        invoiceDispatchState:resolution==='confirmed'?'confirmed':'not_sent',
+        invoiceDispatchReviewedAt:date,invoiceDispatchReviewedBy:user.email,
+        invoiceDispatchError:''
+      };
+      if(resolution==='confirmed')Object.assign(values,{
+        invoiceSentAt:date,invoiceSentBy:before.invoiceDispatchRequestedBy,
+        invoiceSentTo:before.invoiceDispatchTo,
+        invoiceDispatchProviderId:'manual_verification'
+      });
+      tx.update(ref,audit(values,user,date));
+    });
+    return toObject(await ref.get());
   }
   async function claimOfferSend(id,payload,user){
     const date=now(),today=date.slice(0,10);
@@ -531,6 +632,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

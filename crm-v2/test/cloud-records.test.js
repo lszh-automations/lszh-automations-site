@@ -444,7 +444,7 @@ test('crashed send attempt remains non-retryable until five-minute manual review
 test('invoice send transaction locks the snapshot, confirms delivery only once, then allows marking paid',async()=>{
   const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
   const customer=await store.create('kunden',{company:'Buerro AG',email:'rechnung@buerro.ch',
-    street:'Marktgasse',postalCode:'8000',city:'Zuerich',country:'CH'},admin);
+    street:'Marktgasse 5',postalCode:'8000',city:'Zuerich',country:'CH'},admin);
   const inv=await store.create('rechnungen',{customerId:customer.id,description:'Service',
     dueDate:'2026-11-30',status:'Offen',items:[{title:'Consulting',qty:1,unitPriceCHF:250}]},admin);
   const claim=await store.claimInvoiceSend(inv.id,admin);

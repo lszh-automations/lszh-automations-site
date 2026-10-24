@@ -2241,7 +2241,7 @@ async function refreshLeads(){
   leadsRefreshPending=true;
   $('refreshLeads').disabled=true;
   try{
-    const result=await api('/api/records/leads');
+    const result=await api('/api/records/leads?pageSize=50');
     if(state.token!==loginToken)return; // Late response after logout or re-login.
     const incoming=Array.isArray(result.records)?result.records:[];
     if(JSON.stringify(incoming)!==JSON.stringify(state.records.leads||[])){

@@ -103,6 +103,16 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-payments-entry label{display:grid;gap:5px;font-size:11px;color:#b5cbdd}
 .invoice-payments-entry input,.invoice-payments-entry select{width:100%;min-width:0;border:1px solid #354b61;background:#091621;color:#e6f3ff;border-radius:8px;padding:9px}
 .invoice-payments-entry button{grid-column:1/-1;justify-self:end}
+.invoice-due-overview{margin:0 22px 20px;display:grid;gap:12px}
+.invoice-due-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.invoice-due-card{min-width:0;border:1px solid #375169;border-radius:12px;background:#15283b;padding:14px 16px;display:grid;gap:4px}
+.invoice-due-card strong{font-size:clamp(18px,2vw,24px);font-weight:800;letter-spacing:-.025em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.invoice-due-card span{color:#c4d8e7;font-size:12px}
+.invoice-due-card--overdue{border-color:#b57051;background:#312820}
+.invoice-due-card--overdue strong{color:#ffcca9}
+.invoice-due-note{margin:0;color:#afc4d7;font-size:12px;line-height:1.5}
+.invoice-due-filter{width:auto;min-width:185px;max-width:100%;border:1px solid #45617e;border-radius:10px;background:#0b141e;color:#e7f2ff;padding:10px}
+@media(max-width:600px){.invoice-due-overview{margin:0 15px 16px}.invoice-due-cards{grid-template-columns:1fr}.invoice-due-card{padding:12px 14px}}
 .invoice-reminders{margin:14px 24px 4px;padding:18px;border:1px solid #41536c;border-radius:13px;background:#111c2d}
 .invoice-reminders h3{margin:0;font-size:15px}
 .invoice-reminders p{font-size:12px;color:#b7c9db}
@@ -313,8 +323,24 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     <section class="panel" id="recordsPanel" hidden>
       <div class="toolbar">
         <div><h2 id="listTitle">Website Leads</h2><p id="listHint"></p></div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px"><input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <select id="invoiceDueFilter" class="invoice-due-filter" aria-label="Rechnungen nach Fälligkeit filtern" hidden>
+            <option value="all">Alle Rechnungen</option>
+            <option value="overdue">Überfällig</option>
+            <option value="soon">Fällig in 7 Tagen</option>
+            <option value="open">Offene Beträge</option>
+          </select>
+          <input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button>
+        </div>
       </div>
+      <section id="invoiceDueOverview" class="invoice-due-overview" aria-label="Fälligkeitsübersicht" hidden>
+        <div class="invoice-due-cards">
+          <div class="invoice-due-card invoice-due-card--overdue"><span>Überfällige Rechnungen</span><strong id="invoiceDueOverdueCount">0</strong></div>
+          <div class="invoice-due-card"><span>Überfälliger Restbetrag</span><strong id="invoiceDueOverdueAmount">CHF 0.00</strong></div>
+          <div class="invoice-due-card"><span>Fällig in 7 Tagen (inkl. heute)</span><strong id="invoiceDueSoonCount">0</strong></div>
+        </div>
+        <p class="invoice-due-note" id="invoiceDueNote">Nur geladene Rechnungen. Keine automatische Mahnung oder Zahlung.</p>
+      </section>
       <div id="tableArea"></div>
     </section>
   </main>
@@ -456,7 +482,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
+const state={token:'',tab:'dashboard',invoiceDueFilter:'all',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -542,6 +568,41 @@ async function deleteNewLead(lead,button){
 function formatCHF(value){
   return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
 }
+// Due-date overview is read-only. Count only open/part-paid balances,
+// including reversed payment history, and compare Swiss calendar days.
+function invoiceDueInfo(invoice,today=localDateKey()){
+  if(!invoice||!['Offen','Teilbezahlt'].includes(invoice.status))return {kind:'closed',remaining:0};
+  const total=Math.round(Number(invoice.amountCHF||0)*100);
+  const history=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
+  const received=history.reduce((sum,p)=>sum+(p.voidedAt?0:Math.round(Number(p.amountCHF||0)*100)),0);
+  const remaining=Math.max(0,total-received);
+  if(!remaining)return {kind:'closed',remaining:0};
+  if(typeof invoice.dueDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(invoice.dueDate))
+    return {kind:'open',remaining};
+  const dueMs=Date.parse(invoice.dueDate+'T12:00:00Z');
+  const todayMs=Date.parse(today+'T12:00:00Z');
+  if(!Number.isFinite(dueMs)||!Number.isFinite(todayMs)||new Date(dueMs).toISOString().slice(0,10)!==invoice.dueDate)
+    return {kind:'open',remaining};
+  const days=Math.round((dueMs-todayMs)/86400000);
+  return {kind:days<0?'overdue':days<=7?'soon':'open',remaining,days};
+}
+function invoiceDueTotals(invoices,today=localDateKey()){
+  const result={overdueCount:0,overdueCents:0,soonCount:0,soonCents:0};
+  for(const invoice of invoices||[]){
+    const info=invoiceDueInfo(invoice,today);
+    if(info.kind==='overdue'){result.overdueCount++;result.overdueCents+=info.remaining;}
+    if(info.kind==='soon'){result.soonCount++;result.soonCents+=info.remaining;}
+  }
+  return result;
+}
+function renderInvoiceDueOverview(){
+  const invoices=state.records.rechnungen||[];
+  const totals=invoiceDueTotals(invoices);
+  $('invoiceDueOverdueCount').textContent=String(totals.overdueCount);
+  $('invoiceDueOverdueAmount').textContent=formatCHF(totals.overdueCents/100);
+  $('invoiceDueSoonCount').textContent=String(totals.soonCount);
+  $('invoiceDueNote').textContent='Nur '+invoices.length+' geladene Rechnungen (max. 200 je Register). Fälligkeit nach Schweizer Kalenderdatum; Teilzahlungen und Korrekturen berücksichtigt. Mahnungen ausschliesslich manuell nach Prüfung.';
+}
 function dashboardStats(records){
   // Calculate only from loaded CRM data. Do not treat open offers as revenue.
   const leads=records.leads||[];
@@ -565,8 +626,10 @@ function dashboardStats(records){
     leadCount:leads.length
   };
 }
-function navigateTo(tab,record){
+function navigateTo(tab,record,invoiceDueFilter='all'){
   state.tab=tab;
+  state.invoiceDueFilter=tab==='rechnungen'?invoiceDueFilter:'all';
+  $('invoiceDueFilter').value=state.invoiceDueFilter;
   $('search').value='';
   render();
   if(record){
@@ -628,7 +691,7 @@ function renderDashboard(){
     {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
     {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
     {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
-    {n:(state.records.rechnungen||[]).filter(i=>i.status==='Offen'&&i.dueDate&&i.dueDate<new Date().toLocaleDateString('sv-SE')).length,title:'Überfällige Rechnungen',description:'Zahlungsfrist überschritten, noch nicht als bezahlt markiert',tab:'rechnungen',icon:'◷'},
+    {n:invoiceDueTotals(state.records.rechnungen).overdueCount,title:'Überfällige Rechnungen',description:'Offene Restbeträge inklusive Teilzahlungen; manuell prüfen',tab:'rechnungen',filter:'overdue',icon:'◷'},
     {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'},
     {n:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length,title:'Überfällige Projekttermine',description:'Zieltermin überschritten, Projekt nicht abgeschlossen',tab:'projekte',icon:'◷'}
   ].filter(x=>x.n>0);
@@ -643,7 +706,7 @@ function renderDashboard(){
     const content=el('span','dash-task-content');
     content.append(el('strong','',task.n+' × '+task.title),el('small','',task.description));
     button.append(icon,content,el('span','dash-task-next','Ansehen →'));
-    button.addEventListener('click',()=>navigateTo(task.tab));
+    button.addEventListener('click',()=>navigateTo(task.tab,null,task.filter||'all'));
     tasks.body.append(button);
   }
   const recent=dashboardPanel('Aktuelle Website-Leads','Die zuletzt erfassten Anfragen.');
@@ -739,6 +802,9 @@ function render(){
   $('pageTitle').textContent=d.title;
   $('pageDesc').textContent=d.description;
   $('recordsPanel').hidden=dashboard;
+  $('invoiceDueFilter').hidden=state.tab!=='rechnungen';
+  $('invoiceDueOverview').hidden=state.tab!=='rechnungen';
+  if(state.tab==='rechnungen')renderInvoiceDueOverview();
   $('dashboardIntro').hidden=!dashboard;
   $('dashboardArea').hidden=!dashboard;
   document.querySelectorAll('#nav button').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===state.tab));
@@ -747,7 +813,14 @@ function render(){
   $('listTitle').textContent=d.title;
   $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
   const needle=$('search').value.toLocaleLowerCase('de-CH');
-  const records=(state.records[state.tab]||[]).filter(record=>JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle));
+  const records=(state.records[state.tab]||[]).filter(record=>{
+    if(!JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle))return false;
+    if(state.tab!=='rechnungen'||state.invoiceDueFilter==='all')return true;
+    const due=invoiceDueInfo(record);
+    if(state.invoiceDueFilter==='open')return due.remaining>0;
+    return due.kind===state.invoiceDueFilter;
+  }).sort((a,b)=>state.tab==='rechnungen'&&state.invoiceDueFilter!=='all'?
+    String(a.dueDate||'9999-99-99').localeCompare(String(b.dueDate||'9999-99-99')):0);
   const area=$('tableArea');area.replaceChildren();
   if(!records.length){
     const empty=el('div','empty');
@@ -1996,6 +2069,10 @@ $('nav').addEventListener('click',event=>{
   navigateTo(tab);
 });
 $('search').addEventListener('input',render);
+$('invoiceDueFilter').addEventListener('change',()=>{
+  state.invoiceDueFilter=$('invoiceDueFilter').value;
+  render();
+});
 $('refreshLeads').addEventListener('click',refreshLeads);
 // Refresh only while the signed-in CRM is visible; no expensive background polling.
 setInterval(refreshLeads,LEAD_REFRESH_INTERVAL_MS);

@@ -189,6 +189,77 @@ function buildStore(db,prefix){
       hasMore:snap.docs.length>size
     };
   }
+  // Server-side search of ALL register rows, not just the browser's current page.
+  // This read-only implementation streams Firestore documents in stable order.
+  // O(N) reads per query; replace with a search index if the CRM grows substantially.
+  async function searchPage(table,{pageSize=50,cursor='',q='',status='',due='',today}={}){
+    const {localSwissDate,outstandingCents,validDay}=require('./invoice-accounting');
+    const {invoiceKind}=require('./cockpit-summary');
+    if(!TABLES.includes(table))throw err('Unbekanntes Register',404);
+    const size=Number(pageSize);
+    if(!Number.isInteger(size)||size<1||size>100)throw err('Seitengrösse muss 1 bis 100 sein');
+    if(typeof q!=='string'||q.length>120||/[\u0000-\u001f]/.test(q))
+      throw err('Suchbegriff ist ungültig oder zu lang');
+    if(typeof cursor!=='string'||cursor.length>120||
+       (cursor&&!/^[A-Za-z0-9_-]{1,100}$/.test(cursor)))throw err('Ungültiger Seitenzeiger');
+    if(typeof status!=='string'||(status&&!STATUS[table].includes(status)))
+      throw err('Ungültiger Statusfilter');
+    if(typeof due!=='string'||(due&&
+       (table!=='rechnungen'||!['overdue','soon','open'].includes(due))))
+      throw err('Ungültiger Fälligkeitsfilter');
+    const day=today||localSwissDate();
+    if(!validDay(day))throw err('Ungültiges Vergleichsdatum');
+    const fold=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLocaleLowerCase('de-CH');
+    const needle=fold(q.trim());
+    const searchFields={
+      leads:['name','company','email','city','postalCode'],
+      kunden:['company','contactName','email','city','postalCode'],
+      offerten:['number','title','description'],
+      rechnungen:['number','description'],
+      projekte:['title','description']
+    };
+    const contains=(record,fields)=>fields.some(key=>fold(record[key]).includes(needle));
+    const customerIds=new Set(),leadIds=new Set();
+    if(needle&&['offerten','rechnungen','projekte'].includes(table)){
+      for await(const snap of col('kunden').stream()){
+        const row=snap.data();
+        if(contains(row,['company','contactName','email']))customerIds.add(snap.id);
+      }
+    }
+    if(needle&&table==='offerten'){
+      for await(const snap of col('leads').stream()){
+        if(contains(snap.data(),['name','company','email']))leadIds.add(snap.id);
+      }
+    }
+    const matches=row=>{
+      if(status&&row.status!==status)return false;
+      if(due){
+        if(!['Offen','Teilbezahlt'].includes(row.status)||outstandingCents(row)<=0)return false;
+        if(due!=='open'&&invoiceKind(row,day)!==due)return false;
+      }
+      if(!needle)return true;
+      return contains(row,searchFields[table])||
+        (row.customerId&&customerIds.has(row.customerId))||
+        (row.leadId&&leadIds.has(row.leadId));
+    };
+    let totalMatches=0,found=!cursor,started=!cursor;
+    const selected=[];
+    for await(const snap of col(table).orderBy('createdAt','desc').stream()){
+      const row=toObject(snap);
+      if(!matches(row))continue;
+      totalMatches++;
+      if(!started){
+        if(row.id===cursor){found=true;started=true;}
+        continue;
+      }
+      if(selected.length<=size)selected.push(row);
+    }
+    if(!found)throw err('Seitenzeiger veraltet – bitte Suche neu laden',409);
+    const hasMore=selected.length>size,records=selected.slice(0,size);
+    return {records,nextCursor:hasMore&&records.length?records[records.length-1].id:null,
+      hasMore,totalMatches};
+  }
   // Read-only full collection scans for complete server metrics. Stream does
   // not put all invoice/payment/customer documents in the browser or RAM;
   // O(number of documents) reads remain a scaling cost until materialized.
@@ -787,6 +858,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,listPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

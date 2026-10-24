@@ -447,7 +447,7 @@ function buildStore(db,prefix){
       if(previous.length>=3)throw err('Manuelle Mahnfolge abgeschlossen',409);
       if(payload.kind!==kinds[previous.length])
         throw err('Mahnstufe muss in Reihenfolge dokumentiert werden',409);
-      if(previous.length && Date.parse(date)-Date.parse(previous.at)<7*24*60*60*1000)
+      if(previous.length && Date.parse(date)-Date.parse(previous[previous.length-1].at)<7*24*60*60*1000)
         throw err('Zwischen zwei Mahnstufen mindestens sieben Tage abwarten',409);
       const customer=invoice.customerId?await tx.get(col('kunden').doc(invoice.customerId)):null;
       if(!customer?.exists||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(customer.data().email||'')))

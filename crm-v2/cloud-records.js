@@ -245,15 +245,48 @@ function buildStore(db,prefix){
     };
     let totalMatches=0,found=!cursor,started=!cursor;
     const selected=[];
-    for await(const snap of col(table).orderBy('createdAt','desc').stream()){
-      const row=toObject(snap);
-      if(!matches(row))continue;
-      totalMatches++;
-      if(!started){
-        if(row.id===cursor){found=true;started=true;}
-        continue;
+    if(status||due){
+      // Equality / IN use Firestore's automatic single-field status index.
+      // Do NOT orderBy(createdAt) here: that would require a new composite
+      // index. Keep only the best (pageSize + 1) sorted rows in memory.
+      const source=status?col(table).where('status','==',status):
+        col(table).where('status','in',['Offen','Teilbezahlt']);
+      const cursorSnap=cursor?await col(table).doc(cursor).get():null;
+      if(cursor&&(!cursorSnap.exists||!cursorSnap.data()?.createdAt))
+        throw err('Seitenzeiger veraltet – bitte Suche neu laden',409);
+      const after=cursorSnap?toObject(cursorSnap):null;
+      const rank=(a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))||
+        String(b.id).localeCompare(String(a.id));
+      for await(const snap of source.stream()){
+        const row=toObject(snap);
+        // Firestore orderBy('createdAt') excluded records missing the field.
+        if(!Object.hasOwn(row,'createdAt')||!matches(row))continue;
+        totalMatches++;
+        if(after&&row.id===cursor)found=true;
+        if(after&&rank(row,after)<=0)continue;
+        let low=0,high=selected.length;
+        while(low<high){
+          const middle=(low+high)>>>1;
+          if(rank(row,selected[middle])<0)high=middle;
+          else low=middle+1;
+        }
+        if(low<=size){
+          selected.splice(low,0,row);
+          if(selected.length>size+1)selected.pop();
+        }
       }
-      if(selected.length<=size)selected.push(row);
+    }else{
+      // Unfiltered/full-text path retains Firestore cursor semantics.
+      for await(const snap of col(table).orderBy('createdAt','desc').stream()){
+        const row=toObject(snap);
+        if(!matches(row))continue;
+        totalMatches++;
+        if(!started){
+          if(row.id===cursor){found=true;started=true;}
+          continue;
+        }
+        if(selected.length<=size)selected.push(row);
+      }
     }
     if(!found)throw err('Seitenzeiger veraltet – bitte Suche neu laden',409);
     const hasMore=selected.length>size,records=selected.slice(0,size);

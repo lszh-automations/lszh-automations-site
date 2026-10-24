@@ -52,3 +52,15 @@ Branch `feature/crm-v2-invoice-settlement-20261024`, aus `feature/crm-v2-cloud-s
 **Weitere QA:** Cloud-Staging-Workflow `40084353078` ist nach Behebung der fehlenden Dependency-Installation **SUCCESS**. Die vorherigen roten Cloud-Staging-Tests lagen an fehlendem `pdf-lib` in dessen CI-Setup, nicht an der Rechnungslogik. Der bestehende QR-Regressionsworkflow ist separat weiterhin PASS (Run `40084273694`).
 
 **Grenze:** Dies ist ein **echter isolierter Browser/API/Firestore-Emulator-End-to-End-Test**, aber **kein realer Cloud-Run-Staging- oder produktiver Google-Login-/Gmail-Test**. Vor einem Cloud-Run-Rollout ist ein getrennter authentifizierter Smoke-Test mit synthetischen Firestore-Staging-Daten und Rollback-Plan erforderlich. Produktive Cloud-Run-Traffic-Routing, Make-Szenarien, E-Mails und Bankkonten bleiben unberührt.
+
+## 24.10.2026 – Live-CRM-Test vorbereiten: Fail-closed Freigabestufe
+
+**Status:** Release-Skript ist angelegt und CI-geprüft; **kein Produktions-Deploy, keine Traffic-Umschaltung, keine Testzahlung im Live-Firestore**. Nutzer will die Funktionen direkt im Live-CRM statt separat im Staging durchtesten.
+
+- Skript: \`scripts/prepare-crm-invoice-settlement-live-test.ps1\`.
+- Normalstart ohne Schalter: rein lesender Preflight mit lokalen Regressionstests, Git-Branch-/Commit-Abgleich, exakter bisheriger Live-Revision \`lszh-crm-v2-00043-wur\`, produktiven Feature-Gates und Secret-Manager-Verweisen.
+- \`-DeployCandidate\`: erstellt auf dem **bestehenden** Dienst \`lszh-crm-v2\` nur einen als \`crm-settlement-qa\` getaggten Kandidaten mit **0 % Traffic**; vergleicht Servicekonto, sämtliche Env-/Secret-Referenzen und führt anonyme HTTP-Konfigurations-/401-Schutzprüfungen durch. Die Produktions-URL verbleibt bei \`00043-wur\`. Bei Drift bricht das Skript ab.
+- Der Code fügt keine produktiven Mail-Freigaben hinzu und verändert weder Make noch Live-Firestore-Datensätze; separates Aktivierungs-/Rollback-Gate ist weiterhin erforderlich.
+- GitHub Actions nach Skripterstellung: \`CRM V2 Swiss QR invoice test\` Run [40085494862](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40085494862) **PASS** inkl. Windows PowerShell 5.1 Parser; \`CRM V2 Cloud Staging Tests\` Run [40085498717](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40085498717) **PASS**.
+- **Operativer nächster Schritt:** Auf dem autorisierten Windows-Rechner den aktuellen Branch auschecken und das \`-DeployCandidate\`-Skript laufen lassen. Ausgabe \`CRM INVOICE SETTLEMENT ZERO TRAFFIC PASS\` mit Kandidatenrevision bestätigen. Danach erst kontrollierten Traffic-Cutover inklusive Rollback und ausschliesslich TEST_ONLY-Daten planen.
+- Ein echter Live-Zahlungstest bleibt durch die Versandnachweis-Grenze \`invoiceDispatchState=confirmed\` geschützt; das muss durch einen tatsächlich bestätigten Testversand an ein genehmigtes Testpostfach erfüllt werden. **Nicht** auf realen Daten simuliert setzen oder die bereits existierende RE-1001 als bezahlt buchen.

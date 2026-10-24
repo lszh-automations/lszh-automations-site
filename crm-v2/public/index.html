@@ -283,6 +283,9 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .dash-finance-note{font-size:11px;line-height:1.6;color:#a1b8cf;margin:14px 0 0}
 .dash-receivable-amount{color:#d8ebf8;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
 .dash-receivable-overdue{color:#ffbc8a!important}
+.crm-page-more{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;padding:16px 20px;border-top:1px solid var(--border)}
+.crm-page-more p{color:#b4c8dc;font-size:12px;margin:0}
+.crm-page-more button{border:1px solid #4a6a86;color:#d9f1ff;background:#19334c;border-radius:10px;padding:11px 17px;font-weight:750}
 .dash-data-scope{margin:0 0 18px;padding:13px 16px;border:1px solid #35536e;background:#11243a;border-radius:11px;font-size:12px;color:#b8d4e9;line-height:1.6}
 .dash-data-scope--limited{background:#3a2c1e;border-color:#8a6041;color:#f7d1a3}
 .dash-meter-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#bdcfe0;margin:18px 0 7px}
@@ -510,7 +513,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',invoiceDueFilter:'all',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
+const state={token:'',tab:'dashboard',invoiceDueFilter:'all',records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -679,13 +682,28 @@ function cockpitMetrics(records,today=localDateKey()){
 }
 function renderInvoiceDueOverview(){
   const invoices=state.records.rechnungen||[];
-  const totals=invoiceDueTotals(invoices);
+  const complete=state.summary;
+  const totals=complete?{
+    overdueCount:complete.overdueCount,overdueCents:complete.overdueCents,
+    soonCount:complete.soonCount,soonCents:complete.soonCents
+  }:invoiceDueTotals(invoices);
   $('invoiceDueOverdueCount').textContent=String(totals.overdueCount);
   $('invoiceDueOverdueAmount').textContent=invoiceCHF(totals.overdueCents/100);
   $('invoiceDueSoonCount').textContent=String(totals.soonCount);
-  $('invoiceDueNote').textContent='Nur '+invoices.length+' geladene Rechnungen (max. 200 je Register). Fälligkeit nach Schweizer Kalenderdatum; Teilzahlungen und Korrekturen berücksichtigt. Mahnungen ausschliesslich manuell nach Prüfung.';
+  $('invoiceDueNote').textContent=complete?
+    'Serverseitige Gesamtübersicht aller '+complete.counts.rechnungen+' Rechnungen. '+invoices.length+
+    ' davon im Register geladen. Mahnungen ausschliesslich manuell nach Prüfung.':
+    'Nur aktuell geladene Rechnungen. Gesamtübersicht zurzeit nicht verfügbar; bitte aktualisieren.';
 }
 function dashboardStats(records){
+  const remote=state.summary;
+  if(remote)return {
+    newLeads:remote.newLeads,openOffers:remote.openOffers,openInvoices:remote.openInvoices,
+    openInvoiceAmount:remote.openInvoiceCents/100,activeProjects:remote.activeProjects,
+    waitingProjects:remote.waitingProjects,paidAmount:remote.paidCents/100,
+    openOfferVolume:remote.openOfferCents/100,acceptedMonthly:remote.acceptedMonthlyCents/100,
+    leadCount:remote.leadCount
+  };
   const result=cockpitMetrics(records);
   return {
     newLeads:(records.leads||[]).filter(x=>x.status==='Neu').length,
@@ -930,6 +948,28 @@ function projectDoneCount(project){
   const tasks=Array.isArray(project?.tasks)?project.tasks:[];
   return {total:tasks.length,done:tasks.filter(t=>t.done===true).length};
 }
+function renderPageMore(area){
+  const tab=state.tab,info=state.pageInfo[tab];
+  if(!info?.hasMore)return;
+  const shell=el('div','crm-page-more'),button=el('button','','Weitere 50 laden');
+  button.type='button';button.disabled=Boolean(info.loading);
+  shell.append(el('p','','Suche und Filter betreffen die bereits geladenen Seiten.'),button);
+  button.addEventListener('click',async()=>{
+    if(info.loading||!info.hasMore)return;
+    info.loading=true;button.disabled=true;
+    try{
+      const result=await api('/api/records/'+tab+'?pageSize=50&cursor='+encodeURIComponent(info.nextCursor));
+      const existing=new Set((state.records[tab]||[]).map(x=>x.id));
+      state.records[tab].push(...(result.records||[]).filter(x=>!existing.has(x.id)));
+      state.pageInfo[tab]={nextCursor:result.nextCursor,hasMore:result.hasMore,loading:false};
+      render();
+    }catch(err){
+      info.loading=false;button.disabled=false;
+      window.alert('Weitere Datensätze konnten nicht geladen werden: '+err.message);
+    }
+  });
+  area.append(shell);
+}
 function render(){
   const dashboard=state.tab==='dashboard';
   const d=dashboard
@@ -947,7 +987,10 @@ function render(){
   renderKpis();
   if(dashboard){renderDashboard();return;}
   $('listTitle').textContent=d.title;
-  $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
+  const available=state.summary?.counts?.[state.tab];
+  $('listHint').textContent=(state.records[state.tab]||[]).length+' geladen'+
+    (available!==undefined?' von '+available+' Einträgen':'')+
+    ' · Suche/Filter in geladenen Seiten';
   const needle=$('search').value.toLocaleLowerCase('de-CH');
   const records=(state.records[state.tab]||[]).filter(record=>{
     if(!JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle))return false;
@@ -961,7 +1004,7 @@ function render(){
   if(!records.length){
     const empty=el('div','empty');
     empty.append(el('strong','',needle?'Keine passenden Einträge':'Noch keine Einträge'),el('div','',needle?'Versuche einen anderen Suchbegriff.':'Lege den ersten Datensatz über „Neu erfassen“ an.'));
-    area.append(empty);return;
+    area.append(empty);renderPageMore(area);return;
   }
   const wrap=el('div','scroll'),table=el('table'),thead=el('thead'),tr=el('tr');
   for(const col of d.columns)tr.append(el('th','',col[1]));
@@ -1035,6 +1078,7 @@ function render(){
     row.append(td);tbody.append(row);
   }
   table.append(tbody);wrap.append(table);area.append(wrap);
+  renderPageMore(area);
 }
 
 function leadOffers(leadId){
@@ -2163,8 +2207,13 @@ function openEditor(record=null,draft=null) {
   $('editor').showModal();
 }
 async function loadAll(){
-  const results=await Promise.all(order.map(x=>api('/api/records/'+x)));
-  order.forEach((x,i)=>state.records[x]=results[i].records);
+  const results=await Promise.all(order.map(x=>api('/api/records/'+x+'?pageSize=50')));
+  order.forEach((x,i)=>{
+    state.records[x]=results[i].records||[];
+    state.pageInfo[x]={nextCursor:results[i].nextCursor,hasMore:results[i].hasMore,loading:false};
+  });
+  try{state.summary=(await api('/api/cockpit/summary')).summary;}
+  catch(err){state.summary=null;$('syncStatus').textContent='Gesamtkennzahlen nicht verfügbar – bitte aktualisieren';}
   const reminders=await api('/api/reminders').catch(()=>({reminders:[]}));
   state.reminders=reminders.reminders||[];
   render();

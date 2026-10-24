@@ -85,13 +85,35 @@ test('unconfirmed or lost provider receipt requires manual review, never retries
   await assert.rejects(sender.send(invoice.id,{},user),{status:409});
   assert.equal(attempts,1);
 });
-test('self-billed RE-1001 and synthetic data cannot reach production Gmail',async()=>{
-  const store=fakeStore({...invoice,number:'RE-1001'},{...customer,company:'LSZH Invest GmbH'});
-  let called=false;
-  const sender=createInvoiceSender(store,{enabled:true,mode:'production',webhookUrl:webhook,iban,
-    fetchImpl:async()=>{called=true;throw Error('unsafe');}});
-  await assert.rejects(sender.send(store.record.id,{},user),{status:403});
-  assert.equal(store.calls.length,0);assert.equal(called,false);
+test('manually approved internal, self-billed and TEST_ONLY-labelled invoices can send in production',async()=>{
+  for(const variant of [
+    {number:'RE-1001',description:'Automationsberatung',company:'LSZH Invest GmbH'},
+    {number:'RE-1002',description:'TEST_ONLY Interne Leistung',company:'Beispiel AG'},
+    {number:'RE-1003',description:'Support',company:'TEST_ONLY Musterfirma AG'}
+  ]){
+    const store=fakeStore({...invoice,number:variant.number,description:variant.description},
+      {...customer,company:variant.company});
+    let calls=0;
+    const sender=createInvoiceSender(store,{
+      enabled:true,mode:'production',webhookUrl:webhook,iban,
+      fetchImpl:async(_url,options)=>{
+        calls++;
+        const body=JSON.parse(options.body);
+        assert.equal(body.sendMode,'production');
+        assert.equal(body.to,customer.email);
+        assert.equal(body.subject,'Ihre Rechnung Nr. '+variant.number+' | LSZH Automations');
+        assert.match(body.pdfFilename,/^LSZH_Rechnung_RE-[0-9]+\\.pdf$/);
+        return {ok:true,json:async()=>({ok:true,eventId:body.eventId,messageId:'gmail-'+variant.number})};
+      }
+    });
+    const result=await sender.send(invoice.id,{},user);
+    assert.equal(result.status,'confirmed');
+    assert.equal(result.record.invoiceDispatchState,'confirmed');
+    assert.deepEqual(store.calls.map(([action])=>action),['claim','finish']);
+    assert.equal(calls,1);
+    await assert.rejects(sender.send(invoice.id,{},user),{status:409});
+    assert.equal(calls,1);
+  }
 });
 test('test-only invoice send must target allowlisted test mailbox and synthetic customer',async()=>{
   const store=fakeStore({...invoice,description:'TEST_ONLY Test',number:'RE-1008'},

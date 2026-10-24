@@ -2,6 +2,13 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## Update 24.10.2026 – Rechnungstest bestätigt, Abwicklung in separatem QA-Branch
+
+- **Benutzerbestätigung:** Die synthetische Rechnungs-Mail ist im Testpostfach angekommen, das LSZH-Design passt, der getestete Versand funktioniert. Dies ist **keine** Freigabe für reale Kundenrechnungen.
+- **Zahlungsabwicklung jetzt entwickelt, NICHT live:** Branch `feature/crm-v2-invoice-settlement-20261024`. Teilzahlungen/Restbetrag, manueller Zahlungsnachweis, protokollierte Korrekturen, überfällige Forderungen, manuelle Reminder-Entwürfe und Versandprotokolle; keine automatisch verschickten Mahnungen.
+- **QA:** Run `40083793125`, 105/105 Tests PASS inkl. Browser-JavaScript-Syntax, 31-Feld-Swiss-QR-Scan PASS, PowerShell-Parser PASS. Kein Cloud-Run-Deploy durch diese Implementierung.
+- **Operativer Detailstand:** `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`. Vor Live-Gang echte isolierte UI-/Firestore-E2E-Prüfung und gesonderte Rollout-Freigabe; vorige bestätigte Cloud-Run-/Mail-Baseline unverändert.
+
 ## Kurzfazit und verifizierte Freigaben
 
 **LSZH CRM V2 läuft produktiv.** Letzte vom Geschäftsführer per PowerShell-Ausgabe bestätigte erfolgreiche Bereitstellung:
@@ -10,7 +17,7 @@
 - Cloud Run: `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`
 - **Live Revision: `lszh-crm-v2-00043-wur` (100 % Traffic)**
 - **Rollback-Revision: `lszh-crm-v2-00041-far`**
-- **Neuer Rechnungs-Mail-Kandidat `lszh-crm-v2-00045-lec` mit 0% Traffic** (benutzerbestätigt, `CRM INVOICE MAIL ZERO TRAFFIC PASS`). Existierendes produktives CRM und Mailbetrieb weiter unverändert; Rechnungs-Mail noch NICHT aktiviert. **Synthetischer Make/Gmail-Rechnungstest TECHNISCH PASS**: 100/100 Tests, Windows-PS-Parser PASS, Send `TEST MAIL SENDEN` vom Betreiber bestätigt. Make-Execution 24.10.2026 09:30Z mit Webhook/Gmail/Antwort 3/3, Outlook-Testempfänger, PDF-IMTBuffer **13'423 Bytes** und Gmail `SENT` direkt nachgeprüft. **Outlook-Posteingang/Sichtprüfung der erhaltenen Mail noch offen.**
+- **Neuer Rechnungs-Mail-Kandidat `lszh-crm-v2-00045-lec` mit 0% Traffic** (benutzerbestätigt, `CRM INVOICE MAIL ZERO TRAFFIC PASS`). Existierendes produktives CRM und Mailbetrieb weiter unverändert; Rechnungs-Mail noch NICHT aktiviert. **Synthetischer Make/Gmail-Rechnungstest TECHNISCH PASS**: 100/100 Tests, Windows-PS-Parser PASS, Send `TEST MAIL SENDEN` vom Betreiber bestätigt. Make-Execution 24.10.2026 09:30Z mit Webhook/Gmail/Antwort 3/3, Outlook-Testempfänger, PDF-IMTBuffer **13'423 Bytes** und Gmail `SENT` direkt nachgeprüft. **Outlook-Empfang und Design wurden anschliessend vom Benutzer als erfolgreich bestätigt.**
 - Swiss-QR-PDF im Google-authentifizierten Live-CRM manuell downloadbar, geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Der in der ersten echten PDF RE-1001 gefundene Scherengrafikfehler wurde behoben und erfolgreich produktiv deployt. **Finale technische Abnahme der NEU heruntergeladenen RE-1001-PDF erfolgreich: Scherengrafik 5pt, A4/Zahlteil/QR-Druckgeometrie und 31-Feld-QR-Scan PASS. RE-1001 bleibt interne Testrechnung, nicht versenden oder bezahlen; Kundenrechnungen weiterhin nur nach Prüfung und manuell.**
 - Bisheriger E-Mail-Cutoff unverändert: `2026-10-23T16:15:28Z`
 - CRM-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`

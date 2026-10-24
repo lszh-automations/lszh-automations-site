@@ -2,6 +2,12 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## 24.10.2026 – Erster Settlement-Live-Cutover vor Freigabe abgebrochen
+
+- Betreiber führte `activate-crm-invoice-settlement-live.ps1` nach Git-Update aus. Stufe `1/4` (Revisionen, Umgebung) PASS, `2/4` brach wegen schreibgeschützter PowerShell-Automatikvariable `$HOME` ab (Skript nutzte irrtümlich `$home`; Variablennamen sind in PowerShell nicht case-sensitiv). **Freigabeabfrage und Traffic-Schaltung wurden nicht erreicht.** Keine Live-Mutation durch diesen Lauf.
+- Fix im Feature-Branch: `scripts/activate-crm-invoice-settlement-live.ps1` verwendet neu `$homepageResponse`, Commit `e2141f3e04f0b0a1ddeb1fc6aaf5a69ae917c05f`. Windows-PowerShell-5.1-Parser im CI danach PASS.
+- Nächster Schritt am Surface: `git pull --ff-only`, anschliessend `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-invoice-settlement-live.ps1"`. Nur nach erfolgreichen Checks und bewusster Eingabe `LIVE SETTLEMENT` findet der kontrollierte Cutover statt; Rollback-Script unverändert.
+
 ## Live-Candidate PASS am 24.10.2026, Live-Umschaltung noch ausstehend
 
 - PowerShell Release-Vorbereitung **PASS**: 105/105 Tests, Kandidat `lszh-crm-v2-00046-faj` 0 % Traffic, Tag `crm-settlement-qa`. Bestätigter Produktivstand `lszh-crm-v2-00043-wur` weiterhin 100 % Traffic.

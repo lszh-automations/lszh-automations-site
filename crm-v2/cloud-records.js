@@ -405,6 +405,9 @@ function buildStore(db,prefix){
       if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)||
          !customer.company||!customer.street||!customer.postalCode||!customer.city)
         throw err('Kunden-E-Mail oder Rechnungsanschrift unvollständig',409);
+      // Swiss QR structured debtor address needs a separable house number.
+      if(!/^(.*?)\s+(\d+[a-zA-Z]?(?:[-/]\d+)?)$/.test(String(customer.street).trim()))
+        throw err('Für die Swiss-QR-Rechnung Strasse mit Hausnummer beim Kunden erfassen',409);
       const projectSnap=invoice.projectId?
         await tx.get(col('projekte').doc(invoice.projectId)):null;
       if(invoice.projectId&&!projectSnap?.exists)throw err('Projekt der Rechnung fehlt',409);

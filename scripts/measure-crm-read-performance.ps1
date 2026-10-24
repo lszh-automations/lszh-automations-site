@@ -79,7 +79,9 @@ function ReadRevisionLog([string]$revision){
     if($seconds -gt 300){continue}
     $points.Add([pscustomobject]@{group=$kind;status=$status;ms=$seconds*1000})
   }
-  return @($points.ToArray())
+  # Emit points through the pipeline; Windows PowerShell 5.1 should not
+  # package the results in another object[] when there is only one request.
+  return $points.ToArray()
 }
 function PrintLatency([object[]]$points,[string]$revision){
   Write-Host ''

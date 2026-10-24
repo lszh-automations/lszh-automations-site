@@ -80,72 +80,17 @@ try{
     throw 'Unexpected offer webhook secret reference. No test email sent.'
   }
   $secretVersion=[string]$hookEntry.valueFrom.secretKeyRef.key
-  if($secretVersion -cnotmatch '^(latest|[1-9][0-9]*)
-  Write-Host '3/4 One-time synthetic test approval'
-  Write-Host ('TEST ONLY recipient: '+$testTo)
-  Write-Host 'Synthetic PDF: RE-9099999, public demo IBAN, CHF 79.90, NOT PAYABLE.'
-  Write-Host 'No real CRM invoice, Firestore write, Cloud Run traffic change, or customer delivery.'
-  Write-Host 'Once triggered, Gmail could send immediately; no automatic retry is permitted.'
-  $consent=Read-Host 'Zur Freigabe exakt TEST MAIL SENDEN eingeben'
-  if($consent -cne 'TEST MAIL SENDEN'){throw 'No explicit Gmail test approval. Nothing sent.'}
-  Write-Host '4/4 Send exactly one TEST_ONLY Make/Gmail request to approved mailbox'
-  try{
-    $env:LSZH_TEST_MAKE_WEBHOOK=$hook
-    $env:LSZH_TEST_MAIL_APPROVED=$consent
-    & node.exe '.\crm-v2\scripts\invoice-mail-make-synthetic-once.js'
-    Check 'Synthetic Make/Gmail test unconfirmed. Gmail Sent folder must be checked manually before any retry.'
-  }finally{
-    Remove-Item Env:\LSZH_TEST_MAKE_WEBHOOK -ErrorAction SilentlyContinue
-    Remove-Item Env:\LSZH_TEST_MAIL_APPROVED -ErrorAction SilentlyContinue
-    $hook=$null
-  }
-  $again=Service
-  $positive=@($again.status.traffic|Where-Object {[int]$_.percent -gt 0})
-  if($positive.Count -ne 1 -or [int]$positive[0].percent -ne 100 -or
-     $positive[0].revisionName -ne $live){
-    throw 'Live traffic drift after test. Inspect Cloud Run; no more sends.'
-  }
-  Write-Host 'CRM INVOICE MAIL GATEWAY TEST PASS (NO LIVE CRM CHANGES)'
-}finally{Pop-Location}
-){
+  if($secretVersion -cnotmatch '^(latest|[1-9][0-9]*)$'){
     throw 'Unexpected offer webhook secret version. No test email sent.'
   }
-  # Capture STDOUT silently; Secret Manager read never writes secret to console.
-  # Use a complete --flag=value token for Windows PowerShell native argument passing.
+  # Only the existing approved Secret Manager version. Never echo its URL.
   $secretOutput=@(& gcloud.cmd secrets versions access $secretVersion "--secret=$secretName" "--project=$project" 2>$null)
   Check 'Cannot securely read approved Make hook from Secret Manager. No test email sent.'
   $hook=($secretOutput -join '').Trim()
   $secretOutput=$null
-  if($hook -cnotmatch '^https://hook[.]eu1[.]make[.]com/[A-Za-z0-9]+
-  Write-Host '3/4 One-time synthetic test approval'
-  Write-Host ('TEST ONLY recipient: '+$testTo)
-  Write-Host 'Synthetic PDF: RE-9099999, public demo IBAN, CHF 79.90, NOT PAYABLE.'
-  Write-Host 'No real CRM invoice, Firestore write, Cloud Run traffic change, or customer delivery.'
-  Write-Host 'Once triggered, Gmail could send immediately; no automatic retry is permitted.'
-  $consent=Read-Host 'Zur Freigabe exakt TEST MAIL SENDEN eingeben'
-  if($consent -cne 'TEST MAIL SENDEN'){throw 'No explicit Gmail test approval. Nothing sent.'}
-  Write-Host '4/4 Send exactly one TEST_ONLY Make/Gmail request to approved mailbox'
-  try{
-    $env:LSZH_TEST_MAKE_WEBHOOK=$hook
-    $env:LSZH_TEST_MAIL_APPROVED=$consent
-    & node.exe '.\crm-v2\scripts\invoice-mail-make-synthetic-once.js'
-    Check 'Synthetic Make/Gmail test unconfirmed. Gmail Sent folder must be checked manually before any retry.'
-  }finally{
-    Remove-Item Env:\LSZH_TEST_MAKE_WEBHOOK -ErrorAction SilentlyContinue
-    Remove-Item Env:\LSZH_TEST_MAIL_APPROVED -ErrorAction SilentlyContinue
+  if($hook -cnotmatch '^https://hook[.]eu1[.]make[.]com/[A-Za-z0-9]+$'){
     $hook=$null
-  }
-  $again=Service
-  $positive=@($again.status.traffic|Where-Object {[int]$_.percent -gt 0})
-  if($positive.Count -ne 1 -or [int]$positive[0].percent -ne 100 -or
-     $positive[0].revisionName -ne $live){
-    throw 'Live traffic drift after test. Inspect Cloud Run; no more sends.'
-  }
-  Write-Host 'CRM INVOICE MAIL GATEWAY TEST PASS (NO LIVE CRM CHANGES)'
-}finally{Pop-Location}
-){
-    $hook=$null
-    throw 'Approved Make webhook secret does not contain the expected eu1 URL. Nothing sent.'
+    throw 'Approved Make webhook secret does not contain expected eu1 URL. Nothing sent.'
   }
   Write-Host '3/4 One-time synthetic test approval'
   Write-Host ('TEST ONLY recipient: '+$testTo)

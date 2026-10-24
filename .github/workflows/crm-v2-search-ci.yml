@@ -1,0 +1,39 @@
+name: CRM V2 read-only search tests
+on:
+  push:
+    branches:
+      - feature/crm-v2-server-search-20261024
+    paths:
+      - "crm-v2/**"
+      - ".github/workflows/crm-v2-search-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crm-search:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: crm-v2/package-lock.json
+      - name: Install dependencies without running project scripts
+        run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Run all CRM regression tests
+        run: npm test --prefix crm-v2
+      - name: Parse server and UI JavaScript
+        run: |
+          node --check crm-v2/cloud-records.js
+          node --check crm-v2/server.js
+          node --check crm-v2/test/crm-search.test.js
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const html=fs.readFileSync('crm-v2/public/index.html','utf8');
+          const inline=html.match(/<script>\s*('use strict';[\s\S]*?)<\/script>/);
+          if(!inline)throw new Error('CRM inline script missing');
+          new Function(inline[1]);
+          console.log('CRM UI JavaScript parse PASS');
+          NODE

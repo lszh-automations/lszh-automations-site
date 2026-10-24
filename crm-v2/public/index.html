@@ -116,6 +116,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-reminders{margin:14px 24px 4px;padding:18px;border:1px solid #41536c;border-radius:13px;background:#111c2d}
 .invoice-reminders h3{margin:0;font-size:15px}
 .invoice-reminders p{font-size:12px;color:#b7c9db}
+.invoice-reminder-status{font-size:13px!important;font-weight:700;color:#e7f2ff!important;margin:12px 0 5px}
+.invoice-reminder-check{font-size:11px!important;color:#c3d6e7!important;border-left:2px solid #6f9bc1;padding:7px 11px;background:#152639;border-radius:3px;margin:10px 0}
 .invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:inherit;font-size:12px;line-height:1.6}
 .invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .invoice-reminder-history{font-size:11px;color:#a5bed4;margin-top:10px}
@@ -414,9 +416,11 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     </section>
     <section id="invoiceReminderPanel" class="invoice-reminders" hidden aria-label="Zahlungserinnerungen">
       <h3>Fälligkeitskontrolle und Mahnwesen</h3>
+      <p id="invoiceReminderStatus" class="invoice-reminder-status" role="status"></p>
       <p id="invoiceReminderNotice"></p>
       <p id="invoiceReminderHistory" class="invoice-reminder-history"></p>
       <div id="invoiceReminderActions" hidden>
+        <p class="invoice-reminder-check">Vor jedem manuellen Versand: Zahlungseingänge, Empfänger, Restbetrag und Inhalt prüfen. Das CRM versendet keine Mahnung automatisch.</p>
         <textarea id="invoiceReminderText" aria-label="Entwurf Zahlungserinnerung" readonly></textarea>
         <div class="invoice-reminder-buttons">
           <button class="btn" type="button" id="invoiceCopyReminder">Erinnerungstext kopieren</button>
@@ -1783,9 +1787,19 @@ function renderInvoiceReminders(invoice){
     Array.isArray(invoice.paymentHistory)&&invoice.paymentHistory.length?
     invoice.paymentHistory.reduce((n,p)=>n+(p.voidedAt?0:Number(p.amountCHF||0)),0):invoice.status==='Bezahlt'?Number(invoice.amountCHF||0):0
   ));
-  const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey()&&due>0;
+  const info=invoiceDueInfo(invoice);
+  const overdue=info.kind==='overdue';
+  const days=Number.isFinite(info.days)?Math.abs(info.days):0;
+  $('invoiceReminderStatus').textContent=info.kind==='overdue'?
+    days+' '+(days===1?'Tag':'Tage')+' überfällig · Rest '+invoiceCHF(info.remaining/100):
+    info.kind==='soon'?
+      (info.days===0?'Heute fällig':'Fällig in '+info.days+' '+(info.days===1?'Tag':'Tagen'))+
+      ' · Rest '+invoiceCHF(info.remaining/100):
+    info.remaining<=0?'Kein offener Rechnungsbetrag.':
+      'Noch nicht überfällig · Rest '+invoiceCHF(info.remaining/100);
   const last=history[history.length-1];
-  const cooling=last&&Date.now()-Date.parse(last.at)<7*24*60*60*1000;
+  const nextAllowedAt=last?Date.parse(last.at)+7*24*60*60*1000:null;
+  const cooling=Number.isFinite(nextAllowedAt)&&Date.now()<nextAllowedAt;
   $('invoiceReminderHistory').textContent=history.length?
     'Bisher dokumentiert: '+history.map(h=>h.kind+' ('+new Date(h.at).toLocaleDateString('de-CH')+')').join(' · '):
     'Noch keine Zahlungserinnerung dokumentiert.';
@@ -1795,11 +1809,18 @@ function renderInvoiceReminders(invoice){
     invoice.invoiceDispatchState!=='confirmed'?'Rechnungsversand nicht bestätigt.':
     !customer?.email?'Kunden-E-Mail fehlt.':
     !next?'Mahnfolge abgeschlossen – manuelle Entscheidung erforderlich.':
-    cooling?'Nächste Mahnstufe frühestens sieben Tage nach der letzten Erinnerung.':
+    cooling?'Nächste Mahnstufe frühestens '+new Intl.DateTimeFormat('de-CH',{
+      timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit'
+    }).format(new Date(nextAllowedAt))+' (nach letzter dokumentierter Mahnung).':
     'Nächster Schritt: '+next+'. Der Entwurf wird nicht automatisch verschickt.';
   $('invoiceReminderNotice').textContent=reason;
   $('invoiceReminderActions').hidden=!possible;
-  if(!possible)return;
+  if(!possible){
+    $('invoiceReminderText').value='';
+    $('invoiceLogReminder').dataset.pendingId='';
+    return;
+  }
   $('invoiceReminderText').value='Betreff: '+next+' – '+invoice.number+' | LSZH Automations\n\n'+
     'Guten Tag\n\n'+
     'Zu unserer Rechnung '+invoice.number+' mit Fälligkeit '+invoice.dueDate+

@@ -2,6 +2,12 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## Live-Candidate PASS am 24.10.2026, Live-Umschaltung noch ausstehend
+
+- PowerShell Release-Vorbereitung **PASS**: 105/105 Tests, Kandidat `lszh-crm-v2-00046-faj` 0 % Traffic, Tag `crm-settlement-qa`. Bestätigter Produktivstand `lszh-crm-v2-00043-wur` weiterhin 100 % Traffic.
+- Für das gezielte Cutover/automatische Zurückrollen auf `00043-wur` neu: `scripts/activate-crm-invoice-settlement-live.ps1`, mit Sicherheitsprüfung, Mail-Scheduler-Prüfung, zweifachem UI/Auth-Smoke und manueller `LIVE SETTLEMENT`-Bestätigung. **Noch nicht ausgeführt**.
+- Payment-UI ist erst nach echtem Versandnachweis nutzbar; Invoice-Mail-Gates sind weiter gesperrt. TEST_ONLY-Zahlungs-E2E im Live-CRM benötigt getrennten genehmigten internen Versand, keine künstlich gesetzte Bestätigung in Produktiv-Firestore. Alle Details in `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`.
+
 ## Live-Test-Vorbereitung 24.10.2026 – noch nicht deployed
 
 - Neues fail-closed Cloud-Run-Release-Preflight `scripts/prepare-crm-invoice-settlement-live-test.ps1`, standardmässig rein lesend, optional 0%-Kandidat `-DeployCandidate`. Kein produktiver Cutover ausgeführt.

@@ -2,6 +2,13 @@
 
 Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00051-bak` (100 %). Rechnungsversand für alle Kundentypen nach manuellem CRM-Klick aktiviert; echter Versand- und Zahlungs-Live-E2E noch offen.**
 
+## 24.10.2026 – Zahlungsübersicht Cloud Run ZERO TRAFFIC PASS bestätigt
+
+- **Operator-Ausgabe verifiziert:** `CRM INVOICE BALANCE ZERO TRAFFIC PASS` nach erneutem `scripts/prepare-crm-invoice-balance-live.ps1 -DeployCandidate` mit korrigierten Windows-CRLF-Tests; Kandidat `lszh-crm-v2-00053-mup` (0 % Traffic), Tag `crm-invoice-balance-qa`, Kandidaten-URL `https://crm-invoice-balance-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`. **Produktiv weiterhin `lszh-crm-v2-00051-bak` (100 %)**.
+- Schritt 4/4 bestand die UI-Prüfung der neuen Betrags-KPIs und Zahlungsfortschrittsanzeige, den Authentisierungsschutz und unveränderte Mail-Konfiguration. Deployment hat keine E-Mail versendet, keine Zahlung verbucht und keine produktiven Daten verändert.
+- **Unmittelbarer nächster Schritt (noch nicht ausgeführt/bestätigt):** Nach `git pull --ff-only` `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\activate-crm-invoice-balance-live.ps1"`, Preflight abwarten, dann ausdrücklich `LIVE ZAHLUNGSUEBERSICHT` eingeben. Das Skript schaltet nur nach Freigabe auf den getaggten `00053-mup`-Kandidaten und führt Postchecks aus; bei Fehler automatischer Rollback zu `00051-bak`. **Nicht jetzt als Live markieren.**
+- Nach bestätigtem `CRM INVOICE BALANCE LIVE PASS`: `Strg+F5` im CRM, RE-1002 öffnen und drei Karten (`Gesamt CHF 100`, `Eingegangen CHF 50`, `Noch offen CHF 50`) sowie Balken `50 % bezahlt` visuell prüfen. Die bestehenden Buchungen dürfen durch UI-Release nicht geändert werden.
+
 ## 24.10.2026 – Erster KPI-Release auf Windows korrekt vor Build gestoppt; CRLF-Testfix bestätigt
 
 - Nutzer führte `scripts/prepare-crm-invoice-balance-live.ps1 -DeployCandidate` nach `git pull --ff-only` (auf Commit `c1c6f6d`) aus. **Abbruch vor Schritt 2/4 beim lokalen `npm test`**: 108 von 112 Tests bestanden, vier neue `crm-v2/test/invoice-payment-kpis.test.js`-Tests meldeten `SyntaxError: Unexpected token 'function'`. **Kein Cloud-Run-Build, kein Kandidat, kein Trafficwechsel, keine Zahlung/Mail durch diesen Versuch**; die produktive Baseline `lszh-crm-v2-00051-bak` blieb unverändert.

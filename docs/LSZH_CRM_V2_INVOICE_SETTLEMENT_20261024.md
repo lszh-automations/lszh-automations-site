@@ -2,6 +2,13 @@
 
 Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00057-qek` (100 %), Rollback `lszh-crm-v2-00055-ved`. Vollständiger manueller Mahnprozess isoliert getestet; detaillierte Mahnprotokoll-Ansicht LIVE. Keine automatische Mahnung.**
 
+## AKTUELL 24.10.2026 – Mahnprotokoll-Anzeige durch Betreiber abgenommen
+
+- Nach Cloud-Run-`CRM INVOICE DUNNING AUDIT LIVE PASS` für `lszh-crm-v2-00057-qek` (**100 % Traffic**, Rollback `lszh-crm-v2-00055-ved`) und ausdrücklicher Bitte um den abschliessenden UI-Check bestätigt der Betreiber: **«super, es funktioniert»**. Damit gilt die verbesserte Mahnprotokoll-Anzeige im produktiven CRM als **visuell abgenommen**.
+- Technischer Mahnprozess in isolierter Testumgebung geprüft: Zahlungserinnerung, 1. Mahnung und 2. Mahnung; Frist von sieben vollen Tagen, Reihenfolge, Wiederholungs-/Doppelprotokollschutz sowie Stop bei Vollzahlung. Die produktive Anzeige enthält Stufe, Schweizer Datum/Uhrzeit, Empfänger, Bestätiger, historischen Restbetrag und Protokoll-ID.
+- **Präzise Abgrenzung:** Diese Bestätigung ist eine Sicht- und Funktionsabnahme, **kein Nachweis eines produktiv extern versendeten Mahnschreibens**. Es wurde weder ein echter Mahnlauf noch ein Gmail-Versandtest der Mahnungen ausgelöst; die manuelle Dokumentation enthält eine Betreiberbestätigung, keinen unabhängig validierten Versandbeleg. Kein automatischer Mahnversand.
+- **Status:** Rechnungsmodul inkl. manueller Fälligkeitskontrolle und Mahnprotokoll-UI in vereinbartem Umfang abgeschlossen; weiterhin `lszh-crm-v2-00057-qek` live. Künftige Releases müssen von dieser neuen Baseline ausgehen. Die zuvor als ausstehend bezeichnete visuelle UI-Abnahme ist nun erledigt.
+
 ## AKTUELL 24.10.2026 – Mahnprotokoll inklusive aller drei Stufen erfolgreich LIVE
 
 - **Vom Betreiber bestätigter Release:** `CRM INVOICE DUNNING AUDIT LIVE PASS`, Cloud Run Revision **`lszh-crm-v2-00057-qek` (100 % Traffic)**. **Rollback `lszh-crm-v2-00055-ved`**. CRM: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.

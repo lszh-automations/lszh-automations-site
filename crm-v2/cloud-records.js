@@ -402,7 +402,7 @@ function buildStore(db,prefix){
       if(!customerSnap.exists)throw err('Rechnungskunde fehlt',409);
       const customer=customerSnap.data();
       const to=String(customer.email||'').trim().toLowerCase();
-      if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(to)||
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)||
          !customer.company||!customer.street||!customer.postalCode||!customer.city)
         throw err('Kunden-E-Mail oder Rechnungsanschrift unvollständig',409);
       const projectSnap=invoice.projectId?
@@ -417,8 +417,8 @@ function buildStore(db,prefix){
       claimed={id,attemptId,to,invoice:{id,...invoice},
         customer:{id:invoice.customerId,...customer,email:to},
         project:projectSnap?.exists?{id:invoice.projectId,...projectSnap.data()}:null,
-        isSynthetic:/^TEST_ONLY\\b/i.test(String(invoice.description||''))||
-          /^TEST_ONLY\\b/i.test(String(customer.company||''))||
+        isSynthetic:/^TEST_ONLY\b/i.test(String(invoice.description||''))||
+          /^TEST_ONLY\b/i.test(String(customer.company||''))||
           String(customer.company).trim().toLowerCase()==='lszh invest gmbh'};
     });
     return claimed;

@@ -1309,3 +1309,8 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - Neu: `scripts/activate-crm-search-live.ps1` auf `feature/crm-v2-server-search-20261024` mit genau gepinnten Revisionen 00061->00063, Live-/QA-Tag-/IAM-/Env-/IBAN-/Gmail-/Scheduler-/HTTP-Checks, `gcloud run services update-traffic` auf Kandidat=100% und automatischem Rollback bei fehlgeschlagener Nachpruefung.
 - Die GitHub-Actions-Konfiguration validiert den Parser des Staging- und Live-Skripts auf Windows (ohne Ausfuehrung). CI-Ergebnis nur nach Beobachtung als PASS bezeichnen.
 - **NOCH NICHT LIVE:** keine Traffic-Umschaltung durch Dokumentation/GitHub-Commits. Betreiber: `git pull --ff-only`, PowerShell 5.1 Parser pruefen, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-search-live.ps1"` ausfuehren. Anschliessend Ausgabelog `CRM SEARCH LIVE PASS` und Revision 00063=100% pruefen.
+
+
+### 24.10.2026 – CRM V2 Suche/Filter: LIVE und bedienseitig abgenommen
+
+**Abgeschlossen:** Cloud Run `lszh-crm-v2-00063-baz` mit 100 % Live-Traffic, Rollback `lszh-crm-v2-00061-tol`. 137/137 lokale Regressionstests PASS, 0%-Candidate QA PASS, Live-Routing mit HTTP/Auth/Mail-Scheduler-Prüfungen PASS. Benutzer hat anschliessend die Suchfunktion im produktiven CRM als funktionierend bestätigt. Serverseitige Suche, Status- und Rechnungsfälligkeitsfilter und 50er-Cursor-Paginierung bereitgestellt. Produktiver Mail-Cutoff unverändert; Cutover führte keine Firestore-Mutation, keinen Mailversand und keine Zahlungsoperation aus. Weiteres Optimierungsthema bei Wachstum: Firestore-Streamsuche durch Suchindex ersetzen.

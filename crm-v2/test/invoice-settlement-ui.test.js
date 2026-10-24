@@ -19,6 +19,15 @@ test('invoice settlement UI inline JavaScript parses and never forces hidden pay
   assert.doesNotMatch(html,/id="invoicePaymentDate"[^>]*\brequired\b/);
   assert.doesNotMatch(html,/id="invoiceMarkPaid"/,'legacy direct paid button must be absent');
 });
+test('production invoice mail UI does not blanket-block internally named customers',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+  const dispatch=html.split('function renderInvoiceDispatch(invoice){')[1].split('async function reopenSavedInvoice(')[0];
+  assert.match(dispatch,/id="invoiceSend"|\$\('invoiceSend'\)\.disabled/);
+  assert.doesNotMatch(dispatch,/state\.invoiceMailMode==='production'&&isSynthetic/);
+  assert.doesNotMatch(dispatch,/Interne Test-\/Eigenrechnung: kein produktiver Rechnungsversand erlaubt/);
+  assert.match(dispatch,/state\.invoiceMailMode==='test_only'&&!allowedTest/);
+  assert.match(html,/RECHNUNG WIRKLICH SENDEN\?/,'explicit send confirmation remains mandatory');
+});
 test('CHF amount, due status and overdue partial balance use exact rappen and Swiss dates',()=>{
   assert.equal(cents('12.30'),1230);
   assert.equal(cents(12.3),1230);

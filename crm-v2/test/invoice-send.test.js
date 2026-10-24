@@ -102,7 +102,7 @@ test('manually approved internal, self-billed and TEST_ONLY-labelled invoices ca
         assert.equal(body.sendMode,'production');
         assert.equal(body.to,customer.email);
         assert.equal(body.subject,'Ihre Rechnung Nr. '+variant.number+' | LSZH Automations');
-        assert.match(body.pdfFilename,/^LSZH_Rechnung_RE-[0-9]+\\.pdf$/);
+        assert.match(body.pdfFilename,/^LSZH_Rechnung_RE-[0-9]+\.pdf$/);
         return {ok:true,json:async()=>({ok:true,eventId:body.eventId,messageId:'gmail-'+variant.number})};
       }
     });

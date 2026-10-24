@@ -404,7 +404,7 @@ function buildStore(db,prefix){
       const remaining=outstandingCents(before);
       const received=Math.round(form.amountCHF*100);
       if(!remaining||received>remaining)throw err('Zahlungsbetrag übersteigt den offenen Restbetrag',409);
-      if(form.reference&&history.some(p=>p.reference===form.reference&&p.method===form.method))
+      if(form.reference&&history.some(p=>!p.voidedAt&&p.reference===form.reference&&p.method===form.method))
         throw err('Diese Zahlungsreferenz ist bei der Rechnung schon erfasst',409);
       const afterHistory=[...history,{...form,recordedAt:date,recordedBy:user.email}];
       const totalPaid=paidCents({...before,paymentHistory:afterHistory});
@@ -415,6 +415,43 @@ function buildStore(db,prefix){
         lastPaymentOn:form.paidOn,status:complete?'Bezahlt':'Teilbezahlt',
         ...(complete?{paidAt:date}:{}),
       },user,date));
+    });
+    return toObject(await ref.get());
+  }
+
+  // Never delete a payment. Corrections reverse its effect while retaining
+  // both the original booking and the reason/user/time of the correction.
+  async function reverseInvoicePayment(id,payload,user){
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+       Object.keys(payload).some(k=>!['paymentId','reversalId','reason'].includes(k))||
+       typeof payload.paymentId!=='string'||typeof payload.reversalId!=='string'||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.paymentId)||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.reversalId)||
+       typeof payload.reason!=='string'||payload.reason.trim().length<8||payload.reason.trim().length>250)
+      throw err('Korrektur benötigt gültige Buchungs-ID, Korrektur-ID und Begründung (8–250 Zeichen)');
+    const reason=payload.reason.trim(),date=now(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const before=snap.data();
+      const history=Array.isArray(before.paymentHistory)?before.paymentHistory:[];
+      const index=history.findIndex(p=>p.paymentId===payload.paymentId);
+      if(index<0)throw err('Zahlungsbuchung nicht gefunden',404);
+      const payment=history[index];
+      if(payment.voidedAt){
+        if(payment.reversalId===payload.reversalId&&payment.voidReason===reason)return;
+        throw err('Zahlung wurde bereits korrigiert',409);
+      }
+      if(!['Bezahlt','Teilbezahlt'].includes(before.status)||before.invoiceDispatchState!=='confirmed')
+        throw err('Keine korrigierbare Zahlung auf dieser Rechnung',409);
+      const amended=history.map((p,i)=>i===index?{...p,
+        voidedAt:date,voidedBy:user.email,voidReason:reason,reversalId:payload.reversalId}:p);
+      const paid=paidCents({...before,paymentHistory:amended});
+      const remaining=Math.max(0,Math.round(Number(before.amountCHF)*100)-paid);
+      const status=remaining===0?'Bezahlt':paid>0?'Teilbezahlt':'Offen';
+      tx.update(ref,audit({paymentHistory:amended,paidAmountCHF:paid/100,
+        outstandingCHF:remaining/100,status,paidAt:status==='Bezahlt'?before.paidAt:null,
+        lastPaymentCorrectionAt:date,lastPaymentCorrectionBy:user.email},user,date));
     });
     return toObject(await ref.get());
   }
@@ -720,6 +757,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

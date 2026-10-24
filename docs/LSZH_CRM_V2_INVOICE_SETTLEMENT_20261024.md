@@ -3,6 +3,13 @@
 Stand 24.10.2026 – **Rechnungsabwicklung auf produktiver CRM-Revision `lszh-crm-v2-00046-faj` live (100 %); echter Live-Zahlungs-End-to-End-Test noch offen.**
 
 
+## Verbindliche Produktentscheidung 24.10.2026 – Rechnungen nur per CRM-E-Mail
+
+- **Rechnungen ausschliesslich per E-Mail aus dem CRM versenden.** Kein manueller Übergabe-/Postversand-Workflow und keine Schaltfläche, die einen bloss behaupteten Versand als bestätigt erfasst.
+- Der bestehende Zahlungsschutz ist **gewollt**: Manuelle Teil-/Vollzahlungen erst nach tatsächlich vom Mail-Gateway bestätigtem Rechnungsversand (\`invoiceDispatchState=confirmed\`). Die Statuswahl \`Teilbezahlt\` bzw. \`Bezahlt\` darf nicht über das allgemeine Bearbeitungsformular gesetzt werden; Statusänderung nur durch nachvollziehbaren Zahlungseintrag.
+- Rechnungsversand nur per **explizitem CRM-Klick**; keine automatischen Rechnungs- oder Mahn-E-Mails. Swiss-QR-PDF kann für interne Vorschau/Prüfung vorhanden sein, ist aber kein Zustellnachweis.
+- **Nächste Aufgabe:** produktiven Rechnungs-E-Mail-Sendekanal kontrolliert vorbereiten und mit dem zuvor freigegebenen internen TEST_ONLY-Empfänger prüfen, bevor Kundenversand separat freigegeben wird. Die aktuellen Invoice-Mail-Gates sind weiter AUS. Keine externe Kundenmail ohne separate Freigabe.
+
 ## Live-Abnahme 24.10.2026 – Release erfolgreich
 
 **Betreiberbestätigung:** `CRM INVOICE SETTLEMENT LIVE PASS`. Cloud Run `lszh-crm-v2-00046-faj` empfängt 100 % produktiven Traffic; `lszh-crm-v2-00043-wur` ist bestätigte Rollback-Revision. Das Freigabe-/Rollback-Skript `scripts/activate-crm-invoice-settlement-live.ps1` hat nach der Traffic-Umschaltung die CRM-Oberfläche, Authentisierungsschutz, Scheduler-Vertrag und Mail-Einstellungen erneut geprüft. Mail-Cutoff `2026-10-23T16:15:28Z` unverändert. Keine Testzahlung, kein Bankaufruf, keine Kunden-E-Mail, keine Mahnung, kein Live-Firestore-Seed durch das Release. Die Rechnungsmail-Freigabegates bleiben deaktiviert.

@@ -13,7 +13,6 @@ const {makeDispatcher}=require('./mail-dispatcher');
 const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {createOfferSender}=require('./offer-send');
-const {createInvoiceSender}=require('./invoice-send');
 const {renderInvoicePreview}=require('./invoice-preview');
 
 const PORT=Number(process.env.PORT||8080);
@@ -37,7 +36,7 @@ const offerSender=createOfferSender(store,{
 });
 // Invoice email is independent of lead/offer mail; disabled in production until
 // dedicated manual release flags are approved. Reuses the same Make/Gmail gateway.
-const invoiceSender=createInvoiceSender(store,{
+const invoiceSenderConfig={
   enabled:process.env.CRM_INVOICE_MAIL_ENABLED==='true'&&
     (PREFIX!=='lszh_crm_v2_'||process.env.CRM_INVOICE_MAIL_PRODUCTION_APPROVED==='true'),
   webhookUrl:process.env.CRM_INVOICE_MAIL_WEBHOOK_URL||
@@ -45,7 +44,21 @@ const invoiceSender=createInvoiceSender(store,{
   mode:process.env.CRM_INVOICE_MAIL_MODE,
   testTo:process.env.CRM_INVOICE_MAIL_TEST_TO,
   iban:process.env.CRM_INVOICE_IBAN
-});
+};
+// Do not require invoice-send at module load: existing CRM HTTP test harnesses
+// and all anonymous paths can keep using the old dependencies unchanged.
+const invoiceSenderStatus={
+  enabled:invoiceSenderConfig.enabled&&
+    /^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9]+$/.test(String(invoiceSenderConfig.webhookUrl||''))&&
+    Boolean(invoiceSenderConfig.iban)&&
+    ((invoiceSenderConfig.mode==='production'&&!invoiceSenderConfig.testTo)||
+     (invoiceSenderConfig.mode==='test_only'&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(invoiceSenderConfig.testTo||'')))),
+  mode:'disabled',testTo:''
+};
+if(invoiceSenderStatus.enabled){
+  invoiceSenderStatus.mode=invoiceSenderConfig.mode;
+  invoiceSenderStatus.testTo=invoiceSenderConfig.testTo||'';
+}
 const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
 const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();
 const MAX_BODY=100*1024;
@@ -113,7 +126,7 @@ async function handler(req,res){
     return res.end(fs.readFileSync(sample));
   }
   if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo,invoiceMailEnabled:invoiceSender.stats().enabled,invoiceMailMode:invoiceSender.stats().mode,invoiceMailTestTo:invoiceSender.stats().testTo}:{error:'not_configured'});
+    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo,invoiceMailEnabled:invoiceSenderStatus.enabled,invoiceMailMode:invoiceSenderStatus.mode,invoiceMailTestTo:invoiceSenderStatus.testTo}:{error:'not_configured'});
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');
@@ -221,7 +234,9 @@ async function handler(req,res){
         return reply(res,400,{error:'invalid_resolution'});
       return reply(res,200,{record:await store.resolveInvoiceSend(id,payload.resolution,user)});
     }
-    return reply(res,200,await invoiceSender.send(id,payload,user));
+    if(!invoiceSenderStatus.enabled)return reply(res,503,{error:'Rechnungsversand noch nicht freigegeben'});
+    const {createInvoiceSender}=require('./invoice-send'); // only authenticated/manual enabled path
+    return reply(res,200,await createInvoiceSender(store,invoiceSenderConfig).send(id,payload,user));
   }
   // Manual offer dispatch/follow-up bookkeeping. Does not send an email.
   const offerAction=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/(dispatch|followup)$/);

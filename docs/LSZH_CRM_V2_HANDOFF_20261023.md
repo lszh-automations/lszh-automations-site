@@ -3,6 +3,12 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – Betreiber bestätigt Fälligkeitsübersicht funktioniert
+
+- Nach dem erfolgreichen manuellen Live-Cutover auf `lszh-crm-v2-00055-ved` mit 100 % Traffic und dem angeforderten UI-Check der neuen Fälligkeitsübersicht meldet der Betreiber: **«super, es funktioniert»**. Die überfälligen/fällig-in-sieben-Tagen-Filter und die Restbetragsdarstellung gelten damit aus Betreibersicht als funktionsfähig abgenommen.
+- **Wichtig:** Diese Rückmeldung ist eine UI-Abnahme der Fälligkeitskontrolle, kein Nachweis, dass ein konkreter Mahnentwurf verschickt wurde oder alle drei Mahnstufen produktiv durchlaufen sind. Keine Mahnmail, Dokumentation eines Versands oder neue Zahlung automatisch auslösen.
+- **Nächster Test:** alle drei Stufen (Zahlungserinnerung, 1. Mahnung, 2. Mahnung), Sieben-Tage-Abstand, Zahlung nach Teil-/Vollbegleichung und korrekte Protokollierung in isolierter Testumgebung prüfen, ohne produktive Mahnungen zu fingieren. Live-Revision bleibt `lszh-crm-v2-00055-ved`, Rollback `lszh-crm-v2-00053-mup`.
+
 ## AKTUELL 24.10.2026 – Fälligkeitskontrolle & manuelles Mahnwesen LIVE PASS
 
 - **Operator bestätigt:** `CRM INVOICE DUNNING LIVE PASS`, Cloud Run **`lszh-crm-v2-00055-ved` bei 100 % Traffic**; letzte bewährte Revision `lszh-crm-v2-00053-mup` ist Rollback.

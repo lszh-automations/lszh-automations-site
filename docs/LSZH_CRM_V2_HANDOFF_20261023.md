@@ -3,6 +3,13 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – CRM-Cockpit ZERO TRAFFIC PASS, Live-Schaltung noch offen
+
+- **Betreiber bestätigt:** `CRM COCKPIT ZERO TRAFFIC PASS` nach Schritt 4/4. Neuer Cloud-Run-Kandidat **`lszh-crm-v2-00059-puj` (0 % Traffic)**, QA-Tag `crm-cockpit-qa`, URL `https://crm-cockpit-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- **Live unverändert:** `lszh-crm-v2-00057-qek` (100 %). Kandidat hat Auth, schreibgeschützte Cockpit-Oberfläche und unveränderte Mail-/Scheduler-Schutzregeln bestanden. Der Release erzeugte **keine E-Mail, Offerte, Mahnung, Zahlung oder Produktionsänderung**.
+- **Nächster Schritt:** Auf Windows nach `git pull --ff-only` ausschliesslich `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-cockpit-live.ps1"` ausführen. Skript verifiziert Live-Baseline und eindeutig getaggten 0%-Kandidaten nochmals; **nur** nach `CANDIDATE QA PASS` mit ausdrücklichem Freigabetext `LIVE COCKPIT` Traffic umstellen. Bei fehlgeschlagener Post-Cutover-Prüfung automatischer Rollback auf `00057-qek`. **Vorbereitungs-/Deploy-Skript nicht erneut ausführen**, solange `00059-puj` der geprüfte 0%-Kandidat ist.
+- **Keinen produktiven Erfolg behaupten, bevor `CRM COCKPIT LIVE PASS` in der Operatorausgabe bestätigt wurde.** Danach Dashboard visuell im Live-CRM prüfen: CHF-Rappen, kein Cashflow-/Umsatz-Missverständnis, Forderungs-Drilldown, Projektstatus und 200-Register-Hinweis.
+
 ## 24.10.2026 – Unternehmens-Cockpit V2 (Read-only) implementiert – Live-Ausgangsversion unverändert
 
 - **CI final PASS für den Cockpit-Produktcode:** GitHub Actions am 24.10.2026 auf Commit `24d048be4`: `CRM V2 Cloud Staging Tests` Run `40114650287` **PASS (127/127 Tests)**; `CRM V2 Swiss QR invoice test` Run `40114646617` **PASS** einschliesslich Windows PowerShell 5.1 Parser und Windows-CRLF-Tests; `CRM V2 invoice payment browser Firestore E2E` Run `40114646589` **PASS** einschliesslich Cockpit-Debitorenanzeige und Navigation nach echter Testteilzahlung/Umkehr. Die späteren GitHub-Commits aktualisierten nur Projekttexte, nicht den getesteten Cockpit-Code. **Kandidat noch nicht gebaut; Live weiterhin `00057-qek`.**

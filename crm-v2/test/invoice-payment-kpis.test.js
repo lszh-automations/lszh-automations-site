@@ -7,9 +7,11 @@ const vm=require('node:vm');
 
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 function renderInvoice(invoice){
-  const fragment=html.split('function renderInvoicePayments(invoice){')[1]
-    ?.split('\n}\nfunction renderInvoiceDispatch(invoice){')[0];
-  assert.ok(fragment,'payment renderer found');
+  // Do not split on exact newline sequences: Git on Windows may checkout CRLF.
+  const first=html.indexOf('function renderInvoicePayments(invoice){');
+  const next=html.indexOf('function renderInvoiceDispatch(invoice){',first);
+  assert.ok(first>=0&&next>first,'payment renderer found');
+  const fragment=html.slice(first,next).trim();
   const elements=new Map();
   function get(id){
     if(!elements.has(id)){
@@ -37,7 +39,7 @@ function renderInvoice(invoice){
     window:{},
     state:{},
   };
-  vm.runInNewContext('(function(invoice){'+fragment+'\n})',context,{timeout:2000})(invoice);
+  vm.runInNewContext('('+fragment+')',context,{timeout:2000})(invoice);
   return get;
 }
 const money=value=>new Intl.NumberFormat('de-CH',{

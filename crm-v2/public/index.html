@@ -1777,7 +1777,6 @@ function renderInvoiceDispatch(invoice){
     invoice.status!=='Offen'||Boolean(invoice.invoiceSentAt)||
     ['sending','manual_review','confirmed'].includes(invoice.invoiceDispatchState)||
     !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)||
-    (state.invoiceMailMode==='production'&&isSynthetic)||
     (state.invoiceMailMode==='test_only'&&!allowedTest);
   if(!invoice){notice.textContent='Rechnung zuerst speichern. Kein Versand ohne ausdrückliche Bestätigung.';return;}
   const status=invoice.invoiceDispatchState;
@@ -1808,8 +1807,6 @@ function renderInvoiceDispatch(invoice){
     }
   }else if(!state.invoiceMailEnabled){
     notice.textContent='Rechnungsversand noch nicht aktiviert. Swiss-QR-PDF kann weiterhin manuell heruntergeladen werden.';
-  }else if(isSynthetic&&state.invoiceMailMode==='production'){
-    notice.textContent='Interne Test-/Eigenrechnung: kein produktiver Rechnungsversand erlaubt.';
   }else{
     notice.textContent='Manueller Rechnungsversand mit Swiss-QR-PDF. Empfänger: '+(to||'E-Mail fehlt')+
       '. Vor Versand PDF und Empfänger prüfen; Versand nur nach Bestätigung.';

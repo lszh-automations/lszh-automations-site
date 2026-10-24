@@ -495,3 +495,13 @@ test('invoice dispatch validates linked customer email and complete address befo
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
   assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,undefined);
 });
+
+test('invoice send rejects a customer street without Swiss QR house number',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const c=await store.create('kunden',{company:'Daten AG',email:'billing@daten.ch',
+    street:'Musterstrasse',postalCode:'8000',city:'Zuerich',country:'CH'},admin);
+  const inv=await store.create('rechnungen',{customerId:c.id,description:'Service',
+    dueDate:'2026-11-30',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
+  await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
+  assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,undefined);
+});

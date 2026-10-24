@@ -166,6 +166,36 @@ function buildStore(db,prefix){
     return {customerId:finalCustomer.id,projectId:finalProject.id};
   }
 
+  // Bounded Firestore pages, using a DocumentSnapshot as cursor to keep
+  // Firestore's implicit document-ID tie-break on equal creation timestamps.
+  async function listPage(table,limit=50,cursor=''){
+    if(!TABLES.includes(table))throw err('Unbekanntes Register',404);
+    const size=Number(limit);
+    if(!Number.isInteger(size)||size<1||size>100)throw err('Seitengrösse muss 1 bis 100 sein');
+    if(typeof cursor!=='string'||cursor.length>120||
+       (cursor&&!/^[A-Za-z0-9_-]{1,100}$/.test(cursor)))
+      throw err('Ungültiger Seitenzeiger');
+    let query=col(table).orderBy('createdAt','desc');
+    if(cursor){
+      const last=await col(table).doc(cursor).get();
+      if(!last.exists||!last.data()?.createdAt)throw err('Seitenzeiger veraltet – bitte Register neu laden',409);
+      query=query.startAfter(last);
+    }
+    const snap=await query.limit(size+1).get();
+    const rows=snap.docs.slice(0,size);
+    return {
+      records:rows.map(toObject),
+      nextCursor:snap.docs.length>size&&rows.length?rows[rows.length-1].id:null,
+      hasMore:snap.docs.length>size
+    };
+  }
+  // Read-only full collection scans for complete server metrics. Stream does
+  // not put all invoice/payment/customer documents in the browser or RAM;
+  // O(number of documents) reads remain a scaling cost until materialized.
+  async function* scan(table){
+    if(!TABLES.includes(table))throw err('Unbekanntes Register',404);
+    for await(const doc of col(table).stream())yield toObject(doc);
+  }
   async function list(table,limit=200){
     const snap=await col(table).orderBy('createdAt','desc').limit(Math.min(Math.max(Number(limit)||200,1),200)).get();
     return snap.docs.map(toObject);
@@ -757,6 +787,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {TABLES,list,listPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

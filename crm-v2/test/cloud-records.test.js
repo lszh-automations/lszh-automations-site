@@ -544,6 +544,22 @@ test('invoice settlement requires confirmed send, books partial amounts, never d
   assert.ok(done.paidAt);
   const replayFinal=await store.recordInvoicePayment(inv.id,finalPayment,admin);
   assert.equal(replayFinal.paymentHistory.length,2);
+  const correction={paymentId:finalPayment.paymentId,reversalId:'00000000-0000-4000-8000-000000000011',
+    reason:'Betrag wurde irrtümlich verbucht'};
+  const reversed=await store.reverseInvoicePayment(inv.id,correction,admin);
+  assert.equal(reversed.status,'Teilbezahlt');
+  assert.equal(reversed.paidAmountCHF,50);
+  assert.equal(reversed.outstandingCHF,149.95);
+  assert.equal(reversed.paidAt,null);
+  assert.equal(reversed.paymentHistory.length,2);
+  assert.ok(reversed.paymentHistory[1].voidedAt);
+  assert.equal(reversed.paymentHistory[1].voidReason,correction.reason);
+  const replayReverse=await store.reverseInvoicePayment(inv.id,correction,admin);
+  assert.equal(replayReverse.paymentHistory.length,2);
+  await assert.rejects(store.reverseInvoicePayment(inv.id,{...correction,
+    reversalId:'00000000-0000-4000-8000-000000000012'},admin),{status:409});
+  await assert.rejects(store.reverseInvoicePayment(inv.id,{...correction,
+    paymentId:'00000000-0000-4000-8000-000000000013'},admin),{status:404});
 });
 test('invoice payment rejects future booking date, fake amount, unsafe fields and overpayment',async()=>{
   const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');

@@ -2,6 +2,12 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## Live-Test-Vorbereitung 24.10.2026 – noch nicht deployed
+
+- Neues fail-closed Cloud-Run-Release-Preflight `scripts/prepare-crm-invoice-settlement-live-test.ps1`, standardmässig rein lesend, optional 0%-Kandidat `-DeployCandidate`. Kein produktiver Cutover ausgeführt.
+- GitHub CI Windows PowerShell 5.1 inklusive des neuen Skripts **PASS**, [Run 40085494862](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40085494862). CRM-Staging-Tests [40085498717](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40085498717) **PASS**.
+- Als nächste Aktion Windows-gcloud-Preflight/0%-Kandidat ausführen, danach separate abgesicherte Live-Umschaltung; Rechnungs-Mails bleiben gesperrt, keine echte Zahlungsbuchung ohne bestätigten Versandnachweis. Details in `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`.
+
 ## Aktueller E2E-Nachtrag vom 24.10.2026
 
 - **Echter Chromium-Browser → authentifizierte HTTP-API → Firestore-Emulator: PASS.** GitHub Actions Run [40084290731](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40084290731). Testrechnung CHF 199.95, Teilzahlung CHF 50.00, Vollzahlung CHF 149.95, Korrektur zurück auf CHF 149.95 Rest, überfällige Anzeige, Mahn-Cooldown, Doppelbuchungs-/Überzahlungs-/Zugriffsschutz.

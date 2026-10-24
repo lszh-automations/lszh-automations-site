@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/crm-v2-cloud-staging-20261023
+      - feature/crm-v2-invoice-settlement-20261024
     paths:
       - "crm-v2/**"
       - "scripts/*crm-invoice*.ps1"
@@ -69,15 +70,30 @@ jobs:
   powershell-parse:
     name: Validate Windows PowerShell 5.1 release scripts (syntax only)
     runs-on: windows-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Parse invoice release and synthetic gateway scripts without execution
         shell: powershell
         run: |
           $paths = @(
             "scripts/deploy-crm-invoice-mail-zero-traffic.ps1",
-            "scripts/test-crm-invoice-mail-gateway-once.ps1"
+            "scripts/test-crm-invoice-mail-gateway-once.ps1",
+            "scripts/prepare-crm-invoice-settlement-live-test.ps1",
+            "scripts/activate-crm-invoice-settlement-live.ps1",
+            "scripts/prepare-crm-invoice-mail-testonly-live.ps1",
+            "scripts/activate-crm-invoice-mail-testonly-live.ps1",
+            "scripts/prepare-crm-invoice-mail-production-live.ps1",
+            "scripts/activate-crm-invoice-mail-production-live.ps1",
+            "scripts/prepare-crm-invoice-manual-all-zero-traffic.ps1",
+            "scripts/activate-crm-invoice-manual-all-live.ps1",
+            "scripts/prepare-crm-invoice-balance-live.ps1",
+            "scripts/activate-crm-invoice-balance-live.ps1",
+            "scripts/prepare-crm-invoice-dunning-live.ps1",
+            "scripts/activate-crm-invoice-dunning-live.ps1"
           )
           foreach ($path in $paths) {
             $fullPath = Join-Path (Get-Location).Path $path
@@ -92,3 +108,14 @@ jobs:
             }
             Write-Host ("PowerShell 5.1 parser PASS: " + $path)
           }
+      - name: Run all CRM regression tests with Windows CRLF invoice HTML
+        shell: powershell
+        run: |
+          $invoiceHtml = Join-Path (Get-Location).Path 'crm-v2/public/index.html'
+          $html = [System.IO.File]::ReadAllText($invoiceHtml)
+          $html = [System.Text.RegularExpressions.Regex]::Replace($html, "\r\n|\r|\n", "`r`n")
+          [System.IO.File]::WriteAllText($invoiceHtml, $html, (New-Object System.Text.UTF8Encoding($false)))
+          npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd test --prefix crm-v2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

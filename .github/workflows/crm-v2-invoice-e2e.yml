@@ -1,0 +1,42 @@
+name: CRM V2 invoice payment browser Firestore E2E
+on:
+  push:
+    branches:
+      - feature/crm-v2-invoice-settlement-20261024
+    paths:
+      - "crm-v2/**"
+      - ".github/workflows/crm-v2-invoice-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-firestore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install isolated test dependencies (no production credentials)
+        run: |
+          npm install --prefix crm-v2 --no-audit --no-fund
+          npm install --prefix crm-v2 --no-save --no-package-lock playwright@1.56.1 --no-audit --no-fund
+          npm install --global firebase-tools@14 --no-audit --no-fund
+      - name: Install headless Chromium
+        run: ./crm-v2/node_modules/.bin/playwright install --with-deps chromium
+      - name: Browser + HTTP + Firestore emulator E2E (NEVER sends emails)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ""
+          CLOUDSDK_CORE_PROJECT: demo-lszh-invoice-e2e
+        run: |
+          firebase emulators:exec --only firestore \
+            --project demo-lszh-invoice-e2e \
+            --config crm-v2/e2e/firebase.json \
+            "node crm-v2/scripts/invoice-payment-e2e.cjs"

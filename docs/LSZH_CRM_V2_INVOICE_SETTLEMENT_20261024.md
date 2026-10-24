@@ -10,6 +10,14 @@ Stand 24.10.2026 – **Rechnungsabwicklung auf produktiver CRM-Revision `lszh-cr
 - Ein Cutover in diesem Modus **versendet selbst keine Mail**. \`invoice-send.js\` prüft vor jedem Versand einen manuellen CRM-Klick, \`sendMode=test_only\`, Empfänger-Allowlist und synthetische Rechnungs-/Kundendaten. Somit keine normale Kundenrechnung. Die tatsächliche TEST_ONLY-Mail benötigt zusätzlich explizite CRM-Bestätigung; Echtdaten/Firestorerechnungen bleiben dabei unberührt, solange keine Testdatensätze angelegt werden.
 - **Wichtig:** Skript ist nur vorbereitet. Keine Testmail, kein 0%-Kandidat oder Live-Cutover wurde allein durch Commit angelegt.
 
+## AKTUELL – 24.10.2026: produktiver E-Mail-Rechnungsversand freigegeben
+
+Die PowerShell-Ausgabe des Betreibers bestätigt `CRM INVOICE MAIL PRODUCTION LIVE PASS`, **Cloud Run `lszh-crm-v2-00049-doh` mit 100 % Traffic**, Rollback `00046-faj`, identischen Mail-Cutoff `2026-10-23T16:15:28Z`. Produktions-Smoketests in Release-Stufe 4/4 bestanden. Der Deployment-Lauf hat **keine** Kundenmail gesendet. Das Rechnungsmodul und die manuelle Zahlungserfassung sind produktiv; der manuelle Kunden-Rechnungsversand wurde neu aktiviert.
+
+**Verbindlicher Ablauf:** Rechnung im CRM mit Kunden-E-Mail, Positionen, Betrag, Fälligkeit und Swiss-QR-PDF prüfen → `Rechnung senden` ausdrücklich bestätigen → nur bei echtem passenden Gmail-`messageId` `invoiceDispatchState=confirmed` → Zahlungseingang/Teilzahlung, Restbetrag und Audit manuell buchen. Keine automatische Rechnungsversendung, keine manuelle Postübergabe und keine automatischen Mahnungen. Unklare Mailquittung bleibt `manual_review`, kein automatischer Zweitversand. Freigabe zur echten Kundenmail gilt nur für manuell ausgewählte konkrete Rechnung.
+
+Noch **nicht** bestätigt: erster wirklicher Live-Kundenmail-Durchlauf nach dem Release und echte Zahlungsbuchung. Der bestätigte Release ist kein Beleg für eine erfolgte Rechnungszustellung oder Banktransaktion. Vor erster Kundenrechnung Swiss-QR-PDF, Kundendaten, Bankdaten und E-Mail-Inhalt prüfen.
+
 ## 24.10.2026 – Geschäftsführer gibt Rechnungs-E-Mail für echte Kunden frei; TEST_ONLY wird übersprungen
 
 - **Neuester expliziter Betreiberentscheid:** Produktiver Rechnungsversand direkt für alle echten Kunden aktivieren, nicht zuerst nur TEST_ONLY. Unverändert gilt: ausschliesslich **manueller Klick im Google-authentifizierten CRM**, kein automatischer Rechnungs- oder Mahnversand, Zahlungserfassung erst nach **bestätigtem Gmail-Versandereignis**.

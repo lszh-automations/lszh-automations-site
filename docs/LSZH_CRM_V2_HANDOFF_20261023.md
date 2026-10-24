@@ -2,6 +2,13 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## Aktueller E2E-Nachtrag vom 24.10.2026
+
+- **Echter Chromium-Browser → authentifizierte HTTP-API → Firestore-Emulator: PASS.** GitHub Actions Run [40084290731](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40084290731). Testrechnung CHF 199.95, Teilzahlung CHF 50.00, Vollzahlung CHF 149.95, Korrektur zurück auf CHF 149.95 Rest, überfällige Anzeige, Mahn-Cooldown, Doppelbuchungs-/Überzahlungs-/Zugriffsschutz.
+- **Isoliert und NO SEND:** Firestore-Emulator statt Cloud-Datenbank, simulierte Google-ID-Prüfung und E-Mail-Quittung nur im Emulator; keine Kundenmail und kein Cloud-Run-Rollout.
+- Cloud-Staging-Regressionstests nach CI-Abhängigkeitsfix **PASS** (Run [40084353078](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40084353078)); QR-Regression PASS.
+- Vollständiger aktueller technischer E2E-Stand: `docs/LSZH_CRM_V2_INVOICE_SETTLEMENT_20261024.md`. Vor produktiver Freigabe fehlt weiterhin **echter Cloud-Run-Staging-/Login-Smoke-Test** und separate schriftliche Go-live-Freigabe.
+
 ## Update 24.10.2026 – Rechnungstest bestätigt, Abwicklung in separatem QA-Branch
 
 - **Benutzerbestätigung:** Die synthetische Rechnungs-Mail ist im Testpostfach angekommen, das LSZH-Design passt, der getestete Versand funktioniert. Dies ist **keine** Freigabe für reale Kundenrechnungen.

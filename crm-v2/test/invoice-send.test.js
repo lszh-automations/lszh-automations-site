@@ -119,3 +119,17 @@ test('invoice sender requires exact empty post body and cannot send wrong amount
   await assert.rejects(brokenSender.send(invoice.id,{},user),{status:500});
   assert.equal(broken.record.invoiceDispatchState,'preparation_failed');
 });
+
+test('synthetic Make/Gmail runner fails closed without a new explicit operator approval',()=>{
+  const {spawnSync}=require('node:child_process');
+  const path=require('node:path');
+  const script=path.join(__dirname,'..','scripts','invoice-mail-make-synthetic-once.js');
+  const output=spawnSync(process.execPath,[script],{
+    encoding:'utf8',
+    env:{...process.env,LSZH_TEST_MAIL_APPROVED:'',LSZH_TEST_MAKE_WEBHOOK:''},
+    timeout:5000
+  });
+  assert.equal(output.status,1);
+  assert.match(output.stderr,/No manual test-mail approval/);
+  assert.doesNotMatch(output.stdout,/CRM INVOICE MAKE GMAIL SYNTHETIC PASS/);
+});

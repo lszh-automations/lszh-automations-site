@@ -87,7 +87,7 @@ function CheckFrontend([string]$base,[bool]$expectUnlocked) {
   }
   $auditDetail=([string]$homepageResponse.Content -match 'invoice-reminder-record' -and
     [string]$homepageResponse.Content -match 'Protokoll-ID:' -and
-    [string]$homepageResponse.Content -match 'Bestätigt von:')
+    [string]$homepageResponse.Content -match 'Restbetrag bei Best')
   if($expectUnlocked -and !$auditDetail) {
     throw ('Detailed manual dunning audit UI missing at '+$base)
   }

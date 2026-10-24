@@ -83,7 +83,20 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-payments{margin:14px 24px 4px;padding:18px;border:1px solid #38516a;border-radius:13px;background:#122235}
 .invoice-payments-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .invoice-payments-head strong{font-size:15px}
-.invoice-payments-summary{font-size:13px;color:#b4cde1;margin:5px 0 10px}
+.invoice-payment-kpis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr);gap:10px;margin:14px 0}
+.invoice-payment-kpi{display:grid;align-content:center;gap:7px;min-width:0;padding:14px 15px;background:#17293c;border:1px solid #36516a;border-radius:11px}
+.invoice-payment-kpi-label{color:#b4cde1;font-size:12px;font-weight:650}
+.invoice-payment-kpi-value{font-size:clamp(16px,2vw,21px);font-weight:800;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.invoice-payment-kpi--open{background:#1c384f;border:2px solid #7fc6e9;padding:13px 14px}
+.invoice-payment-kpi--open .invoice-payment-kpi-label{color:#c8eaff;font-size:13px}
+.invoice-payment-kpi--open .invoice-payment-kpi-value{font-size:clamp(23px,2.9vw,32px);color:#ffffff}
+.invoice-payment-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#b9cde0;font-size:12px;font-weight:650;margin:12px 0 6px}
+.invoice-payment-progress-head strong{color:#dcf4ff;font-size:14px;font-variant-numeric:tabular-nums}
+.invoice-payment-progress{display:block;width:100%;height:10px;appearance:none;-webkit-appearance:none;border:0;border-radius:99px;overflow:hidden;background:#30465d}
+.invoice-payment-progress::-webkit-progress-bar{background:#30465d;border-radius:99px}
+.invoice-payment-progress::-webkit-progress-value{background:#74cbe7;border-radius:99px}
+.invoice-payment-progress::-moz-progress-bar{background:#74cbe7;border-radius:99px}
+.invoice-payments-summary{font-size:12px;color:#b4cde1;margin:10px 0 14px}
 .invoice-payments-history{display:grid;gap:7px;margin:10px 0}
 .invoice-payments-history div{display:flex;gap:10px;justify-content:space-between;font-size:12px;padding:8px 10px;border:1px solid #2c455c;border-radius:8px}
 .invoice-payments-entry{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:10px;align-items:end;margin-top:12px}
@@ -96,8 +109,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:inherit;font-size:12px;line-height:1.6}
 .invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .invoice-reminder-history{font-size:11px;color:#a5bed4;margin-top:10px}
-@media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}}
-@media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}}
+@media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}.invoice-payment-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.invoice-payment-kpi--open{grid-column:1/-1}}
+@media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}.invoice-payment-kpis{gap:7px}.invoice-payment-kpi{padding:12px 10px}.invoice-payment-kpi--open{padding:13px 12px}}
 .invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
 .invoice-lock{margin:18px 24px 0;padding:14px 16px;color:#d1e9ff;border:1px solid #426585;background:#1a2c40;border-radius:11px;font-size:13px}
 .invoice-dialog.is-locked input:disabled,.invoice-dialog.is-locked select:disabled,.invoice-dialog.is-locked textarea:disabled{opacity:1;background:#152231;color:#aebfd0}
@@ -347,6 +360,22 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     <div id="invoiceDispatchReview" class="invoice-actions" hidden></div>
     <section id="invoicePaymentsPanel" class="invoice-payments" hidden aria-label="Zahlungseingänge">
       <div class="invoice-payments-head"><strong>Zahlungseingänge</strong><span class="badge" id="invoicePaymentStatus">Offen</span></div>
+      <div class="invoice-payment-kpis" aria-label="Rechnungsbeträge">
+        <div class="invoice-payment-kpi">
+          <span class="invoice-payment-kpi-label">Gesamtbetrag</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentTotal">CHF 0.00</strong>
+        </div>
+        <div class="invoice-payment-kpi">
+          <span class="invoice-payment-kpi-label">Eingegangen</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentReceived">CHF 0.00</strong>
+        </div>
+        <div class="invoice-payment-kpi invoice-payment-kpi--open">
+          <span class="invoice-payment-kpi-label">Noch offen</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentOpen">CHF 0.00</strong>
+        </div>
+      </div>
+      <div class="invoice-payment-progress-head"><span>Zahlungsfortschritt</span><strong id="invoicePaymentPercent">0 % bezahlt</strong></div>
+      <progress id="invoicePaymentProgress" class="invoice-payment-progress" value="0" max="100" aria-label="Zahlungsfortschritt in Prozent"></progress>
       <p class="invoice-payments-summary" id="invoicePaymentSummary"></p>
       <div id="invoicePaymentHistory" class="invoice-payments-history"></div>
       <div class="invoice-payments-entry" id="invoicePaymentEntry">
@@ -1717,8 +1746,15 @@ function renderInvoicePayments(invoice){
   const due=Math.max(0,total-received);
   const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey();
   $('invoicePaymentStatus').textContent=overdue?'Überfällig':invoice.status;
-  $('invoicePaymentSummary').textContent='Gesamt '+invoiceCHF(total/100)+' · Eingegangen '+invoiceCHF(received/100)+' · Offen '+invoiceCHF(due/100)+
-    (invoice.dueDate?' · Fällig '+invoice.dueDate:'');
+  $('invoicePaymentTotal').textContent=invoiceCHF(total/100);
+  $('invoicePaymentReceived').textContent=invoiceCHF(received/100);
+  $('invoicePaymentOpen').textContent=invoiceCHF(due/100);
+  const paidPercent=total>0?Math.max(0,Math.min(100,Math.round(received*100/total))):0;
+  $('invoicePaymentPercent').textContent=paidPercent+' % bezahlt';
+  $('invoicePaymentProgress').value=paidPercent;
+  $('invoicePaymentSummary').textContent=invoice.dueDate?
+    'Fällig am '+invoice.dueDate.slice(8,10)+'.'+invoice.dueDate.slice(5,7)+'.'+invoice.dueDate.slice(0,4):
+    'Noch kein Fälligkeitsdatum hinterlegt.';
   const history=$('invoicePaymentHistory');history.replaceChildren();
   if(!entries.length)history.append(el('p','invoice-caption',invoice.status==='Bezahlt'?
     'Alte als bezahlt markierte Rechnung – keine Einzelbuchungen vorhanden.':'Noch keine Zahlungen erfasst.'));

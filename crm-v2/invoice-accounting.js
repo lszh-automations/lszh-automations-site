@@ -36,7 +36,7 @@ function normalizePayment(payload,today=localSwissDate()){
 }
 function paidCents(invoice){
   const history=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
-  return history.reduce((sum,payment)=>sum+cents(payment.amountCHF),0);
+  return history.reduce((sum,payment)=>sum+(payment.voidedAt?0:cents(payment.amountCHF)),0);
 }
 function outstandingCents(invoice){
   const total=cents(invoice.amountCHF||0);

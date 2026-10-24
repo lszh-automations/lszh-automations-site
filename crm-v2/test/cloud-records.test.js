@@ -141,7 +141,7 @@ test('project tasks save without breaking won links',async()=>{
   await assert.rejects(store.update('projekte',project.id,{customerId:'other'},admin),/darf nicht geändert werden/);
 });
 test('invoices calculate prices and retain paid lock with stable numbering',async()=>{
-  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
   const customer=await store.create('kunden',{company:'Kunde AG'},admin);
   const invoice=await store.create('rechnungen',{
     customerId:customer.id,description:'Leistung',dueDate:'2026-11-30',status:'Entwurf',
@@ -150,8 +150,13 @@ test('invoices calculate prices and retain paid lock with stable numbering',asyn
   assert.equal(invoice.number,'RE-1000');
   assert.equal(invoice.amountCHF,499.9);
   await store.update('rechnungen',invoice.id,{status:'Offen'},admin);
-  const paid=await store.update('rechnungen',invoice.id,{status:'Bezahlt'},admin);
+  await assert.rejects(store.update('rechnungen',invoice.id,{status:'Bezahlt'},admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id).invoiceDispatchState='confirmed';
+  const paid=await store.recordInvoicePayment(invoice.id,{paymentId:'00000000-0000-4000-8000-000000000001',
+    amountCHF:'499.90',paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-E2E-1'},admin);
   assert.equal(paid.status,'Bezahlt');
+  assert.equal(paid.paymentHistory.length,1);
+  assert.equal(paid.outstandingCHF,0);
   assert.ok(paid.paidAt);
   await assert.rejects(store.update('rechnungen',invoice.id,{description:'changed'},admin),{status:403});
 });
@@ -461,7 +466,8 @@ test('invoice send transaction locks the snapshot, confirms delivery only once, 
   await assert.rejects(store.finishInvoiceSend(inv.id,claim.attemptId,'confirmed','gmail-second'),{status:409});
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
   await assert.rejects(store.update('rechnungen',inv.id,{description:'Changed'},admin),{status:409});
-  const paid=await store.update('rechnungen',inv.id,{status:'Bezahlt'},admin);
+  const paid=await store.recordInvoicePayment(inv.id,{paymentId:'00000000-0000-4000-8000-000000000002',
+    amountCHF:'250.00',paidOn:'2026-10-24',method:'TWINT',reference:'TWINT-250'},admin);
   assert.equal(paid.status,'Bezahlt');assert.ok(paid.paidAt);
   assert.equal(paid.invoiceSentTo,customer.email);
 });
@@ -504,4 +510,54 @@ test('invoice send rejects a customer street without Swiss QR house number',asyn
     dueDate:'2026-11-30',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
   assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,undefined);
+});
+
+test('invoice settlement requires confirmed send, books partial amounts, never double-posts a retry',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const c=await store.create('kunden',{company:'Teilzahlung GmbH'},admin);
+  const inv=await store.create('rechnungen',{customerId:c.id,description:'Jahresservice',
+    status:'Offen',dueDate:'2026-11-30',items:[{title:'Dienstleistung',qty:1,unitPriceCHF:199.95}]},admin);
+  const first={paymentId:'00000000-0000-4000-8000-000000000003',amountCHF:'50.00',
+    paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-TEIL-1'};
+  await assert.rejects(store.recordInvoicePayment(inv.id,first,admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const partial=await store.recordInvoicePayment(inv.id,first,admin);
+  assert.equal(partial.status,'Teilbezahlt');
+  assert.equal(partial.paidAmountCHF,50);
+  assert.equal(partial.outstandingCHF,149.95);
+  assert.equal(partial.paymentHistory.length,1);
+  const replay=await store.recordInvoicePayment(inv.id,first,admin);
+  assert.equal(replay.paymentHistory.length,1);
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,amountCHF:'60.00'},admin),{status:409});
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,
+    paymentId:'00000000-0000-4000-8000-000000000004'},admin),{status:409});
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,
+    paymentId:'00000000-0000-4000-8000-000000000005',reference:'NEW',amountCHF:'149.96'},admin),{status:409});
+  await assert.rejects(store.update('rechnungen',inv.id,{status:'Storniert'},admin),{status:403});
+  const finalPayment={paymentId:'00000000-0000-4000-8000-000000000006',amountCHF:'149.95',
+    paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-TEIL-2'};
+  const done=await store.recordInvoicePayment(inv.id,finalPayment,admin);
+  assert.equal(done.status,'Bezahlt');
+  assert.equal(done.paidAmountCHF,199.95);
+  assert.equal(done.outstandingCHF,0);
+  assert.equal(done.paymentHistory.length,2);
+  assert.ok(done.paidAt);
+  const replayFinal=await store.recordInvoicePayment(inv.id,finalPayment,admin);
+  assert.equal(replayFinal.paymentHistory.length,2);
+});
+test('invoice payment rejects future booking date, fake amount, unsafe fields and overpayment',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const c=await store.create('kunden',{company:'Kontroll AG'},admin);
+  const inv=await store.create('rechnungen',{customerId:c.id,description:'Support',
+    status:'Offen',dueDate:'2026-11-30',items:[{title:'Monat',qty:1,unitPriceCHF:80}]},admin);
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const payment={paymentId:'00000000-0000-4000-8000-000000000007',amountCHF:'12.00',
+    paidOn:'2026-10-24',method:'Bar',reference:''};
+  for(const invalid of [
+    {...payment,paidOn:'2099-01-01'}, {...payment,paidOn:'2026-02-30'},
+    {...payment,amountCHF:'12.001'}, {...payment,amountCHF:'0'},
+    {...payment,method:'Bitcoin'}, {...payment,amountCHF:'81.00'},
+    {...payment,admin:true},
+  ])await assert.rejects(store.recordInvoicePayment(inv.id,invalid,admin));
+  assert.equal((await store.get('rechnungen',inv.id)).paymentHistory,undefined);
 });

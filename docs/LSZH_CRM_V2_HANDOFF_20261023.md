@@ -3,6 +3,14 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – CRM-Cockpit: visuelle UI-Abnahme anhand beider Screenshots
+
+- Der Betreiber hat Screenshots des **oberen und unteren produktiven Dashboards** zur erbetenen visuellen Sichtprüfung geliefert. Die neue Finanzübersicht, Lead-Pipeline, Forderungs-Drilldown-Liste, Projektstatus und Hinweise zur begrenzten Datenbasis sind sichtbar und plausibel. **Diese Sichtprüfung ist abgeschlossen**; die vorher als noch offen markierte UI-Sichtprüfung ist überholt.
+- Im Screenshot stehen: `Offene Forderungen CHF 250.00`; `davon überfällig CHF 0.00`; `innerhalb 7 Tagen fällig CHF 250.00`; `erfasste Zahlungseingänge CHF 50.00`; `offenes einmaliges Offertenvolumen CHF 201.01`; `angenommene Monatswerte CHF 0.00`. Rechnungen `RE-1000 CHF 100.00`, `RE-1001 CHF 100.00`, `RE-1002 CHF 50.00` (Teilbezahlt) summieren sich auf CHF 250.00.
+- Die Lead-Pipeline zeigt 7 Datensätze: Neu 2, Kontaktiert 0, Qualifiziert 4, Gewonnen 1, Verloren 0. Projektstatus: aktiv 1, wartet auf Kunde 0, abgeschlossen 0, Termin überschritten 0, Aufgaben 0 von 0. Der Fortschrittsindikator zeigt 17 % als Anteil erfasster Zahlungen am dargestellten offenen-plus-gebuchten Rechnungsportfolio, **nicht** als Bank-Cashflow oder realisierten Umsatz.
+- Datenbasis-Hinweis auf maximal 200 Datensätze je Register wird dargestellt; im Screenshot geladen: Leads 7, Kunden 1, Offerten 5, Rechnungen 3, Projekte 1. Die Angaben stammen aus dem CRM, enthalten synthetische Testdatensätze und sind keine extern verifizierten Bankdaten. Sichtprüfung der Darstellung ersetzt **keinen** unabhängigen Datenabgleich und beweist nicht, dass jeder Einzelnavigationsklick getestet wurde.
+- **Live unverändert:** `lszh-crm-v2-00059-puj` (100 % Traffic); Rollback `lszh-crm-v2-00057-qek`. Read-only-Cockpit-Meilenstein abgeschlossen; keine produktiven E-Mails, Mahnungen, Zahlungsbuchungen oder weiteren Deployments durch die UI-Abnahme.
+
 ## AKTUELL 24.10.2026 – CRM-COCKPIT LIVE PASS (100 %)
 
 - **Vom Betreiber bestätigte PowerShell-Abschlussmeldung:** `CRM COCKPIT LIVE PASS`; aktive Cloud-Run-Revision **`lszh-crm-v2-00059-puj` mit 100 % Traffic**. Rollback: **`lszh-crm-v2-00057-qek`**. CRM URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.

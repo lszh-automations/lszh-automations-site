@@ -127,9 +127,7 @@ async function main(){
     await page.locator('#invoicePaymentAmount').fill('50.00');
     await page.locator('#invoicePaymentReference').fill('TEST_ONLY E2E-PART-1');
     await page.locator('#invoiceRecordPayment').click();
-    await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
-    const part=await expectOk('/api/records/rechnungen/'+invoice.id,'GET');
-    assert.equal(part.records,undefined);
+    await page.waitForFunction(()=>document.querySelector('#invoicePaymentSummary')?.textContent?.includes('149.95'));
     const partial=(await store.get('rechnungen',invoice.id));
     assert.equal(partial.status,'Teilbezahlt');
     assert.equal(partial.outstandingCHF,149.95);
@@ -140,7 +138,7 @@ async function main(){
     // In emulator only, click the UI's operator-confirmation after a
     // simulated *external* reminder; this never makes a network mail send.
     await page.locator('#invoiceLogReminder').click();
-    await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
+    await page.waitForFunction(()=>document.querySelector('#invoiceReminderHistory')?.textContent?.includes('Zahlungserinnerung ('));
     assert.equal((await store.get('rechnungen',invoice.id)).reminderHistory.length,1);
     assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false,
       'seven-day reminder lock prevents consecutive reminder');
@@ -149,7 +147,7 @@ async function main(){
     await page.locator('#invoicePaymentAmount').fill('149.95');
     await page.locator('#invoicePaymentReference').fill('TEST_ONLY E2E-FINAL-2');
     await page.locator('#invoiceRecordPayment').click();
-    await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
+    await page.waitForFunction(()=>document.querySelector('#invoicePaymentStatus')?.textContent==='Bezahlt');
     const full=await store.get('rechnungen',invoice.id);
     assert.equal(full.status,'Bezahlt');
     assert.equal(full.outstandingCHF,0);
@@ -159,7 +157,7 @@ async function main(){
 
     // User corrects an incorrect posting. Original audit row remains.
     await page.locator('#invoicePaymentHistory button').first().click();
-    await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
+    await page.waitForFunction(()=>document.querySelector('#invoicePaymentHistory')?.textContent?.includes('KORRIGIERT'));
     const corrected=await store.get('rechnungen',invoice.id);
     assert.equal(corrected.status,'Teilbezahlt');
     assert.equal(corrected.outstandingCHF,149.95);

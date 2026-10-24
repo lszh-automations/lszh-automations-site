@@ -77,11 +77,11 @@ test('receivables are ordered by urgency and original invoice objects are not so
   assert.equal(a.soonCount,1);
   assert.equal(a.openCount,4);
 });
-test('read-only dashboard does not invent revenue or hide the 200-record truncation',()=>{
+test('read-only dashboard distinguishes complete server totals and paginated lists',()=>{
   assert.match(html,/DEIN LSZH COCKPIT/);
-  assert.match(html,/Datenbasis: nur aktuell aus dem CRM geladene Register/);
-  assert.match(html,/Kennzahlen sind möglicherweise unvollständig/);
-  assert.match(html,/maximal 200|200er-Grenze/);
+  assert.match(html,/Datenbasis: serverseitige Auswertung aller CRM-Register/);
+  assert.match(html,/Datenbasis eingeschränkt: serverseitige Kennzahlen derzeit nicht geladen/);
+  assert.match(html,/Die Listen laden Seiten zu je 50 Einträgen/);
   assert.match(html,/Historische „Bezahlt“-Markierungen ohne Einzelbuchung/);
   assert.match(html,/Monatswerte sind weder Zahlungseingänge noch realisierter Umsatz/);
   assert.match(html,/dashboardPanel\('Offene Forderungen im Blick'/);

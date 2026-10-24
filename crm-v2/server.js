@@ -292,6 +292,17 @@ async function handler(req,res){
     return reply(res,404,{error:'not_found'});
   const table=parts[2],id=parts[3];
   if(req.method==='GET'&&!id){
+    // Optional read-only server search. Never expose unfiltered Firestore scans
+    // directly; all CRM record endpoints still require the existing OAuth login.
+    if(url.searchParams.has('q')||url.searchParams.has('status')||url.searchParams.has('due')){
+      return reply(res,200,await store.searchPage(table,{
+        pageSize:url.searchParams.get('pageSize')||50,
+        cursor:url.searchParams.get('cursor')||'',
+        q:url.searchParams.get('q')||'',
+        status:url.searchParams.get('status')||'',
+        due:url.searchParams.get('due')||''
+      }));
+    }
     // New paginated register contract; preserve legacy response for older clients.
     if(url.searchParams.has('pageSize')||url.searchParams.has('cursor')){
       return reply(res,200,await store.listPage(table,url.searchParams.get('pageSize')||50,

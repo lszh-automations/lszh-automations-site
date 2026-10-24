@@ -9,6 +9,15 @@
 - Ein Cutover in diesem Modus **versendet selbst keine Mail**. \`invoice-send.js\` prüft vor jedem Versand einen manuellen CRM-Klick, \`sendMode=test_only\`, Empfänger-Allowlist und synthetische Rechnungs-/Kundendaten. Somit keine normale Kundenrechnung. Die tatsächliche TEST_ONLY-Mail benötigt zusätzlich explizite CRM-Bestätigung; Echtdaten/Firestorerechnungen bleiben dabei unberührt, solange keine Testdatensätze angelegt werden.
 - **Wichtig:** Skript ist nur vorbereitet. Keine Testmail, kein 0%-Kandidat oder Live-Cutover wurde allein durch Commit angelegt.
 
+## AKTUELL – 24.10.2026: RECHNUNGSMAIL PRODUKTIV LIVE PASS
+
+- **Vom Betreiber bestätigtes Live-Ergebnis:** `CRM INVOICE MAIL PRODUCTION LIVE PASS`. Cloud Run `lszh-crm-v2-00049-doh` empfängt **100 %** Traffic; vorherige Revision `lszh-crm-v2-00046-faj` ist der bestätigte Rollback.
+- **Nachprüfungen Stufe 4/4 PASS:** produktive Rechnungs-Mail-Konfiguration, Authentifizierung, bestehende Offerten-Mail, Cloud-Scheduler und Live-Traffic. Mail-Cutoff unverändert `2026-10-23T16:15:28Z`. Haupt-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- **Geschäftliche Freigabe:** Rechnungen dürfen an echte Kunden ausschliesslich nach ausdrücklich bestätigtem Klick auf `Rechnung senden` im authentifizierten CRM per Make/Gmail versendet werden. Keine automatische Rechnungs-Mail und keine automatische Mahnung. Das Swiss-QR-Rechnungs-PDF wird als Anhang generiert; kein Versand durch den Deployment-Lauf selbst.
+- **Versand- und Zahlungszustand:** Rechnungsversand gilt erst bei bestätigter Gmail-`messageId` als `invoiceDispatchState=confirmed`. Danach manuelle Teil- und Schlusszahlungen mit Audit, Restbetrag und automatisch abgeleitetem Status möglich. Kein Statuswechsel durch blosse Dropdown-Auswahl; kein manuelles Erfassen von Nicht-E-Mail-Übergaben. Unklare Provider-Antworten verlangen manuelle Postfachprüfung statt automatischem Zweitversand.
+- **Noch offen:** reale Ende-zu-Ende-Prüfung einer einzelnen vom Betreiber tatsächlich verschickten und bestätigten Kundenrechnung sowie Zahlungserfassung; der Release selbst erzeugte laut Operatorausgabe keine Kundenmail, Zahlung oder Firestore-Testdaten. Keine künstlichen Sendebestätigungen / Testbuchungen in der Live-Buchhaltung anlegen. Vor erstem realen Versand Empfänger, Positionen, Beträge, Fälligkeit, PDF und QR-Zahlteil visuell prüfen.
+- Vorangegangene TEST_ONLY-Revision `lszh-crm-v2-00048-sim` wurde als 0%-Kandidat gebaut, **nicht** als TEST_ONLY-Live-Stufe aktiviert. Der Geschäftsführer hat sich ausdrücklich für den direkten Produktivmodus entschieden.
+
 ## 24.10.2026 – Geschäftsführer gibt Rechnungs-E-Mail für echte Kunden frei; TEST_ONLY wird übersprungen
 
 - **Neuester expliziter Betreiberentscheid:** Produktiver Rechnungsversand direkt für alle echten Kunden aktivieren, nicht zuerst nur TEST_ONLY. Unverändert gilt: ausschliesslich **manueller Klick im Google-authentifizierten CRM**, kein automatischer Rechnungs- oder Mahnversand, Zahlungserfassung erst nach **bestätigtem Gmail-Versandereignis**.

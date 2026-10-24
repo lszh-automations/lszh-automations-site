@@ -120,7 +120,10 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-reminder-check{font-size:11px!important;color:#c3d6e7!important;border-left:2px solid #6f9bc1;padding:7px 11px;background:#152639;border-radius:3px;margin:10px 0}
 .invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:inherit;font-size:12px;line-height:1.6}
 .invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-.invoice-reminder-history{font-size:11px;color:#a5bed4;margin-top:10px}
+.invoice-reminder-history{font-size:12px;color:#a5bed4;margin-top:12px;display:grid;gap:8px}
+.invoice-reminder-record{border:1px solid #405b72;background:#16283b;border-radius:9px;padding:10px 12px;display:grid;gap:4px;overflow-wrap:anywhere}
+.invoice-reminder-record strong{color:#e0f0fc;font-size:12px}
+.invoice-reminder-record span{color:#b4ccde;font-size:11px;line-height:1.5}
 @media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}.invoice-payment-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.invoice-payment-kpi--open{grid-column:1/-1}}
 @media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}.invoice-payment-kpis{gap:7px}.invoice-payment-kpi{padding:12px 10px}.invoice-payment-kpi--open{padding:13px 12px}}
 .invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
@@ -1800,9 +1803,29 @@ function renderInvoiceReminders(invoice){
   const last=history[history.length-1];
   const nextAllowedAt=last?Date.parse(last.at)+7*24*60*60*1000:null;
   const cooling=Number.isFinite(nextAllowedAt)&&Date.now()<nextAllowedAt;
-  $('invoiceReminderHistory').textContent=history.length?
-    'Bisher dokumentiert: '+history.map(h=>h.kind+' ('+new Date(h.at).toLocaleDateString('de-CH')+')').join(' · '):
-    'Noch keine Zahlungserinnerung dokumentiert.';
+  const log=$('invoiceReminderHistory');
+  log.replaceChildren();
+  if(!history.length)log.textContent='Noch keine Zahlungserinnerung dokumentiert.';
+  else {
+    log.append(el('strong','',history.length+' von 3 Mahnstufen dokumentiert (manuell bestätigt).'));
+    for(const h of history){
+      const at=Date.parse(h.at||'');
+      const sentAt=Number.isFinite(at)?new Intl.DateTimeFormat('de-CH',{
+        timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',
+        hour:'2-digit',minute:'2-digit'
+      }).format(new Date(at)):'Zeitpunkt unbekannt';
+      const record=el('div','invoice-reminder-record');
+      const title=el('strong','',h.kind+' · '+sentAt);
+      const rest=Number.isFinite(Number(h.outstandingCHF))?
+        invoiceCHF(Number(h.outstandingCHF)):'unbekannt';
+      const meta=el('span','',
+        'Externen Versand manuell bestätigt · Empfänger: '+(h.recipient||'–')+
+        ' · Bestätigt von: '+(h.by||'–')+' · Restbetrag bei Bestätigung: '+rest);
+      const id=el('span','','Protokoll-ID: '+(h.reminderId||'–'));
+      record.append(title,meta,id);
+      log.append(record);
+    }
+  }
   const next=levels[history.length];
   const possible=Boolean(next&&overdue&&!cooling&&invoice.invoiceDispatchState==='confirmed'&&customer?.email);
   const reason=!overdue?'Keine überfällige offene Forderung.':

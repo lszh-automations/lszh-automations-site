@@ -1,6 +1,15 @@
 # LSZH CRM V2 – Rechnungsabwicklung: Zahlungsstatus, Buchung, Mahnwesen
 
-Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00053-mup` (100 %). Neue KPI-Zahlungsübersicht LIVE; Rechnungsversand ausschliesslich per manuellem CRM-Klick.**
+Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00055-ved` (100 %), Rollback `lszh-crm-v2-00053-mup`. Neue Fälligkeitsübersicht und manuelles Mahnwesen LIVE; Rechnungs- und Mahnversand niemals automatisch.**
+## AKTUELL 24.10.2026 – Mahnwesen LIVE PASS
+
+- Operator-Ausgabe: `CRM INVOICE DUNNING LIVE PASS` nach Schritt 4/4; revision `lszh-crm-v2-00055-ved` (100 %), Rollback `lszh-crm-v2-00053-mup`. HTTP-Authentisierung, Rechnungs-UI, unveränderter Mail-Scheduler und Traffic erfolgreich geprüft, Mail-Cutoff `2026-10-23T16:15:28Z` unverändert.
+- Rechnungsregister: überfällige Anzahl und CHF-Restbetrag rappen-genau, in 7 Tagen (inkl. heute) fällige Rechnungen, Filter für überfällig/bald fällig/alle offenen Forderungen. Nur geladene Datensätze (max. 200). Teilzahlungen und Zahlungskorrekturen berücksichtigt.
+- Mahnabschnitt zeigt Überfälligkeitsdauer, Restbetrag und nächste zulässige Stufe nach sieben Tagen. Keine automatische Kundenmail, keine neue Make-Automation, keine Mahngebühr; `Externen Versand bestätigen` protokolliert nur den bereits unabhängig tatsächlich versendeten manuellen Hinweis, dessen Kunden- und Forderungsdetails zuvor vom Betreiber geprüft wurden.
+- **Keine E-Mail, Mahnung, Zahlung oder produktive Datenänderung durch den Release.** Bestehende Sendebelege/Zahlungs-Auditgates bleiben unverändert. Operator sollte RE-1002 mit Datum `31.10.2026` am `24.10.2026` im Filter `Fällig in 7 Tagen` sehen (sofern weiter offen), UI-Abnahme noch ausstehend.
+- Frühere Abschnitte mit `00053-mup` als Live oder `noch nicht live` sind rein historisch und durch diese Bestätigung ersetzt.
+
+
 ## 24.10.2026 – Fälligkeitskontrolle und manuelles Mahnwesen ausgebaut (noch NICHT live)
 
 - **Aktive produktive Revision unverändert:** `lszh-crm-v2-00053-mup` (100 %), Rollback bisher `00051-bak`. Neuer Code liegt nur im GitHub-Branch `feature/crm-v2-invoice-settlement-20261024`; noch **kein** Cloud-Run-Kandidat oder freigegebener Traffic-Wechsel für diese Iteration.

@@ -5,11 +5,13 @@ on:
       - feature/crm-v2-cloud-staging-20261023
     paths:
       - "crm-v2/**"
+      - "scripts/*crm-invoice*.ps1"
       - ".github/workflows/crm-v2-invoice-qr.yml"
   pull_request:
     branches: [main]
     paths:
       - "crm-v2/**"
+      - "scripts/*crm-invoice*.ps1"
       - ".github/workflows/crm-v2-invoice-qr.yml"
   workflow_dispatch:
 permissions:
@@ -63,3 +65,30 @@ jobs:
           path: crm-v2/out/TEST_ONLY_LSZH_Swiss_QR.pdf
           if-no-files-found: ignore
           retention-days: 5
+
+  powershell-parse:
+    name: Validate Windows PowerShell 5.1 release scripts (syntax only)
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse invoice release and synthetic gateway scripts without execution
+        shell: powershell
+        run: |
+          $paths = @(
+            "scripts/deploy-crm-invoice-mail-zero-traffic.ps1",
+            "scripts/test-crm-invoice-mail-gateway-once.ps1"
+          )
+          foreach ($path in $paths) {
+            $fullPath = Join-Path (Get-Location).Path $path
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $fullPath, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.ToString() }
+              throw ("PowerShell 5.1 syntax failed: " + $path)
+            }
+            Write-Host ("PowerShell 5.1 parser PASS: " + $path)
+          }

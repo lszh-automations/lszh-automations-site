@@ -2244,7 +2244,7 @@ async function refreshLeads(){
     const result=await api('/api/records/leads?pageSize=50');
     if(state.token!==loginToken)return; // Late response after logout or re-login.
     const incoming=Array.isArray(result.records)?result.records:[];
-    if(JSON.stringify(incoming)!==JSON.stringify(state.records.leads||[])){
+    if(JSON.stringify(incoming)!==JSON.stringify((state.records.leads||[]).slice(0,50))){
       state.records.leads=[...incoming,...(state.records.leads||[]).filter(x=>!incoming.some(y=>y.id===x.id))];
       render();
     }

@@ -419,6 +419,51 @@ function buildStore(db,prefix){
     return toObject(await ref.get());
   }
 
+  // The CRM only logs a reminder AFTER the operator confirms they sent it externally.
+  // This API never contacts Make/Gmail, queues mail or changes the invoice amount.
+  async function recordInvoiceReminder(id,payload,user){
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+       Object.keys(payload).some(k=>!['reminderId','kind'].includes(k))||
+       typeof payload.reminderId!=='string'||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.reminderId))
+      throw err('Ungültige Mahnprotokollierung');
+    const kinds=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+    if(!kinds.includes(payload.kind))throw err('Ungültige Mahnstufe');
+    const date=now(),today=localSwissDate(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const invoice=snap.data();
+      const previous=Array.isArray(invoice.reminderHistory)?invoice.reminderHistory:[];
+      const replay=previous.find(item=>item.reminderId===payload.reminderId);
+      if(replay){
+        if(replay.kind!==payload.kind)throw err('Mahn-ID mit abweichender Stufe schon verwendet',409);
+        return;
+      }
+      if(!['Offen','Teilbezahlt'].includes(invoice.status)||
+         invoice.invoiceDispatchState!=='confirmed'||!invoice.dueDate||
+         invoice.dueDate>=today||outstandingCents(invoice)===0)
+        throw err('Mahnung nur für überfällige, versendete und unbezahlte Rechnungen',409);
+      if(previous.length>=3)throw err('Manuelle Mahnfolge abgeschlossen',409);
+      if(payload.kind!==kinds[previous.length])
+        throw err('Mahnstufe muss in Reihenfolge dokumentiert werden',409);
+      if(previous.length && Date.parse(date)-Date.parse(previous.at)<7*24*60*60*1000)
+        throw err('Zwischen zwei Mahnstufen mindestens sieben Tage abwarten',409);
+      const customer=invoice.customerId?await tx.get(col('kunden').doc(invoice.customerId)):null;
+      if(!customer?.exists||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(customer.data().email||'')))
+        throw err('Kundenadresse für Mahnprotokoll fehlt',409);
+      tx.update(ref,audit({
+        reminderHistory:[...previous,{
+          reminderId:payload.reminderId,kind:payload.kind,at:date,by:user.email,
+          recipient:customer.data().email,delivery:'operator_confirmed_external',
+          outstandingCHF:outstandingCents(invoice)/100
+        }],
+        lastReminderAt:date,lastReminderKind:payload.kind
+      },user,date));
+    });
+    return toObject(await ref.get());
+  }
+
   // Exactly-once claim: the offer sender uses the same transaction-first pattern.
   // Never infer a sent invoice from a webhook HTTP 200 without the matching Gmail messageId.
   async function claimInvoiceSend(id,user){
@@ -675,6 +720,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reminders,clean};
+  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/crm-v2-server-search-20261024
+      - feature/crm-v2-read-performance-20261024
     paths:
       - "crm-v2/**"
       - "scripts/*crm-search*.ps1"
@@ -29,6 +30,8 @@ jobs:
         run: |
           node --check crm-v2/cloud-records.js
           node --check crm-v2/server.js
+          node --check crm-v2/read-singleflight.js
+          node --check crm-v2/test/read-singleflight.test.js
           node --check crm-v2/test/crm-search.test.js
           node - <<'NODE'
           const fs=require('node:fs');

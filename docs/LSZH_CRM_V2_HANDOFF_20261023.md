@@ -2,6 +2,13 @@
 
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
+## Verbindliche Produktentscheidung 24.10.2026 – Rechnungen nur per CRM-E-Mail
+
+- **Rechnungen ausschliesslich per E-Mail aus dem CRM versenden.** Kein manueller Übergabe-/Postversand-Workflow und keine Schaltfläche, die einen bloss behaupteten Versand als bestätigt erfasst.
+- Der bestehende Zahlungsschutz ist **gewollt**: Manuelle Teil-/Vollzahlungen erst nach tatsächlich vom Mail-Gateway bestätigtem Rechnungsversand (\`invoiceDispatchState=confirmed\`). Die Statuswahl \`Teilbezahlt\` bzw. \`Bezahlt\` darf nicht über das allgemeine Bearbeitungsformular gesetzt werden; Statusänderung nur durch nachvollziehbaren Zahlungseintrag.
+- Rechnungsversand nur per **explizitem CRM-Klick**; keine automatischen Rechnungs- oder Mahn-E-Mails. Swiss-QR-PDF kann für interne Vorschau/Prüfung vorhanden sein, ist aber kein Zustellnachweis.
+- **Nächste Aufgabe:** produktiven Rechnungs-E-Mail-Sendekanal kontrolliert vorbereiten und mit dem zuvor freigegebenen internen TEST_ONLY-Empfänger prüfen, bevor Kundenversand separat freigegeben wird. Die aktuellen Invoice-Mail-Gates sind weiter AUS. Keine externe Kundenmail ohne separate Freigabe.
+
 ## ✅ Aktueller CRM-Live-Stand 24.10.2026 – SETTLEMENT LIVE PASS
 
 - **Vom Betreiber über die tatsächliche PowerShell-Ausgabe bestätigt:** `CRM INVOICE SETTLEMENT LIVE PASS`. Cloud Run `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`, **Live Revision `lszh-crm-v2-00046-faj` (100 % Traffic)**.

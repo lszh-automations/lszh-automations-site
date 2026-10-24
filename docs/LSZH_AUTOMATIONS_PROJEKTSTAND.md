@@ -1362,3 +1362,13 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - Sicherheitsregression `crm-v2/test/crm-read-performance-script.test.js` bewacht Read-only-Befehle und keine Ausgabe von Raw URLs/Tokens. GitHub Actions Windows-PowerShell-Parser ist um Skript erweitert. Tests und Echtmessung nach dieser Aenderung sind noch offen.
 - Naechster Betreiber-Schritt im bestehenden Performance-Branch: `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2`, `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\measure-crm-read-performance.ps1" -Hours 12`. Ausgabe anschliessend nach Grundlast, Firestore-Lesevolumen und Suche/Dashboard getrennt analysieren.
 - Die noch lineare freie Textsuche in CRM V2 bleibt vorerst unveraendert; Index-Strategie erst datenbasiert bestimmen. Keine produktive CRM-Migration oder Index-Backfill autorisiert.
+
+
+### 24.10.2026 – CRM Read-only Leistungsbericht: Windows Cloud Logging Filter korrigiert
+
+- Benutzer hat `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2` und `measure-crm-read-performance.ps1 -Hours 12` ausgefuehrt. **145/145 Tests PASS**, aber der reine Logging-Leseaufruf scheiterte vor Messdatenermittlung mit `INVALID_ARGUMENT: Unparseable filter ... column 163, token ':'`. Kein CRM-/Cloud-Run-Schreibvorgang.
+- Ursache: `gcloud.cmd` unter Windows PowerShell 5.1 kann interne `"`-Zeichen des Logging-Filters entfernen, sodass RFC3339-Zeitstempel mit ungeschuetzten Doppelpunkten falsch geparst werden. Der Token an Spalte 163 entsprach exakt dem `:` des ungequoteten Zeitstempels.
+- Fix im GitHub Branch `feature/crm-v2-read-performance-20261024`: Cloud Logging Filter enthaelt nur ungequotete sichere Tokens (`resource.type`, `service_name`, `revision_name`, `requestMethod=GET`, Pfadsubstring ohne Sonderzeichen). Das Zeitfenster wird ueber offiziell unterstuetztes `gcloud logging read --freshness=<Hours>h` statt Zeitstempel in der Filterzeichenfolge gesteuert. Die abgerufenen Datensaetze werden wie vorher lokal und ohne Roh-URL-Ausgabe gruppiert.
+- Neue Regression `crm-v2/test/crm-read-performance-script.test.js` verhindert erneute Quote-/Timestamp-Filter und erkennt versehentliche Skriptduplikationen.
+- **Offen:** Windows-PowerShell-Syntax, alle Tests nach Korrektur sowie eigentliche Logging- und Firestore-Messwerte erneut nachweisen. Keinen Performancegewinn behaupten, solange keine Messwerte vorliegen.
+- Betreiber-Aufruf: `git pull --ff-only`; `npm.cmd test --prefix .\crm-v2`; `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\measure-crm-read-performance.ps1" -Hours 12`. Live bleibt Revision `00065-xuk`.

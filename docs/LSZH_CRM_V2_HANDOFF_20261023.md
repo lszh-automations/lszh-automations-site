@@ -3,6 +3,14 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## 24.10.2026 – RE-1002: produktiver Make/Gmail-Versand unabhängig verifiziert; Zahlungstest folgt
+
+- **Verifiziert über verbundene Make-App**, Szenario `8144117` (Offerten & QR-Rechnungen, manuell), Execution `8c54a277ebbb433d800cec93699e6f90` vom **24.10.2026, 11:45:05 UTC / 13:45 MESZ**, **success**, drei Module jeweils erfolgreich: Custom Webhook, Gmail Send, WebhookRespond.
+- Gmail-Modul erhielt **RE-1002** als Rechnung, Empfänger `lars.schulthess@outlook.com` (intern freigegebenes Testpostfach), Ausgabestatus `SENT`, Gmail `messageId=1a16dba99c2f2719`; WebhookResponse antwortete HTTP 200 mit `ok:true`, passender `invoice_send_`-Event-ID und derselben `messageId`.
+- Diese Prüfkette **beweist den Anbieter-seitigen Versand sowie die CRM-adressierte Bestätigungsantwort**, aber noch **nicht** ohne direkten CRM-Firestore-/UI-Readback, dass RE-1002 tatsächlich `invoiceDispatchState=confirmed` gespeichert hat, und sie beweist keine echte Bankzahlung oder verbuchte Teilzahlung.
+- **Operativ jetzt:** Live-CRM `lszh-crm-v2-00051-bak` öffnen, RE-1002 neu laden; Versandmeldung `Per Gmail versendet ...` und sichtbare Eingabefelder unter `Zahlungseingänge` prüfen. Bei noch gesperrtem Panel zuerst den Versandstatus abklären, nicht die Bestätigung künstlich setzen. Echte Zahlung nur nach Zahlungsauszug/Beleg mit Valutadatum, Methode, Referenz und Betrag manuell erfassen. Keine erfundenen CHF-Buchungen in echter Firestore-Buchhaltung.
+- Bestehende Emulator-E2E-Abnahme von Teilzahlung/Schlusszahlung/Korrektur bleibt gültig; **Live-Zahlungsbuchungs-E2E noch ausstehend**.
+
 ## 24.10.2026 – Betreiber bestätigt: interner Rechnungsversand funktioniert
 
 - Nach dem bestätigten Deployment `CRM INVOICE MANUAL ALL LIVE PASS` auf Cloud Run `lszh-crm-v2-00051-bak` meldet der Betreiber auf die Aufforderung, die zuvor gesperrte interne Rechnung **RE-1002** erneut zu öffnen und `Rechnung senden` zu prüfen: **„super, es funktioniert“**. Damit ist die zuvor sichtbare pauschale Sperre für interne/Eigenrechnungen aus Sicht des Betreibers behoben.

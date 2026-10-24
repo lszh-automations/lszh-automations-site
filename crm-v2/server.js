@@ -227,6 +227,13 @@ async function handler(req,res){
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
     return reply(res,200,{record:await store.recordInvoicePayment(invoicePayment[1],await json(req),user)});
   }
+  // Operator-confirmed correction: original payment remains in immutable history.
+  const invoicePaymentReverse=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/payments\/reverse$/);
+  if(invoicePaymentReverse){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,200,{record:await store.reverseInvoicePayment(invoicePaymentReverse[1],await json(req),user)});
+  }
   // Human-confirmed external reminder log. Absolutely no outgoing mail here.
   const invoiceReminder=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/reminders$/);
   if(invoiceReminder){

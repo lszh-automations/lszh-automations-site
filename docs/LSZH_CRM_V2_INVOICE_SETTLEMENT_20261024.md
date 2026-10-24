@@ -3,6 +3,13 @@
 Stand 24.10.2026 – **Rechnungsabwicklung auf produktiver CRM-Revision `lszh-crm-v2-00046-faj` live (100 %); echter Live-Zahlungs-End-to-End-Test noch offen.**
 
 
+
+### TEST_ONLY-Cutover nach erfolgreicher Null-Traffic-QA
+
+- Vorbereitung für **zweiten, noch nicht ausgeführten** Schritt: \`scripts/activate-crm-invoice-mail-testonly-live.ps1\`. Erkennt exakt den einzig getaggten 0%-Kandidaten \`crm-invoice-testonly-qa\`, vergleicht alle existierenden Live-Konfigurationen/Secrets ausser den vier streng begrenzten Testmodusvariablen, kontrolliert Scheduler und anonyme API-Sperren und fordert die explizite Eingabe \`LIVE TEST_ONLY RECHNUNG\`. Danach 100%-Traffic auf den freigegebenen Kandidaten, mit automatischem Rückrollen zu \`lszh-crm-v2-00046-faj\` bei Fehlern.
+- Ein Cutover in diesem Modus **versendet selbst keine Mail**. \`invoice-send.js\` prüft vor jedem Versand einen manuellen CRM-Klick, \`sendMode=test_only\`, Empfänger-Allowlist und synthetische Rechnungs-/Kundendaten. Somit keine normale Kundenrechnung. Die tatsächliche TEST_ONLY-Mail benötigt zusätzlich explizite CRM-Bestätigung; Echtdaten/Firestorerechnungen bleiben dabei unberührt, solange keine Testdatensätze angelegt werden.
+- **Wichtig:** Skript ist nur vorbereitet. Keine Testmail, kein 0%-Kandidat oder Live-Cutover wurde allein durch Commit angelegt.
+
 ## 24.10.2026 – Rechnungsmail nur per CRM: TEST_ONLY-Zero-Traffic-Release vorbereitet
 
 - **Verbindliche Produktentscheidung:** Rechnungen nur per bewussten CRM-Mail-Klick; keinerlei manuelle Übergabe und keine automatischen Rechnungs- oder Mahn-E-Mails. Teilzahlung erst nach \`invoiceDispatchState=confirmed\`; manuelle Statusauswahl allein bleibt gesperrt.

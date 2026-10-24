@@ -743,6 +743,9 @@ function renderKpis(){
   container.replaceChildren();
   container.hidden=state.tab!=='dashboard';
   if(container.hidden)return;
+  // Fail closed: never display partial client-side financial totals as global
+  // KPIs when the authenticated server-wide summary is unavailable.
+  if(!state.summary&&Object.keys(state.pageInfo||{}).length)return;
   const stats=dashboardStats(state.records);
   const items=[
     {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},

@@ -788,6 +788,14 @@ function renderDashboard(){
     ' · Summen und Prioritäten können unvollständig sein.';
   if(!state.summary)scope.classList.add('dash-data-scope--limited');
   area.append(scope);
+  if(!state.summary&&Object.keys(state.pageInfo||{}).length){
+    const unavailable=dashboardPanel('Gesamtkennzahlen vorübergehend nicht verfügbar',
+      'Die vollständige serverseitige Berechnung konnte nicht geladen werden.');
+    unavailable.body.append(el('p','dash-finance-note',
+      'Zur Sicherheit zeigt das CRM keine unvollständigen finanziellen Summen als Gesamtzahlen an. Bitte aktualisieren.'));
+    area.append(unavailable.panel);
+    return;
+  }
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[

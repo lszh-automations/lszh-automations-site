@@ -5,6 +5,8 @@ const {buildStore}=require('../cloud-records');
 
 function fakeFirestore(seed={}){
   const collections=new Map(Object.entries(seed));
+  const reads={};
+  const count=table=>{reads[table]=(reads[table]||0)+1;};
   const snap=(id,row)=>({id,data:()=>structuredClone(row)});
   const collection=name=>{
     const table=name.replace(/^lszh_crm_v2_staging_/,'');
@@ -13,11 +15,24 @@ function fakeFirestore(seed={}){
       String(b.createdAt||'').localeCompare(String(a.createdAt||''))||
       String(b.id).localeCompare(String(a.id)));
     return {
-      async *stream(){for(const row of rows)yield snap(row.id,row);},
+      async *stream(){for(const row of rows){count(table);yield snap(row.id,row);}},
+      where(field,operator,value){
+        assert.equal(field,'status');
+        assert.ok(operator==='=='||operator==='in');
+        return {async *stream(){
+          for(const row of rows){
+            const match=operator==='=='?row[field]===value:value.includes(row[field]);
+            if(match){count(table);yield snap(row.id,row);}
+          }
+        }};
+      },
       orderBy(field,direction){
         assert.equal(field,'createdAt');
         assert.equal(direction,'desc');
-        return {async *stream(){for(const row of sorted())yield snap(row.id,row);}};
+        return {async *stream(){for(const row of sorted()){
+          if(!Object.hasOwn(row,'createdAt'))continue;
+          count(table);yield snap(row.id,row);
+        }}};
       },
       doc(id){return {async get(){
         const row=rows.find(x=>x.id===id);
@@ -25,7 +40,7 @@ function fakeFirestore(seed={}){
       }};}
     };
   };
-  return {collection};
+  return {collection,reads};
 }
 const store=seed=>buildStore(fakeFirestore(seed),'lszh_crm_v2_staging_');
 const stamp='2026-10-24T10:00:00.000Z';
@@ -92,4 +107,58 @@ test('search rejects invalid status, stale cursor, injection and unsupported fil
   await assert.rejects(s.searchPage('kunden',{due:'overdue'}),{status:400});
   await assert.rejects(s.searchPage('kunden',{cursor:'../../'}),{status:400});
   await assert.rejects(s.searchPage('kunden',{cursor:'c1',q:'does-not-match'}),{status:409});
+});
+
+test('status-index search reads only matching docs, not full register; sorting and cursors stay exact',async()=>{
+  const customers=Array.from({length:1250},(_,i)=>({
+    id:String(i).padStart(5,'0'),company:'LSZH TEST_ONLY '+i,
+    status:i%25===0?'Aktiv':'Inaktiv',
+    createdAt:i%7===0?'2026-10-23T12:00:00.000Z':'2026-10-24T12:00:00.000Z'
+  }));
+  const db=fakeFirestore({kunden:customers});
+  const s=buildStore(db,'lszh_crm_v2_staging_');
+  let cursor='',all=[];
+  do{
+    const p=await s.searchPage('kunden',{status:'Aktiv',pageSize:17,cursor});
+    assert.equal(p.totalMatches,50);
+    all.push(...p.records.map(x=>x.id));
+    if(!p.hasMore)break;
+    cursor=p.nextCursor;
+  }while(all.length<100);
+  const expected=customers.filter(x=>x.status==='Aktiv')
+    .sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id))
+    .map(x=>x.id);
+  assert.deepEqual(all,expected);
+  assert.equal(new Set(all).size,50);
+  // Three status-index page queries, each reading only 50 matches, not 1250.
+  assert.equal(db.reads.kunden,150);
+  await assert.rejects(s.searchPage('kunden',{status:'Aktiv',cursor:'00001'}),{status:409});
+});
+
+test('due index scans only open/part-paid invoice statuses, no composite index',async()=>{
+  const invoices=Array.from({length:600},(_,i)=>({
+    id:'bill-'+i,number:'RE-'+i,description:'LSZH TEST_ONLY invoice',
+    createdAt:'2026-10-24T11:00:00.000Z',dueDate:'2026-10-20',
+    amountCHF:100,status:i%60===0?'Offen':i%60===1?'Teilbezahlt':'Bezahlt'
+  }));
+  const db=fakeFirestore({rechnungen:invoices});
+  const s=buildStore(db,'lszh_crm_v2_staging_');
+  const p=await s.searchPage('rechnungen',{due:'overdue',today:'2026-10-24'});
+  assert.equal(p.totalMatches,20);
+  assert.equal(db.reads.rechnungen,20);
+  assert.ok(p.records.every(x=>x.status==='Offen'||x.status==='Teilbezahlt'));
+  const combined=await s.searchPage('rechnungen',{due:'overdue',status:'Bezahlt',today:'2026-10-24'});
+  assert.equal(combined.totalMatches,0);
+});
+
+test('status-only query preserves missing createdAt exclusion and stale cursor validation',async()=>{
+  const customers=[
+    {id:'a',company:'A',status:'Aktiv',createdAt:stamp},
+    {id:'b',company:'B',status:'Aktiv'},
+    {id:'c',company:'C',status:'Inaktiv',createdAt:stamp}
+  ];
+  const s=store({kunden:customers});
+  assert.deepEqual((await s.searchPage('kunden',{status:'Aktiv'})).records.map(x=>x.id),['a']);
+  await assert.rejects(s.searchPage('kunden',{status:'Aktiv',cursor:'c'}),{status:409});
+  await assert.rejects(s.searchPage('kunden',{status:'Aktiv',cursor:'b'}),{status:409});
 });

@@ -9,7 +9,7 @@ const invoice={id:'inv-7',number:'RE-1007',status:'Offen',description:'Automatio
   customerId:'customer-7',invoiceDate:'2026-10-24',dueDate:'2026-11-02',amountCHF:250,
   items:[{title:'Automationsberatung',qty:1,unitPriceCHF:250}]};
 const customer={company:'Beispiel AG',contactName:'Max Muster',email:'rechnung@beispiel.ch',
-  street:'Musterstrasse',postalCode:'8000',city:'Zuerich',country:'CH'};
+  street:'Musterstrasse 5',postalCode:'8000',city:'Zuerich',country:'CH'};
 function fakeStore(original=invoice,person=customer){
   const record={...original},cust={...person},calls=[];
   return {record,cust,calls,

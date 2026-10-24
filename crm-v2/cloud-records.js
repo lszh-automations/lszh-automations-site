@@ -5,6 +5,7 @@
 // Staging uses its own prefix and never reads or changes website live leads.
 const {quoteTotals}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
+const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
 const {cleanProjectTasks}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID}=require('node:crypto');
@@ -16,7 +17,7 @@ const STATUS={
   leads:LEAD_STATES,
   kunden:['Aktiv','Inaktiv'],
   offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],
-  rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],
+  rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],
   projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']
 };
 const FIELDS={
@@ -114,10 +115,10 @@ function buildStore(db,prefix){
     return snap;
   };
   const validateInvoice=(data,previous)=>{
-    if(data.status==='Offen' && (
+    if(['Offen','Teilbezahlt'].includes(data.status) && (
       !data.customerId||!data.dueDate||!Array.isArray(data.items)||!data.items.length||!(data.amountCHF>0)
     ))throw err('Für eine offene Rechnung Kunde, Fälligkeit und Positionen mit Betrag angeben');
-    if(data.status==='Bezahlt' && previous?.status!=='Offen')throw err('Rechnung zuerst auf Offen setzen');
+    if(data.status==='Bezahlt' && !['Offen','Teilbezahlt'].includes(previous?.status))throw err('Rechnung zuerst auf Offen setzen');
     if(previous?.status==='Offen'&&data.status==='Entwurf')throw err('Offene Rechnung nicht in Entwurf zurücksetzen');
   };
   // Called after its inputs (customer/project and any associated lead) are read.
@@ -165,6 +166,36 @@ function buildStore(db,prefix){
     return {customerId:finalCustomer.id,projectId:finalProject.id};
   }
 
+  // Bounded Firestore pages, using a DocumentSnapshot as cursor to keep
+  // Firestore's implicit document-ID tie-break on equal creation timestamps.
+  async function listPage(table,limit=50,cursor=''){
+    if(!TABLES.includes(table))throw err('Unbekanntes Register',404);
+    const size=Number(limit);
+    if(!Number.isInteger(size)||size<1||size>100)throw err('Seitengrösse muss 1 bis 100 sein');
+    if(typeof cursor!=='string'||cursor.length>120||
+       (cursor&&!/^[A-Za-z0-9_-]{1,100}$/.test(cursor)))
+      throw err('Ungültiger Seitenzeiger');
+    let query=col(table).orderBy('createdAt','desc');
+    if(cursor){
+      const last=await col(table).doc(cursor).get();
+      if(!last.exists||!last.data()?.createdAt)throw err('Seitenzeiger veraltet – bitte Register neu laden',409);
+      query=query.startAfter(last);
+    }
+    const snap=await query.limit(size+1).get();
+    const rows=snap.docs.slice(0,size);
+    return {
+      records:rows.map(toObject),
+      nextCursor:snap.docs.length>size&&rows.length?rows[rows.length-1].id:null,
+      hasMore:snap.docs.length>size
+    };
+  }
+  // Read-only full collection scans for complete server metrics. Stream does
+  // not put all invoice/payment/customer documents in the browser or RAM;
+  // O(number of documents) reads remain a scaling cost until materialized.
+  async function* scan(table){
+    if(!TABLES.includes(table))throw err('Unbekanntes Register',404);
+    for await(const doc of col(table).stream())yield toObject(doc);
+  }
   async function list(table,limit=200){
     const snap=await col(table).orderBy('createdAt','desc').limit(Math.min(Math.max(Number(limit)||200,1),200)).get();
     return snap.docs.map(toObject);
@@ -188,7 +219,7 @@ function buildStore(db,prefix){
     if(table==='rechnungen')Object.assign(input,invoiceTotals(input.items||[]));
     input.status=input.status||defaultStatus(table);
     if(table==='leads'&&input.status==='Gewonnen')throw err('Gewonnen setzt eine bestehende Offerte voraus');
-    if(table==='rechnungen'&&input.status==='Bezahlt')throw err('Rechnung zuerst auf Offen setzen');
+    if(table==='rechnungen'&&['Bezahlt','Teilbezahlt'].includes(input.status))throw err('Zahlungsstatus nur über Zahlungseingang erfassen');
     if(table==='offerten'&&input.status==='Angenommen')throw err('Offerte zuerst speichern, dann auf Angenommen setzen');
     if(table==='offerten'&&input.status==='Versendet')
       throw err('Offertenversand muss separat dokumentiert werden',409);
@@ -257,6 +288,8 @@ function buildStore(db,prefix){
       throw err('Rechnungsbetrag wird aus Positionen berechnet');
     if(table==='offerten'&&Object.hasOwn(input,'items'))Object.assign(input,quoteTotals(input.items));
     if(table==='rechnungen'&&Object.hasOwn(input,'items'))Object.assign(input,invoiceTotals(input.items));
+    if(table==='rechnungen'&&['Bezahlt','Teilbezahlt'].includes(input.status))
+      throw err('Zahlungsstatus ausschliesslich über Zahlungseingang erfassen',409);
     const ref=col(table).doc(id),date=now();
     await db.runTransaction(async tx=>{
       const existing=await tx.get(ref);
@@ -359,7 +392,8 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='rechnungen'){
-        if(isInvoiceLocked(before))throw err('Bezahlte oder stornierte Rechnung ist schreibgeschützt',403);
+        if(isInvoiceLocked(before)||before.status==='Teilbezahlt'||(before.paymentHistory||[]).length)
+          throw err('Rechnung mit Zahlungseingängen ist schreibgeschützt',403);
         if(['sending','manual_review'].includes(before.invoiceDispatchState))
           throw err('Rechnungsversand läuft oder muss zuerst geprüft werden',409);
         if(before.invoiceDispatchState==='confirmed'){
@@ -372,11 +406,129 @@ function buildStore(db,prefix){
         if(project?.data()?.customerId && merged.customerId!==project.data().customerId)
           throw err('Projekt und Rechnung müssen denselben Kunden haben');
         validateInvoice(merged,before);
-        if(merged.status==='Bezahlt')input.paidAt=date;
         tx.update(ref,audit(input,user,date));
       }
     });
     const saved=await ref.get();return toObject(saved);
+  }
+
+  // Manual reconciliation only: no bank access, outgoing mail or automatic cash booking.
+  // The browser-generated paymentId is an idempotency key against duplicate clicks/retries.
+  async function recordInvoicePayment(id,payload,user){
+    const form=normalizePayment(payload,localSwissDate());
+    const date=now(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const before=snap.data();
+      const history=Array.isArray(before.paymentHistory)?before.paymentHistory:[];
+      const replay=history.find(p=>p.paymentId===form.paymentId);
+      if(replay){
+        if(['amountCHF','paidOn','method','reference'].some(key=>replay[key]!==form[key]))
+          throw err('Buchungs-ID wurde bereits mit anderen Zahlungsdaten verwendet',409);
+        return; // Exact duplicate: no second payment is posted.
+      }
+      if(!['Offen','Teilbezahlt'].includes(before.status)||before.invoiceDispatchState!=='confirmed')
+        throw err('Zahlung nur auf offenem, nachweislich versendetem Beleg erfassen',409);
+      if(history.length>=100)throw err('Maximal 100 Zahlungseinträge pro Rechnung',409);
+      const remaining=outstandingCents(before);
+      const received=Math.round(form.amountCHF*100);
+      if(!remaining||received>remaining)throw err('Zahlungsbetrag übersteigt den offenen Restbetrag',409);
+      if(form.reference&&history.some(p=>!p.voidedAt&&p.reference===form.reference&&p.method===form.method))
+        throw err('Diese Zahlungsreferenz ist bei der Rechnung schon erfasst',409);
+      const afterHistory=[...history,{...form,recordedAt:date,recordedBy:user.email}];
+      const totalPaid=paidCents({...before,paymentHistory:afterHistory});
+      const outstanding=Math.max(0,Math.round(Number(before.amountCHF)*100)-totalPaid);
+      const complete=outstanding===0;
+      tx.update(ref,audit({
+        paymentHistory:afterHistory,paidAmountCHF:totalPaid/100,outstandingCHF:outstanding/100,
+        lastPaymentOn:form.paidOn,status:complete?'Bezahlt':'Teilbezahlt',
+        ...(complete?{paidAt:date}:{}),
+      },user,date));
+    });
+    return toObject(await ref.get());
+  }
+
+  // Never delete a payment. Corrections reverse its effect while retaining
+  // both the original booking and the reason/user/time of the correction.
+  async function reverseInvoicePayment(id,payload,user){
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+       Object.keys(payload).some(k=>!['paymentId','reversalId','reason'].includes(k))||
+       typeof payload.paymentId!=='string'||typeof payload.reversalId!=='string'||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.paymentId)||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.reversalId)||
+       typeof payload.reason!=='string'||payload.reason.trim().length<8||payload.reason.trim().length>250)
+      throw err('Korrektur benötigt gültige Buchungs-ID, Korrektur-ID und Begründung (8–250 Zeichen)');
+    const reason=payload.reason.trim(),date=now(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const before=snap.data();
+      const history=Array.isArray(before.paymentHistory)?before.paymentHistory:[];
+      const index=history.findIndex(p=>p.paymentId===payload.paymentId);
+      if(index<0)throw err('Zahlungsbuchung nicht gefunden',404);
+      const payment=history[index];
+      if(payment.voidedAt){
+        if(payment.reversalId===payload.reversalId&&payment.voidReason===reason)return;
+        throw err('Zahlung wurde bereits korrigiert',409);
+      }
+      if(!['Bezahlt','Teilbezahlt'].includes(before.status)||before.invoiceDispatchState!=='confirmed')
+        throw err('Keine korrigierbare Zahlung auf dieser Rechnung',409);
+      const amended=history.map((p,i)=>i===index?{...p,
+        voidedAt:date,voidedBy:user.email,voidReason:reason,reversalId:payload.reversalId}:p);
+      const paid=paidCents({...before,paymentHistory:amended});
+      const remaining=Math.max(0,Math.round(Number(before.amountCHF)*100)-paid);
+      const status=remaining===0?'Bezahlt':paid>0?'Teilbezahlt':'Offen';
+      tx.update(ref,audit({paymentHistory:amended,paidAmountCHF:paid/100,
+        outstandingCHF:remaining/100,status,paidAt:status==='Bezahlt'?before.paidAt:null,
+        lastPaymentCorrectionAt:date,lastPaymentCorrectionBy:user.email},user,date));
+    });
+    return toObject(await ref.get());
+  }
+
+  // The CRM only logs a reminder AFTER the operator confirms they sent it externally.
+  // This API never contacts Make/Gmail, queues mail or changes the invoice amount.
+  async function recordInvoiceReminder(id,payload,user){
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+       Object.keys(payload).some(k=>!['reminderId','kind'].includes(k))||
+       typeof payload.reminderId!=='string'||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.reminderId))
+      throw err('Ungültige Mahnprotokollierung');
+    const kinds=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+    if(!kinds.includes(payload.kind))throw err('Ungültige Mahnstufe');
+    const date=now(),today=localSwissDate(),ref=col('rechnungen').doc(id);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Rechnung nicht gefunden',404);
+      const invoice=snap.data();
+      const previous=Array.isArray(invoice.reminderHistory)?invoice.reminderHistory:[];
+      const replay=previous.find(item=>item.reminderId===payload.reminderId);
+      if(replay){
+        if(replay.kind!==payload.kind)throw err('Mahn-ID mit abweichender Stufe schon verwendet',409);
+        return;
+      }
+      if(!['Offen','Teilbezahlt'].includes(invoice.status)||
+         invoice.invoiceDispatchState!=='confirmed'||!invoice.dueDate||
+         invoice.dueDate>=today||outstandingCents(invoice)===0)
+        throw err('Mahnung nur für überfällige, versendete und unbezahlte Rechnungen',409);
+      if(previous.length>=3)throw err('Manuelle Mahnfolge abgeschlossen',409);
+      if(payload.kind!==kinds[previous.length])
+        throw err('Mahnstufe muss in Reihenfolge dokumentiert werden',409);
+      if(previous.length && Date.parse(date)-Date.parse(previous[previous.length-1].at)<7*24*60*60*1000)
+        throw err('Zwischen zwei Mahnstufen mindestens sieben Tage abwarten',409);
+      const customer=invoice.customerId?await tx.get(col('kunden').doc(invoice.customerId)):null;
+      if(!customer?.exists||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(customer.data().email||'')))
+        throw err('Kundenadresse für Mahnprotokoll fehlt',409);
+      tx.update(ref,audit({
+        reminderHistory:[...previous,{
+          reminderId:payload.reminderId,kind:payload.kind,at:date,by:user.email,
+          recipient:customer.data().email,delivery:'operator_confirmed_external',
+          outstandingCHF:outstandingCents(invoice)/100
+        }],
+        lastReminderAt:date,lastReminderKind:payload.kind
+      },user,date));
+    });
+    return toObject(await ref.get());
   }
 
   // Exactly-once claim: the offer sender uses the same transaction-first pattern.
@@ -635,6 +787,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,reminders,clean};
+  return {TABLES,list,listPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

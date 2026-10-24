@@ -20,7 +20,7 @@ test('CRM checks new website leads automatically without reloading or re-authent
   assert.match(html,/addEventListener\('visibilitychange'/);
   assert.match(html,/addEventListener\('focus',refreshLeads\)/);
   assert.match(html,/id="refreshLeads"/);
-  assert.match(html,/api\('\/api\/records\/leads'\)/);
+  assert.match(html,/api\('\/api\/records\/leads\?pageSize=50'\)/);
 });
 
 test('automatic refresh skips editing, hidden browser tabs and expired logins',()=>{

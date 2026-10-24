@@ -21,13 +21,14 @@ function fakeFirestore(){
     return {exists:val!==undefined,id:ref.id,ref,data:()=>val===undefined?undefined:clone(val)};
   }
   class Query{
-    constructor(name,filter=null,order=null,limit=200){this.name=name;this.filter=filter;this.order=order;this.max=limit;}
+    constructor(name,filter=null,order=null,limit=200,cursor=null){this.name=name;this.filter=filter;this.order=order;this.max=limit;this.cursor=cursor;}
     where(field,operator,value){
       assert.equal(operator,'==');
-      return new Query(this.name,{field,value},this.order,this.max);
+      return new Query(this.name,{field,value},this.order,this.max,this.cursor);
     }
-    limit(n){return new Query(this.name,this.filter,this.order,n);}
-    orderBy(field,direction){return new Query(this.name,this.filter,{field,direction},this.max);}
+    limit(n){return new Query(this.name,this.filter,this.order,n,this.cursor);}
+    startAfter(doc){return new Query(this.name,this.filter,this.order,this.max,doc);}
+    orderBy(field,direction){return new Query(this.name,this.filter,{field,direction},this.max,this.cursor);}
     async get(){
       let docs=[...storage.keys()].filter(key=>key.startsWith(this.name+'/'))
         .map(key=>{const id=key.slice(this.name.length+1);return snapshot(new Doc({name:this.name},id));});
@@ -35,8 +36,10 @@ function fakeFirestore(){
       if(this.order)docs.sort((a,b)=>{
         const x=String(a.data()[this.order.field]||'');
         const y=String(b.data()[this.order.field]||'');
-        return this.order.direction==='desc'?y.localeCompare(x):x.localeCompare(y);
+        const byValue=this.order.direction==='desc'?y.localeCompare(x):x.localeCompare(y);
+        return byValue||(this.order.direction==='desc'?b.id.localeCompare(a.id):a.id.localeCompare(b.id));
       });
+      if(this.cursor){const at=docs.findIndex(x=>x.id===this.cursor.id);docs=at>=0?docs.slice(at+1):[];}
       docs=docs.slice(0,this.max);
       return {docs,empty:docs.length===0};
     }
@@ -46,6 +49,7 @@ function fakeFirestore(){
     doc(id){return new Doc(this,id||('generated-'+(++seq)));}
     where(field,op,value){return new Query(this.name).where(field,op,value);}
     orderBy(field,direction){return new Query(this.name).orderBy(field,direction);}
+    async *stream(){for(const [key] of storage){if(key.startsWith(this.name+'/'))yield snapshot(new Doc(this,key.slice(this.name.length+1)));}}
   }
   class Transaction{
     constructor(){this.writes=[];this.startedWriting=false;}
@@ -141,7 +145,7 @@ test('project tasks save without breaking won links',async()=>{
   await assert.rejects(store.update('projekte',project.id,{customerId:'other'},admin),/darf nicht geändert werden/);
 });
 test('invoices calculate prices and retain paid lock with stable numbering',async()=>{
-  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
   const customer=await store.create('kunden',{company:'Kunde AG'},admin);
   const invoice=await store.create('rechnungen',{
     customerId:customer.id,description:'Leistung',dueDate:'2026-11-30',status:'Entwurf',
@@ -150,8 +154,13 @@ test('invoices calculate prices and retain paid lock with stable numbering',asyn
   assert.equal(invoice.number,'RE-1000');
   assert.equal(invoice.amountCHF,499.9);
   await store.update('rechnungen',invoice.id,{status:'Offen'},admin);
-  const paid=await store.update('rechnungen',invoice.id,{status:'Bezahlt'},admin);
+  await assert.rejects(store.update('rechnungen',invoice.id,{status:'Bezahlt'},admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id).invoiceDispatchState='confirmed';
+  const paid=await store.recordInvoicePayment(invoice.id,{paymentId:'00000000-0000-4000-8000-000000000001',
+    amountCHF:'499.90',paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-E2E-1'},admin);
   assert.equal(paid.status,'Bezahlt');
+  assert.equal(paid.paymentHistory.length,1);
+  assert.equal(paid.outstandingCHF,0);
   assert.ok(paid.paidAt);
   await assert.rejects(store.update('rechnungen',invoice.id,{description:'changed'},admin),{status:403});
 });
@@ -461,7 +470,8 @@ test('invoice send transaction locks the snapshot, confirms delivery only once, 
   await assert.rejects(store.finishInvoiceSend(inv.id,claim.attemptId,'confirmed','gmail-second'),{status:409});
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
   await assert.rejects(store.update('rechnungen',inv.id,{description:'Changed'},admin),{status:409});
-  const paid=await store.update('rechnungen',inv.id,{status:'Bezahlt'},admin);
+  const paid=await store.recordInvoicePayment(inv.id,{paymentId:'00000000-0000-4000-8000-000000000002',
+    amountCHF:'250.00',paidOn:'2026-10-24',method:'TWINT',reference:'TWINT-250'},admin);
   assert.equal(paid.status,'Bezahlt');assert.ok(paid.paidAt);
   assert.equal(paid.invoiceSentTo,customer.email);
 });
@@ -504,4 +514,277 @@ test('invoice send rejects a customer street without Swiss QR house number',asyn
     dueDate:'2026-11-30',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
   assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,undefined);
+});
+
+test('invoice settlement requires confirmed send, books partial amounts, never double-posts a retry',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const c=await store.create('kunden',{company:'Teilzahlung GmbH'},admin);
+  const inv=await store.create('rechnungen',{customerId:c.id,description:'Jahresservice',
+    status:'Offen',dueDate:'2026-11-30',items:[{title:'Dienstleistung',qty:1,unitPriceCHF:199.95}]},admin);
+  const first={paymentId:'00000000-0000-4000-8000-000000000003',amountCHF:'50.00',
+    paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-TEIL-1'};
+  await assert.rejects(store.recordInvoicePayment(inv.id,first,admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const partial=await store.recordInvoicePayment(inv.id,first,admin);
+  assert.equal(partial.status,'Teilbezahlt');
+  assert.equal(partial.paidAmountCHF,50);
+  assert.equal(partial.outstandingCHF,149.95);
+  assert.equal(partial.paymentHistory.length,1);
+  const replay=await store.recordInvoicePayment(inv.id,first,admin);
+  assert.equal(replay.paymentHistory.length,1);
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,amountCHF:'60.00'},admin),{status:409});
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,
+    paymentId:'00000000-0000-4000-8000-000000000004'},admin),{status:409});
+  await assert.rejects(store.recordInvoicePayment(inv.id,{...first,
+    paymentId:'00000000-0000-4000-8000-000000000005',reference:'NEW',amountCHF:'149.96'},admin),{status:409});
+  await assert.rejects(store.update('rechnungen',inv.id,{status:'Storniert'},admin),{status:403});
+  const finalPayment={paymentId:'00000000-0000-4000-8000-000000000006',amountCHF:'149.95',
+    paidOn:'2026-10-24',method:'Banküberweisung',reference:'BANK-TEIL-2'};
+  const done=await store.recordInvoicePayment(inv.id,finalPayment,admin);
+  assert.equal(done.status,'Bezahlt');
+  assert.equal(done.paidAmountCHF,199.95);
+  assert.equal(done.outstandingCHF,0);
+  assert.equal(done.paymentHistory.length,2);
+  assert.ok(done.paidAt);
+  const replayFinal=await store.recordInvoicePayment(inv.id,finalPayment,admin);
+  assert.equal(replayFinal.paymentHistory.length,2);
+  const correction={paymentId:finalPayment.paymentId,reversalId:'00000000-0000-4000-8000-000000000011',
+    reason:'Betrag wurde irrtümlich verbucht'};
+  const reversed=await store.reverseInvoicePayment(inv.id,correction,admin);
+  assert.equal(reversed.status,'Teilbezahlt');
+  assert.equal(reversed.paidAmountCHF,50);
+  assert.equal(reversed.outstandingCHF,149.95);
+  assert.equal(reversed.paidAt,null);
+  assert.equal(reversed.paymentHistory.length,2);
+  assert.ok(reversed.paymentHistory[1].voidedAt);
+  assert.equal(reversed.paymentHistory[1].voidReason,correction.reason);
+  const replayReverse=await store.reverseInvoicePayment(inv.id,correction,admin);
+  assert.equal(replayReverse.paymentHistory.length,2);
+  await assert.rejects(store.reverseInvoicePayment(inv.id,{...correction,
+    reversalId:'00000000-0000-4000-8000-000000000012'},admin),{status:409});
+  await assert.rejects(store.reverseInvoicePayment(inv.id,{...correction,
+    paymentId:'00000000-0000-4000-8000-000000000013'},admin),{status:404});
+});
+test('invoice payment rejects future booking date, fake amount, unsafe fields and overpayment',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const c=await store.create('kunden',{company:'Kontroll AG'},admin);
+  const inv=await store.create('rechnungen',{customerId:c.id,description:'Support',
+    status:'Offen',dueDate:'2026-11-30',items:[{title:'Monat',qty:1,unitPriceCHF:80}]},admin);
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const payment={paymentId:'00000000-0000-4000-8000-000000000007',amountCHF:'12.00',
+    paidOn:'2026-10-24',method:'Bar',reference:''};
+  for(const invalid of [
+    {...payment,paidOn:'2099-01-01'}, {...payment,paidOn:'2026-02-30'},
+    {...payment,amountCHF:'12.001'}, {...payment,amountCHF:'0'},
+    {...payment,method:'Bitcoin'}, {...payment,amountCHF:'81.00'},
+    {...payment,admin:true},
+  ])await assert.rejects(store.recordInvoicePayment(inv.id,invalid,admin));
+  assert.equal((await store.get('rechnungen',inv.id)).paymentHistory,undefined);
+});
+
+test('manual invoice reminders require an overdue sent unpaid bill and are never automatic',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'Remind AG',email:'debitoren@remind.ch'},admin);
+  const inv=await store.create('rechnungen',{customerId:customer.id,description:'Automation',
+    invoiceDate:'2026-09-01',dueDate:'2026-10-01',status:'Offen',
+    items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
+  const first={reminderId:'00000000-0000-4000-8000-000000000008',kind:'Zahlungserinnerung'};
+  await assert.rejects(store.recordInvoiceReminder(inv.id,first,admin),{status:409});
+  db.storage.get('lszh_crm_v2_staging_rechnungen/'+inv.id).invoiceDispatchState='confirmed';
+  const saved=await store.recordInvoiceReminder(inv.id,first,admin);
+  assert.equal(saved.reminderHistory.length,1);
+  assert.equal(saved.reminderHistory[0].delivery,'operator_confirmed_external');
+  assert.equal(saved.reminderHistory[0].recipient,customer.email);
+  assert.equal((await store.recordInvoiceReminder(inv.id,first,admin)).reminderHistory.length,1);
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    ...first,kind:'1. Mahnung'},admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    reminderId:'00000000-0000-4000-8000-000000000009',kind:'2. Mahnung'},admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(inv.id,{
+    reminderId:'00000000-0000-4000-8000-000000000010',kind:'1. Mahnung'},admin),{status:409});
+  assert.equal((await store.get('rechnungen',inv.id)).reminderHistory.length,1);
+});
+
+
+test('all three manual reminder stages: strict sequence, 7-day boundary, immutable receipts and idempotent retries',async()=>{
+  // All date manipulation is restricted to this synthetic in-memory staging Firestore.
+  // It simulates time passing; no Gmail/Make dispatch or productive collection exists.
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{
+    company:'TEST_ONLY Mahnstufen AG',email:'debitoren@qa.invalid'
+  },admin);
+  const invoice=await store.create('rechnungen',{
+    customerId:customer.id,description:'TEST_ONLY Mahnstufenablauf',
+    invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',
+    items:[{title:'Test ohne Versand',qty:1,unitPriceCHF:199.95}]
+  },admin);
+  const raw=db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id);
+  raw.invoiceDispatchState='confirmed'; // Synthetic receipt is in-memory only.
+  const uuid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+  const first={reminderId:uuid(201),kind:'Zahlungserinnerung'};
+  const second={reminderId:uuid(202),kind:'1. Mahnung'};
+  const third={reminderId:uuid(203),kind:'2. Mahnung'};
+  const receipt=await store.recordInvoiceReminder(invoice.id,first,admin);
+  assert.equal(receipt.reminderHistory.length,1);
+  assert.deepEqual(receipt.reminderHistory.map(x=>x.kind),['Zahlungserinnerung']);
+  assert.equal(receipt.lastReminderKind,'Zahlungserinnerung');
+  assert.equal(receipt.reminderHistory[0].reminderId,first.reminderId);
+  assert.equal(receipt.reminderHistory[0].recipient,customer.email);
+  assert.equal(receipt.reminderHistory[0].by,admin.email);
+  assert.equal(receipt.reminderHistory[0].outstandingCHF,199.95);
+  assert.equal(receipt.reminderHistory[0].delivery,'operator_confirmed_external');
+  assert.ok(Number.isFinite(Date.parse(receipt.reminderHistory[0].at)));
+  assert.equal(receipt.status,'Offen');
+  assert.equal(receipt.paidAmountCHF,undefined,'logging a reminder must not fabricate payment');
+  const firstAt=receipt.reminderHistory[0].at;
+  const repeat=await store.recordInvoiceReminder(invoice.id,first,admin);
+  assert.equal(repeat.reminderHistory.length,1);
+  assert.equal(repeat.reminderHistory[0].at,firstAt,'retry must keep audit timestamp');
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:first.reminderId,kind:'1. Mahnung'
+  },admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
+  // The fake transaction replaces the stored record object at each commit;
+  // always refetch it after a reminder write before manipulating synthetic time.
+  const saved=()=>db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id);
+  // Just below seven full 24-hour periods: forbidden.
+  saved().reminderHistory[0].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
+  // Just above seven full 24-hour periods: allowed.
+  saved().reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  const afterSecond=await store.recordInvoiceReminder(invoice.id,second,admin);
+  assert.deepEqual(afterSecond.reminderHistory.map(x=>x.kind),['Zahlungserinnerung','1. Mahnung']);
+  assert.equal(afterSecond.reminderHistory[1].by,admin.email);
+  assert.equal(afterSecond.reminderHistory[1].outstandingCHF,199.95);
+  assert.equal(afterSecond.reminderHistory[1].delivery,'operator_confirmed_external');
+  assert.equal(afterSecond.reminderHistory[1].recipient,customer.email);
+  assert.equal(afterSecond.lastReminderKind,'1. Mahnung');
+  assert.equal((await store.recordInvoiceReminder(invoice.id,second,admin)).reminderHistory.length,2);
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  saved().reminderHistory[1].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
+  saved().reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  const afterThird=await store.recordInvoiceReminder(invoice.id,third,admin);
+  assert.deepEqual(afterThird.reminderHistory.map(x=>x.kind),[
+    'Zahlungserinnerung','1. Mahnung','2. Mahnung'
+  ]);
+  assert.equal(afterThird.lastReminderKind,'2. Mahnung');
+  assert.equal(afterThird.reminderHistory[2].outstandingCHF,199.95);
+  assert.equal((await store.recordInvoiceReminder(invoice.id,third,admin)).reminderHistory.length,3);
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:uuid(204),kind:'2. Mahnung'
+  },admin),{status:409});
+  await assert.rejects(store.recordInvoiceReminder(invoice.id,{
+    reminderId:uuid(205),kind:'3. Mahnung'
+  },admin),{status:400});
+  const completed=await store.get('rechnungen',invoice.id);
+  assert.equal(completed.reminderHistory.length,3,'at most three audit entries');
+  assert.equal(completed.paymentHistory,undefined,'dunning never posts cash');
+  assert.equal(completed.status,'Offen','dunning never changes invoice status');
+});
+
+test('reminder prerequisites: no pending invoice send, no early dunning, no customer email, no settled invoice',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'TEST_ONLY Block AG',email:'a@qa.invalid'},admin);
+  const missingEmail=await store.create('kunden',{company:'TEST_ONLY No Email AG'},admin);
+  const mk=async(cId,dueDate,status='Offen')=>store.create('rechnungen',{
+    customerId:cId,description:'TEST_ONLY blocked reminder',status,dueDate,
+    items:[{title:'Test',qty:1,unitPriceCHF:90}]
+  },admin);
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Zurich',
+    year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const delayed=await mk(customer.id,today);
+  const stale=await mk(missingEmail.id,'2020-01-01');
+  const paid=await mk(customer.id,'2020-01-01');
+  const cancelled=await mk(customer.id,'2020-01-01');
+  const noSend=await mk(customer.id,'2020-01-01');
+  const coll='lszh_crm_v2_staging_rechnungen/';
+  for(const x of [delayed,stale,paid,cancelled])
+    db.storage.get(coll+x.id).invoiceDispatchState='confirmed';
+  db.storage.get(coll+paid.id).status='Bezahlt';
+  db.storage.get(coll+cancelled.id).status='Storniert';
+  const payload={reminderId:'00000000-0000-4000-8000-000000000211',kind:'Zahlungserinnerung'};
+  for(const invoice of [delayed,stale,paid,cancelled,noSend]){
+    await assert.rejects(store.recordInvoiceReminder(invoice.id,payload,admin),{status:409});
+    const fresh=await store.get('rechnungen',invoice.id);
+    assert.equal(fresh.reminderHistory,undefined);
+  }
+  await assert.rejects(store.recordInvoiceReminder(noSend.id,{
+    ...payload,evil:'ignored'
+  },admin),{status:400});
+});
+
+
+test('manual reminder logs current remaining balance after partial payment and stops after settlement',async()=>{
+  // Synthetic ledger only. No real bank actions or external sends.
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'TEST_ONLY Teilmahnung AG',email:'billing@qa.invalid'},admin);
+  const inv=await store.create('rechnungen',{
+    customerId:customer.id,description:'TEST_ONLY Mahnung nach Teilzahlung',
+    invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',
+    items:[{title:'Test Service',qty:1,unitPriceCHF:100}]
+  },admin);
+  const key='lszh_crm_v2_staging_rechnungen/'+inv.id;
+  db.storage.get(key).invoiceDispatchState='confirmed';
+  const first={reminderId:'00000000-0000-4000-8000-000000000301',kind:'Zahlungserinnerung'};
+  const second={reminderId:'00000000-0000-4000-8000-000000000302',kind:'1. Mahnung'};
+  const third={reminderId:'00000000-0000-4000-8000-000000000303',kind:'2. Mahnung'};
+  let record=await store.recordInvoiceReminder(inv.id,first,admin);
+  assert.equal(record.reminderHistory[0].outstandingCHF,100);
+  const today=new Intl.DateTimeFormat('sv-SE',{
+    timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(new Date());
+  const firstPay=await store.recordInvoicePayment(inv.id,{
+    paymentId:'00000000-0000-4000-8000-000000000311',
+    amountCHF:'40.00',paidOn:today,method:'Banküberweisung',reference:'TEST_ONLY PART 1'
+  },admin);
+  assert.equal(firstPay.status,'Teilbezahlt');
+  assert.equal(firstPay.outstandingCHF,60);
+  db.storage.get(key).reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  record=await store.recordInvoiceReminder(inv.id,second,admin);
+  assert.equal(record.reminderHistory[0].outstandingCHF,100,'first audit record unchanged');
+  assert.equal(record.reminderHistory[1].outstandingCHF,60,'second stage uses current rest');
+  assert.equal(record.status,'Teilbezahlt');
+  const final=await store.recordInvoicePayment(inv.id,{
+    paymentId:'00000000-0000-4000-8000-000000000312',
+    amountCHF:'60.00',paidOn:today,method:'Banküberweisung',reference:'TEST_ONLY FINAL'
+  },admin);
+  assert.equal(final.status,'Bezahlt');
+  assert.equal(final.outstandingCHF,0);
+  db.storage.get(key).reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  await assert.rejects(store.recordInvoiceReminder(inv.id,third,admin),{status:409});
+  const confirmed=await store.get('rechnungen',inv.id);
+  assert.equal(confirmed.reminderHistory.length,2);
+  assert.equal(confirmed.reminderHistory[0].outstandingCHF,100);
+  assert.equal(confirmed.reminderHistory[1].outstandingCHF,60);
+  assert.equal(confirmed.status,'Bezahlt');
+});
+
+test('paginated Firestore reads cover 230 records with stable ties, no duplicates, and safe cursors',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  for(let i=0;i<230;i++)db.storage.set('lszh_crm_v2_staging_kunden/'+String(i).padStart(4,'0'),{
+    company:'TEST_ONLY Customer '+i,createdAt:'2026-10-24T17:00:00.000Z',status:'Aktiv'
+  });
+  let cursor='',round=0;const ids=[];
+  do{
+    const page=await store.listPage('kunden',50,cursor);
+    ids.push(...page.records.map(x=>x.id));
+    round++;
+    if(!page.hasMore)break;
+    assert.ok(page.nextCursor);
+    cursor=page.nextCursor;
+    assert.ok(round<10);
+  }while(true);
+  assert.equal(round,5);
+  assert.equal(ids.length,230);
+  assert.equal(new Set(ids).size,230);
+  assert.equal(ids[0],'0229');
+  assert.equal(ids.at(-1),'0000');
+  await assert.rejects(store.listPage('kunden',101),{status:400});
+  await assert.rejects(store.listPage('kunden',50,'../../invalid'),{status:400});
+  await assert.rejects(store.listPage('kunden',50,'does-not-exist'),{status:409});
+  const count=[];
+  for await(const row of store.scan('kunden'))count.push(row.id);
+  assert.equal(count.length,230);
 });

@@ -48,5 +48,7 @@ jobs:
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$parseErrors) | Out-Null
             if ($parseErrors.Count -gt 0) { throw "PowerShell parser failed for $script : $($parseErrors[0].Message)" }
           }
+      - name: Install CRM dependencies
+        run: npm install --no-audit --no-fund
       - name: Run all CRM regression tests
         run: node --test

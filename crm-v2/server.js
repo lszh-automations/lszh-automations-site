@@ -125,8 +125,20 @@ async function handler(req,res){
       'Content-Disposition':'attachment; filename="TEST_ONLY_LSZH_Swiss_QR.pdf"'});
     return res.end(fs.readFileSync(sample));
   }
-  if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo,invoiceMailEnabled:invoiceSenderStatus.enabled,invoiceMailMode:invoiceSenderStatus.mode,invoiceMailTestTo:invoiceSenderStatus.testTo}:{error:'not_configured'});
+  if(req.method==='GET'&&pathname==='/api/config'){
+    // The CRM OAuth clientId is public; the private TEST_ONLY invoice recipient is not.
+    // Only an authenticated, allowlisted CRM operator may read the test mailbox.
+    const authorised=Boolean(req.headers.authorization)&&Boolean(await userFrom(req));
+    return reply(res,configured()?200:503,configured()?{
+      clientId:CLIENT_ID,
+      offerMailEnabled:offerSender.stats().enabled,
+      offerMailMode:offerSender.stats().mode,
+      offerMailTestTo:offerSender.stats().testTo,
+      invoiceMailEnabled:invoiceSenderStatus.enabled,
+      invoiceMailMode:invoiceSenderStatus.mode,
+      invoiceMailTestTo:authorised?invoiceSenderStatus.testTo:''
+    }:{error:'not_configured'});
+  }
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');
@@ -159,6 +171,10 @@ async function handler(req,res){
   const user=await userFrom(req);
   if(!user)return reply(res,401,{error:'unauthorized'});
   if(req.method==='GET'&&pathname==='/api/me')return reply(res,200,{email:user.email});
+  if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
+    const {cockpitSummary}=require('./cockpit-summary');
+    return reply(res,200,{summary:await cockpitSummary(store)});
+  }
   if(req.method==='GET'&&pathname==='/api/reminders'){
     const reminders=await store.reminders();
     return reply(res,200,{reminders,mode:'preview_only_not_sent'});
@@ -220,6 +236,27 @@ async function handler(req,res){
     }
     return reply(res,200,await offerSender.send(id,payload,user));
   }
+  // Authenticated payment booking. No automatic bank reconciliation or email.
+  const invoicePayment=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/payments$/);
+  if(invoicePayment){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,200,{record:await store.recordInvoicePayment(invoicePayment[1],await json(req),user)});
+  }
+  // Operator-confirmed correction: original payment remains in immutable history.
+  const invoicePaymentReverse=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/payments\/reverse$/);
+  if(invoicePaymentReverse){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,200,{record:await store.reverseInvoicePayment(invoicePaymentReverse[1],await json(req),user)});
+  }
+  // Human-confirmed external reminder log. Absolutely no outgoing mail here.
+  const invoiceReminder=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/reminders$/);
+  if(invoiceReminder){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    return reply(res,200,{record:await store.recordInvoiceReminder(invoiceReminder[1],await json(req),user)});
+  }
   // Invoices have a separate manual state-machine and Gmail receipt. Never
   // called by the existing lead scheduler, website intake or quote sender.
   const invoiceSendAction=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/send(?:\/(resolve))?$/);
@@ -254,8 +291,18 @@ async function handler(req,res){
   if(parts[0]!=='api'||parts[1]!=='records'||!store.TABLES.includes(parts[2])||parts.length>4)
     return reply(res,404,{error:'not_found'});
   const table=parts[2],id=parts[3];
-  if(req.method==='GET'&&!id)
+  if(req.method==='GET'&&!id){
+    // New paginated register contract; preserve legacy response for older clients.
+    if(url.searchParams.has('pageSize')||url.searchParams.has('cursor')){
+      return reply(res,200,await store.listPage(table,url.searchParams.get('pageSize')||50,
+        url.searchParams.get('cursor')||''));
+    }
     return reply(res,200,{records:await store.list(table,url.searchParams.get('limit')||200)});
+  }
+  if(req.method==='GET'&&id&&/^[A-Za-z0-9_-]{1,100}$/.test(id)){
+    const record=await store.get(table,id);
+    return record?reply(res,200,{record}):reply(res,404,{error:'not_found'});
+  }
   if((req.method==='POST'||req.method==='PATCH'||req.method==='DELETE')&&!sameOrigin(req))
     return reply(res,403,{error:'origin_mismatch'});
   if(req.method==='POST'&&!id)

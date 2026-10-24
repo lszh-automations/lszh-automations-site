@@ -38,6 +38,7 @@ function createHarness(){
         activeProjects:0,paidAmount:0};
     },
     formatCHF:n=>'CHF '+n,
+    invoiceCHF:n=>'CHF '+Number(n).toFixed(2),
     el:fakeEl,
     definitions:{leads:{title:'Website Leads'},offerten:{title:'Offerten'},
       rechnungen:{title:'Rechnungen'},projekte:{title:'Projekte'}},

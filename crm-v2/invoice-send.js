@@ -21,21 +21,17 @@ function createInvoiceSender(store,config={}){
       throw err('Ungültige Versandbestätigung');
     const invoice=await store.get('rechnungen',id);
     if(!invoice)throw err('Rechnung nicht gefunden',404);
-    // Never accidentally send synthetic/self-billed internal test invoices
-    // through production Gmail. Strictly separate this from a test-only mailbox.
-    const customer=invoice.customerId?await store.get('kunden',invoice.customerId):null;
-    const isSynthetic=String(invoice.description||'').startsWith('TEST_ONLY')||
+    // Every production invoice requires a deliberate authenticated CRM click.
+    // Internal, self-billed and TEST_ONLY-labelled invoices use the same manual
+    // confirmation + Gmail receipt process; no blanket recipient/type ban.
+    // The separate test_only mode still enforces its mailbox allowlist.
+    const customer=isTest&&invoice.customerId?await store.get('kunden',invoice.customerId):null;
+    const isSynthetic=isTest&&(String(invoice.description||'').startsWith('TEST_ONLY')||
       /^TEST_ONLY\b/i.test(String(customer?.company||''))||
-      String(customer?.company||'').trim().toLowerCase()==='lszh invest gmbh';
-    if(isProduction&&isSynthetic)
-      throw err('Interne Test- oder Eigenrechnung darf nicht produktiv versendet werden',403);
+      String(customer?.company||'').trim().toLowerCase()==='lszh invest gmbh');
     if(isTest&&(!isSynthetic||String(customer?.email||'').trim().toLowerCase()!==testTo))
       throw err('Testmodus: nur interne Testrechnung an das erlaubte Testpostfach',403);
     const claim=await store.claimInvoiceSend(id,user);
-    if(isProduction&&claim.isSynthetic){
-      await store.finishInvoiceSend(id,claim.attemptId,'preparation_failed');
-      throw err('Testrechnung nach Versandreservierung erkannt',403);
-    }
     if(isTest&&(!claim.isSynthetic||claim.to!==testTo)){
       await store.finishInvoiceSend(id,claim.attemptId,'preparation_failed');
       throw err('Testempfänger nach Versandreservierung abweichend',403);

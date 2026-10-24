@@ -603,7 +603,7 @@ function renderInvoiceDueOverview(){
   const invoices=state.records.rechnungen||[];
   const totals=invoiceDueTotals(invoices);
   $('invoiceDueOverdueCount').textContent=String(totals.overdueCount);
-  $('invoiceDueOverdueAmount').textContent=formatCHF(totals.overdueCents/100);
+  $('invoiceDueOverdueAmount').textContent=invoiceCHF(totals.overdueCents/100);
   $('invoiceDueSoonCount').textContent=String(totals.soonCount);
   $('invoiceDueNote').textContent='Nur '+invoices.length+' geladene Rechnungen (max. 200 je Register). Fälligkeit nach Schweizer Kalenderdatum; Teilzahlungen und Korrekturen berücksichtigt. Mahnungen ausschliesslich manuell nach Prüfung.';
 }

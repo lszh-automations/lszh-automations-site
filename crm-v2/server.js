@@ -13,6 +13,7 @@ const {makeDispatcher}=require('./mail-dispatcher');
 const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {createOfferSender}=require('./offer-send');
+const {createInvoiceSender}=require('./invoice-send');
 const {renderInvoicePreview}=require('./invoice-preview');
 
 const PORT=Number(process.env.PORT||8080);
@@ -33,6 +34,17 @@ const offerSender=createOfferSender(store,{
   webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
   testTo:process.env.CRM_OFFER_MAIL_TEST_TO,
   mode:process.env.CRM_OFFER_MAIL_MODE
+});
+// Invoice email is independent of lead/offer mail; disabled in production until
+// dedicated manual release flags are approved. Reuses the same Make/Gmail gateway.
+const invoiceSender=createInvoiceSender(store,{
+  enabled:process.env.CRM_INVOICE_MAIL_ENABLED==='true'&&
+    (PREFIX!=='lszh_crm_v2_'||process.env.CRM_INVOICE_MAIL_PRODUCTION_APPROVED==='true'),
+  webhookUrl:process.env.CRM_INVOICE_MAIL_WEBHOOK_URL||
+    process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
+  mode:process.env.CRM_INVOICE_MAIL_MODE,
+  testTo:process.env.CRM_INVOICE_MAIL_TEST_TO,
+  iban:process.env.CRM_INVOICE_IBAN
 });
 const MAIL_SCHEDULER_EMAIL=String(process.env.CRM_MAIL_SCHEDULER_EMAIL||'').trim().toLowerCase();
 const MAIL_SCHEDULER_AUDIENCE=String(process.env.CRM_MAIL_SCHEDULER_AUDIENCE||'').trim();
@@ -101,7 +113,7 @@ async function handler(req,res){
     return res.end(fs.readFileSync(sample));
   }
   if(req.method==='GET'&&pathname==='/api/config')
-    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo}:{error:'not_configured'});
+    return reply(res,configured()?200:503,configured()?{clientId:CLIENT_ID,offerMailEnabled:offerSender.stats().enabled,offerMailMode:offerSender.stats().mode,offerMailTestTo:offerSender.stats().testTo,invoiceMailEnabled:invoiceSender.stats().enabled,invoiceMailMode:invoiceSender.stats().mode,invoiceMailTestTo:invoiceSender.stats().testTo}:{error:'not_configured'});
   if(req.method==='POST'&&pathname==='/api/internal/website-leads'){
     if(!INTAKE_ENABLED)return reply(res,404,{error:'intake_disabled_on_staging'});
     const secret=String(process.env.CRM_INGEST_SECRET||'');
@@ -194,6 +206,22 @@ async function handler(req,res){
       return reply(res,200,{record:await store.resolveOfferSend(id,payload.resolution,user)});
     }
     return reply(res,200,await offerSender.send(id,payload,user));
+  }
+  // Invoices have a separate manual state-machine and Gmail receipt. Never
+  // called by the existing lead scheduler, website intake or quote sender.
+  const invoiceSendAction=pathname.match(/^\\/api\\/records\\/rechnungen\\/([A-Za-z0-9_-]{1,100})\\/send(?:\\/(resolve))?$/);
+  if(invoiceSendAction){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const [_,id,resolve]=invoiceSendAction;
+    const payload=await json(req);
+    if(resolve){
+      if(!['confirmed','not_sent'].includes(payload.resolution)||
+         Object.keys(payload).some(k=>k!=='resolution'))
+        return reply(res,400,{error:'invalid_resolution'});
+      return reply(res,200,{record:await store.resolveInvoiceSend(id,payload.resolution,user)});
+    }
+    return reply(res,200,await invoiceSender.send(id,payload,user));
   }
   // Manual offer dispatch/follow-up bookkeeping. Does not send an email.
   const offerAction=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/(dispatch|followup)$/);

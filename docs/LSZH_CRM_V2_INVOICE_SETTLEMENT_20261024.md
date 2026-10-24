@@ -1,6 +1,16 @@
 # LSZH CRM V2 – Rechnungsabwicklung: Zahlungsstatus, Buchung, Mahnwesen
 
-Stand 24.10.2026 – **Rechnungsabwicklung auf produktiver CRM-Revision `lszh-crm-v2-00046-faj` live (100 %); echter Live-Zahlungs-End-to-End-Test noch offen.**
+Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00051-bak` (100 %). Rechnungsversand für alle Kundentypen nach manuellem CRM-Klick aktiviert; echter Versand- und Zahlungs-Live-E2E noch offen.**
+
+## AKTUELL 24.10.2026 – Vollständiger manueller Rechnungsversand LIVE
+
+- **`CRM INVOICE MANUAL ALL LIVE PASS`** vom Betreiber bestätigt. Live-Revision `lszh-crm-v2-00051-bak` auf **100 % Traffic**, Rollback `lszh-crm-v2-00049-doh`. Die HTTP-/Authentisierungs-/UI-, Scheduler- und Traffic-Nachprüfungen in Stufe 4/4 bestanden; Mail-Cutoff unverändert `2026-10-23T16:15:28Z`.
+- Nutzer wünscht ausdrücklich **keine pauschale Sperre für Eigen-/interne oder `TEST_ONLY`-Rechnungen** bei manuell bestätigtem produktivem E-Mail-Versand. `crm-v2/invoice-send.js` und `crm-v2/public/index.html` entsprechend live; die eigenständige `test_only`-Umgebungsmodus-Allowlist bleibt im Code bestehen, jedoch produktiver Modus ist `production`.
+- Für jede konkrete Rechnung erforderlich: gespeicherter Status `Offen`, noch nicht versendet/ungeklärt, gültige vollständige Kunden-E-Mail/-Adresse, bewusster **«Rechnung senden»**-Klick + Bestätigungsdialog, erfolgreicher Make/Gmail-Provider-Receipt. Erst nach `invoiceDispatchState=confirmed` kann eine Teil-/Vollzahlung manuell verbucht werden; Status nicht direkt auf `Teilbezahlt` umstellen.
+- Deployment sendete **keine E-Mail** und änderte keine Rechnungs-/Zahlungs-/Kundendaten. Echtes Live-E2E des erstmaligen manuellen Rechnungsversands und Zahlungseingangs steht weiterhin aus. PDF/QR enthält bei produktiven Rechnungen potenziell echte Zahlungsinformationen; interne Proberechnungen nicht unbedacht als Zahlungsaufforderung zustellen.
+- Die beiden Release-Skripte `scripts/prepare-crm-invoice-manual-all-zero-traffic.ps1` und `scripts/activate-crm-invoice-manual-all-live.ps1` sind jetzt **historische ausgeführte Release-Skripte**; bei erneutem Ausführen sollten ihre Baseline-Gates absichtlich stoppen.
+
+
 
 
 

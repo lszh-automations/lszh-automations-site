@@ -156,11 +156,67 @@ async function main(){
     // In emulator only, click the UI's operator-confirmation after a
     // simulated *external* reminder; this never makes a network mail send.
     await page.locator('#invoiceLogReminder').click();
-    await page.waitForFunction(()=>document.querySelector('#invoiceReminderHistory')?.textContent?.includes('Zahlungserinnerung ('));
-    assert.equal((await store.get('rechnungen',invoice.id)).reminderHistory.length,1);
+    await page.waitForFunction(()=>document.querySelector('#invoiceReminderHistory')?.textContent?.includes('Zahlungserinnerung ·'));
+    const reminderPath='/api/records/rechnungen/'+invoice.id+'/reminders';
+    const invoiceDoc=db.collection('lszh_crm_v2_staging_rechnungen').doc(invoice.id);
+    let firstReminder=(await store.get('rechnungen',invoice.id)).reminderHistory[0];
+    assert.equal(firstReminder.kind,'Zahlungserinnerung');
+    assert.equal(firstReminder.by,account);
+    assert.equal(firstReminder.recipient,customer.email);
+    assert.equal(firstReminder.outstandingCHF,149.95);
+    assert.equal(firstReminder.delivery,'operator_confirmed_external');
+    assert.equal((await page.locator('#invoiceReminderHistory').innerText()).includes(customer.email),true);
+    assert.equal((await page.locator('#invoiceReminderHistory').innerText()).includes(account),true);
+    assert.equal((await page.locator('#invoiceReminderHistory').innerText()).includes(firstReminder.reminderId),true);
     assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false,
       'seven-day reminder lock prevents consecutive reminder');
     assert.match(await page.locator('#invoiceReminderNotice').innerText(),/frühestens/);
+    const second={reminderId:randomUUID(),kind:'1. Mahnung'};
+    const third={reminderId:randomUUID(),kind:'2. Mahnung'};
+    assert.equal((await request(reminderPath,'POST',third)).status,409,'cannot skip first dunning stage');
+    assert.equal((await request(reminderPath,'POST',second)).status,409,'second stage blocked before 7 days');
+    // Advance synthetic reminder clock by modifying ONLY the throwaway emulator.
+    // This simulates external sending on past dates; NEVER do so in production.
+    const backdate=async(index,offsetMs)=>{
+      const record=await store.get('rechnungen',invoice.id);
+      const history=record.reminderHistory;
+      history[index].at=new Date(Date.now()-offsetMs).toISOString();
+      await invoiceDoc.update({reminderHistory:history});
+    };
+    await backdate(0,7*86400000-120000);
+    assert.equal((await request(reminderPath,'POST',second)).status,409,'<7 full days');
+    await backdate(0,7*86400000+120000);
+    const secondResult=await expectOk(reminderPath,'POST',second);
+    assert.equal(secondResult.record.reminderHistory.length,2);
+    assert.equal(secondResult.record.reminderHistory[1].recipient,customer.email);
+    assert.equal(secondResult.record.reminderHistory[1].outstandingCHF,149.95);
+    assert.equal((await expectOk(reminderPath,'POST',second)).record.reminderHistory.length,2,
+      'duplicate confirmation never logs twice');
+    assert.equal((await request(reminderPath,'POST',third)).status,409,'third blocked before 7 days');
+    await backdate(1,7*86400000+120000);
+    const thirdResult=await expectOk(reminderPath,'POST',third);
+    assert.equal(thirdResult.record.reminderHistory.length,3);
+    assert.deepEqual(thirdResult.record.reminderHistory.map(h=>h.kind),[
+      'Zahlungserinnerung','1. Mahnung','2. Mahnung'
+    ]);
+    assert.equal(thirdResult.record.reminderHistory[2].recipient,customer.email);
+    assert.equal(thirdResult.record.reminderHistory[2].by,account);
+    assert.equal(thirdResult.record.reminderHistory[2].outstandingCHF,149.95);
+    assert.equal((await request(reminderPath,'POST',{
+      reminderId:randomUUID(),kind:'2. Mahnung'
+    })).status,409,'no fourth reminder');
+    // Refresh actual browser and verify all 3 synthetic audit records are visible.
+    await page.locator('#invoiceClose').click();
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#workspace').waitFor({state:'visible',timeout:20000});
+    await page.locator('#nav button[data-tab="rechnungen"]').click();
+    await page.locator('#tableArea tbody tr').filter({hasText:invoice.number})
+      .getByRole('button',{name:'Bearbeiten'}).click();
+    assert.match(await page.locator('#invoiceReminderHistory').innerText(),/3 von 3 Mahnstufen/);
+    assert.match(await page.locator('#invoiceReminderHistory').innerText(),/1\. Mahnung/);
+    assert.match(await page.locator('#invoiceReminderHistory').innerText(),/2\. Mahnung/);
+    assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false);
+    assert.match(await page.locator('#invoiceReminderNotice').innerText(),/Mahnfolge abgeschlossen/);
 
     // Full settlement.
     await page.locator('#invoicePaymentAmount').fill('149.95');

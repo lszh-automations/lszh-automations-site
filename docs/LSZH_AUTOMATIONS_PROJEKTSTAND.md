@@ -1372,3 +1372,13 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - Neue Regression `crm-v2/test/crm-read-performance-script.test.js` verhindert erneute Quote-/Timestamp-Filter und erkennt versehentliche Skriptduplikationen.
 - **Offen:** Windows-PowerShell-Syntax, alle Tests nach Korrektur sowie eigentliche Logging- und Firestore-Messwerte erneut nachweisen. Keinen Performancegewinn behaupten, solange keine Messwerte vorliegen.
 - Betreiber-Aufruf: `git pull --ff-only`; `npm.cmd test --prefix .\crm-v2`; `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\measure-crm-read-performance.ps1" -Hours 12`. Live bleibt Revision `00065-xuk`.
+
+
+### 24.10.2026 – Cloud Logging Messlauf: Windows PowerShell 5.1 Array-Konvertierung behoben (erneute Messung offen)
+
+- Benutzer hat 146/146 CRM Node-Tests bestanden und 24-Stunden-Messskript gestartet; `gcloud logging read` lief nach dem vorherigen Filterfix erfolgreich.
+- Anschliessend brach die lokale PowerShell 5.1 JSON-Auswertung ab: `System.Object[]` konnte bei `$status=[int]$entry.httpRequest.status` nicht in `System.Int32` gewandelt werden. Ursache ist ein als Liste statt einzelnes Logereignis behandeltes verschachteltes JSON-Array.
+- **Korrektur im GitHub-Branch `feature/crm-v2-read-performance-20261024`:** `scripts/measure-crm-read-performance.ps1` flacht verschachtelte JSON-Array-Container mit `AddLogEntries` rekursiv ab, verarbeitet danach nur einzelne PSCustomObject-Logs und validiert HTTP-Status als skalaren Int32-TryParse-Wert. Die Rückgabe der normalisierten Latenzpunkte ist ebenfalls gegen verschachtelte Arrays angepasst.
+- Sicherheits- und Regressionstests erweitert: statische JSON/Statuskontrolle in `crm-v2/test/crm-read-performance-script.test.js`; echte offline JSON-Fixture in GitHub Actions Windows PowerShell 5.1 (keine CRM-/Firestore-Abfrage). **Beide neuen Tests bisher noch nicht bestätigt**.
+- **Keine CRM-Codeänderung und kein neues Deployment:** Live bleibt `lszh-crm-v2-00065-xuk` (100%), Rollback `00063-baz`, Mail-/Rechnungssicherungen unverändert.
+- **Nächste Operator-Schritte:** `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2`, `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\measure-crm-read-performance.ps1" -Hours 24`. Falls weiterhin Fehler, nur die nächste anonymisierte Fehlermeldung mitteilen; vor erfolgreichem Bericht keine Performance- oder Kosteneinsparung quantifizieren.

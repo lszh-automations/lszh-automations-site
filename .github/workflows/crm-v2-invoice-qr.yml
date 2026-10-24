@@ -95,7 +95,9 @@ jobs:
             "scripts/prepare-crm-invoice-dunning-live.ps1",
             "scripts/activate-crm-invoice-dunning-live.ps1",
             "scripts/prepare-crm-invoice-dunning-audit-live.ps1",
-            "scripts/activate-crm-invoice-dunning-audit-live.ps1"
+            "scripts/activate-crm-invoice-dunning-audit-live.ps1",
+            "scripts/prepare-crm-cockpit-live.ps1",
+            "scripts/activate-crm-cockpit-live.ps1"
           )
           foreach ($path in $paths) {
             $fullPath = Join-Path (Get-Location).Path $path

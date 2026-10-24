@@ -21,7 +21,7 @@ function Revision([string]$name){
   Check 'CRM revision not readable'
   return ($r|ConvertFrom-Json)
 }
-function Var($rev,[string]$key){
+function GetEnvEntry($rev,[string]$key){
   $items=@(@($rev.spec.containers)[0].env|Where-Object {$_.name -eq $key})
   if($items.Count -gt 1){throw ('Duplicate env '+$key)}
   if($items.Count -eq 0){return $null}
@@ -60,16 +60,16 @@ try{
   })
   if($qa.Count -ne 1){throw 'Expected zero-traffic invoice mail candidate not found'}
   $revision=Revision $live
-  if((Var $revision 'CRM_RECORD_PREFIX').value -ne 'lszh_crm_v2_'){
+  if((GetEnvEntry $revision 'CRM_RECORD_PREFIX').value -ne 'lszh_crm_v2_'){
     throw 'Unexpected production Firestore namespace'
   }
-  $invoiceFlag=Var $revision 'CRM_INVOICE_MAIL_ENABLED'
+  $invoiceFlag=(GetEnvEntry $revision 'CRM_INVOICE_MAIL_ENABLED')
   if($invoiceFlag -and $invoiceFlag.value -eq 'true'){
     throw 'Invoice mail already enabled in production. Stop.'
   }
-  $offerFlag=Var $revision 'CRM_OFFER_MAIL_ENABLED'
+  $offerFlag=(GetEnvEntry $revision 'CRM_OFFER_MAIL_ENABLED')
   if(!$offerFlag -or $offerFlag.value -ne 'true'){throw 'Expected existing offer mail disabled or changed'}
-  $hookVar=Var $revision 'CRM_OFFER_MAIL_WEBHOOK_URL'
+  $hookVar=(GetEnvEntry $revision 'CRM_OFFER_MAIL_WEBHOOK_URL')
   $hook=[string]$hookVar.value
   if(!$hook -or $hookVar.valueFrom -or
      $hook -notmatch '^https://hook[.]eu1[.]make[.]com/[A-Za-z0-9]+$'){

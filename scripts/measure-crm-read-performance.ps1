@@ -36,12 +36,19 @@ function Endpoint([string]$requestUrl){
   return $null
 }
 function ReadRevisionLog([string]$revision){
-  # PowerShell 5.1 passes string arguments through gcloud.cmd (a .cmd shim);
-  # embedded double-quotes can be stripped by cmd.exe. In particular, an
-  # unquoted RFC3339 timestamp makes Cloud Logging fail at its ':' token.
-  # Use only quote-free tokens here and --freshness instead of timestamp.
-  # Log entries are matched and grouped again by sanitized URL path locally.
-  if($revision -notmatch '^[A-Za-z0-9_-]+  Check ('Failed to read sanitized HTTP statistics for '+$revision)
+  # gcloud.cmd on Windows PowerShell 5.1 can strip embedded quote characters.
+  # Avoid quoted timestamps; --freshness implements the requested time range.
+  # Use only unquoted safe values in the logging filter and group locally.
+  if($revision -notmatch '^[A-Za-z0-9_-]+$' -or $service -notmatch '^[A-Za-z0-9_-]+$'){
+    throw 'Unsafe Cloud Logging filter value'
+  }
+  $filter='resource.type=cloud_run_revision AND '+
+    'resource.labels.service_name='+$service+' AND '+
+    'resource.labels.revision_name='+$revision+' AND '+
+    'httpRequest.requestMethod=GET AND '+
+    '(httpRequest.requestUrl:cockpit OR httpRequest.requestUrl:records)'
+  $raw=(& gcloud.cmd logging read $filter "--freshness=${Hours}h" "--project=$project" "--limit=$MaxLogEntries" '--format=json') -join [Environment]::NewLine
+  Check ('Failed to read sanitized HTTP statistics for '+$revision)
   if(!$raw.Trim()){return @()}
   $entries=@(ConvertFrom-Json -InputObject $raw)
   $points=New-Object System.Collections.Generic.List[object]

@@ -776,25 +776,27 @@ function renderDashboard(){
   $('dashboardIntro').replaceChildren(intro);
   const scope=el('p','dash-data-scope');
   const tables=['leads','kunden','offerten','rechnungen','projekte'];
-  const limitTables=tables.filter(name=>(state.records[name]||[]).length>=200);
-  const lengths=tables.map(name=>definitions[name].title+': '+(state.records[name]||[]).length).join(' · ');
-  scope.textContent='Datenbasis: nur aktuell aus dem CRM geladene Register (höchstens 200 pro Register). '+
-    lengths+(limitTables.length?' · ACHTUNG: Mindestens ein Register erreicht die 200er-Grenze; Kennzahlen sind möglicherweise unvollständig.':
-    ' · Keine Bankdaten oder automatische Buchhaltung.');
-  if(limitTables.length)scope.classList.add('dash-data-scope--limited');
+  const lengths=tables.map(name=>definitions[name].title+': '+
+    (state.summary?.counts?.[name]??(state.records[name]||[]).length)).join(' · ');
+  scope.textContent=state.summary?
+    'Datenbasis: serverseitige Auswertung aller CRM-Register. '+lengths+
+    ' · Die Listen laden Seiten zu je 50 Einträgen. Keine Bankdaten oder automatische Buchhaltung.':
+    'Datenbasis eingeschränkt: serverseitige Kennzahlen derzeit nicht geladen. '+lengths+
+    ' · Summen und Prioritäten können unvollständig sein.';
+  if(!state.summary)scope.classList.add('dash-data-scope--limited');
   area.append(scope);
   const upper=el('div','dash-grid');
   const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
   const priorities=[
-    {n:dueOfferFollowUps(state.records.offerten).length,title:'Offerten nachfassen',description:'Versendete Offerten mit heute fälliger oder überfälliger Wiedervorlage',tab:'offerten',icon:'▤'},
-    {n:dueLeadFollowUps(state.records.leads).length,title:'Fällige Wiedervorlagen',description:'Heute fällige und überfällige nächste Aktionen',tab:'leads',icon:'◷'},
+    {n:(state.summary?state.summary.dueOfferCount:dueOfferFollowUps(state.records.offerten).length),title:'Offerten nachfassen',description:'Versendete Offerten mit heute fälliger oder überfälliger Wiedervorlage',tab:'offerten',icon:'▤'},
+    {n:(state.summary?state.summary.dueLeadCount:dueLeadFollowUps(state.records.leads).length),title:'Fällige Wiedervorlagen',description:'Heute fällige und überfällige nächste Aktionen',tab:'leads',icon:'◷'},
     {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
-    {n:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length,title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
+    {n:(state.summary?state.summary.reminderPreviewCount:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length),title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
     {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
     {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
-    {n:invoiceDueTotals(state.records.rechnungen).overdueCount,title:'Überfällige Rechnungen',description:'Offene Restbeträge inklusive Teilzahlungen; manuell prüfen',tab:'rechnungen',filter:'overdue',icon:'◷'},
+    {n:(state.summary?state.summary.overdueCount:invoiceDueTotals(state.records.rechnungen).overdueCount),title:'Überfällige Rechnungen',description:'Offene Restbeträge inklusive Teilzahlungen; manuell prüfen',tab:'rechnungen',filter:'overdue',icon:'◷'},
     {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'},
-    {n:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length,title:'Überfällige Projekttermine',description:'Zieltermin überschritten, Projekt nicht abgeschlossen',tab:'projekte',icon:'◷'}
+    {n:(state.summary?state.summary.projectOverdue:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length),title:'Überfällige Projekttermine',description:'Zieltermin überschritten, Projekt nicht abgeschlossen',tab:'projekte',icon:'◷'}
   ].filter(x=>x.n>0);
   if(!priorities.length){
     const empty=el('div','dash-empty');
@@ -811,8 +813,9 @@ function renderDashboard(){
     tasks.body.append(button);
   }
   const recent=dashboardPanel('Aktuelle Website-Leads','Die zuletzt erfassten Anfragen.');
-  const recentLeads=[...(state.records.leads||[])]
-    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,4);
+  const recentLeads=state.summary?state.summary.recentLeads:
+    [...(state.records.leads||[])].sort((a,b)=>
+      String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,4);
   if(!recentLeads.length){
     const empty=el('div','dash-empty');
     empty.append(el('strong','','Noch keine Leads vorhanden'),el('span','','Neue Anfragen erscheinen hier nach der Erfassung.'));
@@ -831,7 +834,7 @@ function renderDashboard(){
     recent.body.append(button);
   }
   const followUps=dashboardPanel('Fällige Wiedervorlagen','Heute fällige und überfällige nächste Aktionen.');
-  const due=dueLeadFollowUps(state.records.leads);
+  const due=state.summary?state.summary.dueLeads:dueLeadFollowUps(state.records.leads);
   if(!due.length){
     followUps.body.append(el('div','dash-empty','Keine Wiedervorlagen fällig.'));
   }
@@ -845,7 +848,7 @@ function renderDashboard(){
     followUps.body.append(button);
   }
   const offerTasks=dashboardPanel('Offerten-Nachverfolgung','Versendete Offerten, bei denen eine Rückmeldung fällig ist.');
-  const dueOffers=dueOfferFollowUps(state.records.offerten);
+  const dueOffers=state.summary?state.summary.dueOffers:dueOfferFollowUps(state.records.offerten);
   if(!dueOffers.length)offerTasks.body.append(el('div','dash-empty','Keine Offerten zum Nachfassen fällig.'));
   for(const offer of dueOffers.slice(0,8)){
     const item=el('button','dash-lead');item.type='button';
@@ -861,7 +864,8 @@ function renderDashboard(){
   const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
   const stages=['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'];
   for(let i=0;i<stages.length;i++){
-    const count=(state.records.leads||[]).filter(x=>x.status===stages[i]).length;
+    const count=state.summary?Number(state.summary.leadStages?.[stages[i]]||0):
+      (state.records.leads||[]).filter(x=>x.status===stages[i]).length;
     const row=el('div','dash-pipeline-row');
     const track=el('div','dash-pipeline-track'),fill=el('div','dash-pipeline-fill stage-'+i);
     fill.style.width=(stats.leadCount?Math.round(100*count/stats.leadCount):0)+'%';
@@ -871,7 +875,18 @@ function renderDashboard(){
   }
   const finance=dashboardPanel('Finanz- und Forderungsüberblick',
     'CHF-Beträge rappen-genau; Zahlungen, offene Forderungen und Offerten strikt getrennt.');
-  const cockpit=cockpitMetrics(state.records);
+  const cockpit=state.summary?{
+    openCents:state.summary.openInvoiceCents,overdueCents:state.summary.overdueCents,
+    soonCents:state.summary.soonCents,bookedCents:state.summary.paidCents,
+    openOfferCents:state.summary.openOfferCents,acceptedMonthlyCents:state.summary.acceptedMonthlyCents,
+    legacyPaidCount:state.summary.legacyPaidCount,projectActive:state.summary.activeProjects,
+    projectWaiting:state.summary.waitingProjects,projectDone:state.summary.projectDone,
+    projectOverdue:state.summary.projectOverdue,tasksDone:state.summary.tasksDone,
+    tasksTotal:state.summary.tasksTotal,
+    receivables:state.summary.receivables.map(({invoice,kind,remaining})=>({
+      invoice,info:{kind,remaining}
+    }))
+  }:cockpitMetrics(state.records);
   const financeRows=[
     ['Offene Forderungen',invoiceCHF(cockpit.openCents/100),true],
     ['Davon überfällig',invoiceCHF(cockpit.overdueCents/100),true],
@@ -923,7 +938,7 @@ function renderDashboard(){
     ['Abgeschlossen',cockpit.projectDone,'done'],
     ['Termin überschritten',cockpit.projectOverdue,'waiting']
   ];
-  const projectsTotal=(state.records.projekte||[]).length;
+  const projectsTotal=state.summary?state.summary.counts.projekte:(state.records.projekte||[]).length;
   for(const [label,count,tone] of groups){
     const line=el('div','dash-project-row'),track=el('div','dash-project-track');
     const fill=el('div','dash-project-fill'+(tone?' dash-project-fill--'+tone:''));

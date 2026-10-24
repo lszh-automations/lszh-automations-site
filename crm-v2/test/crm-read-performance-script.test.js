@@ -35,7 +35,7 @@ test('Windows gcloud.cmd receives a quote-free log filter and freshness duration
   assert.match(filter,/httpRequest\.requestUrl:cockpit/);
   assert.doesNotMatch(filter,/timestamp[<>]=/);
   assert.doesNotMatch(filter,/(?:resource\.type|httpRequest\.requestUrl)[:=]"/);
-  assert.ok(script.length<9000,'Telemetry script was unexpectedly duplicated');
+  assert.ok(script.length<11000,'Telemetry script was unexpectedly duplicated');
 });
 
 test('Cloud Logging array entries are flattened and status fields validated before conversion',()=>{

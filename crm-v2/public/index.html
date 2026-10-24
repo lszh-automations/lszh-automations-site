@@ -93,7 +93,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-reminders{margin:14px 24px 4px;padding:18px;border:1px solid #41536c;border-radius:13px;background:#111c2d}
 .invoice-reminders h3{margin:0;font-size:15px}
 .invoice-reminders p{font-size:12px;color:#b7c9db}
-.invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:12px/1.6 inherit}
+.invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:inherit;font-size:12px;line-height:1.6}
 .invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .invoice-reminder-history{font-size:11px;color:#a5bed4;margin-top:10px}
 @media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}}
@@ -350,8 +350,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <p class="invoice-payments-summary" id="invoicePaymentSummary"></p>
       <div id="invoicePaymentHistory" class="invoice-payments-history"></div>
       <div class="invoice-payments-entry" id="invoicePaymentEntry">
-        <label>Betrag CHF<input id="invoicePaymentAmount" type="number" min="0.01" max="100000000" step="0.01" required></label>
-        <label>Valutadatum<input id="invoicePaymentDate" type="date" required></label>
+        <label>Betrag CHF<input id="invoicePaymentAmount" type="number" min="0.01" max="100000000" step="0.01"></label>
+        <label>Valutadatum<input id="invoicePaymentDate" type="date"></label>
         <label>Zahlungsart<select id="invoicePaymentMethod"><option>Banküberweisung</option><option>TWINT</option><option>Bar</option><option>Karte</option><option>Andere</option></select></label>
         <label>Referenz / Buchungsvermerk<input id="invoicePaymentReference" maxlength="120" placeholder="z. B. Bank-Transaktions-ID"></label>
         <button class="btn primary" type="button" id="invoiceRecordPayment">Geprüfte Zahlung verbuchen</button>

@@ -2,6 +2,14 @@
 
 Stand 24.10.2026 – **Aktiver Produktivstand `lszh-crm-v2-00051-bak` (100 %). Rechnungsversand für alle Kundentypen nach manuellem CRM-Klick aktiviert; echter Versand- und Zahlungs-Live-E2E noch offen.**
 
+## 24.10.2026 – Erster KPI-Release auf Windows korrekt vor Build gestoppt; CRLF-Testfix bestätigt
+
+- Nutzer führte `scripts/prepare-crm-invoice-balance-live.ps1 -DeployCandidate` nach `git pull --ff-only` (auf Commit `c1c6f6d`) aus. **Abbruch vor Schritt 2/4 beim lokalen `npm test`**: 108 von 112 Tests bestanden, vier neue `crm-v2/test/invoice-payment-kpis.test.js`-Tests meldeten `SyntaxError: Unexpected token 'function'`. **Kein Cloud-Run-Build, kein Kandidat, kein Trafficwechsel, keine Zahlung/Mail durch diesen Versuch**; die produktive Baseline `lszh-crm-v2-00051-bak` blieb unverändert.
+- Ursache: Isolierter Renderer-Test zerlegte HTML-Quelltext mit fest erwarteten Unix-Line-Endings `\n}\n`, auf dem Windows-Checkout werden jedoch `\r\n`-Zeilenumbrüche verwendet. Dadurch wurde irrtümlich die nachfolgende JavaScript-Funktion in den VM-Test hineingelesen; **kein Fehler des Rechnungs- oder Zahlungsproduktcodes selbst**.
+- Fix Commit `a4bafcbbfae835cc14cccf3d7bf68c24943abac3`: Renderer jetzt über positionsbasierte Funktionsgrenzen ermittelt und als vollständige Funktionsdeklaration im Node-VM ausgeführt; plattformübergreifend `LF`/`CRLF`. Zusätzlich Windows-CI-Regression mit erzwungenem CRLF für `crm-v2/public/index.html` (Commit `aff8d72ef69b9ede02a533ea24ec65b5e9899638`).
+- **Bestätigte CI:** GitHub Actions `CRM V2 Swiss QR invoice test` Run `40092769897`: Windows PowerShell 5.1 Syntax **PASS**, **Windows CRLF vollständige CRM-Tests PASS**, Linux CRM-/Swiss-QR-Prüfung **PASS**. Chromium/API/Firestore Emulator E2E Run `40092720752` **PASS** (gleicher Produktcode mit Testkorrektur). Diese Tests schreiben keine produktiven Belege/Zahlungen.
+- **Jetzt wieder ausführen:** `git pull --ff-only`, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\prepare-crm-invoice-balance-live.ps1" -DeployCandidate`. Nur bei `CRM INVOICE BALANCE ZERO TRAFFIC PASS` das getrennte Cutover-Skript `scripts/activate-crm-invoice-balance-live.ps1` mit bewusster Freigabe `LIVE ZAHLUNGSUEBERSICHT`. Die erwartete Live-Baseline für diesen Release bleibt `00051-bak`; nach erfolgreichem Cutover müssen die operativen Revisionsnummern aktualisiert werden.
+
 ## 24.10.2026 – Zahlungsübersicht mit Haupt-KPI «Noch offen» implementiert, Live-Release noch ausstehend
 
 - Auf Wunsch des Betreibers die bisher unauffällige Ein-Zeilen-Summe im Rechnungseditor durch **drei visuelle Betrags-KPIs** ersetzt: `Gesamtbetrag`, `Eingegangen`, hervorgehobener grösserer Block **`Noch offen`**. Dazu ein nativer, barrierearm beschrifteter **Zahlungsfortschrittsbalken** mit Prozentanzeige und eine eigene schweizerisch formatierte Fälligkeitszeile. Responsives zweispaltiges Layout, auf kleineren Screens nimmt `Noch offen` die volle Breite ein.

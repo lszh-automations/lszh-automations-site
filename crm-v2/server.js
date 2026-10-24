@@ -14,7 +14,6 @@ const {buildStore}=require('./cloud-records');
 const {renderOfferPreview}=require('./offer-preview');
 const {createOfferSender}=require('./offer-send');
 const {renderInvoicePreview}=require('./invoice-preview');
-const {singleflight}=require('./read-singleflight');
 
 const PORT=Number(process.env.PORT||8080);
 const CLIENT_ID=String(process.env.GOOGLE_OAUTH_CLIENT_ID||'').trim();
@@ -24,11 +23,19 @@ const INTAKE_ENABLED=process.env.CRM_WEBSITE_INTAKE_ENABLED==='true';
 const authClient=new OAuth2Client(CLIENT_ID);
 const db=new Firestore();
 const store=buildStore(db,PREFIX);
-// Concurrent dashboard requests share ONE live scan, never a stale cached value.
-const readCockpitSummary=singleflight(async()=>{
-  const {cockpitSummary}=require('./cockpit-summary');
-  return cockpitSummary(store);
-});
+// Install the read-only coalescer lazily, after successful CRM authorization.
+// Anonymous and unrelated HTTP paths must not initialize dashboard dependencies.
+let readCockpitSummary=null;
+function getCockpitSummary(){
+  if(!readCockpitSummary){
+    const {singleflight}=require('./read-singleflight');
+    readCockpitSummary=singleflight(async()=>{
+      const {cockpitSummary}=require('./cockpit-summary');
+      return cockpitSummary(store);
+    });
+  }
+  return readCockpitSummary();
+}
 const mailDispatcher=makeDispatcher(db,PREFIX,{
   enabled:process.env.CRM_MAIL_ENABLED==='true',
   activeFrom:process.env.CRM_MAIL_ACTIVE_FROM,
@@ -178,7 +185,7 @@ async function handler(req,res){
   if(!user)return reply(res,401,{error:'unauthorized'});
   if(req.method==='GET'&&pathname==='/api/me')return reply(res,200,{email:user.email});
   if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
-    return reply(res,200,{summary:await readCockpitSummary()});
+    return reply(res,200,{summary:await getCockpitSummary()});
   }
   if(req.method==='GET'&&pathname==='/api/reminders'){
     const reminders=await store.reminders();

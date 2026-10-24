@@ -9,6 +9,13 @@
 - Ein Cutover in diesem Modus **versendet selbst keine Mail**. \`invoice-send.js\` prüft vor jedem Versand einen manuellen CRM-Klick, \`sendMode=test_only\`, Empfänger-Allowlist und synthetische Rechnungs-/Kundendaten. Somit keine normale Kundenrechnung. Die tatsächliche TEST_ONLY-Mail benötigt zusätzlich explizite CRM-Bestätigung; Echtdaten/Firestorerechnungen bleiben dabei unberührt, solange keine Testdatensätze angelegt werden.
 - **Wichtig:** Skript ist nur vorbereitet. Keine Testmail, kein 0%-Kandidat oder Live-Cutover wurde allein durch Commit angelegt.
 
+## 24.10.2026 – TEST_ONLY-Rechnungsmail-Kandidat in Cloud Run bestätigt
+
+- **Benutzerbestätigtes Ergebnis:** `CRM INVOICE MAIL TEST_ONLY ZERO TRAFFIC PASS` aus `scripts/prepare-crm-invoice-mail-testonly-live.ps1 -DeployCandidate`. Windows/npm: **106/106 Regressionstests PASS**, Baseline `lszh-crm-v2-00046-faj` weiterhin **100 % Live**, neue Cloud-Run-Revision `lszh-crm-v2-00048-sim` ist **0 % Traffic**, Tag `crm-invoice-testonly-qa`, URL `https://crm-invoice-testonly-qa---lszh-crm-v2-ozx7mp2bka-oa.a.run.app`.
+- Bestätigt: TEST_ONLY-Empfänger serverseitig allowlist-begrenzt und aus der öffentlichen `/api/config` verborgen; bestehende Cloud-Run-Mail-/Lead-/Offerten-Schutzgates erhalten; keine Mail, Zahlung, Bankaktion, Firestore-/Kundendatenänderung oder Make-Änderung.
+- **Nächster Schritt (noch NICHT ausgeführt):** `git pull --ff-only`, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\\scripts\\activate-crm-invoice-mail-testonly-live.ps1"`. Dieses Skript prüft vor dem Cutover die feste Baseline `00046-faj` und den getaggten Kandidaten, fordert `LIVE TEST_ONLY RECHNUNG` und routet nur nach Freigabe auf `00048-sim` mit Postchecks und automatischem Rollback auf `00046-faj` bei Fehlern. **Dieses reine Cutover versendet selbst keine E-Mails**.
+- Erst nach bestätigtem TEST_ONLY-Live-Cutover darf der Betreiber eine *synthetische und korrekt verknüpfte* Testrechnung an das allein genehmigte interne Testpostfach über den bewussten CRM-Klick senden. Damit können echte Gmail-Quittung und die anschliessende Zahlungseingangs-Freigabe getestet werden. **Keine echten Kunden-Rechnungsmails, keine automatische Rechnungs-Mail, keine künstliche Setzung von `invoiceDispatchState`.** Reale Testzahlung/Firestore-Testdaten nur mit vorher festgelegter Isolation/Bereinigung.
+
 ## 24.10.2026 – Rechnungsmail nur per CRM: TEST_ONLY-Zero-Traffic-Release vorbereitet
 
 - **Verbindliche Produktentscheidung:** Rechnungen nur per bewussten CRM-Mail-Klick; keinerlei manuelle Übergabe und keine automatischen Rechnungs- oder Mahn-E-Mails. Teilzahlung erst nach \`invoiceDispatchState=confirmed\`; manuelle Statusauswahl allein bleibt gesperrt.

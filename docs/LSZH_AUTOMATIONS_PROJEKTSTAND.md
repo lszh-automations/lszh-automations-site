@@ -1350,3 +1350,15 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - **143/143 automatische Tests bestanden**, vorab `CRM READ PERFORMANCE ZERO TRAFFIC PASS` bei 0%-Kandidat; nach Trafficwechsel erfolgreich gepruefte Live-Oberflaeche, API-Zugriffsschutz, Mail-Sicherungen und Scheduler.
 - Mail-Cutoff unveraendert `2026-10-23T16:15:28Z`. Release veraenderte nur Traffic, kein Rechnungs-/Mahnungs-/Zahlungsversand und keine Firestore-Schreibaktion durch das Release-Skript.
 - **Naechste Empfehlung:** nach Release Nutzung und Latenz/Firestore-Leseverbrauch messen; fuer freie Volltextsuche bei groesserem Datenvolumen einen geeigneten Suchindex evaluierten. Ohne Messung keine erzielte Kosten-/Latenzverbesserung quantifizieren.
+
+
+### 24.10.2026 – Nur-lesender Leistungsbericht fuer CRM Suche/Firestore vorbereitet
+
+- CRM Live aus bestaetigtem Betreiberlog: `lszh-crm-v2-00065-xuk` (100% Traffic), Rollback `00063-baz`. Kein neuer CRM-Deploy fuer diese Messtechnik.
+- Neues Skript `scripts/measure-crm-read-performance.ps1`: liest **ausschliesslich** Cloud Run `services describe`, Google Cloud Logging Request-Logs der aktuellen/vorigen CRM-Revision und Cloud Monitoring API fuer Firestore-Lesezaehler. Keine Business-API-Requests, Firestore-Dokumentzugriffe, E-Mails, Traffic-Aenderungen oder Schreiboperationen.
+- Aggregiert autorisierte erfolgreiche GET-Request-Latenzen nach `search_or_filter`, `register_page`, `dashboard` und Revision (p50/p95), zeigt nur aggregierte Statuszahlen; **keine** Anfrage-URLs, Suchtexte, Token oder Kundendaten werden ausgegeben.
+- Firestore-Monitoring: bevorzugt `firestore.googleapis.com/document/read_ops_count`, alternativ `firestore.googleapis.com/document/read_count`. Metrik ist **datenbank-/projektweit, NICHT pro CRM-Revision oder einzelner Suche**; erfolgreiche Dokumentlesevorgaenge koennen Indexreads, Null-Treffer und abrechnungsrelevante Sonderfaelle nicht abdecken.
+- Fuer die Latenzvergleiche sind ungleiche Zugriffszeiten, unterschiedliche Traffic-Mixes und Stichproben-Groessen zu beachten; bei weniger als 20 Logs weist der Bericht auf geringe statistische Belastbarkeit hin. Kein unbelegter Kosten- oder Performancegewinn wird behauptet.
+- Sicherheitsregression `crm-v2/test/crm-read-performance-script.test.js` bewacht Read-only-Befehle und keine Ausgabe von Raw URLs/Tokens. GitHub Actions Windows-PowerShell-Parser ist um Skript erweitert. Tests und Echtmessung nach dieser Aenderung sind noch offen.
+- Naechster Betreiber-Schritt im bestehenden Performance-Branch: `git pull --ff-only`, `npm.cmd test --prefix .\crm-v2`, `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\measure-crm-read-performance.ps1" -Hours 12`. Ausgabe anschliessend nach Grundlast, Firestore-Lesevolumen und Suche/Dashboard getrennt analysieren.
+- Die noch lineare freie Textsuche in CRM V2 bleibt vorerst unveraendert; Index-Strategie erst datenbasiert bestimmen. Keine produktive CRM-Migration oder Index-Backfill autorisiert.

@@ -440,3 +440,58 @@ test('crashed send attempt remains non-retryable until five-minute manual review
   const second=await store.claimOfferSend(offer.id,{followUpDate:due},admin);
   assert.ok(second.attemptId);
 });
+
+test('invoice send transaction locks the snapshot, confirms delivery only once, then allows marking paid',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'Buerro AG',email:'rechnung@buerro.ch',
+    street:'Marktgasse',postalCode:'8000',city:'Zuerich',country:'CH'},admin);
+  const inv=await store.create('rechnungen',{customerId:customer.id,description:'Service',
+    dueDate:'2026-11-30',status:'Offen',items:[{title:'Consulting',qty:1,unitPriceCHF:250}]},admin);
+  const claim=await store.claimInvoiceSend(inv.id,admin);
+  assert.equal(claim.invoice.number,inv.number);
+  assert.equal(claim.to,customer.email);
+  assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,'sending');
+  await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
+  await assert.rejects(store.update('rechnungen',inv.id,{items:[{title:'Andere',qty:1,unitPriceCHF:99}]},admin),{status:409});
+  const done=await store.finishInvoiceSend(inv.id,claim.attemptId,'confirmed','gmail-RE1000');
+  assert.equal(done.invoiceDispatchState,'confirmed');
+  assert.equal(done.invoiceDispatchProviderId,'gmail-RE1000');
+  assert.equal(done.status,'Offen','invoice payment status never changes on email send');
+  assert.equal(done.invoiceSentTo,customer.email);
+  await assert.rejects(store.finishInvoiceSend(inv.id,claim.attemptId,'confirmed','gmail-second'),{status:409});
+  await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
+  await assert.rejects(store.update('rechnungen',inv.id,{description:'Changed'},admin),{status:409});
+  const paid=await store.update('rechnungen',inv.id,{status:'Bezahlt'},admin);
+  assert.equal(paid.status,'Bezahlt');assert.ok(paid.paidAt);
+  assert.equal(paid.invoiceSentTo,customer.email);
+});
+test('invoice preparation_failed releases claim; uncertain delivery needs manual mailbox review',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'Demo AG',email:'rechnung@demo.ch',
+    street:'Strasse 1',postalCode:'5610',city:'Wohlen',country:'CH'},admin);
+  const inv=await store.create('rechnungen',{customerId:customer.id,description:'Consulting',
+    dueDate:'2026-11-20',status:'Offen',items:[{title:'Setup',qty:2,unitPriceCHF:30}]},admin);
+  const one=await store.claimInvoiceSend(inv.id,admin);
+  await store.finishInvoiceSend(inv.id,one.attemptId,'preparation_failed');
+  const two=await store.claimInvoiceSend(inv.id,admin);
+  assert.notEqual(one.attemptId,two.attemptId);
+  await store.finishInvoiceSend(inv.id,two.attemptId,'manual_review','delivery_unconfirmed');
+  await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
+  await assert.rejects(store.update('rechnungen',inv.id,{status:'Bezahlt'},admin),{status:409});
+  const resolved=await store.resolveInvoiceSend(inv.id,'not_sent',admin);
+  assert.equal(resolved.invoiceDispatchState,'not_sent');
+  const three=await store.claimInvoiceSend(inv.id,admin);
+  await store.finishInvoiceSend(inv.id,three.attemptId,'manual_review');
+  const reviewed=await store.resolveInvoiceSend(inv.id,'confirmed',admin);
+  assert.equal(reviewed.invoiceDispatchState,'confirmed');
+  assert.equal(reviewed.invoiceDispatchProviderId,'manual_verification');
+  await assert.rejects(store.resolveInvoiceSend(inv.id,'not_sent',admin),{status:409});
+});
+test('invoice dispatch validates linked customer email and complete address before writing a claim',async()=>{
+  const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+  const customer=await store.create('kunden',{company:'Adresse fehlt',email:'not-an-email'},admin);
+  const inv=await store.create('rechnungen',{customerId:customer.id,description:'Leistung',
+    dueDate:'2026-11-30',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:35}]},admin);
+  await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});
+  assert.equal((await store.get('rechnungen',inv.id)).invoiceDispatchState,undefined);
+});

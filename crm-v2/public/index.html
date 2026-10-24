@@ -325,9 +325,13 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     <div class="invoice-total"><span>Gesamtbetrag</span><strong id="invoiceTotal">CHF 0.00</strong></div>
     <p class="invoice-caption">Lokale Testrechnung ohne Versand, MWST-Ausweis und Swiss-QR-Zahlteil. Status «Bezahlt» wird manuell gesetzt.</p>
     <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
+    <div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
+    <div id="invoiceDispatchReview" class="invoice-actions" hidden></div>
     <div class="invoice-actions">
       <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button>
       <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
+      <button class="btn" type="button" id="invoiceSend" disabled>Rechnung senden</button>
+      <button class="btn" type="button" id="invoiceMarkPaid" hidden>Als bezahlt markieren</button>
       <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
       <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
     </div>
@@ -382,7 +386,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:''};
+const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -1556,6 +1560,7 @@ function markInvoiceUnsaved(){
   if(state.invoiceLocked)return;
   $('invoicePrint').disabled=true;
   $('invoicePdf').disabled=true;
+  $('invoiceSend').disabled=true;
 }
 function refreshInvoiceTotal(){
   let cents=0;
@@ -1617,9 +1622,73 @@ function addInvoiceLine(data={},isLoading=false){
   }
   refreshInvoiceTotal();
 }
+// Invoice dispatch is always user initiated. Never call a scheduler, background
+// refresh or Make directly from the browser.
+function renderInvoiceDispatch(invoice){
+  const notice=$('invoiceDispatchNotice'),review=$('invoiceDispatchReview');
+  review.replaceChildren();review.hidden=true;
+  const mark=$('invoiceMarkPaid');
+  mark.hidden=!(invoice?.status==='Offen'&&invoice.invoiceDispatchState==='confirmed');
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice?.customerId);
+  const to=String(customer?.email||'').trim();
+  const isSynthetic=String(invoice?.description||'').startsWith('TEST_ONLY')||
+    /^TEST_ONLY\b/i.test(String(customer?.company||''))||
+    String(customer?.company||'').trim().toLowerCase()==='lszh invest gmbh';
+  const allowedTest=state.invoiceMailMode==='test_only'&&
+    isSynthetic&&to.toLowerCase()===state.invoiceMailTestTo;
+  $('invoiceSend').disabled=!state.invoiceMailEnabled||!invoice||
+    invoice.status!=='Offen'||Boolean(invoice.invoiceSentAt)||
+    ['sending','manual_review','confirmed'].includes(invoice.invoiceDispatchState)||
+    !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)||
+    (state.invoiceMailMode==='production'&&isSynthetic)||
+    (state.invoiceMailMode==='test_only'&&!allowedTest);
+  if(!invoice){notice.textContent='Rechnung zuerst speichern. Kein Versand ohne ausdrückliche Bestätigung.';return;}
+  const status=invoice.invoiceDispatchState;
+  if(status==='confirmed'){
+    notice.textContent='Per Gmail versendet an '+(invoice.invoiceSentTo||'–')+
+      ' am '+new Date(invoice.invoiceSentAt).toLocaleString('de-CH')+
+      '. Die versendete Rechnung ist gegen Inhaltsänderungen gesperrt.';
+  }else if(['sending','manual_review'].includes(status)){
+    notice.textContent='Versandbestätigung unklar. Zuerst das LSZH-Gmail-Postfach «Gesendet» prüfen. Kein automatischer Zweitversand.';
+    review.hidden=false;
+    for(const [caption,resolution,question] of [
+      ['Im Postfach bestätigt','confirmed','Wurde diese Rechnung tatsächlich in Gmail Gesendet gefunden?'],
+      ['Sicher nicht versendet','not_sent','Hast du bestätigt, dass weder Make noch Gmail die Rechnung versendet hat?']
+    ]){
+      const button=el('button','btn',caption);button.type='button';
+      button.addEventListener('click',async()=>{
+        if(!window.confirm(question))return;
+        button.disabled=true;
+        try{
+          await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/send/resolve',{
+            method:'POST',body:JSON.stringify({resolution})
+          });
+          await reopenSavedInvoice(invoice.id);
+        }catch(err){window.alert('Prüfung fehlgeschlagen: '+err.message);}
+        finally{button.disabled=false;}
+      });
+      review.append(button);
+    }
+  }else if(!state.invoiceMailEnabled){
+    notice.textContent='Rechnungsversand noch nicht aktiviert. Swiss-QR-PDF kann weiterhin manuell heruntergeladen werden.';
+  }else if(isSynthetic&&state.invoiceMailMode==='production'){
+    notice.textContent='Interne Test-/Eigenrechnung: kein produktiver Rechnungsversand erlaubt.';
+  }else{
+    notice.textContent='Manueller Rechnungsversand mit Swiss-QR-PDF. Empfänger: '+(to||'E-Mail fehlt')+
+      '. Vor Versand PDF und Empfänger prüfen; Versand nur nach Bestätigung.';
+  }
+}
+async function reopenSavedInvoice(id){
+  $('invoiceEditor').close();
+  await loadAll();
+  const record=(state.records.rechnungen||[]).find(x=>x.id===id);
+  if(record)openInvoiceEditor(record);
+}
+
 function openInvoiceEditor(record=null,draft=null){
   state.invoiceEditing=record;
-  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert';
+  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert'||
+    ['sending','manual_review','confirmed'].includes(record?.invoiceDispatchState);
   $('invoiceEditor').classList.toggle('is-locked',state.invoiceLocked);
   $('invoiceLocked').hidden=!state.invoiceLocked;
   $('invoiceEditorTitle').textContent=record?'Rechnung '+(record.number||'–'):'Neue Rechnung';
@@ -1657,6 +1726,7 @@ function openInvoiceEditor(record=null,draft=null){
   $('invoiceSave').hidden=state.invoiceLocked;
   $('invoicePrint').disabled=!record;
   $('invoicePdf').disabled=!record||record.status!=='Offen';
+  renderInvoiceDispatch(record);
   $('invoiceEditor').showModal();
 }
 
@@ -1727,6 +1797,9 @@ async function initialise(){
     state.offerMailEnabled=config.offerMailEnabled===true;
     state.offerMailMode=config.offerMailMode||'disabled';
     state.offerMailTestTo=String(config.offerMailTestTo||'').toLowerCase();
+    state.invoiceMailEnabled=config.invoiceMailEnabled===true;
+    state.invoiceMailMode=config.invoiceMailMode||'disabled';
+    state.invoiceMailTestTo=String(config.invoiceMailTestTo||'').toLowerCase();
     for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
     if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
     // Let Google renew our login after page reload without persisting ID tokens
@@ -1781,6 +1854,39 @@ $('invoicePdf').addEventListener('click',async()=>{
     setTimeout(()=>URL.revokeObjectURL(url),300000);
   }catch(error){window.alert('Swiss-QR-PDF nicht verfügbar: '+error.message);}
   finally{button.disabled=false;}
+});
+$('invoiceSend').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceSend');
+  if(!invoice||button.disabled)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  if(!customer?.email){window.alert('Bitte zuerst die E-Mail des Rechnungskunden erfassen.');return;}
+  const text='RECHNUNG WIRKLICH SENDEN?\\n'+
+    invoice.number+' · CHF '+Number(invoice.amountCHF).toFixed(2)+'\\n'+
+    'Empfänger: '+customer.email+'\\n'+
+    'Swiss-QR-PDF als Anhang. Versand erfolgt über LSZH Gmail und ist nicht rückgängig zu machen.';
+  if(!window.confirm(text))return;
+  button.disabled=true;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/send',{
+      method:'POST',body:JSON.stringify({})
+    });
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    $('invoiceError').textContent='Rechnungsversand: '+error.message;
+    $('invoiceError').hidden=false;
+    await loadAll();
+    const refreshed=(state.records.rechnungen||[]).find(x=>x.id===invoice.id);
+    if(refreshed){state.invoiceEditing=refreshed;renderInvoiceDispatch(refreshed);}
+  }finally{button.disabled=false;}
+});
+$('invoiceMarkPaid').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing;
+  if(!invoice||invoice.status!=='Offen'||invoice.invoiceDispatchState!=='confirmed')return;
+  if(!window.confirm('Zahlungseingang von CHF '+Number(invoice.amountCHF).toFixed(2)+
+    ' für '+invoice.number+' tatsächlich geprüft? Rechnung als bezahlt markieren?'))return;
+  await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id),{
+    method:'PATCH',body:JSON.stringify({status:'Bezahlt'})
+  }).then(()=>reopenSavedInvoice(invoice.id)).catch(err=>window.alert('Zahlungsstatus: '+err.message));
 });
 $('invoiceForm').addEventListener('submit',async event=>{
   event.preventDefault();

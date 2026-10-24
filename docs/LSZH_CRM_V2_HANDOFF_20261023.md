@@ -3,6 +3,17 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## AKTUELL 24.10.2026 – Fälligkeitskontrolle & manuelles Mahnwesen LIVE PASS
+
+- **Operator bestätigt:** `CRM INVOICE DUNNING LIVE PASS`, Cloud Run **`lszh-crm-v2-00055-ved` bei 100 % Traffic**; letzte bewährte Revision `lszh-crm-v2-00053-mup` ist Rollback.
+- Die produktive CRM-URL lautet `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`. Schritt 4/4 hat HTTP-Authentisierung, Rechnungs-UI, bestehenden Cloud-Mail-Scheduler und Live-Traffic erfolgreich nachgeprüft. Der bestehende Mail-Cutoff bleibt `2026-10-23T16:15:28Z`.
+- **Neu produktiv:** Drei Kennzahlen im Rechnungsregister (überfällige Anzahl, rappen-genauer offener überfälliger Restbetrag, innerhalb sieben Tagen inkl. heute fällige Anzahl), Filter `Alle / Überfällig / Fällig in 7 Tagen / Offene Beträge`. Teilzahlungen und nachträglich korrigierte Buchungen werden berücksichtigt. Das Dashboard berücksichtigt bei überfälligen Rechnungen auch `Teilbezahlt` und verlinkt auf den Filter. Es werden höchstens 200 geladene Rechnungen je Register ausgewertet; daher keine Vollständigkeitsbehauptung über mehr Datensätze.
+- **Manuelles Mahnwesen:** sichtbare Tage seit Fälligkeit und Restbetrag; bei bereits dokumentiertem Versand nächstfrühester Mahnzeitpunkt sieben volle Tage nach letzter Stufe. Zahlungserinnerung → 1. Mahnung → 2. Mahnung, nur wenn Rechnungsversand vom Gmail-Gateway bestätigt, Forderung überfällig und Restbetrag positiv. **Kein automatischer Mahnversand**, nur Entwurf kopieren und nach *tatsächlich erfolgtem externem Versand* einzeln protokollieren. Keine Mahngebühren automatisch erzeugen.
+- **Release führte keine Rechnungsmail, Mahnung, Zahlungsbuchung, Firestore-Testdaten oder Bankaktion aus.** Manuelle Rechnungssendung, bestätigte Provider-`messageId`, Zahlungsprüfung, Dubletten-/Audit-Sicherungen unverändert.
+- Der Release erfolgte über `scripts/prepare-crm-invoice-dunning-live.ps1` und `scripts/activate-crm-invoice-dunning-live.ps1`; die feste Baseline `00053-mup` ist nun historisch, diese Skripte nicht für spätere Live-Releases wiederverwenden.
+- **Noch offen:** Bedienungsabnahme nach `Strg+F5` im CRM; bei RE-1002 mit Fälligkeit `31.10.2026` und dem zuletzt geprüften Rest von CHF 50.00 am heutigen `24.10.2026` sollte die Rechnung unter `Fällig in 7 Tagen` stehen, nicht unter `Überfällig`. Wenn sie am `01.11.2026` noch offen ist, sollte sie in `Überfällig` erscheinen. Eine echte Mahnung wurde damit nicht gesendet oder protokolliert.
+- Bei widersprüchlichen älteren Abschnitten im Handoff hat dieser jüngste bestätigte Live-Stand Vorrang.
+
 ## 24.10.2026 – Fälligkeitskontrolle und manuelles Mahnwesen ausgebaut (noch NICHT live)
 
 - **Aktive produktive Revision unverändert:** `lszh-crm-v2-00053-mup` (100 %), Rollback bisher `00051-bak`. Neuer Code liegt nur im GitHub-Branch `feature/crm-v2-invoice-settlement-20261024`; noch **kein** Cloud-Run-Kandidat oder freigegebener Traffic-Wechsel für diese Iteration.

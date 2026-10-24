@@ -29,3 +29,26 @@ Branch `feature/crm-v2-invoice-settlement-20261024`, aus `feature/crm-v2-cloud-s
 - `RE-1001` bleibt interne Test-/Eigenrechnung. `RE-9099999` bleibt unzahlbare `TEST_ONLY`-Probe mit öffentlicher Demo-IBAN.
 - Nicht vorhanden: Bank-/TWINT-API-Reconciliation; automatische Mahnung; Zahlungseingang ohne belegten Versand; externe automatische Mahngebühren. UI-Rechnungs-PDF wird nach Teilzahlung nicht als neues Restbetrag-QR-PDF angeboten, da der bestehende QR-Zahlteil den ursprünglichen Rechnungsbetrag zeigt.
 - Nächste kontrollierte Schritte: 105er CI auf finalem Doc-Commit nochmals prüfen; isolierte Browser-Cloud-Run-QA mit synthetischem Kunden, Zahlungen und Korrekturen, danach separater Rollout mit ausdrücklicher Freigabe und dokumentiertem Rollback. Kein Go-live nur wegen bestandenem Unit-Test.
+
+
+## 24.10.2026 – E2E mit echtem Chromium und lokalem Firestore-Emulator PASS
+
+**GitHub Actions Run:** https://github.com/lszh-automations/lszh-automations-site/actions/runs/40084290731
+(Workflow `CRM V2 invoice payment browser Firestore E2E`, Commit `eb79dddaa0a3c96194b804a177dd695f6cf20b06`, Job `browser-firestore` SUCCESS).
+
+**Ablauf/Isolation:** Eine isolierte GitHub-Actions-Laufzeit startet einen echten Node-CRM-HTTP-Server und den lokal laufenden Firebase-Firestore-Emulator (`127.0.0.1:8787` im Demo-Projekt `demo-lszh-invoice-e2e`) mit Namespace `lszh_crm_v2_staging_`. Ein echter Chromium-Browser verwendet das Original-`crm-v2/public/index.html` und die echten API-Routen. Die Google-ID-Token-Verifizierung ist ausschliesslich in diesem Testprozess gestubbt; es gibt keine echten Google-/Make-/Gmail-/Bank-Aufrufe und keine produktiven Cloud-Credentials/Firestore-Schreibvorgänge. Der Rechnungs-Sendebeleg wird innerhalb des Emulators durch die echte Claim/Finish-State-Machine als `TEST_ONLY_EMULATOR_RECEIPT_NO_GMAIL_SEND` simuliert, **nicht versandt**.
+
+**Geprüft:**
+- Unautorisierte API 401, fremder Origin bei Schreiboperation 403.
+- Testkunde und nummerierte Rechnung über die API erstellt und im Browser über das Rechnungsregister geöffnet.
+- Browser zeigt nach CHF 50.00 Teilzahlung CHF 149.95 offen (`Teilbezahlt`), überfälliges Badge; Firestore enthält exakt eine Zahlungsbuchung.
+- Manuelle Zahlungserinnerung nur im Emulator per simuliertem bereits erfolgtem externem Versand protokolliert; Nachfass-Sperre von sieben Tagen greift, kein Mail-Aufruf.
+- Browser verbucht CHF 149.95 vollständig: `Bezahlt`, offen CHF 0.00, zwei Historieneinträge.
+- Browser korrigiert die letzte Buchung mit Grund: wieder `Teilbezahlt`, offen CHF 149.95; Originalbuchung bleibt mit `voidedAt` in Firestore erhalten.
+- Überzahlungs-POST 409, direktes PATCH auf `Bezahlt` 409, Wiederholung einer identischen Zahlungs-ID erzeugt keinen dritten Eintrag.
+- Kein Browser-`pageerror`; kein Zugriff auf produktiven Collection-Prefix.
+- GitHub-Ausgabe ausdrücklich `INVOICE E2E PASS: browser + authenticated HTTP + local Firestore` und `INVOICE E2E NO SEND`.
+
+**Weitere QA:** Cloud-Staging-Workflow `40084353078` ist nach Behebung der fehlenden Dependency-Installation **SUCCESS**. Die vorherigen roten Cloud-Staging-Tests lagen an fehlendem `pdf-lib` in dessen CI-Setup, nicht an der Rechnungslogik. Der bestehende QR-Regressionsworkflow ist separat weiterhin PASS (Run `40084273694`).
+
+**Grenze:** Dies ist ein **echter isolierter Browser/API/Firestore-Emulator-End-to-End-Test**, aber **kein realer Cloud-Run-Staging- oder produktiver Google-Login-/Gmail-Test**. Vor einem Cloud-Run-Rollout ist ein getrennter authentifizierter Smoke-Test mit synthetischen Firestore-Staging-Daten und Rollback-Plan erforderlich. Produktive Cloud-Run-Traffic-Routing, Make-Szenarien, E-Mails und Bankkonten bleiben unberührt.

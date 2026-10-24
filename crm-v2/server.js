@@ -209,7 +209,7 @@ async function handler(req,res){
   }
   // Invoices have a separate manual state-machine and Gmail receipt. Never
   // called by the existing lead scheduler, website intake or quote sender.
-  const invoiceSendAction=pathname.match(/^\\/api\\/records\\/rechnungen\\/([A-Za-z0-9_-]{1,100})\\/send(?:\\/(resolve))?$/);
+  const invoiceSendAction=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/send(?:\/(resolve))?$/);
   if(invoiceSendAction){
     if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});

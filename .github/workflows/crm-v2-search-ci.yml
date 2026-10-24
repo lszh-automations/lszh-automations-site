@@ -5,6 +5,7 @@ on:
       - feature/crm-v2-server-search-20261024
     paths:
       - "crm-v2/**"
+      - "scripts/*crm-search*.ps1"
       - ".github/workflows/crm-v2-search-ci.yml"
   workflow_dispatch:
 permissions:
@@ -47,12 +48,14 @@ jobs:
       - name: Check Windows PowerShell parser (no deployment)
         shell: powershell
         run: |
-          $path='scripts/prepare-crm-search-zero-traffic.ps1'
-          $tokens=$null
-          $errors=$null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path).Path,[ref]$tokens,[ref]$errors) | Out-Null
-          if($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_.Message }
-            exit 1
+          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1')
+          foreach($path in $paths) {
+            $tokens=$null
+            $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path).Path,[ref]$tokens,[ref]$errors) | Out-Null
+            if($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+            }
+            Write-Host "CRM SEARCH POWERSHELL PARSER PASS: $path"
           }
-          Write-Host 'CRM SEARCH POWERSHELL PARSER PASS'

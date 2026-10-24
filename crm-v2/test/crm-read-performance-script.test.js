@@ -23,3 +23,17 @@ test('no raw URLs, email addresses or OAuth credentials appear in console output
   assert.doesNotMatch(script,/Write-Host\s+\$requestUrl\b/);
   assert.doesNotMatch(script,/Write-Host\s+\$raw\b/);
 });
+
+test('Windows gcloud.cmd receives a quote-free log filter and freshness duration',()=>{
+  const begin=script.indexOf('function ReadRevisionLog(');
+  const end=script.indexOf('  Check (',begin);
+  assert.ok(begin>=0&&end>begin);
+  const filter=script.slice(begin,end);
+  assert.match(filter,/--freshness=\$\{Hours\}h/);
+  assert.match(filter,/resource\.type=cloud_run_revision/);
+  assert.match(filter,/resource\.labels\.revision_name=/);
+  assert.match(filter,/httpRequest\.requestUrl:cockpit/);
+  assert.doesNotMatch(filter,/timestamp[<>]=/);
+  assert.doesNotMatch(filter,/(?:resource\.type|httpRequest\.requestUrl)[:=]"/);
+  assert.ok(script.length<9000,'Telemetry script was unexpectedly duplicated');
+});

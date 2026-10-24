@@ -171,6 +171,10 @@ async function handler(req,res){
   const user=await userFrom(req);
   if(!user)return reply(res,401,{error:'unauthorized'});
   if(req.method==='GET'&&pathname==='/api/me')return reply(res,200,{email:user.email});
+  if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
+    const {cockpitSummary}=require('./cockpit-summary');
+    return reply(res,200,{summary:await cockpitSummary(store)});
+  }
   if(req.method==='GET'&&pathname==='/api/reminders'){
     const reminders=await store.reminders();
     return reply(res,200,{reminders,mode:'preview_only_not_sent'});
@@ -287,8 +291,18 @@ async function handler(req,res){
   if(parts[0]!=='api'||parts[1]!=='records'||!store.TABLES.includes(parts[2])||parts.length>4)
     return reply(res,404,{error:'not_found'});
   const table=parts[2],id=parts[3];
-  if(req.method==='GET'&&!id)
+  if(req.method==='GET'&&!id){
+    // New paginated register contract; preserve legacy response for older clients.
+    if(url.searchParams.has('pageSize')||url.searchParams.has('cursor')){
+      return reply(res,200,await store.listPage(table,url.searchParams.get('pageSize')||50,
+        url.searchParams.get('cursor')||''));
+    }
     return reply(res,200,{records:await store.list(table,url.searchParams.get('limit')||200)});
+  }
+  if(req.method==='GET'&&id&&/^[A-Za-z0-9_-]{1,100}$/.test(id)){
+    const record=await store.get(table,id);
+    return record?reply(res,200,{record}):reply(res,404,{error:'not_found'});
+  }
   if((req.method==='POST'||req.method==='PATCH'||req.method==='DELETE')&&!sameOrigin(req))
     return reply(res,403,{error:'origin_mismatch'});
   if(req.method==='POST'&&!id)

@@ -657,3 +657,14 @@ Nach Source-Rekonstruktion und zusätzlichem Regressionstest: isolierter Render-
 ### 24.10.2026 – LIVE-Abnahme CRM Suche
 
 Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-00063-baz` bedient 100 % Traffic; Rollback `lszh-crm-v2-00061-tol`. Mail-Cutoff unverändert. Das Skript führte nur einen Traffic-Wechsel und HTTP-Kontrollen aus, keine Rechnungs-, Mahnungs-, Zahlungs- oder Firestore-Schreibaktion. 137/137 Node-Tests bestanden. Der Betreiber hat im Anschluss die neue Suche im produktiven CRM ausdrücklich als funktionierend bestätigt. Arbeitspaket abgeschlossen. Skalierungshinweis: Suche liest registerweit Firestore-Dokumente.
+
+
+### 24.10.2026 – CRM V2 Firestore-Leseoptimierung: isolierte Entwicklung (noch nicht Live)
+
+- **Produktiver Ausgangsstand:** Cloud Run Revision `lszh-crm-v2-00063-baz` (100% Traffic), serverweite Suche/Statusfilter im Live-CRM durch Nutzer bestaetigt. Rollback `00061-tol`.
+- **Feature-Branch:** `feature/crm-v2-read-performance-20261024`, isoliert von der abgenommenen Suchversion.
+- **Firestore-Suchoptimierung:** Bei `status` verwendet die API Firestore `where('status','==',status)`; bei Rechnungsfaelligkeitsfilter ohne expliziten Status `where('status','in',['Offen','Teilbezahlt'])`. Keine zusammengesetzten Firestore-Indizes erforderlich: mit hoechstens `pageSize+1` Treffern im Arbeitsspeicher wird die bisherige `createdAt`-/ID-Abwaertssortierung mit Cursorverhalten nachgebildet. Die volltextbasierte Suche ohne Statusfilter ist weiterhin O(N) und muss perspektivisch indexiert werden.
+- **Dashboard:** `crm-v2/read-singleflight.js` fasst gleichzeitig eintreffende identische Gesamtstatistik-Lesevorgaenge in einem Prozess zusammen. **Keine TTL und kein dauerhafter Cache**: spaetere Anfragen berechnen Finanzkennzahlen neu.
+- **Regressionen:** `crm-v2/test/crm-search.test.js` um statusselektive Lesemengen, 1'250 Datensaetze, Sortierung, Cursor/Filter und Rechnungsrestbetraege erweitert; `crm-v2/test/read-singleflight.test.js` prueft identische Promise-Nutzung, Recompute und Fehlerbehandlung. Der Testlauf auf diesem Branch ist noch nicht durch PowerShell-Betreiberprotokoll bestaetigt; nicht als PASS deklarieren.
+- **Release-Guard:** `scripts/prepare-crm-read-performance-zero-traffic.ps1` validiert Branch/Sauberkeit, Tests, Live `00063-baz`, Auth-/Mail-/IBAN-/Scheduler-Konfiguration und erstellt nur mit `-DeployCandidate` eine neue 0%-Revision unter Tag `crm-read-perf-qa`. CI prueft Node-Tests und Windows-PowerShell-Parser. Noch keine Revision deployed, kein produktiver Traffic geaendert.
+- **Naechster Schritt:** Benutzer `git fetch origin`, `git switch --track origin/feature/crm-v2-read-performance-20261024`, `npm.cmd ci --prefix .\crm-v2`, `npm.cmd test --prefix .\crm-v2`. Nur bei 0 Fehlern Read-only-Preflight und ggf. 0%-Kandidatenpruefung. Kein Produktiv-Cutover ohne separate Freigabe.

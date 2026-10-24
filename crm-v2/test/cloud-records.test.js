@@ -489,7 +489,7 @@ test('invoice preparation_failed releases claim; uncertain delivery needs manual
 });
 test('invoice dispatch validates linked customer email and complete address before writing a claim',async()=>{
   const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
-  const customer=await store.create('kunden',{company:'Adresse fehlt',email:'not-an-email'},admin);
+  const customer=await store.create('kunden',{company:'Adresse fehlt',email:'rechnung@adresse.ch'},admin);
   const inv=await store.create('rechnungen',{customerId:customer.id,description:'Leistung',
     dueDate:'2026-11-30',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:35}]},admin);
   await assert.rejects(store.claimInvoiceSend(inv.id,admin),{status:409});

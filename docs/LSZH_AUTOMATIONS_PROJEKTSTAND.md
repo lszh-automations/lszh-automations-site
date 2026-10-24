@@ -1300,3 +1300,12 @@ Zusätzlich Cloud-Staging-Tests Run `40084353078` nach korrigiertem CI-Dependenc
 - Guard: 100%-Live `lszh-crm-v2-00061-tol`, OAuth-HTTP 401, Mail/Scheduler/IAM/Secrets/IBAN-Umgebung unveraendert, UI-Sicherungen und serverweite Search-Markierungen im Kandidaten, 0%-Tag `crm-search-qa`, Regressionstests erneut vor Deployment.
 - GitHub Actions `.github/workflows/crm-v2-search-ci.yml` prueft Node-/UI-Regressionstests sowie Windows-PowerShell-Parser der Release-Datei. **CI-Workflow und Cloud-Run-Staging noch nicht als bestanden nachgewiesen.**
 - Naechster Betreiber-Schritt: `git pull --ff-only`; read-only `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\prepare-crm-search-zero-traffic.ps1"`. Nur bei Preflight-PASS optional noch einmal mit `-DeployCandidate` fuer 0%-Staging ausfuehren. Keine Freigabe fuer 100%-Traffic ohne gesonderte Abnahme.
+
+
+### 24.10.2026 – CRM-Suche: 0%-Candidate PASS und direkter Live-Cutover freigegeben, noch nicht ausgefuehrt
+
+- Benutzer-Protokoll bestaetigt: `CRM SEARCH ZERO TRAFFIC PASS`. Kandidat `lszh-crm-v2-00063-baz`, Tag `crm-search-qa`, 0% Traffic; Live `lszh-crm-v2-00061-tol`, 100%. Kandidaten-UI, OAuth-401, Konfiguration und Mail-Sicherungen geprueft. 137/137 Node-Tests PASS.
+- Benutzer wuenscht ausdruecklich die direkte Live-Uebernahme ohne weitere manuelle Staging-Browserabnahme.
+- Neu: `scripts/activate-crm-search-live.ps1` auf `feature/crm-v2-server-search-20261024` mit genau gepinnten Revisionen 00061->00063, Live-/QA-Tag-/IAM-/Env-/IBAN-/Gmail-/Scheduler-/HTTP-Checks, `gcloud run services update-traffic` auf Kandidat=100% und automatischem Rollback bei fehlgeschlagener Nachpruefung.
+- Die GitHub-Actions-Konfiguration validiert den Parser des Staging- und Live-Skripts auf Windows (ohne Ausfuehrung). CI-Ergebnis nur nach Beobachtung als PASS bezeichnen.
+- **NOCH NICHT LIVE:** keine Traffic-Umschaltung durch Dokumentation/GitHub-Commits. Betreiber: `git pull --ff-only`, PowerShell 5.1 Parser pruefen, dann `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\activate-crm-search-live.ps1"` ausfuehren. Anschliessend Ausgabelog `CRM SEARCH LIVE PASS` und Revision 00063=100% pruefen.

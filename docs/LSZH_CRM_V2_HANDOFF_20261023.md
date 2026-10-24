@@ -3,6 +3,12 @@
 **Stand:** 24.10.2026. Diese Datei ist der **aktuelle operative Übergabestand** und ergänzt ältere, teils überholte chronologische Einträge in `docs/LSZH_AUTOMATIONS_PROJEKTSTAND.md`. Bei Widersprüchen gelten die neueren bestätigten Live-Ergebnisse. Keine Passwörter, Token oder Webhook-URLs in diese Datei schreiben.
 
 
+## 24.10.2026 – Betreiber bestätigt: interner Rechnungsversand funktioniert
+
+- Nach dem bestätigten Deployment `CRM INVOICE MANUAL ALL LIVE PASS` auf Cloud Run `lszh-crm-v2-00051-bak` meldet der Betreiber auf die Aufforderung, die zuvor gesperrte interne Rechnung **RE-1002** erneut zu öffnen und `Rechnung senden` zu prüfen: **„super, es funktioniert“**. Damit ist die zuvor sichtbare pauschale Sperre für interne/Eigenrechnungen aus Sicht des Betreibers behoben.
+- Diese kurze Rückmeldung ist **noch kein gesonderter Nachweis**, dass tatsächlich eine neue Rechnungs-E-Mail per Gmail versandt und mit Provider-`messageId` bestätigt wurde oder eine Zahlung gebucht wurde. Keinen Live-E2E-Test als bestanden ausweisen, bevor entsprechende Versand-/Zahlungsnachweise vorliegen.
+- Nächste fachliche Prüfung: nach bestätigter echter E-Mail-Zustellung Zahlungseingangsmaske und Teil-/Vollzahlung sowie Storno-/Auditabläufe prüfen; dabei keine fiktiven Zahlungseingänge in produktive Buchhaltung eintragen.
+
 ## AKTUELL 24.10.2026 – MANUELLER RECHNUNGSVERSAND FÜR ALLE KUNDENTYPEN LIVE PASS
 
 - **Betreiber bestätigte erfolgreiches produktives Cloud-Run-Cutover:** `CRM INVOICE MANUAL ALL LIVE PASS`; neue Revision **`lszh-crm-v2-00051-bak` mit 100 % Traffic**, vorherige `lszh-crm-v2-00049-doh` als Rollback. Abschlussprüfungen Stufe 4/4 für HTTP-Authentisierung, Rechnungs-UI, Mail-Scheduler und Traffic PASS; Mail-Cutoff unverändert `2026-10-23T16:15:28Z`.

@@ -121,7 +121,7 @@ async function main(){
     assert.match(await page.locator('#invoicePaymentOpen').innerText(),/199.95/);
     assert.match(await page.locator('#invoicePaymentReceived').innerText(),/0.00/);
     assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'0 % bezahlt');
-    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'0');
+    assert.equal(await page.locator('#invoicePaymentProgress').evaluate(el=>el.value),0);
     assert.equal(await page.locator('#invoiceSend').isDisabled(),true,
       'No outgoing invoice email in E2E');
     await page.locator('#invoiceReminderActions').waitFor({state:'visible'});
@@ -139,7 +139,7 @@ async function main(){
     assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149.95/);
     assert.match(await page.locator('#invoicePaymentReceived').innerText(),/50.00/);
     assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'25 % bezahlt');
-    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'25');
+    assert.equal(await page.locator('#invoicePaymentProgress').evaluate(el=>el.value),25);
     assert.match(await page.locator('#invoicePaymentStatus').innerText(),/Überfällig/);
 
     // In emulator only, click the UI's operator-confirmation after a
@@ -161,7 +161,7 @@ async function main(){
     assert.equal(full.paymentHistory.length,2);
     assert.match(await page.locator('#invoicePaymentOpen').innerText(),/0.00/);
     assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'100 % bezahlt');
-    assert.equal(await page.locator('#invoicePaymentProgress').inputValue(),'100');
+    assert.equal(await page.locator('#invoicePaymentProgress').evaluate(el=>el.value),100);
     assert.equal(await page.locator('#invoicePaymentEntry').isVisible(),false);
     assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false);
 

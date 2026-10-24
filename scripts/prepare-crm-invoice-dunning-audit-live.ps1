@@ -73,7 +73,7 @@ function CheckWeb([string]$url,[bool]$expectUnlocked) {
   }
   $auditDetail=([string]$page.Content -match 'invoice-reminder-record' -and
     [string]$page.Content -match 'Protokoll-ID:' -and
-    [string]$page.Content -match 'Bestätigt von:')
+    [string]$page.Content -match 'Restbetrag bei Best')
   if($expectUnlocked -and !$auditDetail) { throw 'Detailed manual reminder audit rows missing in candidate' }
   if(!$expectUnlocked -and $auditDetail) { throw 'Baseline unexpectedly already contains detailed audit rows' }
   if([string]$page.Content -notmatch 'Dies protokolliert nur den bereits erfolgten Versand' -or

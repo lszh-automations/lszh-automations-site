@@ -80,6 +80,18 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-total span{font-size:12px;color:#b6c9db}.invoice-total strong{font-size:24px;letter-spacing:-.03em}
 .invoice-caption{padding:0 24px;font-size:11px;color:#a2b5c7;line-height:1.5}
 .invoice-error{padding:0 24px;font-size:12px;color:#ffb6ac}
+.invoice-payments{margin:14px 24px 4px;padding:18px;border:1px solid #38516a;border-radius:13px;background:#122235}
+.invoice-payments-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.invoice-payments-head strong{font-size:15px}
+.invoice-payments-summary{font-size:13px;color:#b4cde1;margin:5px 0 10px}
+.invoice-payments-history{display:grid;gap:7px;margin:10px 0}
+.invoice-payments-history div{display:flex;gap:10px;justify-content:space-between;font-size:12px;padding:8px 10px;border:1px solid #2c455c;border-radius:8px}
+.invoice-payments-entry{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:10px;align-items:end;margin-top:12px}
+.invoice-payments-entry label{display:grid;gap:5px;font-size:11px;color:#b5cbdd}
+.invoice-payments-entry input,.invoice-payments-entry select{width:100%;min-width:0;border:1px solid #354b61;background:#091621;color:#e6f3ff;border-radius:8px;padding:9px}
+.invoice-payments-entry button{grid-column:1/-1;justify-self:end}
+@media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}}
 .invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
 .invoice-lock{margin:18px 24px 0;padding:14px 16px;color:#d1e9ff;border:1px solid #426585;background:#1a2c40;border-radius:11px;font-size:13px}
 .invoice-dialog.is-locked input:disabled,.invoice-dialog.is-locked select:disabled,.invoice-dialog.is-locked textarea:disabled{opacity:1;background:#152231;color:#aebfd0}
@@ -323,15 +335,26 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     <div class="invoice-lines-head"><strong>Rechnungspositionen</strong><button class="btn" type="button" id="invoiceAddLine">+ Position</button></div>
     <div class="invoice-lines" id="invoiceLines"></div>
     <div class="invoice-total"><span>Gesamtbetrag</span><strong id="invoiceTotal">CHF 0.00</strong></div>
-    <p class="invoice-caption">Lokale Testrechnung ohne Versand, MWST-Ausweis und Swiss-QR-Zahlteil. Status «Bezahlt» wird manuell gesetzt.</p>
+    <p class="invoice-caption">Rechnungsbeträge ohne MWST-Ausweis. Zahlungseingänge werden ausschliesslich nach tatsächlichem Nachweis manuell verbucht.</p>
     <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
     <div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
     <div id="invoiceDispatchReview" class="invoice-actions" hidden></div>
+    <section id="invoicePaymentsPanel" class="invoice-payments" hidden aria-label="Zahlungseingänge">
+      <div class="invoice-payments-head"><strong>Zahlungseingänge</strong><span class="badge" id="invoicePaymentStatus">Offen</span></div>
+      <p class="invoice-payments-summary" id="invoicePaymentSummary"></p>
+      <div id="invoicePaymentHistory" class="invoice-payments-history"></div>
+      <div class="invoice-payments-entry" id="invoicePaymentEntry">
+        <label>Betrag CHF<input id="invoicePaymentAmount" type="number" min="0.01" max="100000000" step="0.01" required></label>
+        <label>Valutadatum<input id="invoicePaymentDate" type="date" required></label>
+        <label>Zahlungsart<select id="invoicePaymentMethod"><option>Banküberweisung</option><option>TWINT</option><option>Bar</option><option>Karte</option><option>Andere</option></select></label>
+        <label>Referenz / Buchungsvermerk<input id="invoicePaymentReference" maxlength="120" placeholder="z. B. Bank-Transaktions-ID"></label>
+        <button class="btn primary" type="button" id="invoiceRecordPayment">Geprüfte Zahlung verbuchen</button>
+      </div>
+    </section>
     <div class="invoice-actions">
       <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button>
       <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
       <button class="btn" type="button" id="invoiceSend" disabled>Rechnung senden</button>
-      <button class="btn" type="button" id="invoiceMarkPaid" hidden>Als bezahlt markieren</button>
       <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
       <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
     </div>
@@ -384,7 +407,7 @@ const definitions={
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
   ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
 };
-const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
+const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
 const state={token:'',tab:'dashboard',records:{},reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
 let lastFollowUpDay=localDateKey();
@@ -480,15 +503,17 @@ function dashboardStats(records){
   const projects=records.projekte||[];
   const openOffers=offers.filter(x=>['Entwurf','Bereit','Versendet'].includes(x.status));
   const paidInvoices=invoices.filter(x=>x.status==='Bezahlt');
+  const received=x=>Array.isArray(x.paymentHistory)&&x.paymentHistory.length?x.paymentHistory.reduce((n,p)=>n+Number(p.amountCHF||0),0):(x.status==='Bezahlt'?Number(x.amountCHF||0):0);
+  const remaining=x=>Math.max(0,Number(x.amountCHF||0)-received(x));
   const money=value=>Number.isFinite(Number(value))?Math.max(0,Number(value)):0;
   return {
     newLeads:leads.filter(x=>x.status==='Neu').length,
     openOffers:openOffers.length,
-    openInvoices:invoices.filter(x=>x.status==='Offen').length,
-    openInvoiceAmount:invoices.filter(x=>x.status==='Offen').reduce((n,x)=>n+money(x.amountCHF),0),
+    openInvoices:invoices.filter(x=>['Offen','Teilbezahlt'].includes(x.status)).length,
+    openInvoiceAmount:invoices.filter(x=>['Offen','Teilbezahlt'].includes(x.status)).reduce((n,x)=>n+money(remaining(x)),0),
     activeProjects:projects.filter(x=>['Geplant','In Arbeit','Wartet auf Kunde'].includes(x.status)).length,
     waitingProjects:projects.filter(x=>x.status==='Wartet auf Kunde').length,
-    paidAmount:paidInvoices.reduce((n,x)=>n+money(x.amountCHF),0),
+    paidAmount:invoices.reduce((n,x)=>n+money(received(x)),0),
     openOfferVolume:openOffers.reduce((n,x)=>n+money(x.oneTimeCHF),0),
     acceptedMonthly:offers.filter(x=>x.status==='Angenommen').reduce((n,x)=>n+money(x.monthlyCHF),0),
     leadCount:leads.length
@@ -717,14 +742,19 @@ function render(){
           td.append(el('span',due?'lead-followup-badge overdue':'lead-followup-badge',rec.followUpDate));
         }else td.textContent='–';
       }
-      else if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      else if(key==='status'){
+        const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
+        const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),overdue?'Überfällig':(rec.status||'–'));
+        if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
+        td.append(tag);
+      }
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
       else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
         td.textContent=rec.dueDate&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dueDate)
           ?new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(rec.dueDate+'T12:00:00'))
           :(rec.dueDate||'–');
         if(state.tab==='projekte'&&projectIsOverdue(rec))td.append(el('span','project-overdue','Überfällig'));
-        if(state.tab==='rechnungen'&&rec.status==='Offen'&&rec.dueDate&&rec.dueDate<new Date().toLocaleDateString('sv-SE'))td.append(el('span','project-overdue','Überfällig'));
+        if(state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey())td.append(el('span','project-overdue','Überfällig'));
       }
       else td.textContent=valueText(key,rec[key]);
       row.append(td);
@@ -1624,11 +1654,36 @@ function addInvoiceLine(data={},isLoading=false){
 }
 // Invoice dispatch is always user initiated. Never call a scheduler, background
 // refresh or Make directly from the browser.
+function renderInvoicePayments(invoice){
+  const panel=$('invoicePaymentsPanel'),entry=$('invoicePaymentEntry');
+  panel.hidden=!invoice;
+  if(!invoice)return;
+  const total=Math.round(Number(invoice.amountCHF||0)*100);
+  const entries=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
+  const received=entries.length?entries.reduce((n,p)=>n+Math.round(Number(p.amountCHF||0)*100),0):(invoice.status==='Bezahlt'?total:0);
+  const due=Math.max(0,total-received);
+  const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey();
+  $('invoicePaymentStatus').textContent=overdue?'Überfällig':invoice.status;
+  $('invoicePaymentSummary').textContent='Gesamt '+invoiceCHF(total/100)+' · Eingegangen '+invoiceCHF(received/100)+' · Offen '+invoiceCHF(due/100)+
+    (invoice.dueDate?' · Fällig '+invoice.dueDate:'');
+  const history=$('invoicePaymentHistory');history.replaceChildren();
+  if(!entries.length)history.append(el('p','invoice-caption',invoice.status==='Bezahlt'?
+    'Alte als bezahlt markierte Rechnung – keine Einzelbuchungen vorhanden.':'Noch keine Zahlungen erfasst.'));
+  for(const p of [...entries].reverse()){
+    const row=el('div');row.append(el('span','',p.paidOn+' · '+p.method+(p.reference?' · '+p.reference:'')),
+      el('strong','',invoiceCHF(p.amountCHF)));history.append(row);
+  }
+  entry.hidden=!(invoice.invoiceDispatchState==='confirmed'&&['Offen','Teilbezahlt'].includes(invoice.status)&&due>0);
+  if(!entry.hidden){
+    $('invoicePaymentAmount').value=(due/100).toFixed(2);
+    $('invoicePaymentDate').value=localDateKey();
+    $('invoiceRecordPayment').dataset.pendingId='';
+  }
+}
 function renderInvoiceDispatch(invoice){
   const notice=$('invoiceDispatchNotice'),review=$('invoiceDispatchReview');
   review.replaceChildren();review.hidden=true;
-  const mark=$('invoiceMarkPaid');
-  mark.hidden=!(invoice?.status==='Offen'&&invoice.invoiceDispatchState==='confirmed');
+  renderInvoicePayments(invoice);
   const customer=(state.records.kunden||[]).find(c=>c.id===invoice?.customerId);
   const to=String(customer?.email||'').trim();
   const isSynthetic=String(invoice?.description||'').startsWith('TEST_ONLY')||
@@ -1687,7 +1742,7 @@ async function reopenSavedInvoice(id){
 
 function openInvoiceEditor(record=null,draft=null){
   state.invoiceEditing=record;
-  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert'||
+  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert'||record?.status==='Teilbezahlt'||
     ['sending','manual_review','confirmed'].includes(record?.invoiceDispatchState);
   $('invoiceEditor').classList.toggle('is-locked',state.invoiceLocked);
   $('invoiceLocked').hidden=!state.invoiceLocked;
@@ -1879,14 +1934,35 @@ $('invoiceSend').addEventListener('click',async()=>{
     if(refreshed){state.invoiceEditing=refreshed;renderInvoiceDispatch(refreshed);}
   }finally{button.disabled=false;}
 });
-$('invoiceMarkPaid').addEventListener('click',async()=>{
-  const invoice=state.invoiceEditing;
-  if(!invoice||invoice.status!=='Offen'||invoice.invoiceDispatchState!=='confirmed')return;
-  if(!window.confirm('Zahlungseingang von CHF '+Number(invoice.amountCHF).toFixed(2)+
-    ' für '+invoice.number+' tatsächlich geprüft? Rechnung als bezahlt markieren?'))return;
-  await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id),{
-    method:'PATCH',body:JSON.stringify({status:'Bezahlt'})
-  }).then(()=>reopenSavedInvoice(invoice.id)).catch(err=>window.alert('Zahlungsstatus: '+err.message));
+$('invoiceRecordPayment').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceRecordPayment');
+  if(!invoice||button.disabled||!['Offen','Teilbezahlt'].includes(invoice.status)||
+     invoice.invoiceDispatchState!=='confirmed')return;
+  const payload={
+    paymentId:button.dataset.pendingId||(window.crypto?.randomUUID?.()||''),
+    amountCHF:$('invoicePaymentAmount').value,
+    paidOn:$('invoicePaymentDate').value,
+    method:$('invoicePaymentMethod').value,
+    reference:$('invoicePaymentReference').value.trim()
+  };
+  if(!Number.isFinite(Number(payload.amountCHF))||Number(payload.amountCHF)<=0||!payload.paidOn){
+    window.alert('Bitte einen gültigen Zahlungseingang mit Datum angeben.');return;
+  }
+  if(!window.confirm('Zahlung auf dem Kontoauszug / Beleg tatsächlich geprüft?\n'+
+    invoice.number+' · '+invoiceCHF(Number(payload.amountCHF))+' · '+payload.paidOn+' · '+payload.method+
+    '\nDie Buchung wird protokolliert und kann nicht einfach gelöscht werden.'))return;
+  button.disabled=true;button.dataset.pendingId=payload.paymentId;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/payments',{
+      method:'POST',body:JSON.stringify(payload)
+    });
+    button.dataset.pendingId='';
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    window.alert('Buchung unklar oder abgelehnt: '+error.message+
+      '\nBitte vor einem erneuten Versuch die Zahlungshistorie kontrollieren. Bei gleicher Eingabe bleibt die Buchungs-ID identisch.');
+    await loadAll().catch(()=>{});
+  }finally{button.disabled=false;}
 });
 $('invoiceForm').addEventListener('submit',async event=>{
   event.preventDefault();

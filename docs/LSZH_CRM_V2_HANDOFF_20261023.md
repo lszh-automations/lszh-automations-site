@@ -6,11 +6,11 @@
 
 **LSZH CRM V2 läuft produktiv.** Letzte vom Geschäftsführer per PowerShell-Ausgabe bestätigte erfolgreiche Bereitstellung:
 
-- **`CRM SWISS QR PDF LIVE PASS` (24.10.2026)**
+- **`CRM SWISS QR LAYOUTFIX LIVE PASS` (24.10.2026)**
 - Cloud Run: `lszh-crm-v2`, Projekt `lszh-automations`, Region `europe-west6`
-- **Live Revision: `lszh-crm-v2-00041-far` (100 % Traffic)**
-- **Rollback-Revision: `lszh-crm-v2-00038-gic`**
-- Swiss-QR-PDF nun im bestehenden Google-authentifizierten Live-CRM manuell downloadbar; geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Der E2E-PDF-Download RE-1001 und der QR-Scan wurden nachgewiesen. **ABNAHME GESPERRT:** Das LIVE-PDF von Revision 00041-far zeichnet vier übergrosse Scheren-Kreise über Rechnung und Zahlteil. Eine Korrektur ist in isoliertem Render-QA erfolgreich getestet, aber noch NICHT produktiv. **Keine QR-Rechnungs-PDFs extern versenden, bis der Layoutfix live bestätigt und visuell abgenommen ist.**
+- **Live Revision: `lszh-crm-v2-00043-wur` (100 % Traffic)**
+- **Rollback-Revision: `lszh-crm-v2-00041-far`**
+- Swiss-QR-PDF im Google-authentifizierten Live-CRM manuell downloadbar, geschützte Firmen-IBAN via Google Secret Manager v1; **kein automatischer Rechnungsversand**. Der in der ersten echten PDF RE-1001 gefundene Scherengrafikfehler wurde behoben und erfolgreich produktiv deployt. **Noch offen: NEU heruntergeladene RE-1001-PDF visuell und maschinell abnehmen; bis dahin keine QR-Rechnungs-PDFs extern versenden.**
 - Bisheriger E-Mail-Cutoff unverändert: `2026-10-23T16:15:28Z`
 - CRM-URL: `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`
 - Produktiver Lead-Eingang: Render Website → Cloud Run → Firestore mit Namespace `lszh_crm_v2_`. Ein Airtable-Import wurde ausdrücklich **abgewählt**.
@@ -229,3 +229,15 @@ Der sichere nächste PowerShell-Befehl wird **erst nach `git pull --ff-only`** a
 **NEUES separiertes Go-live-Skript, vorbereitet, NICHT ausgeführt:** `scripts/activate-crm-invoice-layoutfix-live.ps1`. Vergleicht den aktuellen Live-Stand `00041-far` gegen den getaggten 0%-Kandidaten `00043-wur`, identisches Servicekonto, identische komplette Runtime-Umgebung mit QR-Freigabeflags/Secret-Manager v1, Lead-/Offer-Mailmodus und Mail-Cutoff `2026-10-23T16:15:28Z`. Prüft Scheduler, Kandidaten-Startseite mit `invoicePdf`-Button, unveränderte Offertenmail-Konfiguration und anonymen PDF-HTTP 401. Erst nach **lokaler expliziter Eingabe `LIVE QR LAYOUTFIX`** schaltet es `00043-wur` auf 100 % Traffic auf der bestehenden CRM-URL; prüft die Live-URL und den Mail-Scheduler danach und versucht bei Fehlern Rollback auf `00041-far`. Erwarteter Erfolg `CRM SWISS QR LAYOUTFIX LIVE PASS`.
 
 **Bis zu diesem neuen Erfolg ist `00041-far` die unveränderte Live-Revision mit fehlerhaft gezeichneten Scheren-Kreisen. Auch nach erfolgreichem Live-Deploy ist die erneute manuelle PDF-Sichtprüfung von RE-1001 erforderlich, bevor irgendeine QR-Rechnung an Kunden gesendet oder zur Bezahlung vorgelegt wird. RE-1001 (CHF 100, interne Selbstadressierung LSZH Invest GmbH, Beschreibung `abc`) nur für Test verwenden.**
+
+### 24.10.2026 – Swiss-QR-PDF-Scherenlayoutfix PRODUKTIV: CRM SWISS QR LAYOUTFIX LIVE PASS
+
+**Vom Nutzer bestätigte neue Cloud-Run-Live-Revision:** `lszh-crm-v2-00043-wur` mit **100 % Traffic** auf bestehender CRM-Adresse `https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app`. Rollback-Revision: `lszh-crm-v2-00041-far`. Ausführung: `scripts/activate-crm-invoice-layoutfix-live.ps1` nach ausdrücklicher Freigabe `LIVE QR LAYOUTFIX`; Nutzer übermittelte die Erfolgsmeldung `CRM SWISS QR LAYOUTFIX LIVE PASS`.
+
+**Nach dem Umschalten vom Release-Skript bestätigt:** bestehender CRM-Frontend-HTML-/QR-Button, `/api/config`-Modus des manuellen Offertenversands, PDF-API-Sperre HTTP 401 ohne Authentifizierung, unveränderter Cloud-Scheduler-Vertrag und genau 100 % Traffic auf Revision `00043-wur`. Mail-Cutoff weiterhin **2026-10-23T16:15:28Z**. Bestehende Kunden-/Offerten-/Lead-Mail-Abläufe nicht verändert; Rechnungsversand nicht automatisiert. Firmen-IBAN weiterhin Google Secret Manager gepinnte Version 1.
+
+**Was genau korrigiert wurde:** `pdf-lib.drawEllipse` im Swiss-QR-Zahlteil: `xScale:2.5, yScale:2.5` statt ignorierter `width:5,height:5` (verursachte riesige 200pt-Kreise). Isolierter Build hatte zuvor 86/86 Node-Tests, Swiss-QR-Scan, A4- und 5mm-Layoutprüfung sowie kleinformatige Scherenkurven bestanden.
+
+**WICHTIG: VISUELLE ABNAHME NOCH OFFEN.** Vom Nutzer liegt die neue nach diesem Release tatsächlich generierte PDF `LSZH_Rechnung_RE-1001.pdf` noch NICHT vor. Nächster Schritt: bestehendes CRM neu laden, RE-1001 öffnen, `Swiss-QR-PDF` anklicken und die **neu** heruntergeladene PDF im Chat hochladen. Dann Kreisbögen, Zahlteil/Empfangsschein, QR-Lesbarkeit, IBAN-Endziffern 2002, CHF 100.00, NON/RE-1001, Nicht-MWST-Hinweis kontrollieren. RE-1001 bleibt interne Test-/Selbstadressierungsrechnung mit Text `abc`; weder versenden noch bezahlen. Keine QR-Kundenrechnungen versenden, bis neue PDF visuell abgenommen ist.
+
+**Ab hier veraltet:** ältere Hinweise, dass `00041-far` die Live-Revision oder das Fix-Skript noch nicht ausgeführt sei. Für alle weiteren Release-Skripte ist die aktuell bestätigte Baseline `00043-wur` (100 %); automatisierte Folgedeploys mit hartcodierten Baselines `00041-far` oder `00038-gic` nicht blind ausführen.

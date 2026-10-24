@@ -114,7 +114,16 @@ async function main(){
     await page.goto(base,{waitUntil:'domcontentloaded'});
     await page.locator('#workspace').waitFor({state:'visible',timeout:20000});
     await page.locator('#nav button[data-tab="rechnungen"]').click();
+    // Due monitoring stays read-only: the synthetic invoice is one day overdue
+    // in the disposable emulator. The filters must not create any reminder.
+    assert.equal(await page.locator('#invoiceDueOverdueCount').innerText(),'1');
+    assert.match(await page.locator('#invoiceDueOverdueAmount').innerText(),/199.95/);
+    assert.equal(await page.locator('#invoiceDueSoonCount').innerText(),'0');
+    await page.locator('#invoiceDueFilter').selectOption('soon');
+    assert.equal(await page.locator('#tableArea tbody tr').count(),0);
+    await page.locator('#invoiceDueFilter').selectOption('overdue');
     const row=page.locator('#tableArea tbody tr').filter({hasText:invoice.number});
+    assert.equal(await row.count(),1);
     await row.getByRole('button',{name:'Bearbeiten'}).click();
     await page.locator('#invoiceEditor[open]').waitFor({state:'visible'});
     assert.match(await page.locator('#invoicePaymentTotal').innerText(),/199.95/);
@@ -126,6 +135,7 @@ async function main(){
       'No outgoing invoice email in E2E');
     await page.locator('#invoiceReminderActions').waitFor({state:'visible'});
     assert.match(await page.locator('#invoiceReminderText').inputValue(),/Zahlungserinnerung/);
+    assert.match(await page.locator('#invoiceReminderStatus').innerText(),/überfällig · Rest/);
 
     // Real browser-click payment -> authenticated API -> Firestore transaction.
     await page.locator('#invoicePaymentAmount').fill('50.00');
@@ -136,6 +146,7 @@ async function main(){
     assert.equal(partial.status,'Teilbezahlt');
     assert.equal(partial.outstandingCHF,149.95);
     assert.equal(partial.paymentHistory.length,1);
+    assert.match(await page.locator('#invoiceReminderStatus').innerText(),/überfällig · Rest/);
     assert.match(await page.locator('#invoicePaymentOpen').innerText(),/149.95/);
     assert.match(await page.locator('#invoicePaymentReceived').innerText(),/50.00/);
     assert.equal(await page.locator('#invoicePaymentPercent').innerText(),'25 % bezahlt');
@@ -149,6 +160,7 @@ async function main(){
     assert.equal((await store.get('rechnungen',invoice.id)).reminderHistory.length,1);
     assert.equal(await page.locator('#invoiceReminderActions').isVisible(),false,
       'seven-day reminder lock prevents consecutive reminder');
+    assert.match(await page.locator('#invoiceReminderNotice').innerText(),/frühestens/);
 
     // Full settlement.
     await page.locator('#invoicePaymentAmount').fill('149.95');

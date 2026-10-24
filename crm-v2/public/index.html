@@ -1860,9 +1860,9 @@ $('invoiceSend').addEventListener('click',async()=>{
   if(!invoice||button.disabled)return;
   const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
   if(!customer?.email){window.alert('Bitte zuerst die E-Mail des Rechnungskunden erfassen.');return;}
-  const text='RECHNUNG WIRKLICH SENDEN?\\n'+
-    invoice.number+' · CHF '+Number(invoice.amountCHF).toFixed(2)+'\\n'+
-    'Empfänger: '+customer.email+'\\n'+
+  const text='RECHNUNG WIRKLICH SENDEN?\n'+
+    invoice.number+' · CHF '+Number(invoice.amountCHF).toFixed(2)+'\n'+
+    'Empfänger: '+customer.email+'\n'+
     'Swiss-QR-PDF als Anhang. Versand erfolgt über LSZH Gmail und ist nicht rückgängig zu machen.';
   if(!window.confirm(text))return;
   button.disabled=true;

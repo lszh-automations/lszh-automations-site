@@ -757,3 +757,14 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 - **Firestore-Projektmetrik** `firestore.googleapis.com/document/read_ops_count`: 1'590 erfolgreiche Dokumentlesevorgaenge, 3 Datenserien, 171 Messpunkte. Projekt-/datenbankweite Nutzung, NICHT pro CRM-Suche und NICHT direkt Kosten. Kein kausaler Vorher-nachher-Beweis.
 - **Entscheidungsempfehlung:** Momentan keinen Volltextindex/Index-Backfill oder neuen Cloud-Run-Deploy durchfuehren. Fuer groessere Datenvolumina und belastbarere p95-Metriken spaeter erneut beobachten und bei Bedarf eine isolierte Suchindex-Architektur testen.
 - Keine Mail, Mahnung, Zahlung, Firestore-Schreibaktion oder Traffic-Aenderung durch Messung. Der Nutzer gab vollstaendige anonymisierte Konsolenausgabe bis zur Firestore-Messung; der letzte Abschlusssatz der Ausgabe wurde abgeschnitten.
+
+
+### 25.10.2026 – Offerten- und Vertragsversand: Bestandsprüfung abgeschlossen (READ-ONLY)
+
+- Neues Review-Dokument: [LSZH_CRM_VERTRAGSVERSAND_BESTANDSAUFNAHME_20261025.md](./LSZH_CRM_VERTRAGSVERSAND_BESTANDSAUFNAHME_20261025.md). Basis: aktueller CRM-V2-Quellcode, verbundenes Make-Szenario **8144117** und historische RC1-/AVV-/Annahme- und Archiv-STAGING-Nachweise.
+- **Aktuell produktiv:** CRM V2 manuelle Offerte mit genau **einer PDF-Anlage** via Make/Gmail; Live-Make-Szenario 8144117 aktiv, Webhook-Trigger, Gmail-Verbindung `ok`, Receipt mit Event-/Message-ID. Gesicherte Send-Reservierung und keine automatische Wiederholung bei unklarer Zustellung.
+- **Nicht integriert:** Projektbedingungen/AVV als 2-/3-Dokumenten-Versandpaket; Firestore-geführte, revisionsgebundene Online-Kundenannahme mit Annahmenachweis; bisherige Portal-/Airtable-/Drive-Testpfade sind getrennt. Historische Make-7m-Szenarien beim aktuellen Team-Listing nicht gefunden, Ist-Status daher nicht neu bestätigt.
+- **Wichtige Vertragslogik:** CRM-Offerte und Mail sind ausdrücklich **unverbindlich** und verlangen eine separate schriftliche Auftragsbestätigung. Kundenannahme darf nicht unmittelbar als CRM `Angenommen`/`Gewonnen` verarbeitet werden; erst nach Nachweis/interner Freigabe und schriftlicher LSZH-Bestätigung.
+- **RC1:** Projektbedingungen und AVV sind weiterhin nur technische/interne Arbeitsfassungen; finale juristische Prüfung vor Kundeneinsatz offen. Die Geschäftseckwerte D1–D3 sind bereits festgelegt und werden **nicht erneut abgefragt**.
+- **Architekturentscheidung:** CRM V2/Firestore wird künftig führendes Offerten-/Statussystem, Make/Gmail nur Versand, Geschäfts-Drive dokumentenversioniertes Archiv. Historische Airtable-/Make-Annahmezweige nicht parallel als zweite produktive Wahrheitsquelle anschalten.
+- **Nächster Code-Schritt, noch nicht umgesetzt:** isoliertes Phase-A-Staging für `offerPackage`-Schema, Dokumentversionen/Hashes/AVV-Gating/Zustandsübergänge und Regressionstests. Keine Änderung am Live-CRM, keine Kundenmail und keine Vertragsannahme durch diese Prüfung.

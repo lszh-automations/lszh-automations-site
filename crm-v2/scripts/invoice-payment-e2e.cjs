@@ -156,7 +156,18 @@ async function main(){
     // In emulator only, click the UI's operator-confirmation after a
     // simulated *external* reminder; this never makes a network mail send.
     await page.locator('#invoiceLogReminder').click();
-    await page.waitForFunction(()=>document.querySelector('#invoiceReminderHistory')?.textContent?.includes('Zahlungserinnerung ·'));
+    try {
+      await page.waitForFunction(()=>document.querySelector('#invoiceReminderHistory')?.textContent?.includes('Zahlungserinnerung ·'),null,{timeout:15000});
+    }catch(err){
+      console.error('TEST_ONLY REMINDER UI DIAGNOSTIC',JSON.stringify({
+        history:await page.locator('#invoiceReminderHistory').textContent(),
+        notice:await page.locator('#invoiceReminderNotice').textContent(),
+        hidden:await page.locator('#invoiceReminderActions').evaluate(x=>x.hidden),
+        stageHistory:(await store.get('rechnungen',invoice.id)).reminderHistory,
+        browserErrors:errors
+      }));
+      throw err;
+    }
     const reminderPath='/api/records/rechnungen/'+invoice.id+'/reminders';
     const invoiceDoc=db.collection('lszh_crm_v2_staging_rechnungen').doc(invoice.id);
     let firstReminder=(await store.get('rechnungen',invoice.id)).reminderHistory[0];

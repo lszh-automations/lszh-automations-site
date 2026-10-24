@@ -79,10 +79,10 @@ function Http([string]$url) {
   }
 }
 function CheckFrontend([string]$base) {
-  $home=Http ($base.TrimEnd('/')+'/')
-  if([int]$home.StatusCode -ne 200 -or [string]$home.Content -notmatch 'id="invoicePaymentsPanel"' -or
-    [string]$home.Content -notmatch 'id="invoiceReminderPanel"' -or
-    [string]$home.Content -notmatch 'id="invoicePdf"') {
+  $homepageResponse=Http ($base.TrimEnd('/')+'/')
+  if([int]$homepageResponse.StatusCode -ne 200 -or [string]$homepageResponse.Content -notmatch 'id="invoicePaymentsPanel"' -or
+    [string]$homepageResponse.Content -notmatch 'id="invoiceReminderPanel"' -or
+    [string]$homepageResponse.Content -notmatch 'id="invoicePdf"') {
     throw ('Invoice payment/reminder/PDF frontend not available at '+$base)
   }
   $config=Invoke-RestMethod -Uri ($base.TrimEnd('/')+'/api/config') -Method GET -TimeoutSec 30

@@ -63,6 +63,7 @@ jobs:
               exit 1
             }
             Write-Host "CRM SEARCH POWERSHELL PARSER PASS: $path"
+          }
       - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
         shell: powershell
         run: |
@@ -84,4 +85,3 @@ jobs:
             throw 'HTTP statuses were grouped rather than decoded per request'
           }
           Write-Host 'CRM TELEMETRY WINDOWS JSON FLATTEN PASS'
-          }

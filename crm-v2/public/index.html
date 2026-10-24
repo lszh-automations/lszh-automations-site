@@ -520,8 +520,7 @@ function dashboardStats(records){
   const invoices=records.rechnungen||[];
   const projects=records.projekte||[];
   const openOffers=offers.filter(x=>['Entwurf','Bereit','Versendet'].includes(x.status));
-  const paidInvoices=invoices.filter(x=>x.status==='Bezahlt');
-  const received=x=>Array.isArray(x.paymentHistory)&&x.paymentHistory.length?x.paymentHistory.reduce((n,p)=>n+Number(p.amountCHF||0),0):(x.status==='Bezahlt'?Number(x.amountCHF||0):0);
+  const received=x=>Array.isArray(x.paymentHistory)&&x.paymentHistory.length?x.paymentHistory.reduce((n,p)=>n+(p.voidedAt?0:Number(p.amountCHF||0)),0):(x.status==='Bezahlt'?Number(x.amountCHF||0):0);
   const remaining=x=>Math.max(0,Number(x.amountCHF||0)-received(x));
   const money=value=>Number.isFinite(Number(value))?Math.max(0,Number(value)):0;
   return {
@@ -1680,7 +1679,7 @@ function renderInvoiceReminders(invoice){
   const levels=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
   const due=(Number(invoice.amountCHF||0)-(
     Array.isArray(invoice.paymentHistory)&&invoice.paymentHistory.length?
-    invoice.paymentHistory.reduce((n,p)=>n+Number(p.amountCHF||0),0):invoice.status==='Bezahlt'?Number(invoice.amountCHF||0):0
+    invoice.paymentHistory.reduce((n,p)=>n+(p.voidedAt?0:Number(p.amountCHF||0)),0):invoice.status==='Bezahlt'?Number(invoice.amountCHF||0):0
   ));
   const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey()&&due>0;
   const last=history[history.length-1];
@@ -1714,7 +1713,7 @@ function renderInvoicePayments(invoice){
   if(!invoice)return;
   const total=Math.round(Number(invoice.amountCHF||0)*100);
   const entries=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
-  const received=entries.length?entries.reduce((n,p)=>n+Math.round(Number(p.amountCHF||0)*100),0):(invoice.status==='Bezahlt'?total:0);
+  const received=entries.length?entries.reduce((n,p)=>n+(p.voidedAt?0:Math.round(Number(p.amountCHF||0)*100)),0):(invoice.status==='Bezahlt'?total:0);
   const due=Math.max(0,total-received);
   const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey();
   $('invoicePaymentStatus').textContent=overdue?'Überfällig':invoice.status;
@@ -1724,8 +1723,36 @@ function renderInvoicePayments(invoice){
   if(!entries.length)history.append(el('p','invoice-caption',invoice.status==='Bezahlt'?
     'Alte als bezahlt markierte Rechnung – keine Einzelbuchungen vorhanden.':'Noch keine Zahlungen erfasst.'));
   for(const p of [...entries].reverse()){
-    const row=el('div');row.append(el('span','',p.paidOn+' · '+p.method+(p.reference?' · '+p.reference:'')),
-      el('strong','',invoiceCHF(p.amountCHF)));history.append(row);
+    const row=el('div');
+    const label=el('span','',p.paidOn+' · '+p.method+(p.reference?' · '+p.reference:'')+
+      (p.voidedAt?' · KORRIGIERT ('+p.voidReason+')':''));
+    const amount=el('strong','',invoiceCHF(p.amountCHF));
+    if(p.voidedAt){amount.style.textDecoration='line-through';amount.style.opacity='.65';}
+    row.append(label,amount);
+    if(!p.voidedAt&&invoice.invoiceDispatchState==='confirmed'&&
+       ['Bezahlt','Teilbezahlt'].includes(invoice.status)){
+      const fix=el('button','btn','Korrigieren');fix.type='button';
+      fix.addEventListener('click',async()=>{
+        const reason=window.prompt('Korrekturgrund (mindestens 8 Zeichen):');
+        if(reason===null)return;
+        if(reason.trim().length<8){window.alert('Bitte den Korrekturgrund genauer dokumentieren.');return;}
+        if(!window.confirm('Buchung '+invoiceCHF(p.amountCHF)+' für '+invoice.number+
+          ' wirklich korrigieren? Die Originalbuchung bleibt im Audit erhalten.'))return;
+        fix.disabled=true;
+        try{
+          const reversalId=fix.dataset.reversalId||(window.crypto?.randomUUID?.()||'');
+          fix.dataset.reversalId=reversalId;
+          await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/payments/reverse',{
+            method:'POST',body:JSON.stringify({paymentId:p.paymentId,reversalId,reason:reason.trim()})
+          });
+          await reopenSavedInvoice(invoice.id);
+        }catch(error){
+          window.alert('Korrektur unklar: '+error.message+
+            '\nBitte Buchungshistorie kontrollieren, bevor du erneut korrigierst.');
+        }finally{fix.disabled=false;}
+      });row.append(fix);
+    }
+    history.append(row);
   }
   entry.hidden=!(invoice.invoiceDispatchState==='confirmed'&&['Offen','Teilbezahlt'].includes(invoice.status)&&due>0);
   if(!entry.hidden){

@@ -747,3 +747,13 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 - Interpretation: Alle Such-/Dashboard-Fehler entsprechen HTTP-Zugriffsverweigerungen 401/403 und sind mit Auth-Sicherheitsproben vereinbar; keine ausgewiesenen 5xx. Such-/Dashboard-Latenzen im Live noch nicht messbar (0 erfolgreiche authentifizierte Abfragen). Keine kausale Performance- oder Kosteneinsparung aus unkontrolliertem Vorher-/Nachher-Vergleich behaupten.
 - Naechster Schritt: Nutzer normal im produktiven CRM anmelden, Dashboard laden, bestehende Kunden/Leads suchen und Statusfilter ohne Datenmutation setzen, dann Messskript read-only erneut mit Hours=1 ausfuehren. Ggf. den Status der GET-Route /api/cockpit/summary im Browser pruefen; nie Bearer-Token, private Suchbegriffe oder Kundendaten teilen.
 - Live unveraendert 00065 bei 100%; kein Index/Deployment/Firestore-Schreibvorgang freigegeben.
+
+
+### 25.10.2026 – CRM V2 authentifizierter 1h-Latenzbericht erfolgreich
+
+- Benutzer meldete beim Ausführen der rein lesenden PowerShell-Messung `Reauthentication required` bei Google Cloud CLI; nach Passworteingabe `Reauthentication successful`. Dies betraf die `gcloud`-Anmeldung fuer Monitoring, nicht automatisch den Google-OAuth-Login des CRM.
+- **Messfenster UTC 2026-10-24T22:49:08Z bis 2026-10-24T23:49:08Z**, produktiv `lszh-crm-v2-00065-xuk` (100%), Rollback `lszh-crm-v2-00063-baz`.
+- **Live Messwerte:** Suche/Statusfilter 5 erfolgreiche HTTP-Requests, 0 Fehler, p50=15 ms, p95=17 ms (p95 bei n=5 statistisch schwach); Register-Paginierung 127 erfolgreiche Requests, 0 Fehler, p50=16 ms, p95=30 ms; Dashboard 1 erfolgreicher Request, 0 Fehler, p50/p95=51 ms (n=1 nicht aussagekraeftig). Alte Revision 00063 hatte in diesem Stundenfenster 0 passende Requests.
+- **Firestore-Projektmetrik** `firestore.googleapis.com/document/read_ops_count`: 1'590 erfolgreiche Dokumentlesevorgaenge, 3 Datenserien, 171 Messpunkte. Projekt-/datenbankweite Nutzung, NICHT pro CRM-Suche und NICHT direkt Kosten. Kein kausaler Vorher-nachher-Beweis.
+- **Entscheidungsempfehlung:** Momentan keinen Volltextindex/Index-Backfill oder neuen Cloud-Run-Deploy durchfuehren. Fuer groessere Datenvolumina und belastbarere p95-Metriken spaeter erneut beobachten und bei Bedarf eine isolierte Suchindex-Architektur testen.
+- Keine Mail, Mahnung, Zahlung, Firestore-Schreibaktion oder Traffic-Aenderung durch Messung. Der Nutzer gab vollstaendige anonymisierte Konsolenausgabe bis zur Firestore-Messung; der letzte Abschlusssatz der Ausgabe wurde abgeschnitten.

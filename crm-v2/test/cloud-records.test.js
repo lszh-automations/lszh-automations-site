@@ -641,11 +641,14 @@ test('all three manual reminder stages: strict sequence, 7-day boundary, immutab
   },admin),{status:409});
   await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
   await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
+  // The fake transaction replaces the stored record object at each commit;
+  // always refetch it after a reminder write before manipulating synthetic time.
+  const saved=()=>db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id);
   // Just below seven full 24-hour periods: forbidden.
-  raw.reminderHistory[0].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  saved().reminderHistory[0].at=new Date(Date.now()-7*86400000+120000).toISOString();
   await assert.rejects(store.recordInvoiceReminder(invoice.id,second,admin),{status:409});
   // Just above seven full 24-hour periods: allowed.
-  raw.reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  saved().reminderHistory[0].at=new Date(Date.now()-7*86400000-120000).toISOString();
   const afterSecond=await store.recordInvoiceReminder(invoice.id,second,admin);
   assert.deepEqual(afterSecond.reminderHistory.map(x=>x.kind),['Zahlungserinnerung','1. Mahnung']);
   assert.equal(afterSecond.reminderHistory[1].by,admin.email);
@@ -655,9 +658,9 @@ test('all three manual reminder stages: strict sequence, 7-day boundary, immutab
   assert.equal(afterSecond.lastReminderKind,'1. Mahnung');
   assert.equal((await store.recordInvoiceReminder(invoice.id,second,admin)).reminderHistory.length,2);
   await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
-  raw.reminderHistory[1].at=new Date(Date.now()-7*86400000+120000).toISOString();
+  saved().reminderHistory[1].at=new Date(Date.now()-7*86400000+120000).toISOString();
   await assert.rejects(store.recordInvoiceReminder(invoice.id,third,admin),{status:409});
-  raw.reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
+  saved().reminderHistory[1].at=new Date(Date.now()-7*86400000-120000).toISOString();
   const afterThird=await store.recordInvoiceReminder(invoice.id,third,admin);
   assert.deepEqual(afterThird.reminderHistory.map(x=>x.kind),[
     'Zahlungserinnerung','1. Mahnung','2. Mahnung'

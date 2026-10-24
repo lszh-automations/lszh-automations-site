@@ -736,3 +736,14 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 - **Interpretation:** Die im neuen Release beobachteten Register-p50/p95 sind 22/38 ms vs 26/51 ms in der Vorversion (ca. 15% bzw. 25% niedriger); wegen unterschiedlicher Zeitraeume/Lastprofile **keine kausale Leistungsverbesserung beweisen**. Kein Nachweis fuer Dashboard- oder freie Volltextsuchbeschleunigung, da in neuer Revision keine erfolgreichen authentifizierten Anfragen im Messfenster erfasst wurden.
 - **Naechster Schritt:** Nur lesende, authentifizierte CRM-Bedienung (Dashboard oeffnen, Kunden/Leads suchen, Status filtern); danach erneute Messung ueber 1 Stunde und Bewertung der Auth-/API-Fehlerklassen. Bestehende Produktionskonfiguration, Cloud Run und Kundendaten NICHT aendern.
 - Telemetrie-Skript `scripts/measure-crm-read-performance.ps1` um **nur aggregierte HTTP-Fehlerklassen** ergaenzt: erwartete 401/403 vs sonstige 4xx vs 5xx; keine Roh-URL/Token-/Suchwortausgabe. Neuer Regressionstest im CRM-Suite hinzugefuegt. Diese neuesten Aenderungen sind noch nicht durch den Nutzer lokal getestet. GitHub-Branch `feature/crm-v2-read-performance-20261024`.
+
+
+### 24.10.2026 – 1h Performance- und HTTP-Fehlerklassenbericht
+
+- Betreiberprotokoll: **148/148 Node-Tests PASS**, rein lesendes Messskript mit Hours=1 vollstaendig erfolgreich. Messfenster UTC 2026-10-24 20:37:13 bis 21:37:13.
+- Live Revision `lszh-crm-v2-00065-xuk` (100%): Register n=68, p50=22 ms, p95=38 ms, 0 Fehler; Suche/Filter 0 erfolgreiche, 3x HTTP 401/403, 0 sonstige 4xx/5xx; Dashboard 0 erfolgreiche, 3x HTTP 401/403, 0 sonstige 4xx/5xx.
+- Vorherige Revision `lszh-crm-v2-00063-baz`: Register n=56, p50=25 ms, p95=45 ms, 1x 401/403; Suche/Filter 0 erfolgreiche, 3x 401/403; Dashboard 1 erfolgreiche, p50/p95=96 ms, 3x 401/403. Dashboard p95 bei n=1 nicht statistisch aussagekraeftig.
+- Projekt-/datenbankweite Firestore-Metrik: firestore.googleapis.com/document/read_ops_count = 1'618 erfolgreiche Dokumentlesevorgaenge in 1 Stunde, 3 Serien, 171 Messpunkte. Nicht einzelnen CRM-Requests oder Kosten zurechenbar.
+- Interpretation: Alle Such-/Dashboard-Fehler entsprechen HTTP-Zugriffsverweigerungen 401/403 und sind mit Auth-Sicherheitsproben vereinbar; keine ausgewiesenen 5xx. Such-/Dashboard-Latenzen im Live noch nicht messbar (0 erfolgreiche authentifizierte Abfragen). Keine kausale Performance- oder Kosteneinsparung aus unkontrolliertem Vorher-/Nachher-Vergleich behaupten.
+- Naechster Schritt: Nutzer normal im produktiven CRM anmelden, Dashboard laden, bestehende Kunden/Leads suchen und Statusfilter ohne Datenmutation setzen, dann Messskript read-only erneut mit Hours=1 ausfuehren. Ggf. den Status der GET-Route /api/cockpit/summary im Browser pruefen; nie Bearer-Token, private Suchbegriffe oder Kundendaten teilen.
+- Live unveraendert 00065 bei 100%; kein Index/Deployment/Firestore-Schreibvorgang freigegeben.

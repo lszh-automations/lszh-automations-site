@@ -393,7 +393,7 @@ test('emulator C3.5: exact OAuth mailbox identity gates read-only SENT evidence 
   }};
   const service=createC35DemoGmailReadback({
     db,signingSecret:SECRET,authClient,expectedMailbox:mailbox,
-    allowedRecipients:[TEST_RECIPIENT],now:()=>f.now
+    approvedSenders:[mailbox],allowedRecipients:[TEST_RECIPIENT],now:()=>f.now
   });
   assert.deepEqual(Object.keys(service).sort(),[
     'inspect','reconcile','verifyMailbox'

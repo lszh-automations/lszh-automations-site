@@ -65,14 +65,14 @@ function createC35GmailApiReadOnlyAdapter({
   return Object.freeze({verifyMailbox,getMessage,getAttachment});
 }
 function createC35ReadOnlyGmailVerifier({
-  authClient,expectedMailbox,allowedRecipients,timeoutMs
+  authClient,expectedMailbox,approvedSenders,allowedRecipients,timeoutMs
 }={}){
   const read=createC35GmailApiReadOnlyAdapter({
     authClient,expectedMailbox,timeoutMs
   });
   const verifier=createC34GmailReadOnlyVerifier({
     getMessage:read.getMessage,getAttachment:read.getAttachment,
-    allowedSenders:[expectedMailbox],allowedRecipients
+    allowedSenders:approvedSenders,allowedRecipients
   });
   return Object.freeze({
     verifyMailbox:read.verifyMailbox,
@@ -82,7 +82,7 @@ function createC35ReadOnlyGmailVerifier({
 // Emulator-only glue for repeatable transaction tests. Exports no send,
 // reservation, login or production Firestore methods.
 function createC35DemoGmailReadback({
-  db,signingSecret,authClient,expectedMailbox,allowedRecipients,
+  db,signingSecret,authClient,expectedMailbox,approvedSenders,allowedRecipients,
   now,timeoutMs
 }={}){
   const read=createC35GmailApiReadOnlyAdapter({
@@ -90,7 +90,7 @@ function createC35DemoGmailReadback({
   });
   const ledger=createC34DemoGmailReadbackLedger({
     db,signingSecret,getMessage:read.getMessage,getAttachment:read.getAttachment,
-    allowedSenders:[expectedMailbox],allowedRecipients,now
+    allowedSenders:approvedSenders,allowedRecipients,now
   });
   return Object.freeze({
     verifyMailbox:read.verifyMailbox,

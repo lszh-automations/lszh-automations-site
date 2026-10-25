@@ -232,6 +232,10 @@ function c33Preflight(db,f){
 }
 test('emulator C3.3: full 3-PDF preflight rejects damaged AVV before atomic reservation, then locks safely',async()=>{
   const f=fixture({avv:'yes'}),db=database();
+  // The shared fixture starts an async manifest approval immediately. Settle it
+  // BEFORE mutating archive bytes, or that unrelated Promise can reject outside
+  // assert.rejects() and create a false negative / unhandled rejection.
+  await f.manifest;
   const {preflight,approval}=c33Preflight(db,f);
   const key=f.pkg.documents[2].archiveFileId;
   const original=f.binary[key];
@@ -255,6 +259,7 @@ test('emulator C3.3: full 3-PDF preflight rejects damaged AVV before atomic rese
 });
 test('emulator C3.3: two independent full-preflight workers reserve only once and block new revision',async()=>{
   const f=fixture(),db1=database(),db2=database();
+  await f.manifest; // Never leave the fixture's background approval unsettled.
   const a=c33Preflight(db1,f),b=c33Preflight(db2,f);
   const results=await Promise.allSettled([
     a.preflight.reserveForReview(f.pkg,a.approval),
@@ -263,6 +268,7 @@ test('emulator C3.3: two independent full-preflight workers reserve only once an
   assert.deepEqual(results.map(x=>x.status).sort(),['fulfilled','rejected']);
   assert.equal((await recordsForOffer(db1,f.pkg.offerId)).length,2);
   const revised=fixture({offerId:f.pkg.offerId,revision:2});
+  await revised.manifest;
   const next=c33Preflight(db2,revised);
   await assert.rejects(next.preflight.reserveForReview(revised.pkg,next.approval),
     /offer locked/);

@@ -7,8 +7,11 @@ on:
       - feature/crm-v2-offer-contract-package-staging-20261025
       - feature/crm-v2-contract-package-mail-staging-20261025
       - feature/crm-v2-contract-release-ledger-staging-20261025
+      - feature/crm-v2-contract-firestore-emulator-20261025
     paths:
       - "crm-v2/**"
+      - "firebase.json"
+      - "scripts/test-crm-contract-firestore-emulator.ps1"
       - "scripts/*crm-search*.ps1"
       - "scripts/*crm-read-performance*.ps1"
       - "scripts/measure-crm-read-performance.ps1"
@@ -49,6 +52,7 @@ jobs:
           node --check crm-v2/contract-dispatch-release-staging.js
           node --check crm-v2/contract-dispatch-ledger-staging.js
           node --check crm-v2/test/contract-dispatch-phase-c.test.js
+          node --check crm-v2/emulator-tests/contract-dispatch-firestore.test.js
           node - <<'NODE'
           const fs=require('node:fs');
           const html=fs.readFileSync('crm-v2/public/index.html','utf8');
@@ -99,3 +103,34 @@ jobs:
             throw 'HTTP statuses were grouped rather than decoded per request'
           }
           Write-Host 'CRM TELEMETRY WINDOWS JSON FLATTEN PASS'
+
+  contract-firestore-emulator:
+    name: Contract dispatch ledger / local Firestore emulator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: crm-v2/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install CRM dependencies only
+        run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Verify demo-only emulator config and test script
+        run: |
+          node --check crm-v2/emulator-tests/contract-dispatch-firestore.test.js
+          node -e "const f=require('./firebase.json');if(f.emulators.firestore.host!=='127.0.0.1'||f.emulators.firestore.port!==8788)process.exit(1)"
+      - name: Run actual Firestore emulator transaction tests (no cloud credentials)
+        env:
+          GCLOUD_PROJECT: demo-lszh-contract-dispatch-20261025
+          GOOGLE_CLOUD_PROJECT: demo-lszh-contract-dispatch-20261025
+          FIREBASE_PROJECT_ID: demo-lszh-contract-dispatch-20261025
+        run: |
+          npx --yes firebase-tools@15.1.0 emulators:exec --only firestore --project demo-lszh-contract-dispatch-20261025 "node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js"

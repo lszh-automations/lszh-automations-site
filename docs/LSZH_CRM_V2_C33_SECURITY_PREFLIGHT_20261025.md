@@ -38,3 +38,12 @@ Zuerst Node-Tests lokal ausführen (erwartete Gesamtzahl 240 = 230 bisher + 10 n
 - npm.cmd test --prefix .\crm-v2
 
 Falls Tests fehlschlagen: keine Staging-Aktivierung; Fehler vor weiteren Schritten prüfen. Danach optional den bereits bekannten Firestore-Emulatortest wiederholen; niemals produktive Firestore-Daten verwenden. Erst nach verifizierten PASS-Ergebnissen kann ein weiteres separates TEST_ONLY-Transportgate entworfen und mit ausdrücklicher Freigabe einer konkreten Sender-/Empfänger-Kombination für einen realen Test vorbereitet werden.
+
+
+### 25.10.2026 – C3.3 Betreiberabnahme: 240/240 Node-Tests PASS
+
+- Betreiber hat auf dem Branch `feature/crm-v2-contract-c33-safety-preflight-20261025` erfolgreich `git fetch origin`, `git switch --track origin/feature/crm-v2-contract-c33-safety-preflight-20261025` und `npm.cmd test --prefix .\crm-v2` ausgeführt.
+- **240/240 PASS**, **0 FAIL**, **0 SKIP**, **0 CANCELLED**; die zehn neuen C3.3-Sicherheitstests sind einzeln als PASS protokolliert: 2-/3-PDF-Pflichtfelder/AVV, abgewiesene unklare AVV-Einstufung, nicht autorisierter Testempfänger/Operator, veraltete Freigabe, manipulierte Archiv-PDFs, gleichzeitige und wiederholte Reservierungsversuche, Offerten-Revisionswechsel, widersprüchliche Ledger-Quittung, unvollständige Vertrauenskonfiguration und Isolierung der produktiven Routen. Testlauf ca. 1,18 Sekunden.
+- Das Protokoll ist eine **lokale Node-/FakeDb-Regression des neu verketteten C3.3-Preflights**. Der zuvor bestätigte Firestore-Emulatorstand **7/7 PASS** bezieht sich auf C2/C3.2; die neue C3.3-End-to-End-Verkettung wurde bislang **nicht erneut im echten Firestore-Emulator** geprüft. Kein Gmail-Transport, keine echte SENT-Readback-Prüfung, keine Prüfung produktiver Firestore-IAM-Regeln und keine rechtliche RC1-/AVV-Endfreigabe.
+- **Betriebsgrenze bleibt unverändert:** C3.3 antwortet nur mit `sendPermitted=false`, `transmitted=false`, `provider=NONE`, `messageId=null`. Kein C3.2-Make-Webhook, kein Gmail-Modul und kein produktiver Kundenversand auf Grund dieses Testlaufs aktiviert.
+- **Nächster sicherer Schritt:** C3.3-Verkettung mit einem neuen lokalen Demo-Firestore-Emulatortest (Freigabe → PDF-Prüfungen → atomare Lock-Reservierung; parallel, AVV, Negative Cases) verifizieren. Erst danach gesondert und mit ausdrücklich freigegebener Sender-/Testempfängeradresse über eine isolierte TEST_ONLY-Gmail-Strecke entscheiden. Keine automatische Wiederholung nach unklarem Versand.

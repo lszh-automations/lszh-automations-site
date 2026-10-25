@@ -47,3 +47,6 @@ Dieser Abschnitt ist eine **gesicherte Zielkonfiguration**, keine Aufforderung, 
 | Vertragliche/juristische Schlussabnahme, Make- und produktiver Kundenversand | **NICHT freigegeben** |
 
 Google-Hinweise: https://developers.google.com/workspace/gmail/api/auth/web-server ; https://cloud.google.com/run/docs/configuring/services/secrets ; https://cloud.google.com/iam/docs/best-practices-service-accounts .
+
+
+**C3.7 CI-Abnahme 25.10.2026:** GitHub Actions-Lauf [40194138028](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40194138028) auf Commit `6b2ebeba7b7dec024dfdfdcfa027a1def6f9dfc8`: **292/292 Node-Tests PASS, 0 FAIL**, **12/12 lokale Firestore-Emulatortests PASS, 0 FAIL**, JavaScript-Parser und Windows PowerShell Parser PASS. Alle drei CI-Jobs erfolgreich. Der C3.7-Code ist **isoliert/offline getestet**, nicht live bereitgestellt, und der reale Google OAuth Refresh-Token-/Secret-Manager-Prozess bleibt explizit OFFEN. Die zuvor bestätigte echte C3.6-Online-OAuth-Identität ersetzt diesen Offline-Consent nicht.

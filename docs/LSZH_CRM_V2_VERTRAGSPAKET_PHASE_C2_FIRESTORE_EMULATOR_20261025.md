@@ -50,3 +50,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\test-crm-cont
 Bei 204/204 regulären Node-Tests und 6/6 Emulator-Tests wird Phase C.2 als technisch bestanden dokumentiert; danach folgt Phase C.3: separater Testmailversand mit autorisierter Empfänger-Allowlist und nachweislichem Gmail-Receipt, nur nach ausdrücklicher Freigabe der konkreten Zieladresse. Die bestehende Live-Sendestrecke bleibt unverändert.
 
 **Freigabegrenzen bleiben:** Vertragsbedingungen RC1/AVV RC1 einschliesslich Anlagen A–C vor externem Einsatz rechtlich/inhaltlich endprüfen; echtes Google-Drive-Archiv-/Dienstkonto, operative Rollen, Gmail-Provider-Review und 0%-Deployment vor Kundeneinsatz nachweisen.
+
+
+### 25.10.2026 – C.2 Node-Suite PASS, echter Emulator-Lauf lokal durch fehlendes Java 21 blockiert
+
+- Nutzer auf Surface, Branch `feature/crm-v2-contract-firestore-emulator-20261025`: `npm.cmd test --prefix .\crm-v2` **204/204 PASS**, 0 Fehler, 0 Skip. Enthält 3 neue Emulator-Sicherheits-Tests.
+- `scripts/test-crm-contract-firestore-emulator.ps1` **vor Emulator-Start** mit `JDK 21+ required for the Firestore emulator. No emulator started.` beendet (Zeile 14: `java.exe` für PowerShell nicht auffindbar). **6 echte Firestore-Emulator-Tests noch nicht ausgeführt/bestätigt.** Kein produktiver GCP-Zugriff und kein Gmail-Send durch diesen Versuch.
+- Microsofts Windows-Java-Anleitung und die Firebase-CLI-15-Anforderungen bestätigen Java 21+. Nächster Operator-Schritt: `winget install --id EclipseAdoptium.Temurin.21.JDK --exact` (alternativ `winget install Microsoft.OpenJDK.21`); danach **PowerShell neu öffnen**, `java -version` und `javac -version` prüfen und `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\test-crm-contract-firestore-emulator.ps1"` erneut starten.
+- Falls Java installiert, aber nicht gefunden: System-PATH / `JAVA_HOME` kontrollieren; keinen Cloud-/Make-Workaround nutzen. Ziel unverändert sechs echte Transaktions-Tests ausschliesslich mit lokalem Emulator und Demo-Project `demo-lszha-c2-20261025` auf `127.0.0.1:8788`.

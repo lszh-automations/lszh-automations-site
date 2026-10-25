@@ -92,7 +92,8 @@ function createContractDispatchLedger(db,config={}){
          'provider','messageId'
        ].includes(k))||
        receipt.ok!==true||receipt.eventId!==eventId||
-       receipt.provider!=='gmail'||!MESSAGE.test(receipt.messageId||''))
+       receipt.provider!=='gmail'||typeof receipt.messageId!=='string'||
+       !MESSAGE.test(receipt.messageId))
       throw blocked('Gmail receipt has invalid structure');
     // Authenticate provider evidence OUTSIDE Firestore transactions: a
     // transaction callback can be rerun by Firestore on contention.

@@ -53,9 +53,9 @@ Ergebnis: `schemaVersion:1`, deterministische `packageId` (`pkg_<offerId>_r<revi
 
 ## 3. Tests und Deployment-Sperre
 
-Neue Testdatei: `crm-v2/test/offer-contract-package.test.js`, 12 Szenarien inkl. Zwei-/Drei-PDF-Pakete, AVV-Ja/Nein/Prüfen, doppelte/gefälschte Hashes, manipulierte IDs, Pfadangriffe, Byte-Integrität, Mail-Receipt-Korrelation, unklarer Versand ohne Autoretry, getrennte interne Prüfung und schriftliche LSZH-Bestätigung. Bestehende Tests unverändert.
+Neue Testdatei: `crm-v2/test/offer-contract-package.test.js`, 13 Szenarien inkl. Zwei-/Drei-PDF-Pakete, AVV-Ja/Nein/Prüfen, doppelte/gefälschte Hashes, manipulierte IDs, Pfadangriffe, Byte-Integrität, Mail-Receipt-Korrelation, unklarer Versand ohne Autoretry, getrennte interne Prüfung und schriftliche LSZH-Bestätigung. Bestehende Tests unverändert. Zusätzlicher Test: das neue Staging-Modul darf in `server.js`, `offer-send.js` und `cloud-records.js` nicht importiert werden.
 
-CI-Workflow `.github/workflows/crm-v2-search-ci.yml` enthält den neuen isolierten Branch und führt `npm test --prefix crm-v2` sowie `node --check` des neuen Bausteins/Tests aus. **Ausführungsergebnis in diesem Hand-off noch nicht gesichert**; nicht als PASS ausgeben, bevor CI oder der Betreiber die Tests tatsächlich ausgeführt und bestätigt hat.
+CI-Workflow `.github/workflows/crm-v2-search-ci.yml` enthält den neuen isolierten Branch und führt `npm test --prefix crm-v2` sowie `node --check` des neuen Bausteins/Tests aus. **Echte Node-/CI-Ausführung in diesem Hand-off noch nicht gesichert**; reine V8-Syntaxprüfung der zwei neuen Dateien PASS und ein isolierter funktionaler Trockenlauf der ersten 12 Testfälle mit ersetzter Hash-/Buffer-Implementierung PASS (kein Ersatz für Node/crypto/CI); nicht als PASS ausgeben, bevor CI oder der Betreiber die Tests tatsächlich ausgeführt und bestätigt hat.
 
 Operator (lokaler GitHub-Checkout, **nur Tests**, keine Cloud-/Make-Aktionen):
 

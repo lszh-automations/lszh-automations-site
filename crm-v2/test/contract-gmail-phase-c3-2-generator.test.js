@@ -61,3 +61,26 @@ test('C3.2 PowerShell harness never exposes hook and cannot interpret 200 as sen
   assert.doesNotMatch(code,/Write-Host\s*\$hook\b/);
   assert.doesNotMatch(code,/gcloud\.cmd|gmail\.send|google-email:sendAnEmail|firebase deploy/);
 });
+
+
+test('C3.2 blocked webhook PowerShell script passes Windows PowerShell 5.1 parser offline',()=>{
+  const source=fs.readFileSync(PS,'utf8');
+  // Catch the precise malformed if(... )throw pattern even on Linux CI.
+  assert.doesNotMatch(source,/\bif\s*\(\$status\s+-ne\s+200\)\s*throw\b/i);
+  assert.match(source,/if\s*\(\$status\s+-ne\s+200\)\s*\{\s*throw\b/i);
+  if(process.platform!=='win32')return;
+  const escapedPath=PS.replace(/'/g,"''");
+  const parseCommand=[
+    "$tokens=$null;$errors=$null;",
+    "[System.Management.Automation.Language.Parser]::ParseFile('"+escapedPath+"',",
+    "[ref]$tokens,[ref]$errors)|Out-Null;",
+    "if($errors.Count -gt 0){",
+    "$errors|ForEach-Object {Write-Error $_.Message};exit 1",
+    "};Write-Output 'POWERSHELL_C32_PARSER_PASS'"
+  ].join('');
+  const result=spawnSync('powershell.exe',[
+    '-NoProfile','-NonInteractive','-Command',parseCommand
+  ],{encoding:'utf8',timeout:12000,maxBuffer:300000});
+  assert.equal(result.status,0,result.stderr);
+  assert.match(result.stdout,/POWERSHELL_C32_PARSER_PASS/);
+});

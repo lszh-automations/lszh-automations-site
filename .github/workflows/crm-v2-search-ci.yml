@@ -43,6 +43,8 @@ jobs:
           node --check crm-v2/test/offer-contract-package-preview.test.js
           node --check crm-v2/offer-contract-package-make-mock.js
           node --check crm-v2/test/offer-contract-package-make-mock.test.js
+          node --check crm-v2/scripts/generate-contract-make-learn-sample.cjs
+          node --check crm-v2/test/offer-contract-make-learn-sample.test.js
           node - <<'NODE'
           const fs=require('node:fs');
           const html=fs.readFileSync('crm-v2/public/index.html','utf8');

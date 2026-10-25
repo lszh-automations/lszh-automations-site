@@ -9,6 +9,8 @@ const {digest,prepareOfferPackage}=require('../offer-contract-package');
 const {COLLECTION,PURPOSE,createContractReleaseGate}=require('../contract-dispatch-release-staging');
 const {createContractDispatchLedger}=require('../contract-dispatch-ledger-staging');
 const {createGmailSentEvidenceVerifier}=require('../contract-gmail-evidence-staging');
+const {createGmailTestDraftBuilder}=require('../contract-gmail-draft-staging');
+const {createContractC33SecurityPreflight}=require('../contract-dispatch-preflight-staging');
 
 const HOST='127.0.0.1:8788';
 const PROJECT='demo-lszha-c2-20261025';
@@ -200,4 +202,69 @@ test('emulator C3: ledger confirmation requires independent read-only Gmail SENT
   assert.equal(outcome.state,'confirmed_test_only');
   await assert.rejects(l.confirmVerifiedReceipt(m.eventId,receipt),/finalised/);
   await assert.rejects(l.reserve(m),/already reserved/);
+});
+
+
+function c33Preflight(db,f){
+  const readArchivedPdf=async id=>f.binary[id];
+  const releaseGate=createContractReleaseGate({
+    signingSecret:SECRET,now:()=>f.now,
+    allowedOperators:[OPERATOR],allowedRecipients:[TEST_RECIPIENT],
+    authorizeOperator:async ({operatorEmail,recipient})=>
+      operatorEmail===OPERATOR&&recipient===TEST_RECIPIENT,
+    readArchivedPdf
+  });
+  const draftBuilder=createGmailTestDraftBuilder({
+    signingSecret:SECRET,now:()=>f.now,
+    allowedRecipients:[TEST_RECIPIENT],readArchivedPdf
+  });
+  const preflight=createContractC33SecurityPreflight({
+    releaseGate,draftBuilder,ledger:ledger(db,{now:()=>f.now}),
+    signingSecret:SECRET,allowedRecipients:[TEST_RECIPIENT],
+    now:()=>f.now
+  });
+  const approval={
+    purpose:PURPOSE,recipient:TEST_RECIPIENT,operatorEmail:OPERATOR,
+    approvalId:'approval_c33_'+randomUUID().replace(/-/g,''),
+    approvedAt:new Date(f.now).toISOString()
+  };
+  return {preflight,approval};
+}
+test('emulator C3.3: full 3-PDF preflight rejects damaged AVV before atomic reservation, then locks safely',async()=>{
+  const f=fixture({avv:'yes'}),db=database();
+  const {preflight,approval}=c33Preflight(db,f);
+  const key=f.pkg.documents[2].archiveFileId;
+  const original=f.binary[key];
+  const damaged=Buffer.from(original);damaged[damaged.length-1]^=1;
+  f.binary[key]=damaged;
+  await assert.rejects(preflight.reserveForReview(f.pkg,approval),/SHA-256/);
+  assert.equal((await recordsForOffer(db,f.pkg.offerId)).length,0);
+  f.binary[key]=original;
+  const result=await preflight.reserveForReview(f.pkg,approval);
+  assert.equal(result.state,'reserved');
+  assert.equal(result.sendPermitted,false);
+  assert.equal(result.transmitted,false);
+  assert.equal(result.provider,'NONE');
+  assert.equal(result.messageId,null);
+  assert.equal(result.attachmentCount,3);
+  assert.equal((await preflight.inspectOnly(result.eventId)).status,'reserved');
+  const rows=await recordsForOffer(db,f.pkg.offerId);
+  assert.equal(rows.length,2);
+  for(const row of rows)
+    assert.doesNotMatch(JSON.stringify(row),/contentBase64|dataBase64|JVBERi0|mailHtml/);
+});
+test('emulator C3.3: two independent full-preflight workers reserve only once and block new revision',async()=>{
+  const f=fixture(),db1=database(),db2=database();
+  const a=c33Preflight(db1,f),b=c33Preflight(db2,f);
+  const results=await Promise.allSettled([
+    a.preflight.reserveForReview(f.pkg,a.approval),
+    b.preflight.reserveForReview(f.pkg,b.approval)
+  ]);
+  assert.deepEqual(results.map(x=>x.status).sort(),['fulfilled','rejected']);
+  assert.equal((await recordsForOffer(db1,f.pkg.offerId)).length,2);
+  const revised=fixture({offerId:f.pkg.offerId,revision:2});
+  const next=c33Preflight(db2,revised);
+  await assert.rejects(next.preflight.reserveForReview(revised.pkg,next.approval),
+    /offer locked/);
+  assert.equal((await recordsForOffer(db1,f.pkg.offerId)).length,2);
 });

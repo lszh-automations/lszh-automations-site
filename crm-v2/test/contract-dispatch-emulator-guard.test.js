@@ -31,7 +31,7 @@ test('C2 actual emulator integration suite refuses missing or hostile host, neve
 test('C2 emulator scripts guard demo project and contain no external sends or cloud deploy',()=>{
   const src=fs.readFileSync(suite,'utf8');
   const ps=fs.readFileSync(runner,'utf8');
-  assert.match(src,/demo-lszh-contract-dispatch-20261025/);
+  assert.match(src,/demo-lszha-c2-20261025/);
   assert.match(src,/FIRESTORE_EMULATOR_HOST/);
   assert.match(ps,/firebase-tools@15\.1\.0/);
   assert.match(ps,/Remove-Item Env:\\GOOGLE_APPLICATION_CREDENTIALS/);

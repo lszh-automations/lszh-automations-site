@@ -24,7 +24,7 @@ function equal(a,b){
 function verifyReadOnlyTokenInfo(info,clientId,now=Date.now()){
   // The Gmail /profile endpoint proves identity, NOT the effective OAuth scope.
   // A separate tokeninfo inspection must prove exact audience and narrow scope.
-  if(!info||info.audience!==clientId||!Array.isArray(info.scopes)||
+  if(!info||info.aud!==clientId||!Array.isArray(info.scopes)||
      info.scopes.length!==1||info.scopes[0]!==SCOPE||
      !Number.isFinite(info.expiry_date)||info.expiry_date<=now+30_000)
     throw blocked('C3.6 OAuth audience, expiry or exact readonly scope not verified');

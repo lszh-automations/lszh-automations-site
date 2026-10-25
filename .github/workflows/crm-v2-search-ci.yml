@@ -129,8 +129,8 @@ jobs:
           node -e "const f=require('./firebase.json');if(f.emulators.firestore.host!=='127.0.0.1'||f.emulators.firestore.port!==8788)process.exit(1)"
       - name: Run actual Firestore emulator transaction tests (no cloud credentials)
         env:
-          GCLOUD_PROJECT: demo-lszh-contract-dispatch-20261025
-          GOOGLE_CLOUD_PROJECT: demo-lszh-contract-dispatch-20261025
-          FIREBASE_PROJECT_ID: demo-lszh-contract-dispatch-20261025
+          GCLOUD_PROJECT: demo-lszha-c2-20261025
+          GOOGLE_CLOUD_PROJECT: demo-lszha-c2-20261025
+          FIREBASE_PROJECT_ID: demo-lszha-c2-20261025
         run: |
-          npx --yes firebase-tools@15.1.0 emulators:exec --only firestore --project demo-lszh-contract-dispatch-20261025 "node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js"
+          npx --yes firebase-tools@15.1.0 emulators:exec --only firestore --project demo-lszha-c2-20261025 "node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js"

@@ -74,6 +74,7 @@ function prepareOfferPackage(input){
   const metadata={
     schemaVersion:FORMAT_VERSION,
     packageId:'pkg_'+offerId+'_r'+revision,
+    sendEventId:'contract_send_pkg_'+offerId+'_r'+revision,
     offerId,offerNumber,revision,offerSnapshotSha256,
     avvRequired:input.avvRequired,
     avvAnnexesConfirmed:input.avvAnnexesConfirmed,
@@ -84,7 +85,7 @@ function prepareOfferPackage(input){
 }
 function verifyOfferPackage(pkg){
   exactKeys(pkg,[
-    'schemaVersion','packageId','offerId','offerNumber','revision',
+    'schemaVersion','packageId','sendEventId','offerId','offerNumber','revision',
     'offerSnapshotSha256','avvRequired','avvAnnexesConfirmed',
     'documents','packageSha256','status'
   ],'Paket');
@@ -95,7 +96,8 @@ function verifyOfferPackage(pkg){
     offerSnapshotSha256:pkg.offerSnapshotSha256,avvRequired:pkg.avvRequired,
     avvAnnexesConfirmed:pkg.avvAnnexesConfirmed,documents:pkg.documents
   });
-  if(pkg.packageId!==expected.packageId||pkg.packageSha256!==expected.packageSha256)
+  if(pkg.packageId!==expected.packageId||pkg.sendEventId!==expected.sendEventId||
+     pkg.packageSha256!==expected.packageSha256)
     throw invalid('Paket-ID / Snapshot-Pruefsumme stimmt nicht');
   // The package hash is fixed even when its status changes. Archived bytes,
   // authorisation and receipt evidence are outside this pure model.
@@ -126,6 +128,8 @@ function customerProof(pkg,evidence){
   if(!object(p.documentHashes)||
      Object.keys(p.documentHashes).length!==pkg.documents.length)
     throw invalid('Kundenantwort ohne kompletten Dokumentbezug');
+  if(pkg.avvRequired==='no'&&p.explicitAvvConsent===true)
+    throw invalid('AVV-Zustimmung ohne erforderliche AVV');
   for(const doc of pkg.documents){
     if(p.documentHashes[doc.kind]!==doc.sha256)
       throw invalid('Kundenantwort bezieht sich nicht auf Versandversion');
@@ -143,7 +147,7 @@ function nextOfferPackageState(pkg,event,evidence={}){
   }else if(event==='gmail_receipt_confirmed'&&from==='sending'){
     const p=requireEvidence(evidence);
     if(p.providerReceiptVerified!==true||
-       !/^[A-Za-z0-9_-]{8,160}$/.test(p.eventId||'')||
+       p.eventId!==pkg.sendEventId||
        !/^[A-Za-z0-9_-]{3,200}$/.test(p.messageId||''))
       throw invalid('Bestaetigter Gmail-Receipt fehlt');
     next='sent';

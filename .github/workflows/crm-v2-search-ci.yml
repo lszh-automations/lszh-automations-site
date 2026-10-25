@@ -10,6 +10,7 @@ on:
       - feature/crm-v2-contract-firestore-emulator-20261025
       - feature/crm-v2-contract-gmail-staging-20261025
       - feature/crm-v2-contract-gmail-transport-staging-20261025
+      - feature/crm-v2-contract-c33-safety-preflight-20261025
     paths:
       - "crm-v2/**"
       - "firebase.json"
@@ -60,6 +61,8 @@ jobs:
           node --check crm-v2/test/contract-gmail-phase-c3.test.js
           node --check crm-v2/contract-gmail-make-transport-staging.js
           node --check crm-v2/contract-gmail-api-readonly-staging.js
+          node --check crm-v2/contract-dispatch-preflight-staging.js
+          node --check crm-v2/test/contract-dispatch-c33-preflight.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
           node --check crm-v2/scripts/generate-contract-c3-2-blocked-make-sample.cjs
           node --check crm-v2/test/contract-gmail-phase-c3-2-generator.test.js

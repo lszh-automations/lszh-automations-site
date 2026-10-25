@@ -60,3 +60,23 @@ Das Skript sendet **ausschliesslich an Make zur Webhook-Schema-Erkennung**. Fall
 - **Sperre unverändert:** Modul 2 antwortet mit HTTP **423**, JSON `ok=false`, `STAGING_CONTRACT_NOT_ENABLED`, `transmitted=false`, `provider=NONE`, `messageId=null`. Diese Module führen **keine** externe E-Mail, Cloud-Run- oder Firestore-Aktion aus.
 - **Wichtige Abgrenzung:** Die dynamischen Feldmappings sind in Make **gespeichert und read-only nachgeprüft**, aber **noch nicht tatsächlich ausgeführt**; weder Aggregator-Ausgabe noch 3-PDF-Lauf ist aktuell end-to-end getestet. Kein echtes `Gmail SENT` / kein Empfängerbestätigungstest.
 - **Nächster Testpunkt:** Nach ausdrücklicher technischer Freigabe kann ein isolierter Make-Lauf mit ausschliesslich synthetischen Daten bei gesperrtem HTTP-423-Ausgang folgen; Make-Szenario vorerst nicht aktivieren. Node-Tests nach den neu hinzugefügten 4 Lern-Tests sollten `185/185` ergeben, Betreiberabnahme noch nicht als bestätigt dokumentieren.
+
+
+## 7. 25.10.2026 – Kontrollierter Make-Lauf vorbereitet; nur Staging aktiviert
+
+- Betreiber meldete die Node-Suite im aktuellen Branch **185/185 PASS**, 0 Fail, 0 Skip. Damit sind die 4 Tests zum synthetischen Webhook-Lern-Generator tatsächlich bestanden.
+- Neuer PowerShell-Runner `scripts/smoke-crm-contract-make-staging.ps1`: nimmt ausschliesslich `-Avv no` oder `-Avv yes`, erzeugt die bereits getesteten synthetischen 2/3-PDF-Make-Payloads, kontrolliert `TEST_ONLY`-Kennzeichnungen, AVV-Anzahl/Reihenfolge, festes `preview@example.invalid`, verdeckte Webhook-URL und wertet **nur** HTTP **423** mit exaktem JSON-Denial als gewünschtes Staging-Ergebnis. **HTTP 200 Accepted gilt als NICHT BESTANDEN**, denn inaktive Webhooks können Requests nur speichern. Keine automatische Wiederholung, keine echten Mail-/CRM-Operationen.
+- Sicherheitsregression für den neuen Runner zu `crm-v2/test/offer-contract-make-learn-sample.test.js` hinzugefügt. Insgesamt **186 Tests erwartet, neuer Node-Test noch nicht vom Betreiber ausgeführt**. PDF-Gesamtarchitektur unverändert.
+- Vor der Aktivierung wurde Szenario **8162162** nochmals read-only geprüft: 4 Module ausschliesslich `CustomWebHook → BasicFeeder → BasicAggregator → WebhookRespond`, **0 Gmail-Verbindungen**, Status `inactive`, feste Antwort HTTP 423 `STAGING_CONTRACT_NOT_ENABLED`, `transmitted=false`, `messageId=null`, 0 offene Ausführungen. Danach wurde **ausschliesslich dieses separate Staging-Szenario aktiviert**; erneute Make-Inspektion bestätigte `status=active`, `queued=0`, `learning=false`, 0 Verbindungen. **Produktives Szenario 8144117 nicht angetastet.**
+- Betreiber kann jetzt **genau einen** kontrollierten Smoke-Request ausführen und die **geheim gehaltene Webhook-URL** lokal eingeben:
+
+```powershell
+git pull --ff-only
+npm.cmd test --prefix .\crm-v2
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\smoke-crm-contract-make-staging.ps1" -Avv no
+```
+
+- Der Runner gibt einen expliziten 423-Block als Bestätigung zurück; **dies beweist nicht selbst, ob Feeder und Aggregator erwartungsgemäss liefen**. Danach Make-Run via `scenario_execution_list`, `scenario_execution_inspect` sowie Moduldaten/Counts prüfen: Iterator 2 Operationen, Aggregator 1, WebhookRespond 1, keine Fehler. Kein echtes Gmail-SENT.
+- Bei erfolgreichem ersten Durchgang optional AVV-3-PDF-Variante ausführen (gleicher Befehl `-Avv yes`) und Make-Aggregator erneut prüfen. Danach Staging-Szenario **wieder deaktivieren**, damit es nicht unbegrenzt aktiv bleibt. Nicht automatisch mit echten Kundenunterlagen fortfahren.
+
+**Aktueller Betriebsstatus beim Schreiben:** Szenario 8162162 ist **aktiv** ausschliesslich für den gesperrten Staging-Smoke-Test. Es besitzt weiterhin **keine** Gmail-Verbindung und keinen produktiven CRM-Schreibpfad; keine neuen externen Nachrichten wurden in diesem Schritt verschickt.

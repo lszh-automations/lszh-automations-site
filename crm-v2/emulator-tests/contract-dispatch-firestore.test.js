@@ -10,7 +10,7 @@ const {COLLECTION,PURPOSE,createContractReleaseGate}=require('../contract-dispat
 const {createContractDispatchLedger}=require('../contract-dispatch-ledger-staging');
 
 const HOST='127.0.0.1:8788';
-const PROJECT='demo-lszh-contract-dispatch-20261025';
+const PROJECT='demo-lszha-c2-20261025';
 const SECRET=Buffer.from('TEST_ONLY_EMULATOR_signing_key_very_long_not_a_real_secret_20261025');
 const TEST_RECIPIENT='firestore-test@example.com';
 const OPERATOR='operator-test@example.com';

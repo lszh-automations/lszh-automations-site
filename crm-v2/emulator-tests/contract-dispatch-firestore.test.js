@@ -11,6 +11,7 @@ const {createContractDispatchLedger}=require('../contract-dispatch-ledger-stagin
 const {createGmailSentEvidenceVerifier}=require('../contract-gmail-evidence-staging');
 const {createGmailTestDraftBuilder}=require('../contract-gmail-draft-staging');
 const {createContractC33SecurityPreflight}=require('../contract-dispatch-preflight-staging');
+const {createC34DemoGmailReadbackLedger}=require('../contract-gmail-c34-readback-staging');
 
 const HOST='127.0.0.1:8788';
 const PROJECT='demo-lszha-c2-20261025';
@@ -273,4 +274,94 @@ test('emulator C3.3: two independent full-preflight workers reserve only once an
   await assert.rejects(next.preflight.reserveForReview(revised.pkg,next.approval),
     /offer locked/);
   assert.equal((await recordsForOffer(db1,f.pkg.offerId)).length,2);
+});
+
+
+function c34FakeSent(m,binary){
+  const files=new Map(m.documents.map(d=>{
+    const attachmentId='c34_test_attachment_'+d.kind;
+    return [attachmentId,Buffer.from(binary[d.archiveFileId])];
+  }));
+  const message={
+    id:'emulator_fake_gmail_message_01',labelIds:['SENT'],
+    payload:{
+      headers:[
+        {name:'From',value:'LSZH Automations <test-sender@lszh-automations.ch>'},
+        {name:'To',value:m.recipient},
+        {name:'Subject',value:'[TEST_ONLY] LSZH C3.4 Emulator'},
+        {name:'X-LSZH-Contract-Event',value:m.eventId},
+        {name:'X-LSZH-Package-SHA256',value:m.packageSha256}
+      ],
+      parts:m.documents.map(d=>({
+        filename:d.filename,mimeType:'application/pdf',
+        body:{size:d.bytes,attachmentId:'c34_test_attachment_'+d.kind}
+      }))
+    }
+  };
+  let messages=0,attachments=0;
+  const getMessage=async id=>{
+    messages++;assert.equal(id,message.id);return message;
+  };
+  const getAttachment=async(id,attachmentId)=>{
+    attachments++;assert.equal(id,message.id);
+    const bytes=files.get(attachmentId);
+    return bytes?{data:bytes.toString('base64url'),size:bytes.length}:null;
+  };
+  return {message,files,getMessage,getAttachment,
+    counts:()=>({messages,attachments})};
+}
+test('emulator C3.4: signed AVV preflight then read-only Gmail SENT reconciles 3 byte-perfect PDFs once',async()=>{
+  const f=fixture({avv:'yes'}),m=await f.manifest,db=database();
+  const operator=c33Preflight(db,f);
+  const reserved=await operator.preflight.reserveForReview(f.pkg,operator.approval);
+  assert.equal(reserved.state,'reserved');
+  assert.equal(reserved.sendPermitted,false);
+  const gmail=c34FakeSent(m,f.binary);
+  const service=createC34DemoGmailReadbackLedger({
+    db,signingSecret:SECRET,allowedRecipients:[TEST_RECIPIENT],
+    allowedSenders:['test-sender@lszh-automations.ch'],
+    getMessage:gmail.getMessage,getAttachment:gmail.getAttachment,now:()=>f.now
+  });
+  assert.equal(Object.hasOwn(service,'reserve'),false);
+  assert.equal(Object.hasOwn(service,'send'),false);
+  const original=gmail.files.get('c34_test_attachment_avv');
+  const corrupted=Buffer.from(original);corrupted[corrupted.length-1]^=1;
+  gmail.files.set('c34_test_attachment_avv',corrupted);
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /not independently verified/);
+  assert.equal((await service.inspect(m.eventId)).status,'reserved');
+  gmail.files.set('c34_test_attachment_avv',original);
+  const result=await service.reconcile(m.eventId,providerReceipt(m));
+  assert.equal(result.state,'confirmed_test_only');
+  assert.equal((await service.inspect(m.eventId)).status,'confirmed_test_only');
+  assert.equal(gmail.counts().messages,2);
+  assert.equal(gmail.counts().attachments,6);
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /requires an unresolved/);
+  assert.equal((await recordsForOffer(db,m.offerId)).length,2);
+  await assert.rejects(operator.preflight.reserveForReview(f.pkg,operator.approval),
+    /already reserved/);
+});
+test('emulator C3.4: missing SENT and spoofed recipient cannot confirm reserved 2-PDF attempt',async()=>{
+  const f=fixture(),m=await f.manifest,db=database();
+  const operator=c33Preflight(db,f);
+  await operator.preflight.reserveForReview(f.pkg,operator.approval);
+  const gmail=c34FakeSent(m,f.binary);
+  const service=createC34DemoGmailReadbackLedger({
+    db,signingSecret:SECRET,allowedRecipients:[TEST_RECIPIENT],
+    allowedSenders:['test-sender@lszh-automations.ch'],
+    getMessage:gmail.getMessage,getAttachment:gmail.getAttachment,now:()=>f.now
+  });
+  gmail.message.labelIds=['INBOX'];
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /not independently verified/);
+  gmail.message.labelIds=['SENT'];
+  const to=gmail.message.payload.headers.find(x=>x.name==='To');
+  to.value='unapproved@example.com';
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /not independently verified/);
+  assert.equal((await service.inspect(m.eventId)).status,'reserved');
+  assert.equal((await recordsForOffer(db,m.offerId)).length,2);
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m,{
+    to:'unapproved@example.com'})),/does not match sealed package/);
 });

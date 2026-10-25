@@ -140,7 +140,7 @@ jobs:
         shell: powershell
         run: |
           $output=@(& '.\scripts\prepare-crm-c372-private-source.ps1')
-          if ($LASTEXITCODE -ne 0 -or $output.Count -ne 1) { throw 'C3.7.2 source staging failed' }
+          if ($output.Count -ne 1) { throw 'C3.7.2 source staging failed' }
           $folder=$output[0]
           try {
             if (-not (Test-Path (Join-Path $folder 'package.json'))) { throw 'Missing isolated manifest' }

@@ -84,6 +84,10 @@ test('C3 TEST_ONLY Gmail draft has two actual verified PDF bytes and zero sends'
   const f=fixture(),{manifest,draft}=await f.prepare();
   assert.equal(draft.attachmentCount,2);
   assert.equal(draft.sendMode,'prepare_only');
+  assert.deepEqual(draft.emailHeaders,[
+    {key:'X-LSZH-Contract-Event',value:manifest.eventId},
+    {key:'X-LSZH-Package-SHA256',value:manifest.packageSha256}
+  ]);
   assert.equal(draft.neverSend,true);
   assert.deepEqual(draft.to,[RECIPIENT]);
   assert.deepEqual(draft.attachments.map(a=>a.kind),['offer','terms']);
@@ -142,6 +146,7 @@ test('C3 draft cannot be upgraded to send or changed recipient, order or PDFs',a
     {...draft,sendMode:'production'},
     {...draft,to:['client@example.ch']},
     {...draft,subject:'LSZH Vertragspaket'},
+    {...draft,emailHeaders:[{key:'X-LSZH-Contract-Event',value:'fake'}]},
     {...draft,attachments:[...draft.attachments].reverse()},
     {...draft,attachments:draft.attachments.map((a,i)=>i===0?{
       ...a,dataBase64:a.dataBase64.slice(0,-4)+'AAAA'}:a)}

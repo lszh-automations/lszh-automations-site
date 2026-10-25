@@ -132,7 +132,7 @@ jobs:
         run: npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
       - name: Prove C3.7.1 synthetic secret bytes through mock gcloud.cmd stdin
         shell: powershell
-        run: node crm-v2/test/contract-gmail-c371-windows-transport.test.js
+        run: node --test crm-v2/test/contract-gmail-c371-windows-transport.test.js
       - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
         shell: powershell
         run: |

@@ -78,7 +78,8 @@ test('C3.5 connection checks exact authorised mailbox by Gmail profile GET',asyn
   const check=await f.build().verifyMailbox();
   assert.equal(check.mailbox,ACCOUNT);
   assert.equal(check.scopeRequired,SCOPE);
-  assert.equal(check.readOnly,true);
+  assert.equal(check.getOnlyOperations,true);
+  assert.equal(check.scopeVerified,false);
   assert.deepEqual(f.requests.map(x=>x.url),[ROOT+'/profile']);
   assert.equal(f.requests[0].method,'GET');
 });

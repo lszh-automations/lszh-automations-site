@@ -19,6 +19,21 @@ function safeCode(error,code){
   if(error&&typeof error==='object')error.c36SafeCode=code;
   return error;
 }
+function parseOAuthCallbackParameters(params){
+  // RFC 6749 requires clients to ignore unrecognized response parameters.
+  // Google can include hd/iss/other harmless metadata in addition to code and
+  // state. Reject parameter pollution ONLY for security-bearing fields.
+  if(!(params instanceof URLSearchParams)||
+     ['state','code','error'].some(k=>params.getAll(k).length>1)||
+     (params.has('code')&&params.has('error')))
+    throw safeCode(blocked('C3.6 duplicate or contradictory OAuth callback parameters'),
+      'CALLBACK_PARAMETERS_REJECTED');
+  return {
+    state:params.get('state'),
+    code:params.get('code'),
+    error:params.has('error')?params.get('error'):undefined
+  };
+}
 function shaBase64(value){
   return createHash('sha256').update(value).digest('base64url');
 }
@@ -158,20 +173,12 @@ function startC36LocalCallback({session,onDone,port=PORT}={}){
       send(404,'Nicht verfuegbar.');return;
     }
     completed=true;
-    const keys=[...url.searchParams.keys()];
-    if(keys.some(key=>!['state','code','error','scope','authuser','prompt'].includes(key))||
-       new Set(keys).size!==keys.length){
-      send(400,'OAuth-Antwort ungueltig.');
-      const issue=safeCode(new Error('C3.6 local callback rejected'),
-        'CALLBACK_PARAMETERS_REJECTED');
-      onDone(issue);server.close();return;
-    }
     try{
-      const result=await session.complete({
-        state:url.searchParams.get('state'),
-        code:url.searchParams.get('code'),
-        error:url.searchParams.has('error')?url.searchParams.get('error'):undefined
-      });
+      // Additional Google response parameters are not authorization claims.
+      // Only the state, code and error values reach the one-shot verifier.
+      const result=await session.complete(
+        parseOAuthCallbackParameters(url.searchParams)
+      );
       send(200,'LSZH C3.6: Gmail-Konto und Leserechte geprueft. Keine Tokens gespeichert.');
       onDone(null,result);
     }catch(error){
@@ -191,4 +198,5 @@ function startC36LocalCallback({session,onDone,port=PORT}={}){
   return server;
 }
 module.exports={HOST,PORT,CALLBACK,REDIRECT_URI,SCOPE,
-  verifyReadOnlyTokenInfo,createC36OAuthSession,startC36LocalCallback};
+  verifyReadOnlyTokenInfo,parseOAuthCallbackParameters,
+  createC36OAuthSession,startC36LocalCallback};

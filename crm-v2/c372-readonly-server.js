@@ -29,7 +29,8 @@ function createC372Handler({runtime=process.env,backend}={}){
     };
     if(!req||!res||typeof req.url!=='string'||req.url.length>128||
        req.url.includes('?')||req.url.includes('#')||
-       req.headers?.['content-length']!==undefined||
+       (req.headers?.['content-length']!==undefined&&
+        req.headers['content-length']!=='0')||
        req.headers?.['transfer-encoding']!==undefined){
       return write(404,{status:'NOT_FOUND'});
     }

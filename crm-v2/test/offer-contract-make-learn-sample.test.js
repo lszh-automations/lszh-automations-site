@@ -53,3 +53,20 @@ test('PowerShell sample upload is explicitly manual, test-only and hides Make we
   assert.doesNotMatch(script,/Write-Host\s*\$hook\b/);
   assert.doesNotMatch(script,/lszh-crm-v2.*\/send|gcloud\.cmd|git push/);
 });
+
+test('PowerShell runtime smoke requires exact HTTP 423 denial and never marks mail sent',()=>{
+  const script=fs.readFileSync(
+    path.join(__dirname,'../../scripts/smoke-crm-contract-make-staging.ps1'),'utf8'
+  );
+  assert.match(script,/Read-Host 'STAGING webhook URL \(hidden\)' -AsSecureString/);
+  assert.match(script,/contract_package_staging_mock/);
+  assert.match(script,/staging_mock_only/);
+  assert.match(script,/preview@example\.invalid/);
+  assert.match(script,/if\(\$status -ne 423\)/);
+  assert.match(script,/STAGING_CONTRACT_NOT_ENABLED/);
+  assert.match(script,/transmitted -ne \$false/);
+  assert.match(script,/null -ne \$receipt\.messageId/);
+  assert.match(script,/No automatic retry|no retry/i);
+  assert.doesNotMatch(script,/Write-Host\s*\$hook\b/);
+  assert.doesNotMatch(script,/lszh-crm-v2.*\/send|gcloud\.cmd|git push/);
+});

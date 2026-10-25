@@ -66,3 +66,11 @@ Google-Hinweise: https://developers.google.com/workspace/gmail/api/auth/web-serv
 - crm-v2/test/contract-gmail-c371-infrastructure.test.js enthält 4 synthetische/statische Regressionstests gegen Schreiboperationen, produktive Pfade, Tokenzugriffe und fehlende Fail-Closed-Gates. Neue C3.7-Testzahl: 296 Node-Tests. Actions-Lauf https://github.com/lszh-automations/lszh-automations-site/actions/runs/40199266701 zeigte 296/296 Node PASS, 12/12 Firestore Emulator PASS, noch vor Aufnahme der neuen PS-Datei in Windows-Parser.
 - Der nachfolgende Workflow-Patch ergänzt Windows-PowerShell-Parser und Dateipfad in CI-Triggern. Operatoraktion ohne OAuth oder Secret-/IAM-Mutation: git pull --ff-only; dann powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-crm-c37-oauth-infrastructure.ps1. Erwartet ausschliesslich benannte PASS-Zeilen.
 - Die separate Offline-OAuth-Einwilligung und Geheimnisübergabe ist weiterhin NICHT implementiert oder ausgeführt. C3.6 war ein einmaliger Online-Consent. Keine Access-/Refresh-Tokens, Client-Secrets oder OAuth-Callback-URLs im Chat, PowerShell-Verlauf oder GitHub; kein Cloud-Run-Deployment, keine Make-/CRM-Änderungen oder E-Mail-Versand.
+
+
+### C3.7.1 synthetischer Windows-PowerShell-Test des IAM-Preflights
+
+- Neues ausschliesslich lokal ausführbares Testskript scripts/test-crm-c37-oauth-infra-offline.ps1; es ersetzt den externen gcloud-Aufruf durch einen synthetischen, lokalen PowerShell-Funktionsmock, ohne Netzwerk- oder Secret-Zugriff.
+- Der Mock simuliert drei Fälle: korrekte Account-/Secret- und IAM-Konfiguration mit null Versionen, unerwarteten zusätzlichen Secret-Accessor, bereits vorhandene Secret-Version. Erwartet: 1 PASS, 2 sichere Ablehnungen.
+- Der GitHub-Workflow führt jetzt im Windows-Runner zusätzlich die PowerShell-Parserprüfung und das synthetische Testskript aus. Dies bestätigt die Laufzeitlogik des Metadaten-Preflights ohne produktive Ressourcen zu berühren.
+- Dieser Schritt erteilt keinerlei Offline-Gmail-Berechtigung und erstellt keinen Refresh-Token.

@@ -7,7 +7,8 @@ const {digest}=require('../offer-contract-package');
 const {ROOT}=require('../contract-gmail-c35-readonly-api-staging');
 const {
   SERVICE,PROJECT,SECRET_PURPOSE,EXPECTED_MAILBOX,SCOPE,
-  requireIsolatedStaging,readSecretEnvelope,createC37StagingGmailBackend
+  SECRET_MOUNT,requireIsolatedStaging,readSecretEnvelope,
+  createC37StagingGmailBackend,createC37MountedSecretBackend
 }=require('../contract-gmail-c37-backend-staging');
 
 const NOW=1792920000000;
@@ -277,4 +278,38 @@ test('C3.7 does not have any live CRM, Make, Firestore or email delivery path',(
   assert.doesNotMatch(source,/\/messages\/send|\.sendMail\(|\bcreateDraft\(|gcloud run deploy|runTransaction\(/);
   assert.doesNotMatch(source,/writeFileSync|localStorage|new Firestore\(|\.runTransaction\(|mcp__Make__/);
   assert.equal(typeof createC37StagingGmailBackend,'function');
+});
+
+test('C3.7 mounted Secret Manager file path is fixed and only read after invocation',async()=>{
+  const f=fixture();
+  let reads=0;
+  const mount=createC37MountedSecretBackend({
+    runtime:RUNTIME,
+    now:()=>NOW,
+    readSecretFile:async(filepath,encoding)=>{
+      reads++;
+      assert.equal(filepath,SECRET_MOUNT);
+      assert.equal(encoding,'utf8');
+      return config();
+    },
+    makeClient:(...args)=>f.build().inspectAuthorisedMailbox&&({
+      setCredentials:()=>{},
+      getAccessToken:async()=>({token:'FAKE_BACKEND_TOKEN_0001'}),
+      getTokenInfo:async()=>({aud:CID,scopes:[SCOPE],expiry_date:NOW+3600000}),
+      request:async req=>{
+        assert.equal(req.url,ROOT+'/profile');
+        return {data:{emailAddress:EXPECTED_MAILBOX}};
+      }
+    })
+  });
+  assert.equal(reads,0);
+  assert.equal((await mount.inspectAuthorisedMailbox()).verified,true);
+  assert.equal(reads,1);
+});
+test('C3.7 missing mounted secret never falls back to Downloads or implicit local file',async()=>{
+  const mount=createC37MountedSecretBackend({
+    runtime:RUNTIME,now:()=>NOW,
+    readSecretFile:async()=>{throw Error('secret volume not mounted')}
+  });
+  blockedResponse(await mount.inspectAuthorisedMailbox());
 });

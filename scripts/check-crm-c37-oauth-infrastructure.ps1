@@ -60,10 +60,16 @@ Write-Host 'C3.7 DEDICATED SECRET IAM PASS'
 # Note: This only checks secret-level IAM. Project/folder inherited grants
 # cannot be excluded from the secret policy alone and need separate audit.
 
-$versions = @(Get-GcloudJson -Arguments @('secrets','versions','list',$SecretId,"--project=$Project"))
-# gcloud formats [] as an array; PowerShell can also wrap it once. Normalize.
-if ($versions.Count -eq 1 -and $null -eq $versions[0]) { $versions = @() }
-if ($versions.Count -ne 0) {
+# An empty JSON array has inconsistent PowerShell 5.1 pipeline semantics.
+# The value(name) format is empty ONLY when no version has been returned.
+$versionNames = @(& gcloud.cmd secrets versions list $SecretId "--project=$Project" '--format=value(name)')
+if ($LASTEXITCODE -ne 0) {
+  throw 'C3.7 PRECHECK BLOCKED: version metadata lookup failed.'
+}
+$presentVersions = @($versionNames | Where-Object {
+  $_ -is [string] -and $_.Trim().Length -gt 0
+})
+if ($presentVersions.Count -ne 0) {
   throw 'C3.7 PRECHECK BLOCKED: secret already has versions; stop before any new authorization.'
 }
 Write-Host 'C3.7 EMPTY SECRET PASS'

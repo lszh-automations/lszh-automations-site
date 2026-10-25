@@ -52,3 +52,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\test-crm-cont
 **Weder die Node-Tests noch der Firestore-Emulator kontaktieren Gmail oder versenden E-Mails.** Alle OAuth-/Gmail-Antworten sind Test-Fakes. Der Firestore-Emulator verwendet offene Testregeln, keine Bestätigung produktiver IAM- oder Firestore-Sicherheitsregeln.
 
 **Nach den Tests:** Nur falls 259/259 und 12/12 PASS, die getrennte geschäftliche Read-only-OAuth-Autorisierung planen. Vor jeglicher echten Nachricht benötigt C3.5 eine ausdrückliche Sender-/From-Alias-/Empfängerfreigabe. Bei Provider-Unklarheit kein automatischer zweiter Versand.
+
+
+### C3.5 Sicherheitspräzisierung – OAuth-Identität ist kein Scope-Nachweis
+
+- Der Profilaufruf liefert nur den bestätigten Gmail-Postfachinhaber. Die Rückgabe `getOnlyOperations=true` beschreibt die tatsächlich vom Adapter erlaubten Aufrufe; `scopeVerified=false` bleibt bis zu einer **separaten Prüfung des realen OAuth-Tokens bzw. der Cloud-OAuth-Konfiguration** gesetzt. Die Prüfroutine beansprucht ausdrücklich nicht, durch einen Gmail-Profil-GET die tatsächlich gewährten Scopes feststellen zu können.
+- Eine erfolgreiche Geschäfts-Mailbox-Profilabfrage oder vorhandene Make-Gmail-Verbindung ist **keine** Freigabe für einen echten Vertragsversand. Ein externer C3.5-Authentifizierungstest erfordert zunächst gesonderte LSZH-Kontozuordnung/Consent und Zugriff nur auf `gmail.readonly`. **CI-Workflow für den neuen Branch und zusätzliche Syntaxchecks wurde ergänzt.** Die erwarteten Testzahlen bleiben **259 Node und 12 Emulator**, nach wie vor ausstehend.

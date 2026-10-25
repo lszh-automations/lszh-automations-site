@@ -70,8 +70,10 @@ try{
   if($null -ne $handler){$handler.Dispose()}
 }
 if($Mode -eq 'Learn'){
-  if($status -ne 200)throw ('Schema learning NOT confirmed; HTTP '+$status+
-    '. Do not retry; inspect Make scenario 8166714 first.')
+  if($status -ne 200){
+    throw ('Schema learning NOT confirmed; HTTP '+$status+
+      '. Do not retry; inspect Make scenario 8166714 first.')
+  }
   Write-Host 'Make webhook HTTP 200 received for schema learning ONLY.'
   Write-Host 'NOT a module execution proof. Inspect Make hook, then coordinate safe active smoke.'
   return

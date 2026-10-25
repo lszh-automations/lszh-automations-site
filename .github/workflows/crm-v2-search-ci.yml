@@ -20,6 +20,7 @@ on:
       - "firebase.json"
       - "scripts/test-crm-contract-c3-2-make-blocked.ps1"
       - "scripts/test-crm-contract-firestore-emulator.ps1"
+      - "scripts/check-crm-c37-oauth-infrastructure.ps1"
       - "scripts/*crm-search*.ps1"
       - "scripts/*crm-read-performance*.ps1"
       - "scripts/measure-crm-read-performance.ps1"
@@ -76,6 +77,7 @@ jobs:
           node --check crm-v2/test/contract-gmail-c36-local-oauth.test.js
           node --check crm-v2/contract-gmail-c37-backend-staging.js
           node --check crm-v2/test/contract-gmail-c37-backend-staging.test.js
+          node --check crm-v2/test/contract-gmail-c371-infrastructure.test.js
           node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
           node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
@@ -100,7 +102,7 @@ jobs:
       - name: Check Windows PowerShell parser (no deployment)
         shell: powershell
         run: |
-          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1')
+          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1')
           foreach($path in $paths) {
             $tokens=$null
             $errors=$null

@@ -55,6 +55,8 @@ test('C3.2 PowerShell harness never exposes hook and cannot interpret 200 as sen
   assert.match(code,/Read-Host 'C3\.2 STAGING webhook URL \(hidden\)' -AsSecureString/);
   assert.match(code,/ValidateSet\('Learn','Smoke'\)/);
   assert.match(code,/if\(\$status -ne 423\)/);
+  assert.match(code,/expectedHookSha256='[a-f0-9]{64}'/);
+  assert.match(code,/Webhook does not match Make scenario 8166714/);
   assert.match(code,/STAGING_C3_2_SEND_NOT_AUTHORISED/);
   assert.match(code,/C3\.2 Make denial VERIFIED: HTTP 423/);
   assert.match(code,/No retry|do not retry/i);
@@ -83,4 +85,24 @@ test('C3.2 blocked webhook PowerShell script passes Windows PowerShell 5.1 parse
   ],{encoding:'utf8',timeout:12000,maxBuffer:300000});
   assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/POWERSHELL_C32_PARSER_PASS/);
+});
+
+
+test('C3.2 wrong Make webhook is rejected BEFORE any HTTP and cannot point to production',()=>{
+  const code=fs.readFileSync(PS,'utf8');
+  assert.match(code,/SHA256\]::Create\(\)/);
+  assert.match(code,/if\(\$hookSha256 -cne \$expectedHookSha256\)/);
+  if(process.platform!=='win32')return;
+  // Deliberately fake host-valid URL: verified C3.2 SHA pin must reject this
+  // before any network call, even when no manual webhook prompt occurs.
+  const result=spawnSync('powershell.exe',[
+    '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
+    '-File',PS,'-Mode','Learn','-Avv','no'
+  ],{
+    env:{...process.env,LSZH_CONTRACT_C32_STAGING_WEBHOOK:'https://hook.eu1.make.com/notrealhook'},
+    encoding:'utf8',timeout:12000,maxBuffer:300000
+  });
+  assert.notEqual(result.status,0);
+  assert.match(result.stdout+result.stderr,/Webhook does not match Make scenario 8166714/);
+  assert.doesNotMatch(result.stdout+result.stderr,/https:\/\/hook/);
 });

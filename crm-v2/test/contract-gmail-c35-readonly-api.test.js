@@ -66,7 +66,7 @@ function fixture(avv='no',external=false){
     }
   };
   const build=(overrides={})=>createC35ReadOnlyGmailVerifier({
-    authClient,expectedMailbox:ACCOUNT,allowedRecipients:[TO],
+    authClient,expectedMailbox:ACCOUNT,approvedSenders:[ACCOUNT],allowedRecipients:[TO],
     ...overrides
   });
   return {docs,message,contents,requests,authClient,expected,receipt,build,
@@ -186,4 +186,22 @@ test('C3.5 legacy C3.4 demo-only guard and zero productive send imports preserve
   }
   assert.doesNotMatch(source,/\bfetch\s*\(|gmail\.send|sendAnEmail|\/messages\/send/);
   assert.doesNotMatch(source,/require\s*\(\s*['"]node:https/);
+});
+
+test('C3.5 distinct approved From alias is not automatically trusted from OAuth identity',async()=>{
+  const f=fixture();
+  const alias='lszh-alias@example.com';
+  f.message.payload.headers[0].value='LSZH Automations <'+alias+'>';
+  assert.equal(await f.build().verifyGatewayReceipt({
+    receipt:f.receipt,expected:f.expected
+  }),false);
+  assert.equal(await f.build({approvedSenders:[alias]}).verifyGatewayReceipt({
+    receipt:f.receipt,expected:f.expected
+  }),true);
+  const mismatch=fixture();
+  mismatch.setIdentity('unapproved-personal@example.com');
+  mismatch.message.payload.headers[0].value=alias;
+  assert.equal(await mismatch.build({approvedSenders:[alias]}).verifyGatewayReceipt({
+    receipt:mismatch.receipt,expected:mismatch.expected
+  }),false);
 });

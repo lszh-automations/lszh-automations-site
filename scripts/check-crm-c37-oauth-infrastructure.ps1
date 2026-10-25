@@ -73,4 +73,4 @@ if ($presentVersions.Count -ne 0) {
   throw 'C3.7 PRECHECK BLOCKED: secret already has versions; stop before any new authorization.'
 }
 Write-Host 'C3.7 EMPTY SECRET PASS'
-Write-Host 'C3.7 METADATA-ONLY PRECHECK PASS - NO SECRET VALUES READ OR CHANGED'
+Write-Output 'C3.7 METADATA-ONLY PRECHECK PASS - NO SECRET VALUES READ OR CHANGED'

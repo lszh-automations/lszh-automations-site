@@ -92,3 +92,10 @@ Google-Hinweise: https://developers.google.com/workspace/gmail/api/auth/web-serv
 - Keine Änderung an Cloud IAM, Secret Manager, Gmail, Make, CRM, produktiven Kunden oder Cloud Run. Der Offline-OAuth-Consent/Refresh-Token-Transfer ist weiterhin offen und noch nicht automatisiert freigegeben.
 
 **Abschliessende Verifikation:** GitHub Actions Lauf [40200200601](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40200200601) wurde vollständig abgeschlossen: **297/297 Node PASS; 12/12 lokale Firestore-Emulatorfälle PASS; Windows PowerShell Parse und synthetischer gcloud-Mock PASS**. Der real ausgeführte Servicekonto-Preflight durch den Betreiber bleibt noch zur Wiederholung offen.
+
+
+### 25.10.2026 – C3.7.1 echter Cloud-Metadaten-Preflight PASS (Betreiber)
+
+- Betreiber hat `git pull --ff-only` auf dem C3.7-Branch durchgeführt und das read-only Skript `scripts/check-crm-c37-oauth-infrastructure.ps1` auf seinem Surface gegen reale Google-Cloud-Metadaten ausgeführt. Die Ausgabe lautete exakt: `C3.7 SA METADATA PASS`; `C3.7 SECRET ZURICH METADATA PASS`; `C3.7 DEDICATED SECRET IAM PASS`; `C3.7 EMPTY SECRET PASS`; `C3.7 METADATA-ONLY PRECHECK PASS - NO SECRET VALUES READ OR CHANGED`.
+- Somit nachgewiesen: korrektes dediziertes Servicekonto, Google Secret Manager-Secret in `europe-west6`, nur das erwartete Secret-Level-IAM-Accessor-Binding und weiterhin **keine Secret-Version**. Das prüft keine geerbten Projekt-/Ordner-IAM-Rechte und keinen tatsächlichen OAuth-Refresh-Token.
+- C3.7.1-Infrastruktur-Metadatenprüfung abgeschlossen. Nächster sachlicher Schritt ist ein **separater lokal gestarteter Offline-OAuth-Consent** für das erwartete LSZH-Gmail-Geschäftspostfach mit genau `gmail.readonly` und sicherer Secret-Manager-Versionierung. **Ein solches Offline-Consent-Skript wurde noch nicht erfolgreich fertiggestellt oder getestet und darf nicht als bereit oder ausgeführt beschrieben werden.** Keine Token-/Secret-Inhalte in Chat, GitHub oder normalen PowerShell-Befehlsargumenten. Weder produktiver CRM-/Make-Betrieb noch Gmail-Versand geändert.

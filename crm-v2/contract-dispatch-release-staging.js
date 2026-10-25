@@ -14,7 +14,7 @@ function blocked(reason,status=403){
   });
 }
 function email(value){
-  if(typeof value!=='string'||value!==value.trim()||
+  if(typeof value!=='string'||value!==value.trim()||value.includes('*')||
      !/^[A-Za-z0-9.!#$%&'*+/=?^_\u0060{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(value)||
      value.length>254||/[\r\n]/.test(value))
     throw blocked('invalid email address');

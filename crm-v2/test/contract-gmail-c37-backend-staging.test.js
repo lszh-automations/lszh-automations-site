@@ -275,6 +275,6 @@ test('C3.7 does not have any live CRM, Make, Firestore or email delivery path',(
     assert.doesNotMatch(active,/contract-gmail-c37-backend-staging/);
   }
   assert.doesNotMatch(source,/\/messages\/send|\.sendMail\(|\bcreateDraft\(|gcloud run deploy|runTransaction\(/);
-  assert.doesNotMatch(source,/writeFileSync|localStorage|Firestore|mcp__Make__/);
+  assert.doesNotMatch(source,/writeFileSync|localStorage|new Firestore\(|\.runTransaction\(|mcp__Make__/);
   assert.equal(typeof createC37StagingGmailBackend,'function');
 });

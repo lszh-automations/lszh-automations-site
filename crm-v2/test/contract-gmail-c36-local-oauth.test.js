@@ -6,7 +6,8 @@ const os=require('node:os');
 const path=require('node:path');
 const {createHash}=require('node:crypto');
 const {SCOPE,REDIRECT_URI,
-  createC36OAuthSession,verifyReadOnlyTokenInfo,startC36LocalCallback
+  createC36OAuthSession,verifyReadOnlyTokenInfo,
+  parseOAuthCallbackParameters,startC36LocalCallback
 }=require('../contract-gmail-c36-local-oauth');
 const {options,readLocalCredentials}=require('../scripts/c36-local-oauth-probe.cjs');
 const CID='470613067122-c35oauthprobefixture.apps.googleusercontent.com';
@@ -229,4 +230,47 @@ test('C3.6 diagnostic: wrong OAuth audience, expired token and personal account 
     assert.equal(e.c36SafeCode,'GMAIL_ACCOUNT_MISMATCH');
     return true;
   });
+});
+
+test('C3.6 accepts Google Workspace hd, iss and unspecified callback metadata',()=>{
+  const query=new URLSearchParams({
+    code:'AUTH_CODE_0001',
+    state:'csrf-token',
+    scope:SCOPE,
+    authuser:'0',
+    prompt:'consent',
+    hd:'lszh-automations.ch',
+    iss:'https://accounts.google.com',
+    future_ignored_param:'safe'
+  });
+  assert.deepEqual(parseOAuthCallbackParameters(query),{
+    state:'csrf-token',code:'AUTH_CODE_0001',error:undefined
+  });
+});
+test('C3.6 rejects duplicate state, duplicate code, and contradictory code/error',()=>{
+  for(const raw of [
+    'state=a&state=b&code=AUTH_CODE_0001',
+    'state=a&code=one&code=two',
+    'state=a&code=AUTH_CODE_0001&error=access_denied',
+    'state=a&error=x&error=y'
+  ]){
+    assert.throws(()=>parseOAuthCallbackParameters(new URLSearchParams(raw)),
+      error=>error.c36SafeCode==='CALLBACK_PARAMETERS_REJECTED');
+  }
+});
+test('C3.6 ignores unexpected response keys but continues validating state and consent',async()=>{
+  const f=fixture();
+  const received=parseOAuthCallbackParameters(new URLSearchParams({
+    state:'wrong-state',
+    code:'AUTH_CODE_0001',
+    hd:'lszh-automations.ch',
+    provider_extension:'future'
+  }));
+  await assert.rejects(f.session.complete(received),/invalid OAuth callback/);
+  assert.equal(f.calls.tokens,0);
+  const denied=parseOAuthCallbackParameters(new URLSearchParams({
+    state:'state-not-used-here',error:'access_denied',error_description:'private'
+  }));
+  assert.equal(denied.error,'access_denied');
+  assert.equal('error_description' in denied,false);
 });

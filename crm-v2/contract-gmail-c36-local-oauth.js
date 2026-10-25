@@ -13,6 +13,12 @@ const CALLBACK='/oauth2/callback';
 const REDIRECT_URI='http://'+HOST+':'+PORT+CALLBACK;
 const CLIENT_ID=/^[0-9]{8,30}-[a-z0-9-]{10,100}\.apps\.googleusercontent\.com$/;
 const MAILBOX=/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
+function safeCode(error,code){
+  // Machine-readable, static error label only. NEVER embed OAuth code, token,
+  // Google response body, authorization URL, email, or credentials.
+  if(error&&typeof error==='object')error.c36SafeCode=code;
+  return error;
+}
 function shaBase64(value){
   return createHash('sha256').update(value).digest('base64url');
 }
@@ -24,10 +30,14 @@ function equal(a,b){
 function verifyReadOnlyTokenInfo(info,clientId,now=Date.now()){
   // The Gmail /profile endpoint proves identity, NOT the effective OAuth scope.
   // A separate tokeninfo inspection must prove exact audience and narrow scope.
-  if(!info||info.aud!==clientId||!Array.isArray(info.scopes)||
-     info.scopes.length!==1||info.scopes[0]!==SCOPE||
-     !Number.isFinite(info.expiry_date)||info.expiry_date<=now+30_000)
-    throw blocked('C3.6 OAuth audience, expiry or exact readonly scope not verified');
+  const reason=!info||info.aud!==clientId?'CLIENT_AUDIENCE_MISMATCH':
+    !Array.isArray(info.scopes)||info.scopes.length!==1||
+    info.scopes[0]!==SCOPE?'TOKEN_SCOPE_MISMATCH':
+    !Number.isFinite(info.expiry_date)||info.expiry_date<=now+30_000?
+      'TOKEN_EXPIRED_OR_INVALID':null;
+  if(reason)throw safeCode(blocked(
+    'C3.6 OAuth audience, expiry or exact readonly scope not verified'
+  ),reason);
   return true;
 }
 function createC36OAuthSession({
@@ -74,23 +84,38 @@ function createC36OAuthSession({
        error!==undefined||
        typeof code!=='string'||code.length<4||code.length>2048||
        /[\s]/.test(code))
-      throw blocked('C3.6 expired or invalid OAuth callback');
+      throw safeCode(blocked('C3.6 expired or invalid OAuth callback'),
+        error==='access_denied'?'CONSENT_DENIED':
+        error!==undefined?'GOOGLE_CONSENT_ERROR':
+        'CALLBACK_EXPIRED_OR_INVALID');
     try{
-      const result=await oauthClient.getToken({code,codeVerifier,
-        redirect_uri:REDIRECT_URI});
+      let result;
+      try{
+        result=await oauthClient.getToken({code,codeVerifier,
+          redirect_uri:REDIRECT_URI});
+      }catch(e){throw safeCode(e,'TOKEN_EXCHANGE_FAILED');}
       const access=result?.tokens?.access_token;
       if(typeof access!=='string'||access.length<10)
-        throw blocked('C3.6 exchange returned no access token');
-      const info=await oauthClient.getTokenInfo(access);
+        throw safeCode(blocked('C3.6 exchange returned no access token'),
+          'TOKEN_NOT_RETURNED');
+      let info;
+      try{info=await oauthClient.getTokenInfo(access);}
+      catch(e){throw safeCode(e,'TOKEN_INFO_FAILED');}
       verifyReadOnlyTokenInfo(info,clientId,now());
       // No refresh_token or other obtained credentials enter the verifier.
       oauthClient.setCredentials({
         access_token:access,token_type:'Bearer',
         expiry_date:info.expiry_date
       });
-      const profile=await createC35GmailApiReadOnlyAdapter({
-        authClient:oauthClient,expectedMailbox
-      }).verifyMailbox();
+      let profile;
+      try{
+        profile=await createC35GmailApiReadOnlyAdapter({
+          authClient:oauthClient,expectedMailbox
+        }).verifyMailbox();
+      }catch(e){
+        throw safeCode(e,e?.message?.includes('Gmail OAuth identity')?
+          'GMAIL_ACCOUNT_MISMATCH':'GMAIL_PROFILE_READ_FAILED');
+      }
       return Object.freeze({verified:true,mailbox:profile.mailbox,
         scopeVerified:true,scope:SCOPE,tokenPersisted:false,
         sendPermitted:false});
@@ -137,7 +162,9 @@ function startC36LocalCallback({session,onDone,port=PORT}={}){
     if(keys.some(key=>!['state','code','error','scope','authuser','prompt'].includes(key))||
        new Set(keys).size!==keys.length){
       send(400,'OAuth-Antwort ungueltig.');
-      onDone(new Error('C3.6 local callback rejected'));server.close();return;
+      const issue=safeCode(new Error('C3.6 local callback rejected'),
+        'CALLBACK_PARAMETERS_REJECTED');
+      onDone(issue);server.close();return;
     }
     try{
       const result=await session.complete({
@@ -147,9 +174,15 @@ function startC36LocalCallback({session,onDone,port=PORT}={}){
       });
       send(200,'LSZH C3.6: Gmail-Konto und Leserechte geprueft. Keine Tokens gespeichert.');
       onDone(null,result);
-    }catch{
-      send(400,'LSZH C3.6: Pruefung nicht erfolgreich. Kein Versand.');
-      onDone(new Error('C3.6 identity or readonly-scope verification failed'));
+    }catch(error){
+      // The status code is deliberately static and does not reveal secrets.
+      // Suppress provider error strings, tokens and query parameters.
+      const code=/^[A-Z_]{5,40}$/.test(error?.c36SafeCode||'')?
+        error.c36SafeCode:'OAUTH_VERIFICATION_FAILED';
+      send(400,'LSZH C3.6: Pruefung nicht erfolgreich ('+code+'). Kein Versand.');
+      onDone(safeCode(new Error(
+        'C3.6 identity or readonly-scope verification failed'
+      ),code));
     }finally{
       server.close();
     }

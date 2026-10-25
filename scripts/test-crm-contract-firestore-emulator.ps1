@@ -13,8 +13,17 @@ if(!(Get-Command node.exe -ErrorAction SilentlyContinue) -or
 if(!(Get-Command java.exe -ErrorAction SilentlyContinue)){
   throw 'JDK 21+ required for the Firestore emulator. No emulator started.'
 }
-$javaOutput=(& java.exe -version 2>&1 | Out-String)
-if($LASTEXITCODE -ne 0 -or $javaOutput -cnotmatch '(?m)(?:version |openjdk )"?21(?:[.\s\"]|$)|(?:version |openjdk )"?(?:2[2-9]|[3-9][0-9])(?:[.\s\"]|$)'){
+$previousActionPreference=$ErrorActionPreference
+$ErrorActionPreference='Continue'
+try {
+  # Java prints its version to stderr even on success. Under Windows
+  # PowerShell 5.1, ErrorActionPreference=Stop would otherwise abort.
+  $javaOutput=(& java.exe -version 2>&1 | Out-String)
+  $javaExit=$LASTEXITCODE
+} finally {
+  $ErrorActionPreference=$previousActionPreference
+}
+if($javaExit -ne 0 -or $javaOutput -cnotmatch '(?m)(?:version |openjdk )"?21(?:[.\s\"]|$)|(?:version |openjdk )"?(?:2[2-9]|[3-9][0-9])(?:[.\s\"]|$)'){
   throw 'Java 21 or later required. No emulator started.'
 }
 if($env:FIRESTORE_EMULATOR_HOST){

@@ -51,12 +51,12 @@ function assertPreview(preview){
        !/^TEST_ONLY_[A-Za-z0-9_.-]+\.pdf$/.test(attachment.filename)||
        attachment.mimeType!=='application/pdf'||
        typeof attachment.base64!=='string'||attachment.base64.length>7_000_000||
-       !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(attachment.base64)||
        !Number.isSafeInteger(doc.bytes)||doc.bytes>MAX_SINGLE_PDF_BYTES||doc.bytes<10||
        !/^[a-f0-9]{64}$/.test(doc.sha256||''))
       throw fail('Anlage ohne sichere TEST_ONLY-Metadaten');
     const data=Buffer.from(attachment.base64,'base64');
-    if(data.length!==doc.bytes||digest(data)!==doc.sha256||
+    if(data.toString('base64')!==attachment.base64||
+       data.length!==doc.bytes||digest(data)!==doc.sha256||
        data.subarray(0,5).toString('ascii')!=='%PDF-')
       throw fail('Mock-Anlage veraendert oder ungueltig');
     total+=data.length;

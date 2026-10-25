@@ -1100,3 +1100,11 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 - crm-v2/test/contract-gmail-c371-infrastructure.test.js enthält 4 synthetische/statische Regressionstests gegen Schreiboperationen, produktive Pfade, Tokenzugriffe und fehlende Fail-Closed-Gates. Neue C3.7-Testzahl: 296 Node-Tests. Actions-Lauf https://github.com/lszh-automations/lszh-automations-site/actions/runs/40199266701 zeigte 296/296 Node PASS, 12/12 Firestore Emulator PASS, noch vor Aufnahme der neuen PS-Datei in Windows-Parser.
 - Der nachfolgende Workflow-Patch ergänzt Windows-PowerShell-Parser und Dateipfad in CI-Triggern. Operatoraktion ohne OAuth oder Secret-/IAM-Mutation: git pull --ff-only; dann powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-crm-c37-oauth-infrastructure.ps1. Erwartet ausschliesslich benannte PASS-Zeilen.
 - Die separate Offline-OAuth-Einwilligung und Geheimnisübergabe ist weiterhin NICHT implementiert oder ausgeführt. C3.6 war ein einmaliger Online-Consent. Keine Access-/Refresh-Tokens, Client-Secrets oder OAuth-Callback-URLs im Chat, PowerShell-Verlauf oder GitHub; kein Cloud-Run-Deployment, keine Make-/CRM-Änderungen oder E-Mail-Versand.
+
+
+### 25.10.2026 – C3.7.1 Secretless Preflight FINAL CI PASS
+
+- GitHub Actions: https://github.com/lszh-automations/lszh-automations-site/actions/runs/40199907636; **296/296 Node-Tests, 0 FAIL; 12/12 lokale Firestore-Emulatorfälle, 0 FAIL; Windows-PowerShell-Parser PASS**.
+- Der separate Windows-Lauf simuliert gcloud ausschließlich lokal und bestätigt: erwartetes Servicekonto/Secret/Zürich-Replikation und leere Versionsliste PASS; unerwartete zusätzliche Secret-Accessor-Berechtigungen BLOCK; vorhandene Secret-Version BLOCK.
+- Code enthält KEINE OAuth-Token-Speicherung, keinen eigentlichen Offline-OAuth-Consent, keinen Gmail-Mailversand und keine produktiven Cloud-Ressourcenänderungen. Nur der Betreiber kann das neue Metadaten-Preflight-Skript auf seinem Surface gegen seine Google-Cloud-Metadaten ausführen.
+- Operator: `git pull --ff-only` und `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\check-crm-c37-oauth-infrastructure.ps1"`; alle Ausgaben sind Metadaten-PASS-/BLOCKED-Zeilen und keine Secrets. Eine separat geprüfte OAuth-Speicherroutine ist weiter erforderlich.

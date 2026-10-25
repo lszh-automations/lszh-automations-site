@@ -45,7 +45,7 @@ function fixture(overrides={}){
     },
     getTokenInfo:async token=>{
       calls.info++;assert.equal(token,'synthetic_access_token_0001');
-      return {audience,scopes,expiry_date:expires};
+      return {aud:audience,scopes,expiry_date:expires};
     },
     setCredentials:v=>{calls.set.push({...v})},
     request:async ({url,method})=>{
@@ -142,11 +142,11 @@ test('C3.6 failed provider exchange never persists tokens or retries',async()=>{
 });
 test('C3.6 tokeninfo requires strict OAuth audience, expiry and no more than one scope',()=>{
   assert.equal(verifyReadOnlyTokenInfo({
-    audience:CID,scopes:[SCOPE],expiry_date:NOW+3600000
+    aud:CID,scopes:[SCOPE],expiry_date:NOW+3600000
   },CID,NOW),true);
   for(const info of [null,{},{
-    audience:CID,scopes:[SCOPE,'openid'],expiry_date:NOW+3600000
-  },{audience:'other',scopes:[SCOPE],expiry_date:NOW+3600000}]){
+    aud:CID,scopes:[SCOPE,'openid'],expiry_date:NOW+3600000
+  },{aud:'other',scopes:[SCOPE],expiry_date:NOW+3600000}]){
     assert.throws(()=>verifyReadOnlyTokenInfo(info,CID,NOW),/not verified/);
   }
 });

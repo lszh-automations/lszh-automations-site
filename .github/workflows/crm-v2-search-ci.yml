@@ -84,6 +84,7 @@ jobs:
           node --check crm-v2/contract-gmail-c371-local-callback.js
           node --check crm-v2/scripts/c371-offline-oauth-to-secret.cjs
           node --check crm-v2/test/contract-gmail-c371-offline-consent.test.js
+          node --check crm-v2/test/contract-gmail-c371-windows-transport.test.js
           node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
           node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
@@ -122,6 +123,16 @@ jobs:
       - name: Test C3.7.1 IAM and empty-secret preflight with synthetic gcloud only
         shell: powershell
         run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts/test-crm-c37-oauth-infra-offline.ps1"
+      - name: Install Node for offline C3.7.1 Windows stdin transport test
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install only CRM Node dependencies on Windows
+        shell: powershell
+        run: npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Prove C3.7.1 synthetic secret bytes through mock gcloud.cmd stdin
+        shell: powershell
+        run: node crm-v2/test/contract-gmail-c371-windows-transport.test.js
       - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
         shell: powershell
         run: |

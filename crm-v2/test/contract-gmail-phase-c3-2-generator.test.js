@@ -57,6 +57,29 @@ test('C3.2 PowerShell harness never exposes hook and cannot interpret 200 as sen
   assert.match(code,/if\(\$status -ne 423\)/);
   assert.match(code,/expectedHookSha256='[a-f0-9]{64}'/);
   assert.match(code,/Webhook does not match Make scenario 8166714/);
+  // Regression for 25.10.2026: a malformed patch previously duplicated
+  // the HTTP POST and spliced the URL guard into the middle of a regex.
+  // Enforce one and only one preflight, generator and network request.
+  const exactlyOnce=[
+    "if($hook -cnotmatch ",
+    "$expectedHookSha256=",
+    "if($hookSha256 -cne $expectedHookSha256)",
+    "$json=& node.exe $generator $Avv",
+    "$client.PostAsync($hook,$postBody)",
+    "if($Mode -eq 'Learn'){",
+    "Read Make history to independently verify iterator 2/3 and aggregator 1."
+  ];
+  for(const needle of exactlyOnce)
+    assert.equal(code.split(needle).length-1,1,
+      'must occur exactly once: '+needle);
+  assert.ok(
+    code.indexOf("if($hook -cnotmatch ") <
+    code.indexOf("if($hookSha256 -cne $expectedHookSha256)") &&
+    code.indexOf("if($hookSha256 -cne $expectedHookSha256)") <
+    code.indexOf("$json=& node.exe $generator $Avv") &&
+    code.indexOf("$json=& node.exe $generator $Avv") <
+    code.indexOf("$client.PostAsync($hook,$postBody)"),
+    'exact hook pinning and synthetic validation must run before one HTTP POST');
   assert.match(code,/STAGING_C3_2_SEND_NOT_AUTHORISED/);
   assert.match(code,/C3\.2 Make denial VERIFIED: HTTP 423/);
   assert.match(code,/No retry|do not retry/i);

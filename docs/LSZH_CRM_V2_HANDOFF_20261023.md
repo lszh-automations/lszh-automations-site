@@ -1084,3 +1084,10 @@ Der Betreiber meldet `CRM SEARCH LIVE PASS`: Cloud Run Revision `lszh-crm-v2-000
 
 
 **C3.7 CI-Abnahme 25.10.2026:** GitHub Actions-Lauf [40194138028](https://github.com/lszh-automations/lszh-automations-site/actions/runs/40194138028) auf Commit `6b2ebeba7b7dec024dfdfdcfa027a1def6f9dfc8`: **292/292 Node-Tests PASS, 0 FAIL**, **12/12 lokale Firestore-Emulatortests PASS, 0 FAIL**, JavaScript-Parser und Windows PowerShell Parser PASS. Alle drei CI-Jobs erfolgreich. Der C3.7-Code ist **isoliert/offline getestet**, nicht live bereitgestellt, und der reale Google OAuth Refresh-Token-/Secret-Manager-Prozess bleibt explizit OFFEN. Die zuvor bestätigte echte C3.6-Online-OAuth-Identität ersetzt diesen Offline-Consent nicht.
+
+
+### C3.7 – lokale Betreiberprüfung 292/292 PASS (25.10.2026)
+
+- Betreiber hat nach Wechsel auf den C3.7-Branch `npm.cmd test --prefix .\crm-v2` auf dem Surface ausgeführt und bestätigt: **292 Tests, 292 bestanden, 0 Fehler, 0 übersprungen** (Gesamtdauer 1226.03 ms). Das bestätigt zusätzlich zum bereits grünen GitHub-Actions-Lauf 40194138028 die lokale Code-Regression.
+- **Nächster Schritt (noch nicht durchgeführt):** dediziertes IAM-Servicekonto `lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com` für zukünftigen separaten Read-only-Staging-Dienst anlegen bzw. vorab auf Existenz prüfen. Keine Projekt-IAM-Rolle, kein Key-Download, keine Änderung bestehender produktiver Servicekonten. Rollen `roles/secretmanager.secretAccessor` erst später auf dem **einzelnen neu anzulegenden dedizierten Secret**, nicht projektweit, vergeben.
+- Die separate Offline-OAuth-Freigabe mit Refresh-Token, sichere Secret-Manager-Einspielung, Cloud-Run-Staging und ein echter Gmail-PDF-SENT-Lesetest bleiben ausdrücklich offen. Keine Kundenmails, kein Make- oder CRM-Deployment.

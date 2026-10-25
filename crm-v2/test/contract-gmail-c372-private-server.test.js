@@ -11,7 +11,7 @@ const RUNTIME={
   K_SERVICE:SERVICE,GOOGLE_CLOUD_PROJECT:PROJECT,
   LSZH_C37_READONLY_ENABLED:'true',LSZH_C37_TEST_ONLY:'true'
 };
-async function request(server,{method='GET',url=HEALTH,headers={}}={}){
+async function request(server,{method='GET',url=HEALTH,headers={},body}={}){
   return new Promise((resolve,reject)=>{
     const address=server.address();
     const req=http.request({
@@ -24,7 +24,7 @@ async function request(server,{method='GET',url=HEALTH,headers={}}={}){
         data:JSON.parse(Buffer.concat(chunks).toString('utf8'))
       }));
     });
-    req.on('error',reject);req.end();
+    req.on('error',reject);req.end(body);
   });
 }
 async function listen(server){
@@ -86,7 +86,7 @@ test('C3.7.2 no GET/probe, query/body or unknown route can read Gmail',async()=>
     const cases=[
       {method:'GET',url:CHECK},{method:'POST',url:CHECK+'?mailbox=x'},
       {method:'POST',url:'/api/send'},
-      {method:'POST',url:CHECK,headers:{'Content-Length':'0'}},
+      {method:'POST',url:CHECK,headers:{'Content-Length':'1'},body:'x'},
       {method:'POST',url:CHECK,headers:{'Transfer-Encoding':'chunked'}},
       {method:'POST',url:'/internal/gmail-readonly-check/'}
     ];

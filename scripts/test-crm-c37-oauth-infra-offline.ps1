@@ -24,7 +24,17 @@ function global:gcloud.cmd {
     throw 'Unexpected gcloud JSON format.'
   }
   if ($signature -like 'iam service-accounts describe *') {
-    return '{"email":"lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com","disabled":false}'
+    if ($global:Scenario -eq 'disabledAccount') {
+      return '{"email":"lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com","disabled":true}'
+    }
+    if ($global:Scenario -eq 'invalidDisabledField') {
+      return '{"email":"lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com","disabled":"false"}'
+    }
+    if ($global:Scenario -eq 'explicitlyEnabled') {
+      return '{"email":"lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com","disabled":false}'
+    }
+    # The real gcloud describe for an active account may OMIT disabled.
+    return '{"email":"lszh-crm-c37-ro@lszh-automations.iam.gserviceaccount.com"}'
   }
   if ($signature -like 'secrets describe *') {
     return '{"name":"projects/470613067122/secrets/lszh-crm-c37-gmail-readonly","replication":{"userManaged":{"replicas":[{"location":"europe-west6"}]}}}'
@@ -47,6 +57,22 @@ if ($global:Requests.Count -ne 4) {
   throw 'C3.7.1 should make exactly four metadata calls.'
 }
 Write-Host 'C3.7.1 MOCK PASS: account, Zurich replication, IAM and empty secret'
+
+$global:Scenario = 'explicitlyEnabled'
+$withFalse = @(& $preflight)
+if ($withFalse -notcontains 'C3.7 METADATA-ONLY PRECHECK PASS - NO SECRET VALUES READ OR CHANGED') {
+  throw 'C3.7.1 should accept explicitly enabled service accounts.'
+}
+Write-Host 'C3.7.1 MOCK PASS: explicit disabled=false accepted'
+
+foreach ($badScenario in @('disabledAccount','invalidDisabledField')) {
+  $global:Scenario = $badScenario
+  $gotError = $false
+  try { & $preflight | Out-Null }
+  catch { $gotError = $_.Exception.Message -match 'dedicated service account missing or disabled' }
+  if (-not $gotError) { throw 'C3.7.1 must refuse disabled or malformed service accounts.' }
+}
+Write-Host 'C3.7.1 MOCK PASS: disabled=true and nonboolean disabled rejected'
 
 $global:Scenario = 'extraGrant'
 $gotError = $false

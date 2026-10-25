@@ -8,6 +8,7 @@ on:
       - feature/crm-v2-contract-package-mail-staging-20261025
       - feature/crm-v2-contract-release-ledger-staging-20261025
       - feature/crm-v2-contract-firestore-emulator-20261025
+      - feature/crm-v2-contract-gmail-staging-20261025
     paths:
       - "crm-v2/**"
       - "firebase.json"
@@ -52,6 +53,9 @@ jobs:
           node --check crm-v2/contract-dispatch-release-staging.js
           node --check crm-v2/contract-dispatch-ledger-staging.js
           node --check crm-v2/test/contract-dispatch-phase-c.test.js
+          node --check crm-v2/contract-gmail-draft-staging.js
+          node --check crm-v2/contract-gmail-evidence-staging.js
+          node --check crm-v2/test/contract-gmail-phase-c3.test.js
           node --check crm-v2/emulator-tests/contract-dispatch-firestore.test.js
           node - <<'NODE'
           const fs=require('node:fs');

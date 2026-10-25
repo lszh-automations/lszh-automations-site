@@ -1,7 +1,7 @@
 # LSZH CRM V2 Phase C.2 - offline/demo Firestore emulator ONLY.
 # No Make, Gmail, Cloud Run, production Firestore, customer documents or send calls.
 $ErrorActionPreference='Stop'
-$project='demo-lszh-contract-dispatch-20261025'
+$project='demo-lszha-c2-20261025'
 $repository=Split-Path -Parent $PSScriptRoot
 if(!(Test-Path -LiteralPath (Join-Path $repository 'firebase.json'))){
   throw 'Local Firebase emulator config missing.'

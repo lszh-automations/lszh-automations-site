@@ -4,6 +4,7 @@
 // NEVER logged, persisted, returned to a browser, or accepted from an HTTP body.
 // This module never sends mail, creates draft mail or mutates Firestore/Make.
 const {OAuth2Client}=require('google-auth-library');
+const {readFile}=require('node:fs/promises');
 const {blocked}=require('./contract-dispatch-release-staging');
 const {verifyReadOnlyTokenInfo}=require('./contract-gmail-c36-local-oauth');
 const {createC35ReadOnlyGmailVerifier}=
@@ -14,6 +15,7 @@ const SERVICE='lszh-crm-v2-c37-readonly-staging';
 const PROJECT='lszh-automations';
 const EXPECTED_MAILBOX='lars@lszh-automations.ch';
 const SCOPE='https://www.googleapis.com/auth/gmail.readonly';
+const SECRET_MOUNT='/var/run/secrets/lszh-c37/gmail-readonly.json';
 const CLIENT_ID=/^[0-9]{8,30}-[a-z0-9-]{10,100}\.apps\.googleusercontent\.com$/;
 const MAILBOX=/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
 
@@ -154,7 +156,24 @@ function createC37StagingGmailBackend({
     inspectAuthorisedMailbox,verifyExistingSentTestEvidence
   });
 }
+function createC37MountedSecretBackend({
+  runtime=process.env,readSecretFile=readFile,makeClient,now
+}={}){
+  requireIsolatedStaging(runtime);
+  if(typeof readSecretFile!=='function')
+    throw blocked('C3.7 mounted secret file reader missing');
+  const opts={
+    runtime,
+    // This exact path must be a dedicated Cloud Run Secret Manager volume.
+    // Never fall back to a local JSON file, .env or a public HTTP endpoint.
+    loadManagedSecret:()=>readSecretFile(SECRET_MOUNT,'utf8')
+  };
+  if(makeClient!==undefined)opts.makeClient=makeClient;
+  if(now!==undefined)opts.now=now;
+  return createC37StagingGmailBackend(opts);
+}
 module.exports={
-  SERVICE,PROJECT,SECRET_PURPOSE,EXPECTED_MAILBOX,SCOPE,
-  requireIsolatedStaging,readSecretEnvelope,createC37StagingGmailBackend
+  SERVICE,PROJECT,SECRET_PURPOSE,EXPECTED_MAILBOX,SCOPE,SECRET_MOUNT,
+  requireIsolatedStaging,readSecretEnvelope,createC37StagingGmailBackend,
+  createC37MountedSecretBackend
 };

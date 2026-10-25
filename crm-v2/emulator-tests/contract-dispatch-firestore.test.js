@@ -8,6 +8,7 @@ const {Firestore}=require('@google-cloud/firestore');
 const {digest,prepareOfferPackage}=require('../offer-contract-package');
 const {COLLECTION,PURPOSE,createContractReleaseGate}=require('../contract-dispatch-release-staging');
 const {createContractDispatchLedger}=require('../contract-dispatch-ledger-staging');
+const {createGmailSentEvidenceVerifier}=require('../contract-gmail-evidence-staging');
 
 const HOST='127.0.0.1:8788';
 const PROJECT='demo-lszha-c2-20261025';
@@ -58,7 +59,7 @@ function fixture({offerId='TEST_ONLY_'+randomUUID().replace(/-/g,''),revision=1,
     readArchivedPdf:async archiveFileId=>binary[archiveFileId]
   });
   return {
-    pkg,now,manifest:gate.approve(pkg,{
+    pkg,now,binary,manifest:gate.approve(pkg,{
       purpose:PURPOSE,recipient:TEST_RECIPIENT,operatorEmail:OPERATOR,
       approvalId:'approval_emulator_'+randomUUID().replace(/-/g,''),
       approvedAt:new Date(now).toISOString()
@@ -166,4 +167,37 @@ test('emulator C2: mailbox review can close uncertain result but cannot clear pe
   assert.equal((await allowed.inspect(m.eventId)).status,'not_sent_closed');
   await assert.rejects(allowed.reserve(m),/already reserved/);
   assert.equal((await recordsForOffer(db,m.offerId)).length,2);
+});
+
+
+test('emulator C3: ledger confirmation requires independent read-only Gmail SENT and exact 3 PDFs',async()=>{
+  const f=fixture({avv:'yes'}),m=await f.manifest,db=database();
+  const message={
+    id:'emulator_fake_gmail_message_01',labelIds:['SENT'],
+    from:'test-sender@lszh-automations.ch',to:[m.recipient],cc:[],bcc:[],
+    subject:'[TEST_ONLY] LSZH Vertragspaket 9099901',
+    headers:{'x-lszh-contract-event':m.eventId,
+      'x-lszh-package-sha256':m.packageSha256},
+    attachments:m.documents.map(d=>({
+      filename:d.filename,mimeType:'application/pdf',data:f.binary[d.archiveFileId]
+    }))
+  };
+  // Read-back is a mocked trusted adapter; NO Gmail account is accessed.
+  const provider=createGmailSentEvidenceVerifier({
+    allowedSenders:['test-sender@lszh-automations.ch'],
+    readSentMessage:async()=>message
+  });
+  const l=ledger(db,{verifyGatewayReceipt:provider.verify});
+  await l.reserve(m);
+  await l.markDeliveryUncertain(m.eventId);
+  const receipt=providerReceipt(m);
+  message.attachments[2].data=Buffer.from('%PDF-1.4\nBAD DATA');
+  await assert.rejects(l.confirmVerifiedReceipt(m.eventId,receipt),
+    /not independently verified/);
+  assert.equal((await l.inspect(m.eventId)).status,'delivery_review');
+  message.attachments[2].data=f.binary[m.documents[2].archiveFileId];
+  const outcome=await l.confirmVerifiedReceipt(m.eventId,receipt);
+  assert.equal(outcome.state,'confirmed_test_only');
+  await assert.rejects(l.confirmVerifiedReceipt(m.eventId,receipt),/finalised/);
+  await assert.rejects(l.reserve(m),/already reserved/);
 });

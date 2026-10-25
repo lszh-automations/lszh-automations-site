@@ -74,3 +74,11 @@ Google-Hinweise: https://developers.google.com/workspace/gmail/api/auth/web-serv
 - Der Mock simuliert drei Fälle: korrekte Account-/Secret- und IAM-Konfiguration mit null Versionen, unerwarteten zusätzlichen Secret-Accessor, bereits vorhandene Secret-Version. Erwartet: 1 PASS, 2 sichere Ablehnungen.
 - Der GitHub-Workflow führt jetzt im Windows-Runner zusätzlich die PowerShell-Parserprüfung und das synthetische Testskript aus. Dies bestätigt die Laufzeitlogik des Metadaten-Preflights ohne produktive Ressourcen zu berühren.
 - Dieser Schritt erteilt keinerlei Offline-Gmail-Berechtigung und erstellt keinen Refresh-Token.
+
+
+### 25.10.2026 – C3.7.1 Secretless Preflight FINAL CI PASS
+
+- GitHub Actions: https://github.com/lszh-automations/lszh-automations-site/actions/runs/40199907636; **296/296 Node-Tests, 0 FAIL; 12/12 lokale Firestore-Emulatorfälle, 0 FAIL; Windows-PowerShell-Parser PASS**.
+- Der separate Windows-Lauf simuliert gcloud ausschließlich lokal und bestätigt: erwartetes Servicekonto/Secret/Zürich-Replikation und leere Versionsliste PASS; unerwartete zusätzliche Secret-Accessor-Berechtigungen BLOCK; vorhandene Secret-Version BLOCK.
+- Code enthält KEINE OAuth-Token-Speicherung, keinen eigentlichen Offline-OAuth-Consent, keinen Gmail-Mailversand und keine produktiven Cloud-Ressourcenänderungen. Nur der Betreiber kann das neue Metadaten-Preflight-Skript auf seinem Surface gegen seine Google-Cloud-Metadaten ausführen.
+- Operator: `git pull --ff-only` und `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\check-crm-c37-oauth-infrastructure.ps1"`; alle Ausgaben sind Metadaten-PASS-/BLOCKED-Zeilen und keine Secrets. Eine separat geprüfte OAuth-Speicherroutine ist weiter erforderlich.

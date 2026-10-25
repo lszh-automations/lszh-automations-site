@@ -1,4 +1,4 @@
-# LSZH CRM V2 – Phase C.3.2 Make-Transport-Staging und Gmail-SENT-Readback (GESPE RRT / NO SEND)
+# LSZH CRM V2 – Phase C.3.2 Make-Transport-Staging und Gmail-SENT-Readback (GESPERRT / NO SEND)
 
 **Datum:** 25.10.2026. **Branch:** `feature/crm-v2-contract-gmail-transport-staging-20261025`. **Status:** sicherer Code und separates Make-Blueprint vorbereitet, alle Sendefunktionen deaktiviert. Kein Kundensend, keine Produktiv-Deployment-Freigabe.
 

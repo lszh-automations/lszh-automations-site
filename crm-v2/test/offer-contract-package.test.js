@@ -193,3 +193,15 @@ test('withdrawal, customer rejection and confirmed contracts are terminal in Pha
   assert.throws(()=>move(rejected,'reserve_manual_send',{operatorApproved:true}),/Statusuebergang/);
   assert.throws(()=>move(p,'record_customer_response',customerEvidence(p)),/Statusuebergang/);
 });
+
+test('staging contract module is not wired into the productive API or send path',()=>{
+  const fs=require('node:fs');
+  const path=require('node:path');
+  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+  const sender=fs.readFileSync(path.join(__dirname,'../offer-send.js'),'utf8');
+  const cloudRecords=fs.readFileSync(path.join(__dirname,'../cloud-records.js'),'utf8');
+  const pattern=/require\s*\(\s*['"]\.\/offer-contract-package['"]\s*\)/;
+  assert.doesNotMatch(server,pattern);
+  assert.doesNotMatch(sender,pattern);
+  assert.doesNotMatch(cloudRecords,pattern);
+});

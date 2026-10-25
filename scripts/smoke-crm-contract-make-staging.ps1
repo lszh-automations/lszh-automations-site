@@ -8,10 +8,10 @@ param(
 $ErrorActionPreference='Stop'
 
 function Assert-MakeStagingDeny {
-  param([int]$Status,[AllowEmptyString()][string]$Body)
+  param([int]$status,[AllowEmptyString()][string]$body)
   # An inactive Make webhook can return 200 Accepted while queueing the
   # request. HTTP 200 is never proof of a successful runtime smoke test.
-  if($Status -ne 423){
+  if($status -ne 423){
     throw ('UNCONFIRMED: HTTP '+$Status+
       '. Expected strict 423; inspect Make queue. No automatic retry.')
   }

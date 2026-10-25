@@ -23,6 +23,7 @@ on:
       - "scripts/check-crm-c37-oauth-infrastructure.ps1"
       - "scripts/test-crm-c37-oauth-infra-offline.ps1"
       - "scripts/prepare-crm-c372-private-source.ps1"
+      - "scripts/prepare-crm-c372-profile-job-source.ps1"
       - "scripts/*crm-search*.ps1"
       - "scripts/*crm-read-performance*.ps1"
       - "scripts/measure-crm-read-performance.ps1"
@@ -88,6 +89,8 @@ jobs:
           node --check crm-v2/test/contract-gmail-c371-windows-transport.test.js
           node --check crm-v2/c372-readonly-server.js
           node --check crm-v2/test/contract-gmail-c372-private-server.test.js
+          node --check crm-v2/c372-profile-job.js
+          node --check crm-v2/test/contract-gmail-c372-profile-job.test.js
           node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
           node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
@@ -112,7 +115,7 @@ jobs:
       - name: Check Windows PowerShell parser (no deployment)
         shell: powershell
         run: |
-          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1','scripts/test-crm-c37-oauth-infra-offline.ps1','scripts/prepare-crm-c372-private-source.ps1')
+          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1','scripts/test-crm-c37-oauth-infra-offline.ps1','scripts/prepare-crm-c372-private-source.ps1','scripts/prepare-crm-c372-profile-job-source.ps1')
           foreach($path in $paths) {
             $tokens=$null
             $errors=$null
@@ -149,6 +152,25 @@ jobs:
             $json=Get-Content (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
             if ($json.scripts.start -cne 'node c372-readonly-server.js') { throw 'Incorrect private entry point' }
             Write-Host 'C3.7.2 PRIVATE SOURCE ALLOWLIST PASS - NO DEPLOYMENT'
+          } finally {
+            Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Check C3.7.2 minimal Cloud Run job source without deploying
+        shell: powershell
+        run: |
+          $output=@(& '.\scripts\prepare-crm-c372-profile-job-source.ps1')
+          if ($output.Count -ne 1) { throw 'C3.7.2 job source staging failed' }
+          $folder=$output[0]
+          try {
+            if (-not (Test-Path -LiteralPath $folder -PathType Container)) { throw 'No job source dir' }
+            $files=@(Get-ChildItem -LiteralPath $folder -File)
+            if ($files.Count -ne 11) { throw 'Wrong C3.7.2 job source file count' }
+            if (Test-Path (Join-Path $folder 'server.js')) { throw 'Live CRM server copied' }
+            if (Test-Path (Join-Path $folder 'c372-readonly-server.js')) { throw 'HTTP server copied into one-off job' }
+            if (Test-Path (Join-Path $folder 'offer-send.js')) { throw 'Mail sender copied' }
+            $manifest=Get-Content (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
+            if ($manifest.scripts.start -cne 'node c372-profile-job.js') { throw 'Incorrect job entrypoint' }
+            Write-Host 'C3.7.2 PROFILE JOB SOURCE PASS - ZERO CLOUD CALLS'
           } finally {
             Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
           }

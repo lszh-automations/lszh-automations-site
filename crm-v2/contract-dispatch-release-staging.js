@@ -72,6 +72,7 @@ function canonical(manifest){
   const kinds=fields.avvRequired==='yes'?['offer','terms','avv']:['offer','terms'];
   if(!Array.isArray(fields.documents)||fields.documents.length!==kinds.length)
     throw blocked('document count');
+  let totalBytes=0;
   fields.documents.forEach((d,i)=>{
     exact(d,['kind','version','filename','archiveFileId','sha256','bytes']);
     if(d.kind!==kinds[i]||typeof d.version!=='string'||!d.version.includes('TEST_ONLY')||
@@ -80,6 +81,8 @@ function canonical(manifest){
        !Number.isSafeInteger(d.bytes)||d.bytes<10||d.bytes>5_000_000)
       throw blocked('real or malformed document refused');
     hash(d.sha256);
+    totalBytes+=d.bytes;
+    if(totalBytes>8_000_000)throw blocked('total PDF attachment limit exceeded');
   });
   if(new Set(fields.documents.map(d=>d.archiveFileId)).size!==kinds.length||
      new Set(fields.documents.map(d=>d.sha256)).size!==kinds.length)

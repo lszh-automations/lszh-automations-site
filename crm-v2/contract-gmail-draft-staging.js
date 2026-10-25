@@ -61,6 +61,10 @@ function createGmailTestDraftBuilder(config={}){
       eventId:manifest.eventId,packageId:manifest.packageId,
       packageSha256:manifest.packageSha256,
       approvalId:manifest.approvalId,approvedAt:manifest.approvedAt,
+      emailHeaders:Object.freeze([
+        Object.freeze({key:'X-LSZH-Contract-Event',value:manifest.eventId}),
+        Object.freeze({key:'X-LSZH-Package-SHA256',value:manifest.packageSha256})
+      ]),
       attachmentCount:attachments.length,attachments:Object.freeze(attachments)
     });
     validateGmailTestDraft(draft,manifest);
@@ -71,7 +75,7 @@ function createGmailTestDraftBuilder(config={}){
 function validateGmailTestDraft(draft,manifest){
   exact(draft,[
     'kind','sendMode','neverSend','to','subject','bodyType','content','eventId',
-    'packageId','packageSha256','approvalId','approvedAt','attachmentCount','attachments'
+    'packageId','packageSha256','approvalId','approvedAt','emailHeaders','attachmentCount','attachments'
   ]);
   if(draft.kind!==KIND||draft.sendMode!==MODE||draft.neverSend!==true||
      !Array.isArray(draft.to)||draft.to.length!==1||
@@ -81,7 +85,12 @@ function validateGmailTestDraft(draft,manifest){
      draft.approvalId!==manifest.approvalId||draft.approvedAt!==manifest.approvedAt||
      draft.subject!=='[TEST_ONLY – KEIN VERSAND] LSZH Vertragspaket '+manifest.offerNumber||
      typeof draft.content!=='string'||!draft.content.includes('KEIN VERSAND')||
-     Buffer.byteLength(draft.content,'utf8')>10_000)
+     Buffer.byteLength(draft.content,'utf8')>10_000||
+     !Array.isArray(draft.emailHeaders)||draft.emailHeaders.length!==2||
+     draft.emailHeaders[0]?.key!=='X-LSZH-Contract-Event'||
+     draft.emailHeaders[0]?.value!==manifest.eventId||
+     draft.emailHeaders[1]?.key!=='X-LSZH-Package-SHA256'||
+     draft.emailHeaders[1]?.value!==manifest.packageSha256)
     throw blocked('test-only Gmail preview is not valid');
   if(!Array.isArray(draft.attachments)||draft.attachments.length!==manifest.documents.length||
      draft.attachmentCount!==draft.attachments.length||![2,3].includes(draft.attachments.length))

@@ -12,6 +12,7 @@ const {createGmailSentEvidenceVerifier}=require('../contract-gmail-evidence-stag
 const {createGmailTestDraftBuilder}=require('../contract-gmail-draft-staging');
 const {createContractC33SecurityPreflight}=require('../contract-dispatch-preflight-staging');
 const {createC34DemoGmailReadbackLedger}=require('../contract-gmail-c34-readback-staging');
+const {ROOT,createC35DemoGmailReadback}=require('../contract-gmail-c35-readonly-api-staging');
 
 const HOST='127.0.0.1:8788';
 const PROJECT='demo-lszha-c2-20261025';
@@ -364,4 +365,51 @@ test('emulator C3.4: missing SENT and spoofed recipient cannot confirm reserved 
   assert.equal((await recordsForOffer(db,m.offerId)).length,2);
   await assert.rejects(service.reconcile(m.eventId,providerReceipt(m,{
     to:'unapproved@example.com'})),/does not match sealed package/);
+});
+
+test('emulator C3.5: exact OAuth mailbox identity gates read-only SENT evidence and single Firestore confirmation',async()=>{
+  const f=fixture({avv:'yes'}),m=await f.manifest,db=database();
+  const operator=c33Preflight(db,f);
+  const reserved=await operator.preflight.reserveForReview(f.pkg,operator.approval);
+  assert.equal(reserved.sendPermitted,false);
+  const gmail=c34FakeSent(m,f.binary);
+  const mailbox='test-sender@lszh-automations.ch';
+  let oauthIdentity='unauthorised-personal@example.com';
+  const requests=[];
+  const authClient={request:async request=>{
+    requests.push(request);
+    assert.equal(request.method,'GET');
+    if(request.url===ROOT+'/profile')
+      return {data:{emailAddress:oauthIdentity}};
+    if(request.url===ROOT+'/messages/'+gmail.message.id+'?format=full')
+      return {data:gmail.message};
+    const prefix=ROOT+'/messages/'+gmail.message.id+'/attachments/';
+    if(request.url.startsWith(prefix)){
+      const response=await gmail.getAttachment(gmail.message.id,
+        request.url.slice(prefix.length));
+      return {data:response};
+    }
+    throw Error('unexpected Gmail API endpoint');
+  }};
+  const service=createC35DemoGmailReadback({
+    db,signingSecret:SECRET,authClient,expectedMailbox:mailbox,
+    allowedRecipients:[TEST_RECIPIENT],now:()=>f.now
+  });
+  assert.deepEqual(Object.keys(service).sort(),[
+    'inspect','reconcile','verifyMailbox'
+  ]);
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /not independently verified/);
+  assert.equal((await service.inspect(m.eventId)).status,'reserved');
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].url,ROOT+'/profile');
+  oauthIdentity=mailbox;
+  const result=await service.reconcile(m.eventId,providerReceipt(m));
+  assert.equal(result.state,'confirmed_test_only');
+  assert.equal((await service.inspect(m.eventId)).status,'confirmed_test_only');
+  assert.equal(gmail.counts().attachments,3);
+  await assert.rejects(service.reconcile(m.eventId,providerReceipt(m)),
+    /requires an unresolved/);
+  assert.equal((await recordsForOffer(db,m.offerId)).length,2);
+  assert.ok(requests.every(r=>r.method==='GET'));
 });

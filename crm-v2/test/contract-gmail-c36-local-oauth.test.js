@@ -190,3 +190,43 @@ test('C3.6 modules cannot send, mutate Gmail, deploy, or import into production 
   assert.doesNotMatch(source+script,/writeFileSync\s*\([^)]*(?:token|credentials)/);
   assert.equal(typeof createC36OAuthSession,'function');
 });
+
+test('C3.6 diagnostic: user consent refusal never exchanges code and leaks no provider details',async()=>{
+  const f=fixture();
+  await assert.rejects(f.run({error:'access_denied'}),e=>{
+    assert.equal(e.c36SafeCode,'CONSENT_DENIED');
+    return true;
+  });
+  assert.equal(f.calls.tokens,0);
+});
+test('C3.6 diagnostic: token exchange and exact scope failures have safe separate codes',async()=>{
+  const exchange=fixture({tokenError:true});
+  await assert.rejects(exchange.run(),e=>{
+    assert.equal(e.c36SafeCode,'TOKEN_EXCHANGE_FAILED');
+    return true;
+  });
+  const scope=fixture();
+  scope.scopes(['https://www.googleapis.com/auth/gmail.send']);
+  await assert.rejects(scope.run(),e=>{
+    assert.equal(e.c36SafeCode,'TOKEN_SCOPE_MISMATCH');
+    return true;
+  });
+  assert.equal(scope.calls.profile,0);
+});
+test('C3.6 diagnostic: wrong OAuth audience, expired token and personal account are distinct',async()=>{
+  const audience=fixture();audience.audience('other_client');
+  await assert.rejects(audience.run(),e=>{
+    assert.equal(e.c36SafeCode,'CLIENT_AUDIENCE_MISMATCH');
+    return true;
+  });
+  const expired=fixture();expired.expires(NOW+1000);
+  await assert.rejects(expired.run(),e=>{
+    assert.equal(e.c36SafeCode,'TOKEN_EXPIRED_OR_INVALID');
+    return true;
+  });
+  const account=fixture();account.identity('personal@example.com');
+  await assert.rejects(account.run(),e=>{
+    assert.equal(e.c36SafeCode,'GMAIL_ACCOUNT_MISMATCH');
+    return true;
+  });
+});

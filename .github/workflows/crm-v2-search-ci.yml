@@ -6,6 +6,7 @@ on:
       - feature/crm-v2-read-performance-20261024
       - feature/crm-v2-offer-contract-package-staging-20261025
       - feature/crm-v2-contract-package-mail-staging-20261025
+      - feature/crm-v2-contract-release-ledger-staging-20261025
     paths:
       - "crm-v2/**"
       - "scripts/*crm-search*.ps1"
@@ -45,6 +46,9 @@ jobs:
           node --check crm-v2/test/offer-contract-package-make-mock.test.js
           node --check crm-v2/scripts/generate-contract-make-learn-sample.cjs
           node --check crm-v2/test/offer-contract-make-learn-sample.test.js
+          node --check crm-v2/contract-dispatch-release-staging.js
+          node --check crm-v2/contract-dispatch-ledger-staging.js
+          node --check crm-v2/test/contract-dispatch-phase-c.test.js
           node - <<'NODE'
           const fs=require('node:fs');
           const html=fs.readFileSync('crm-v2/public/index.html','utf8');

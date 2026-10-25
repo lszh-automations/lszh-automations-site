@@ -22,6 +22,7 @@ on:
       - "scripts/test-crm-contract-firestore-emulator.ps1"
       - "scripts/check-crm-c37-oauth-infrastructure.ps1"
       - "scripts/test-crm-c37-oauth-infra-offline.ps1"
+      - "scripts/prepare-crm-c372-private-source.ps1"
       - "scripts/*crm-search*.ps1"
       - "scripts/*crm-read-performance*.ps1"
       - "scripts/measure-crm-read-performance.ps1"
@@ -85,6 +86,8 @@ jobs:
           node --check crm-v2/scripts/c371-offline-oauth-to-secret.cjs
           node --check crm-v2/test/contract-gmail-c371-offline-consent.test.js
           node --check crm-v2/test/contract-gmail-c371-windows-transport.test.js
+          node --check crm-v2/c372-readonly-server.js
+          node --check crm-v2/test/contract-gmail-c372-private-server.test.js
           node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
           node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
@@ -109,7 +112,7 @@ jobs:
       - name: Check Windows PowerShell parser (no deployment)
         shell: powershell
         run: |
-          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1','scripts/test-crm-c37-oauth-infra-offline.ps1')
+          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1','scripts/test-crm-c37-oauth-infra-offline.ps1','scripts/prepare-crm-c372-private-source.ps1')
           foreach($path in $paths) {
             $tokens=$null
             $errors=$null
@@ -133,6 +136,22 @@ jobs:
       - name: Prove C3.7.1 synthetic secret bytes through mock gcloud.cmd stdin
         shell: powershell
         run: node --test crm-v2/test/contract-gmail-c371-windows-transport.test.js
+      - name: Verify C3.7.2 source allowlist without deploying
+        shell: powershell
+        run: |
+          $output=@(& '.\scripts\prepare-crm-c372-private-source.ps1')
+          if ($LASTEXITCODE -ne 0 -or $output.Count -ne 1) { throw 'C3.7.2 source staging failed' }
+          $folder=$output[0]
+          try {
+            if (-not (Test-Path (Join-Path $folder 'package.json'))) { throw 'Missing isolated manifest' }
+            if (Test-Path (Join-Path $folder 'server.js')) { throw 'Production CRM present in staging context' }
+            if (Test-Path (Join-Path $folder 'offer-send.js')) { throw 'Production mail module in staging context' }
+            $json=Get-Content (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
+            if ($json.scripts.start -cne 'node c372-readonly-server.js') { throw 'Incorrect private entry point' }
+            Write-Host 'C3.7.2 PRIVATE SOURCE ALLOWLIST PASS - NO DEPLOYMENT'
+          } finally {
+            Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
+          }
       - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
         shell: powershell
         run: |

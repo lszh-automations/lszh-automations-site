@@ -34,7 +34,15 @@ function Get-GcloudJson {
 }
 
 $sa = Get-GcloudJson -Arguments @('iam','service-accounts','describe',$serviceAccount,"--project=$Project")
-if ($sa.email -cne $serviceAccount -or $sa.disabled -eq $true) {
+# Google IAM omits "disabled" when the account is enabled. Under StrictMode
+# accessing a missing property throws. Treat missing as enabled, but deny
+# explicit true or any malformed non-Boolean disabled value.
+$emailField = $sa.PSObject.Properties['email']
+$disabledField = $sa.PSObject.Properties['disabled']
+if ($null -eq $emailField -or
+    $emailField.Value -cne $serviceAccount -or
+    ($null -ne $disabledField -and
+      ($disabledField.Value -isnot [bool] -or $disabledField.Value -eq $true))) {
   throw 'C3.7 PRECHECK BLOCKED: dedicated service account missing or disabled.'
 }
 Write-Host 'C3.7 SA METADATA PASS'

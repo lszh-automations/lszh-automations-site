@@ -94,22 +94,30 @@ function createContractDispatchLedger(db,config={}){
        receipt.ok!==true||receipt.eventId!==eventId||
        receipt.provider!=='gmail'||!MESSAGE.test(receipt.messageId||''))
       throw blocked('Gmail receipt has invalid structure');
+    // Authenticate provider evidence OUTSIDE Firestore transactions: a
+    // transaction callback can be rerun by Firestore on contention.
+    const first=await ref.get();
+    if(!first.exists)throw blocked('no reserved dispatch',404);
+    const expected=first.data();
+    if(!['reserved','delivery_review'].includes(expected.state))
+      throw blocked('dispatch already finalised or duplicated',409);
+    if(receipt.packageSha256!==expected.packageSha256||
+       receipt.to!==expected.recipient||
+       receipt.attachmentCount!==expected.documentHashes.length)
+      throw blocked('Gmail receipt does not match sealed package');
+    const proven=await verifyGatewayReceipt({receipt,
+      expected:{eventId:expected.eventId,packageSha256:expected.packageSha256,
+        recipient:expected.recipient,documentHashes:expected.documentHashes}});
+    if(proven!==true)throw blocked('gateway/provider delivery was not independently verified');
     return db.runTransaction(async tx=>{
       const snap=await tx.get(ref);
       if(!snap.exists)throw blocked('no reserved dispatch',404);
       const prev=snap.data();
-      if(!['reserved','delivery_review'].includes(prev.state))
-        throw blocked('dispatch already finalised or duplicated',409);
-      if(receipt.packageSha256!==prev.packageSha256||
-         receipt.to!==prev.recipient||
-         receipt.attachmentCount!==prev.documentHashes.length)
-        throw blocked('Gmail receipt does not match sealed package');
-      // Must be a trusted backend verifier against the actual Gmail sent event.
-      // Provider response alone or a browser-supplied boolean is NOT sufficient.
-      const proven=await verifyGatewayReceipt({receipt,
-        expected:{eventId:prev.eventId,packageSha256:prev.packageSha256,
-          recipient:prev.recipient,documentHashes:prev.documentHashes}});
-      if(proven!==true)throw blocked('gateway/provider delivery was not independently verified');
+      if(!['reserved','delivery_review'].includes(prev.state)||
+         prev.eventId!==expected.eventId||prev.packageSha256!==expected.packageSha256||
+         prev.recipient!==expected.recipient||
+         prev.documentHashes.length!==expected.documentHashes.length)
+        throw blocked('dispatch modified or already finalised',409);
       tx.update(ref,{state:'confirmed_test_only',provider:'gmail',
         messageId:receipt.messageId,updatedAt:iso()});
       return Object.freeze({eventId,state:'confirmed_test_only',
@@ -123,21 +131,30 @@ function createContractDispatchLedger(db,config={}){
        typeof review.reviewId!=='string'||!/^review_[A-Za-z0-9_-]{8,120}$/.test(review.reviewId)||
        typeof review.reviewedBy!=='string'||review.reviewedBy.length>254)
       throw blocked('manual review evidence malformed');
+    const first=await ref.get();
+    if(!first.exists)throw blocked('no reserved dispatch',404);
+    const expected=first.data();
+    if(expected.state!=='delivery_review')
+      throw blocked('only uncertain sends can be manually closed',409);
+    // The mailbox review is a single external trust decision; never repeat it
+    // as part of a retried Firestore transaction.
+    const verified=await verifyManualReview({
+      review,expected:{eventId:expected.eventId,recipient:expected.recipient,
+        packageSha256:expected.packageSha256}
+    });
+    if(verified!==true)throw blocked('unverified mailbox check cannot close dispatch');
     return db.runTransaction(async tx=>{
       const snap=await tx.get(ref);
       if(!snap.exists)throw blocked('no reserved dispatch',404);
       const prev=snap.data();
-      if(prev.state!=='delivery_review')
-        throw blocked('only uncertain sends can be manually closed',409);
-      const verified=await verifyManualReview({
-        review,expected:{eventId:prev.eventId,recipient:prev.recipient,
-          packageSha256:prev.packageSha256}
-      });
-      if(verified!==true)throw blocked('unverified mailbox check cannot close dispatch');
+      if(prev.state!=='delivery_review'||prev.eventId!==expected.eventId||
+         prev.packageSha256!==expected.packageSha256||
+         prev.recipient!==expected.recipient)
+        throw blocked('dispatch changed during manual review',409);
       tx.update(ref,{state:'not_sent_closed',updatedAt:iso(),
         reviewedBy:review.reviewedBy,reviewId:review.reviewId});
-      // Per-offer lock deliberately remains. New release needs separate,
-      // explicit operator remediation code not provided in Phase C.
+      // Per-offer lock deliberately remains. A new release requires a
+      // separately approved remediation workflow (not provided here).
       return Object.freeze({eventId,state:'not_sent_closed',mayAutoRetry:false});
     });
   }

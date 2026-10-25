@@ -59,7 +59,10 @@ function main(argv){
     onDone:(error,result)=>{
       clearTimeout(timer);
       if(error){
-        process.stderr.write('LSZH C3.6: OAuth-Konto/Scope nicht bestätigt. Kein Versand.\n');
+        const code=/^[A-Z_]{5,40}$/.test(error?.c36SafeCode||'')?
+          error.c36SafeCode:'OAUTH_VERIFICATION_FAILED';
+        // Never print a raw Google OAuth error response or callback URL.
+        process.stderr.write('LSZH C3.6 Diagnose: '+code+'. Kein Versand.\n');
         process.exitCode=1;
       }else{
         process.stdout.write('LSZH C3.6 PASS: Konto='+result.mailbox+

@@ -47,3 +47,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\test-crm-cont
 5. Juristische Schlussprüfung RC1/AVV/Anlagen und separate ausdrückliche produktive Go-Live-Entscheidung.
 
 **Kein Versand in dieser Phase erfolgt; keine echte Gmail-Verbindung erstellt oder aktiviert.**
+
+
+### 25.10.2026 – C3.4 vollständiger lokaler Testnachweis: 249/249 + 11/11 PASS
+
+- Betreiber wechselte nach `git fetch origin` auf **feature/crm-v2-contract-c34-gmail-readback-staging-20261025** und bestätigte `npm.cmd test --prefix .\crm-v2`: **249/249 PASS**, 0 FAIL, 0 SKIP. Alle **9 neuen C3.4-Regressionen** bestanden: Gmail-SENT-Readback für 2 Inline- bzw. 3 externe PDF-Anhänge, ungültige Make-Quittung, veränderte AVV-PDFs, Header-/Empfänger-/Sender-/CC-/BCC-Missbrauch, Timeouts, fehlerhafte Allowlists, No-Send-/Produktivisolierung.
+- Echter lokaler Firestore-Emulator auf **demo-lszha-c2-20261025**, **127.0.0.1:8788**: **11/11 PASS**, 0 FAIL, Exit 0 und `CONTRACT FIRESTORE EMULATOR TEST PASS (demo only)`. Beide **neuen C3.4-Integrationstests** erfolgreich: (1) gültiger C3.3-AVV-Preflight mit atomarer Lock-Reservierung, absichtlich beschädigte Gmail-AVV-Bytes zunächst abgewiesen, danach 3 originalgetreue PDF-Bytes aus unabhängigem **simulierten** Readback einmalig mit `confirmed_test_only` protokolliert und zweite Bestätigung abgewiesen; (2) fehlendes `SENT` und falsch deklarierter Empfänger bestätigt **keinen** Versand. Der Firestore-Emulator wurde anschliessend kontrolliert beendet.
+- **C3.4 lokal technisch abgenommen** – ausdrücklich **kein realer Gmail-Transport-/SENT-Nachweis**: Gmail-Antworten und PDFs stammen in C3.4 aus Test-Fixtures, nicht aus einem echten Gmail-Konto. Weder externe Testmails noch produktive Kundenmails, Make-Aktionen, Cloud-Run-Deployment oder produktive Firestore-Schreibzugriffe wurden durch diese Tests veranlasst.
+- Make **8166714** nach dem Test unabhängig kontrolliert: **inactive**, **0 Gmail-Verbindungen**, **0 unvollständige Ausführungen**; Kette unverändert Webhook → Feeder → Aggregator → HTTP-423-Responder. Produktiver Make-Sender **8144117** blieb unberührt.
+- Restaufgaben: Gmail-read-only-Authentifizierung/Adapter und tatsächlich geöffneter `SENT`-Record, separater **einmaliger TEST_ONLY-Gmail-Sendepfad** hinter Betreiberfreigabe und Firestore-Lock, genaue Absender- und Testempfängerfreigabe, produktive Firestore-IAM/Rules, unabhängige Provider-Byte-SHA-Verifikation, juristische RC1/AVV/Anlagen-A–C-Prüfung. **Kein Auto-Retry** bei unklarem Providerergebnis.

@@ -41,3 +41,11 @@ test('C3.7.1 preflight is not wired to CRM APIs or provider mailing',()=>{
   }
   assert.doesNotMatch(script,/refresh_token|client_secret|bearer|gmail\.send/i);
 });
+
+test('C3.7.1 IAM account allows omitted disabled field, but denies true or malformed',()=>{
+  assert.match(script,/PSObject\.Properties\['disabled'\]/);
+  assert.match(script,/\$null -ne \$disabledField/);
+  assert.match(script,/\$disabledField\.Value -isnot \[bool\]/);
+  assert.match(script,/\$disabledField\.Value -eq \$true/);
+  assert.doesNotMatch(script,/\$sa\.disabled/);
+});

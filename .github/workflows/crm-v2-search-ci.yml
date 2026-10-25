@@ -12,6 +12,7 @@ on:
       - feature/crm-v2-contract-gmail-transport-staging-20261025
       - feature/crm-v2-contract-c33-safety-preflight-20261025
       - feature/crm-v2-contract-c34-gmail-readback-staging-20261025
+      - feature/crm-v2-contract-c35-gmail-readonly-adapter-20261025
     paths:
       - "crm-v2/**"
       - "firebase.json"
@@ -66,6 +67,8 @@ jobs:
           node --check crm-v2/test/contract-dispatch-c33-preflight.test.js
           node --check crm-v2/contract-gmail-c34-readback-staging.js
           node --check crm-v2/test/contract-gmail-c34-readback.test.js
+          node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
+          node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
           node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
           node --check crm-v2/scripts/generate-contract-c3-2-blocked-make-sample.cjs
           node --check crm-v2/test/contract-gmail-phase-c3-2-generator.test.js

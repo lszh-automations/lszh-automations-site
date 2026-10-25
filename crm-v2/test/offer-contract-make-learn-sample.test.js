@@ -70,3 +70,24 @@ test('PowerShell runtime smoke requires exact HTTP 423 denial and never marks ma
   assert.doesNotMatch(script,/Write-Host\s*\$hook\b/);
   assert.doesNotMatch(script,/lszh-crm-v2.*\/send|gcloud\.cmd|git push/);
 });
+
+
+test('Windows PowerShell 5.1 can parse the strict 423 denial offline with no HTTP request',()=>{
+  const script=path.join(__dirname,'../../scripts/smoke-crm-contract-make-staging.ps1');
+  const content=fs.readFileSync(script,'utf8');
+  assert.match(content,/HttpClient/);
+  assert.match(content,/ReadAsStringAsync\(\)/);
+  assert.match(content,/if\(\$status -ne 423\)/);
+  assert.match(content,/if\(\$SelfTest\)/);
+  assert.doesNotMatch(content,/Invoke-WebRequest -Uri \$hook -Method Post/);
+  if(process.platform!=='win32')return;
+  const result=spawnSync('powershell.exe',[
+    '-NoProfile','-ExecutionPolicy','Bypass','-File',script,'-SelfTest'
+  ],{
+    encoding:'utf8',timeout:15000,maxBuffer:120000,
+    env:{...process.env,LSZH_CONTRACT_STAGING_WEBHOOK:''}
+  });
+  assert.equal(result.status,0,result.stderr||result.stdout);
+  assert.match(result.stdout,/LOCAL 423 PARSER SELFTEST PASS/);
+  assert.doesNotMatch(result.stdout,/https:\/\/hook|gmail_fake/);
+});

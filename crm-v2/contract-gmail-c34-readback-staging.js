@@ -79,12 +79,9 @@ function createC34DemoGmailReadbackLedger({
       throw blocked('C3.4 requires an unresolved, previously reserved attempt');
     return ledger.confirmVerifiedReceipt(eventId,receipt);
   }
-  return Object.freeze({
-    reserve:ledger.reserve,
-    inspect:ledger.inspect,
-    markDeliveryUncertain:ledger.markDeliveryUncertain,
-    reconcile
-  });
+  // Readback service is NOT a reservation or dispatch gateway. A separate
+  // C3.3 operator preflight alone may create the initial Firestore reservation.
+  return Object.freeze({inspect:ledger.inspect,reconcile});
 }
 module.exports={
   EMULATOR_HOST,DEMO_PROJECT,createC34GmailReadOnlyVerifier,

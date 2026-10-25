@@ -18,7 +18,8 @@ test('C3.7.1 preflight only reads metadata, IAM and version count',()=>{
   assert.match(script,/Get-GcloudJson -Arguments @\('iam','service-accounts','describe'/);
   assert.match(script,/Get-GcloudJson -Arguments @\('secrets','describe'/);
   assert.match(script,/Get-GcloudJson -Arguments @\('secrets','get-iam-policy'/);
-  assert.match(script,/Get-GcloudJson -Arguments @\('secrets','versions','list'/);
+  assert.match(script,/gcloud\.cmd secrets versions list \$SecretId/);
+  assert.match(script,/--format=value\(name\)/);
   assert.doesNotMatch(script,
     /secrets\s+(versions\s+(access|add|destroy|disable|enable)|delete|create|add-iam-policy-binding)/i);
   assert.doesNotMatch(script,
@@ -30,7 +31,7 @@ test('C3.7.1 preflight denies mismatched principals and nonempty secret',()=>{
   assert.match(script,/replicas\.Count -ne 1/);
   assert.match(script,/accessors\.Count -ne 1/);
   assert.match(script,/accessors\[0\]\.members/);
-  assert.match(script,/versions\.Count -ne 0/);
+  assert.match(script,/presentVersions\.Count -ne 0/);
   assert.match(script,/NO SECRET VALUES READ OR CHANGED/);
 });
 test('C3.7.1 preflight is not wired to CRM APIs or provider mailing',()=>{

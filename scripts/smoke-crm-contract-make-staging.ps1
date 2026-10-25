@@ -1,7 +1,66 @@
-# Synthetic 2/3 PDF Make STAGING smoke test. It expects HTTP 423 (hard-deny).
-# NEVER sends email or invokes the production CRM. Run only for scenario 8162162.
-param([ValidateSet('no','yes')][string]$Avv='no')
+# Synthetic 2/3 PDF Make STAGING smoke test. Expect exact HTTP 423 deny JSON.
+# NEVER sends email or invokes production CRM. Only scenario 8162162.
+# Windows PowerShell 5.1: HttpClient reads body even for HTTP 4xx responses.
+param(
+  [ValidateSet('no','yes')][string]$Avv='no',
+  [switch]$SelfTest
+)
 $ErrorActionPreference='Stop'
+
+function Assert-MakeStagingDeny {
+  param([int]$Status,[AllowEmptyString()][string]$Body)
+  # An inactive Make webhook can return 200 Accepted while queueing the
+  # request. HTTP 200 is never proof of a successful runtime smoke test.
+  if($Status -ne 423){
+    throw ('UNCONFIRMED: HTTP '+$Status+
+      '. Expected strict 423; inspect Make queue. No automatic retry.')
+  }
+  if([string]::IsNullOrWhiteSpace($Body)){
+    throw 'HTTP 423 received but response body is empty; NO confirmation and no retry.'
+  }
+  try{
+    $receipt=ConvertFrom-Json -InputObject $Body -ErrorAction Stop
+  }catch{
+    throw 'HTTP 423 received but deny JSON is invalid; no retry.'
+  }
+  if($null -eq $receipt -or
+     $receipt.ok -ne $false -or
+     $receipt.error -cne 'STAGING_CONTRACT_NOT_ENABLED' -or
+     $receipt.transmitted -ne $false -or
+     $receipt.provider -cne 'NONE' -or
+     $null -ne $receipt.messageId){
+    throw 'HTTP 423 deny response did not match expected safe contract. No automatic retry.'
+  }
+  return $true
+}
+if($SelfTest){
+  $good='{"ok":false,"error":"STAGING_CONTRACT_NOT_ENABLED","transmitted":false,"provider":"NONE","messageId":null}'
+  if(!(Assert-MakeStagingDeny -Status 423 -Body $good)){
+    throw 'Offline 423 parser selftest failed.'
+  }
+  $rejected=0
+  foreach($bad in @(
+    '',
+    '{}',
+    '{"ok":true,"error":"STAGING_CONTRACT_NOT_ENABLED","transmitted":false,"provider":"NONE","messageId":null}',
+    '{"ok":false,"error":"STAGING_CONTRACT_NOT_ENABLED","transmitted":false,"provider":"NONE","messageId":"gmail_fake"}'
+  )){
+    try{
+      $null=Assert-MakeStagingDeny -Status 423 -Body $bad
+    }catch{
+      $rejected++
+    }
+  }
+  try{
+    $null=Assert-MakeStagingDeny -Status 200 -Body $good
+  }catch{
+    $rejected++
+  }
+  if($rejected -ne 5){throw 'Offline 423 parser did not reject all invalid responses.'}
+  Write-Host 'LOCAL 423 PARSER SELFTEST PASS (1 valid, 5 invalid, zero HTTP requests).'
+  return
+}
+
 $generator=Join-Path (Split-Path -Parent $PSScriptRoot) 'crm-v2\scripts\generate-contract-make-learn-sample.cjs'
 if(!(Test-Path -LiteralPath $generator)){throw 'Generator missing. Run git pull --ff-only.'}
 if(!(Get-Command node.exe -ErrorAction SilentlyContinue)){throw 'Node.js not found.'}
@@ -11,7 +70,9 @@ if(!$hook){
   $secret=Read-Host 'STAGING webhook URL (hidden)' -AsSecureString
   try{
     $hook=([pscredential]::new('LSZH_STAGING_WEBHOOK',$secret)).GetNetworkCredential().Password
-  }finally{$secret=$null}
+  }finally{
+    $secret=$null
+  }
 }
 if($hook -cnotmatch '^https://hook\.eu1\.make\.com/[A-Za-z0-9]+$'){
   throw 'Not a eu1.make.com webhook URL; refusing to send.'
@@ -40,37 +101,35 @@ for($i=0;$i -lt $expectedCount;$i++){
 Write-Host ("TEST_ONLY Make smoke: AVV="+$Avv+
  " | attachments="+$expectedCount+
  " | provider=NONE | no production CRM or email")
+# HttpClient does not throw for an HTTP 423 status and retains its response
+# body. Invoke-WebRequest under Windows PowerShell 5.1 can lose that body
+# while raising a WebException; do not treat an empty result as confirmed.
+$handler=$null
+$client=$null
+$content=$null
+$response=$null
 $status=0
 $body=''
 try{
-  $res=Invoke-WebRequest -Uri $hook -Method Post -Body $json -ContentType 'application/json; charset=utf-8' -Headers @{'X-LSZH-Test'='STAGING-Blocked-Smoke'} -UseBasicParsing
-  $status=[int]$res.StatusCode
-  $body=[string]$res.Content
-}catch{
-  $response=$_.Exception.Response
-  if(!$response){throw 'Make STAGING transport failed; no retry. Inspect Make history.'}
+  Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
+  $handler=[System.Net.Http.HttpClientHandler]::new()
+  $handler.AllowAutoRedirect=$false
+  $client=[System.Net.Http.HttpClient]::new($handler)
+  $client.Timeout=[TimeSpan]::FromSeconds(25)
+  $client.DefaultRequestHeaders.Add('X-LSZH-Test','STAGING-Blocked-Smoke')
+  $content=[System.Net.Http.StringContent]::new($json,[System.Text.Encoding]::UTF8,'application/json')
+  $response=$client.PostAsync($hook,$content).GetAwaiter().GetResult()
   $status=[int]$response.StatusCode
-  $stream=$response.GetResponseStream()
-  if($null -ne $stream){
-    $reader=New-Object System.IO.StreamReader($stream)
-    try{$body=$reader.ReadToEnd()}finally{$reader.Dispose()}
-  }
+  $body=$response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+}catch{
+  # Do not log exception.Message: transport errors can reveal URL/tokens.
+  throw 'Make STAGING HTTP transport failed; no retry. Inspect Make run history.'
+}finally{
+  if($null -ne $response){$response.Dispose()}
+  if($null -ne $content){$content.Dispose()}
+  if($null -ne $client){$client.Dispose()}
+  if($null -ne $handler){$handler.Dispose()}
 }
-# An inactive Make webhook can return 200 Accepted while simply queueing the
-# request. DO NOT interpret that as a successful runtime test.
-if($status -ne 423){
-  throw ('UNCONFIRMED: HTTP '+$status+'. Expected strict 423; inspect Make queue. No automatic retry.')
-}
-$receipt=$null
-try{$receipt=$body | ConvertFrom-Json}catch{
-  throw 'HTTP 423 received but deny JSON missing or invalid.'
-}
-if($receipt.ok -ne $false -or
-   $receipt.error -cne 'STAGING_CONTRACT_NOT_ENABLED' -or
-   $receipt.transmitted -ne $false -or
-   $receipt.provider -cne 'NONE' -or
-   $null -ne $receipt.messageId){
-  throw 'HTTP 423 deny response did not match expected safe contract.'
-}
-Write-Host ('Make STAGING deny response VERIFIED: HTTP 423 | transmitted=false | messageId=null')
+$null=Assert-MakeStagingDeny -Status $status -Body $body
+Write-Host 'Make STAGING deny response VERIFIED: HTTP 423 | transmitted=false | messageId=null'
 Write-Host 'Next: inspect Make execution history to confirm Iterator x2/x3 and Aggregator x1.'

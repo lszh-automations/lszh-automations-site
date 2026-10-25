@@ -47,7 +47,7 @@ function createC35GmailApiReadOnlyAdapter({
     const profile=await get(ROOT+'/profile');
     if(profile.emailAddress!==expected)
       throw blocked('C3.5 Gmail OAuth identity does not match approved mailbox');
-    return Object.freeze({mailbox:expected,scopeRequired:SCOPE,readOnly:true});
+    return Object.freeze({mailbox:expected,scopeRequired:SCOPE,getOnlyOperations:true,scopeVerified:false});
   }
   async function getMessage(messageId){
     validId(messageId);

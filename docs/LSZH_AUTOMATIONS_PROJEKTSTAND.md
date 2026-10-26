@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Make-Partnerlink und Startvorteil, 26.10.2026
+
+CRM **`lszh-crm-v2-00095-hix`** erhält 100 % Verkehr. Neue Bestätigungs-Mails und PDFs enthalten in der Make-Anleitung den anklickbaren Partnerlink mit 10'000 Gratis-Credits im ersten Monat gemäss Make-Aktionsbedingungen sowie den transparenten Provisionshinweis. Aktionsvorteil vom Betreiber bestätigt; Aktivierung für den individuellen Link öffentlich nicht unabhängig geprüft. Bestehende Make-Konten werden weiterverwendet.
+
+469 CRM-Tests, GitHub-Staging- und Baselineprüfung erfolgreich. Zweitseitiges Make-PDF visuell geprüft, PDF-Linkziel bestätigt, vier Desktop-/Mobilvarianten ohne Überlauf. Alle 79 tatsächlich gebauten Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Keine Kundenmail oder Kundendatenänderung. Portal und Make unverändert.
+
+[Details](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#make-partnerlink-und-transparenter-startvorteil) - [Live-Manifest](../releases/confirmation-partner-live-20261026.json).
+
+---
+
 # Aktiver Live-Stand - Make-Anleitung und bereinigte Bestätigung, 26.10.2026
 
 CRM **`lszh-crm-v2-00093-yik`** erhält 100 % Verkehr. Neue Auftragsbestätigungen zeigen weder Paketreferenz noch SHA-256. Für bereits vereinbarte Make-Voraussetzungen steht die Einrichtungshilfe in der Mail und auf Seite 2 desselben PDF-Anhangs, einschliesslich Einladung an lars@lszh-automations.ch. Interne Nachweise bleiben erhalten, frühere PDFs unverändert; keine erneute Mail und keine Kundendatenänderung.

@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Lead-Farben bleiben nach Bearbeitung stehen, 26.10.2026
+
+CRM **`lszh-crm-v2-00103-joy`** erhält 100 % Verkehr. Die Eingangsampel läuft nur noch im Status Neu weiter. Beim ersten Wechsel aus Neu wird der Farbbezug serverseitig gespeichert; Kontaktiert, Qualifiziert, Gewonnen und Verloren behalten die erreichte Farbe auch nach späteren Änderungen und erneutem Laden. Der Alterstext zählt weiterhin die Zeit seit Eingang.
+
+Für bestehende bearbeitete Leads wird der früheste erfolgreiche Kontakt, ersatzweise der bekannte Bearbeitungszeitpunkt oder Eingang verwendet. Die historische Ursprungsfarbe ist ohne damaligen Statuswechselzeitpunkt nicht immer exakt rekonstruierbar. Keine Massenmigration.
+
+481 CRM-Tests und beide GitHub-Prüfungen inklusive Firestore-Emulatortests erfolgreich. Desktop/Mobil und 24-Stunden-Zeitsprung geprüft. Alle 79 Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Keine Produktionsdatensätze bearbeitet, keine Mail. Portal und Make unverändert.
+
+[Verhalten und Grenzen](LSZH_LEAD_COLOURS.md) - [Live-Manifest](../releases/lead-colours-live-20261026.json) - [PR 26](https://github.com/lszh-automations/lszh-automations-site/pull/26).
+
+---
+
 # Aktiver Live-Stand - Kundenannahme sofort sichtbar, 26.10.2026
 
 CRM **`lszh-crm-v2-00101-caf`** erhält 100 % Verkehr. Eine gespeicherte Online-Kundenannahme erscheint sofort als **Angenommen** in Offertenliste, Fenstertitel, gesperrtem Statusfeld und Statusfilter - ohne vorherige separate Auftragsbestätigung und unabhängig vom noch laufenden Archivnachweis. Die interne Auftragsübernahme bleibt ein eigener Schritt; dadurch entstehen keine vorgezogenen Projekte oder Rechnungen und keine Datenmigration.

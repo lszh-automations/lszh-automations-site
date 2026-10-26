@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "f0e9059a4e075b8256ad90d2d57ce6c6cad7a1d2",
+  "service": "lszh-crm-v2",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "anonymousLeadStatus": 401,
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "configurationUnchanged": true,
+  "revision": "lszh-crm-v2-00103-joy",
+  "buildId": {
+    "lszh-crm-v2-1": "4f0600cd-e62f-4ed2-8ef7-e35dba27bb55"
+  },
+  "rollback": "lszh-crm-v2-00101-caf",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793038667.960961-78d52294c89d443a8a87c3cb09547e6e.zip#1793038669356495"
+  },
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:8ab1b0a73c36310bdaf1c2d61feb35b1eb829a7e859a3ef181fdd511a932b8ce",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 481,
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success",
+  "browserVariantsChecked": 2,
+  "parentRelease": "customer-acceptance-display-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "12927885d1aceac4527cab6341307bd14bf208bc5813f9d9a1798a26ea219cd7",
+      "bytes": 58893
+    },
+    {
+      "path": "lead-contact.js",
+      "sha256": "fe799c833e75d713fa6cc118919775e12de1cd37237c18b565ff45850b6358a8",
+      "bytes": 3276
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "bf0980834bff2b97f05d96ab2a61f1b3a148cdb7be217b975a3305ad8283a14c",
+      "bytes": 192667
+    }
+  ],
+  "freezeField": "urgencyFrozenAt",
+  "onlyNewLeadsAgeTheirColour": true,
+  "ageTextStillUpdates": true,
+  "historicalFallback": "Earliest successful contact, otherwise existing updatedAt, otherwise createdAt; original historic colour not always reconstructable",
+  "customerDataChanged": false,
+  "migrationPerformed": false,
+  "emailSent": false,
+  "portalAndMakeUnchanged": true
+}

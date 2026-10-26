@@ -209,6 +209,16 @@ async function handler(req,res){
   if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
     return reply(res,200,{summary:await getCockpitSummary()});
   }
+  const invoiceReviewPath=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/readiness$/);
+  if(invoiceReviewPath){
+    if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});
+    return reply(res,200,await store.invoiceReview(invoiceReviewPath[1]));
+  }
+  const projectBillingPath=pathname.match(/^\/api\/records\/projekte\/([A-Za-z0-9_-]{1,100})\/billing$/);
+  if(projectBillingPath){
+    if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});
+    return reply(res,200,await store.projectBilling(projectBillingPath[1]));
+  }
   if(req.method==='GET'&&pathname==='/api/reminders'){
     const reminders=await store.reminders();
     return reply(res,200,{reminders,mode:'preview_only_not_sent'});

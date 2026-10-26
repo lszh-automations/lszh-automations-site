@@ -879,3 +879,24 @@ test('onboarding rejects malformed, oversized and contradictory confirmations',(
  const noMake=cleanProjectOnboarding({...defaultOnboarding(),makeRequired:false,accessConfirmed:true});
  assert.equal(projectOnboardingState({onboarding:noMake}).status,'Bereit zur Einrichtung');
 });
+
+
+test('project billing finds linked invoices beyond a register page and review is strictly read-only',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const customer=await store.create('kunden',{company:'TEST_ONLY Billing',email:'test@example.invalid',street:'Testweg 1',postalCode:'5610',city:'Wohlen'},admin);
+ const project=await store.create('projekte',{title:'TEST_ONLY billing',customerId:customer.id},admin);
+ const invoice=await store.create('rechnungen',{customerId:customer.id,projectId:project.id,description:'TEST_ONLY invoice',status:'Entwurf',items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
+ for(let n=0;n<60;n++)db.storage.set('lszh_crm_v2_staging_rechnungen/unrelated_'+n,{projectId:'other',status:'Entwurf',description:'Unrelated'});
+ const before=JSON.stringify([...db.storage]),billing=await store.projectBilling(project.id),review=await store.invoiceReview(invoice.id);
+ assert.deepEqual(billing.records.map(x=>x.id),[invoice.id]);assert.equal(billing.hasMore,false);assert.ok(review.readiness.missing.includes('Gültige Fälligkeit'));assert.equal(review.customer.id,customer.id);assert.equal(JSON.stringify([...db.storage]),before);
+ await assert.rejects(()=>store.projectBilling('absent'),e=>e.status===404);await assert.rejects(()=>store.invoiceReview('absent'),e=>e.status===404);
+ for(let n=0;n<100;n++)db.storage.set('lszh_crm_v2_staging_rechnungen/linked_'+n,{...invoice,projectId:project.id});
+ const limited=await store.projectBilling(project.id);assert.equal(limited.records.length,100);assert.equal(limited.hasMore,true);
+});
+test('invoice claim rejects inconsistent totals without leaving a sending reservation',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const c=await store.create('kunden',{company:'TEST_ONLY',email:'test@example.invalid',street:'Testweg 1',postalCode:'5610',city:'Wohlen'},admin);
+ const i=await store.create('rechnungen',{customerId:c.id,description:'TEST_ONLY',status:'Offen',dueDate:'2026-11-10',items:[{title:'Setup',qty:1,unitPriceCHF:100}]},admin);
+ const key='lszh_crm_v2_staging_rechnungen/'+i.id;db.storage.set(key,{...db.storage.get(key),amountCHF:101});
+ const before=JSON.stringify([...db.storage]);await assert.rejects(()=>store.claimInvoiceSend(i.id,admin),/Gesamtbetrag/);assert.equal(JSON.stringify([...db.storage]),before);
+});

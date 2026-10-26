@@ -45,4 +45,17 @@ function offerDescription(lead){
   return fields.filter(([,value])=>typeof value==='string'&&value.trim())
     .map(([label,value])=>label+': '+value.trim()).join('\n\n').slice(0,5000);
 }
-module.exports={CHANNELS,OUTCOMES,MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,offerDescription};
+function leadColourTime(lead,nowMs=Date.now()){
+  if(lead?.status==='Neu'||!lead?.status)return nowMs;
+  const saved=Date.parse(lead.urgencyFrozenAt||'');
+  if(Number.isFinite(saved))return saved;
+  const contacts=(lead.contactHistory||[]).filter(c=>shouldMarkContacted(c.outcome)&&Number.isFinite(Date.parse(c.createdAt))).map(c=>Date.parse(c.createdAt));
+  const known=contacts.length?Math.min(...contacts):Date.parse(lead.updatedAt||'');
+  const start=Date.parse(lead.createdAt||'');
+  return Number.isFinite(known)?known:Number.isFinite(start)?start:nowMs;
+}
+function freezeLeadUrgency(before,nextStatus,date){
+  if(nextStatus==='Neu'||Number.isFinite(Date.parse(before?.urgencyFrozenAt||'')))return {};
+  return {urgencyFrozenAt:before?.status==='Neu'?date:new Date(leadColourTime(before,Date.parse(date))).toISOString()};
+}
+module.exports={leadColourTime,freezeLeadUrgency,CHANNELS,OUTCOMES,MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,offerDescription};

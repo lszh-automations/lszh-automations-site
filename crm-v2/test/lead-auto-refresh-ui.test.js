@@ -118,7 +118,7 @@ test('traffic-light style refresh updates class and accessible text without back
   for(const color of ['green','orange','red']){
     assert.match(html,new RegExp('\\.lead-age-'+color+'\\{'));
   }
-  assert.match(html,/const urgency=leadUrgency\(rec\.createdAt\)/);
+  assert.match(html,/const urgency=leadUrgency\(rec\.createdAt,leadColourTime\(rec\)\)/);
   assert.match(html,/age\.title=new Intl\.DateTimeFormat/);
 });
 
@@ -191,4 +191,16 @@ test('offer UI documents manual delivery without automatically sending mail',()=
   assert.match(html,/renderOfferWorkflow\(record\)/);
   assert.match(html,/offer\.status==='Versendet'/);
   assert.doesNotMatch(html,/fetch\([^)]*sendEmail/i);
+});
+
+
+test('processed lead colour stays fixed while age text and new lead urgency continue to advance',()=>{
+ const inline=inlineScripts.find(s=>s.includes('function leadUrgency(')),source=inline.slice(inline.indexOf('function leadAge('),inline.indexOf('async function deleteNewLead('));
+ const start=Date.parse('2026-10-26T08:00:00Z');let at=start+3600000;
+ class FakeDate extends Date{static now(){return at;}}
+ const frozen={dataset:{leadCreatedAt:'2026-10-26T08:00:00Z',leadColourFrozenAt:'2026-10-26T09:00:00Z'},setAttribute(){}};
+ const fresh={dataset:{leadCreatedAt:'2026-10-26T08:00:00Z'},setAttribute(){}};
+ const {refreshLeadAges}=vm.runInNewContext(source+'\n({refreshLeadAges})',{Date:FakeDate,Math,Number,document:{querySelectorAll:()=>[frozen,fresh]}});
+ refreshLeadAges();assert.match(frozen.className,/green/);
+ at=start+24*3600000;refreshLeadAges();assert.match(frozen.className,/green/);assert.match(fresh.className,/red/);assert.equal(frozen.textContent,'vor 1 Tag');
 });

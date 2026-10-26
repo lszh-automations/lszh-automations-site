@@ -9,7 +9,7 @@ function setup(value,enabled=true){
   api:async(url,options)=>{calls.push({url,options});return options?{state:'sent',url:'https://portal.example/#private_token'}:value;},
   window:{confirm:()=>confirm,prompt:()=> 'synthetic_message_123'},reopenSavedOffer:async()=>{}};
  vm.createContext(context);vm.runInContext(source,context);
- return {context,area,calls,setConfirm:v=>{confirm=v;},render:()=>context.renderContractWorkflow({id:'offer_1101'})};
+ return {context,area,calls,setConfirm:v=>{confirm=v;},render:(status='Versendet')=>context.renderContractWorkflow({id:'offer_1101',status})};
 }
 test('contract controls remain hidden without release and do not request package data',async()=>{
  const f=setup({},false);await f.render();assert.equal(f.area.hidden,true);assert.equal(f.calls.length,0);
@@ -77,4 +77,19 @@ test('uncertain confirmation offers only receipt checking and no resend control'
   assert.equal(f.area.children.some(x=>x.tag==='input'||x.tag==='label'),false);
   if(hasConfirmationReceipt){await buttons[0].click();assert.ok(f.calls.at(-1).url.endsWith('/confirmation-check'));}
  }
+});
+
+test('verified online confirmation exposes the missing acceptance action and preserves explicit approval',async()=>{
+ for(const simpleSendEnabled of [true,false]){
+  const f=setup({state:'confirmed',simpleSendEnabled});await f.render();
+  const button=f.area.children.find(x=>x.textContent==='Auftrag übernehmen und Projekt anlegen');assert.ok(button);
+  assert.equal(f.calls.filter(x=>x.options).length,0);f.setConfirm(false);await button.click();assert.equal(f.calls.filter(x=>x.options).length,0);
+  f.setConfirm(true);await Promise.all([button.click(),button.click()]);const writes=f.calls.filter(x=>x.options);assert.equal(writes.length,1);assert.equal(writes[0].url,'/api/records/offerten/offer_1101');assert.equal(writes[0].options.method,'PATCH');assert.deepEqual(JSON.parse(writes[0].options.body),{status:'Angenommen'});
+ }
+});
+test('already accepted offer never offers another project creation action',async()=>{
+ const f=setup({state:'confirmed',simpleSendEnabled:true});await f.render('Angenommen');assert.equal(f.area.children.some(x=>x.tag==='button'),false);assert.ok(f.area.children.some(x=>/Auftrag übernommen/.test(x.textContent||'')));
+});
+test('pending confirmation cannot expose acceptance action',async()=>{
+ const f=setup({state:'awaiting_lszh_confirmation',simpleSendEnabled:true,reviewEnabled:false});await f.render();assert.equal(f.area.children.some(x=>/Auftrag übernehmen/.test(x.textContent||'')),false);
 });

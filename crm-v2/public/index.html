@@ -1707,6 +1707,21 @@ async function renderContractWorkflow(offer){
         finally{button.disabled=false;}
       });area.append(button);
     }
+    if(value.state==='confirmed'){
+      const legacy=$('offerWorkflow');if(legacy&&legacy!==area)legacy.hidden=true;
+      if(offer.status==='Angenommen'){area.append(el('p','','Auftrag übernommen. Kunde und Projekt sind zugeordnet.'));return;}
+      area.append(el('p','','Die Auftragsbestätigung ist versendet und geprüft. Übernimm jetzt den Auftrag, damit die Offerte auf Angenommen wechselt und Kunde und Projekt zugeordnet werden.'));
+      if(offer.status==='Versendet'){
+        const accept=el('button','btn primary','Auftrag übernehmen und Projekt anlegen');accept.type='button';
+        accept.addEventListener('click',async()=>{
+          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Die Offerte wechselt auf Angenommen; Kunde und Projekt werden angelegt oder zugeordnet.'))return;
+          accept.disabled=true;message.hidden=true;
+          try{await api('/api/records/offerten/'+encodeURIComponent(offer.id),{method:'PATCH',body:JSON.stringify({status:'Angenommen'})});await reopenSavedOffer(offer.id);}
+          catch(error){message.textContent=error.message||'Auftrag konnte nicht übernommen werden. Bitte Offerte neu öffnen und den Status prüfen.';message.hidden=false;accept.disabled=false;}
+        });area.append(accept);
+      }
+      return;
+    }
     if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action});return;}
     if(value.mayCreateDraft){
       const classification=el('select','','');

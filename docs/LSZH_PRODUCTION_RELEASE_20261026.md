@@ -8,11 +8,11 @@ Dieser Stand ersetzt ältere Aussagen zur technischen Betriebsbereitschaft. Die 
 | --- | --- | --- |
 | Öffentliche Render-Website | main, Commit 86b2e4d58ea2819ef87d422ae3a683d2b56f1b8b; letzter Deploy 23.10.2026 | Öffentliche Dateien im Repository-Stamm, unverändert aus main übernommen |
 | Internes CRM | lszh-crm-v2-00078-fox, 100 % regulärer Verkehr | crm-v2/ |
-| Allgemeine Kundenannahme | lszh-customer-acceptance-pilot-00005-rab, 100 % regulärer Verkehr, mode=customer | customer-portal/ |
+| Allgemeine Kundenannahme | lszh-customer-acceptance-pilot-00005-rab, 100 % regulärer Verkehr, mode=customer | crm-v2/customer-portal/ |
 
 Projekt: lszh-automations. Cloud-Region: europe-west6. Die beiden Cloud-Quellarchive wurden anhand der **Revisionen**, nicht anhand lokaler Vermutungen, aus Cloud Storage gelesen. [Release-Manifest](../releases/production-20261026.json) enthält Image-Digests, Build-IDs, versionierte Archivorte sowie SHA-256 und Länge aller 101 deployten Dateien. Keine Secretwerte, Kundendatensätze oder Vertragsnachweisdateien wurden in diesen Release übernommen.
 
-Die Portaldatei contract-package-publisher.js unterscheidet sich vom neueren CRM-Stand. Beide exakten Deployvarianten bleiben getrennt erhalten. Gemeinsamkeiten sind bewusst dupliziert: Eine automatische Vereinheitlichung würde den tatsächlichen Portalstand verändern. Die Portal-package.json hat ihren eigenen Startbefehl. Das Manifest prüft beide Quellen unabhängig. crm-v2/ enthält zusätzlich die zugehörigen Entwicklungs-, Test- und Hilfsdateien; nur die im Manifest aufgeführten Dateien gehören zum konkret beobachteten Cloud-Quellpaket.
+Der Portalquellstand liegt bewusst unter dem bereits vom öffentlichen Website-Server gesperrten Pfad /crm-v2/ und wird nicht öffentlich als statischer Quellcode ausgeliefert. Die Portaldatei contract-package-publisher.js unterscheidet sich vom neueren CRM-Stand. Beide exakten Deployvarianten bleiben getrennt erhalten. Gemeinsamkeiten sind bewusst dupliziert: Eine automatische Vereinheitlichung würde den tatsächlichen Portalstand verändern. Die Portal-package.json hat ihren eigenen Startbefehl. Das Manifest prüft beide Quellen unabhängig. crm-v2/ enthält zusätzlich die zugehörigen Entwicklungs-, Test- und Hilfsdateien; nur die im Manifest aufgeführten Dateien gehören zum konkret beobachteten Cloud-Quellpaket.
 
 ## Funktionen
 
@@ -65,7 +65,7 @@ Das Manifest nennt nur Secret-Namen/-Versionen. CRM-Vertragskonfiguration verwen
 
 Alte CRM-Testtags wurden am 26.10. entfernt; Revisionen bleiben erhalten. Aktueller Tag customer-simple; Rückfallzugänge customer-release und pilot-1002 erhalten. Rollback von Anwendungscode setzt Firestore-, Mail- und Archivwirkungen nicht zurück. Neue Pakete und bestehende Sperren müssen kompatibel bleiben.
 
-Eine Bereitstellung erfolgt ausdrücklich **nicht** im Rahmen dieses Release-Abgleichs. Für späteren Wiederaufbau aus crm-v2/ bzw. customer-portal/ dieselben bestehenden Dienstkonten, Secretreferenzen, IAM-Regeln und Laufzeitparameter verwenden; keine allgemeine Deploy- oder Mailfreigabe daraus ableiten. Der unveränderte Image-Digest ist die genaueste Wiederverwendungsreferenz. Portal-Abhängigkeiten werden mit dessen package-lock.json installiert.
+Eine Bereitstellung erfolgt ausdrücklich **nicht** im Rahmen dieses Release-Abgleichs. Für späteren Wiederaufbau aus crm-v2/ bzw. crm-v2/customer-portal/ dieselben bestehenden Dienstkonten, Secretreferenzen, IAM-Regeln und Laufzeitparameter verwenden; keine allgemeine Deploy- oder Mailfreigabe daraus ableiten. Der unveränderte Image-Digest ist die genaueste Wiederverwendungsreferenz. Portal-Abhängigkeiten werden mit dessen package-lock.json installiert.
 
 ## Prüfungen am 26.10.2026
 

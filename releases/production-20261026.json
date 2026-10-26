@@ -435,7 +435,7 @@
     {
       "name": "lszh-customer-acceptance-pilot",
       "revision": "lszh-customer-acceptance-pilot-00005-rab",
-      "sourceDirectory": "customer-portal",
+      "sourceDirectory": "crm-v2/customer-portal",
       "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-customer-acceptance-pilot@sha256:2e4a1dd83ca47c46889f1c9abc4602aa690186c648e6947015f1256189963805",
       "buildId": {
         "lszh-customer-acceptance-pilot-1": "de279f54-013a-4786-afc1-5ab00de6f5b2"

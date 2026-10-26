@@ -1,6 +1,6 @@
 'use strict';
 // Explicit operator dispatch. Durable claim precedes every external write/send.
-const {PDFDocument,StandardFonts,rgb}=require('pdf-lib');
+const {PDFDocument,StandardFonts,rgb,PDFName,PDFString}=require('pdf-lib');
 const {key}=require('./contract-acceptance-store-staging');
 const {digest,verifyDocumentBytes,verifyOfferPackage}=require('./offer-contract-package');
 const {fault}=require('./contract-acceptance-staging');
@@ -11,7 +11,9 @@ const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 function makeSetupGuide(){
  return ['MAKE-ANLEITUNG','Make einrichten und LSZH einladen',
   'Einrichtungshilfe nach Ihrer Auftragsbestätigung. Diese Anleitung ergänzt keine Vertragsbedingungen. Stand: 26.10.2026.',
-  '1. Eigenes Konto: Öffnen Sie https://www.make.com und registrieren Sie sich mit Ihrer geschäftlichen E-Mail-Adresse. Haben Sie bereits ein Firmenkonto, verwenden Sie dieses.',
+  '1. Eigenes Konto: Registrieren Sie sich über unseren Partnerlink mit Ihrer geschäftlichen E-Mail-Adresse. Haben Sie bereits ein Firmenkonto, verwenden Sie dieses.',
+  'Registrierung: https://www.make.com/en/register?pc=lszhautomations',
+  'Ihr Startvorteil: Bei Neuregistrierung über diesen Partnerlink erhalten Sie 10’000 Credits gratis im ersten Monat gemäss den Make-Aktionsbedingungen. Bei einem späteren kostenpflichtigen Abonnement erhält LSZH Automations eine Provision von Make.',
   '2. Eigene Organisation: Verwenden Sie die Organisation Ihres Unternehmens. Falls noch keine besteht: Profil > Organizations > Create organization. Den Namen wählen Sie passend zu Ihrer Firma. Die Datenregion stimmen Sie vor dem Erstellen mit LSZH ab; sie lässt sich danach nicht ändern.',
   '3. Einladung: Öffnen Sie in Ihrer Organisation Org > Org Users (je nach Ansicht Users) > Invite user. Tragen Sie lars@lszh-automations.ch und als Namen LSZH Automations ein. Wählen Sie das für Ihr Projekt vorgesehene Team.',
   '4. Rechte: Wählen Sie auf Organisationsebene Member. Für die Einrichtung der Szenarien ist im Projektteam Team Member vorgesehen, soweit Ihr Tarif diese Rollenwahl anbietet. Weitergehende Rechte stimmen wir bei konkretem Bedarf mit Ihnen ab. Sie bleiben Owner Ihrer Organisation.',
@@ -41,7 +43,7 @@ function renderConfirmationEmail(preview){
  }).join('');
  const guide=guideIndex<0?'':'<h2 style="margin:30px 0 14px;color:#06101d;font-size:20px;line-height:28px;">'+escape(lines[guideIndex+1])+'</h2>'+
   '<p style="margin:0 0 16px;color:#526278;font-size:13px;line-height:21px;">Die Anleitung finden Sie auch auf der nächsten Seite des beigefügten PDFs.</p>'+
-  lines.slice(guideIndex+2).filter(line=>!line.startsWith('Offizielle Make-Hilfe:')).map(line=>'<p style="margin:0 0 14px;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">'+escape(line)+'</p>').join('')+
+  lines.slice(guideIndex+2).filter(line=>!line.startsWith('Offizielle Make-Hilfe:')).map(line=>'<p style="margin:0 0 14px;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">'+escape(line).replace('https://www.make.com/en/register?pc=lszhautomations','<a href="https://www.make.com/en/register?pc=lszhautomations" style="color:#356bde;">https://www.make.com/en/register?pc=lszhautomations</a>')+'</p>').join('')+
   '<p style="margin:0 0 18px;font-size:12px;line-height:20px;"><a href="https://help.make.com/organizations" style="color:#356bde;">Make-Hilfe: Organisation und Einladung</a> · <a href="https://help.make.com/teams" style="color:#356bde;">Teams und Rollen</a></p>';
  return '<!doctype html><html lang="de-CH"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LSZH Automations – Auftragsbestätigung</title></head>'+
   '<body style="margin:0;padding:0;background-color:#f4f7fb;color:#0f1726;font-family:Arial,Helvetica,sans-serif;">'+
@@ -92,7 +94,12 @@ async function confirmationPdf(lines,date){
  function paragraph(value,{size=10,strong=false,color=ink,gap=10}={}){
   const rows=wrap(value,size,strong),height=rows.length*(size+5)+gap;
   ensure(height<=H-145-bottom?height:3*(size+5));
-  for(const row of rows){ensure(size+5);text(row,left,y,size,strong,color);y-=size+5;}y-=gap;
+  for(const row of rows){ensure(size+5);text(row,left,y,size,strong,color);
+   if(row.startsWith('Registrierung: https://www.make.com/en/register?pc=lszhautomations')){
+    const link=pdf.context.obj({Type:'Annot',Subtype:'Link',Rect:[left,y-2,left+font.widthOfTextAtSize(row,size),y+size+2],Border:[0,0,0],A:{Type:'Action',S:'URI',URI:PDFString.of('https://www.make.com/en/register?pc=lszhautomations')}});
+    page.node.addAnnot(pdf.context.register(link));
+   }
+   y-=size+5;}y-=gap;
  }
  function box(entries){
   const rows=entries.flatMap(entry=>wrap(entry.text,entry.size||10,Boolean(entry.strong),width-32).map(value=>({...entry,text:value,size:entry.size||10})));

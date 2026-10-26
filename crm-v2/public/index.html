@@ -1165,7 +1165,7 @@ function render(){
         }else td.textContent='–';
       }
       else if(key==='followUpDate'&&state.tab==='offerten'){
-        if(rec.status==='Versendet'&&rec.followUpDate){
+        if(offerDisplayStatus(rec)==='Versendet'&&rec.followUpDate){
           const due=rec.followUpDate<=localDateKey();
           td.append(el('span',due?'lead-followup-badge overdue':'lead-followup-badge',rec.followUpDate));
         }else td.textContent='–';
@@ -1173,9 +1173,11 @@ function render(){
       else if(key==='customerId'&&rec.customerNumber){td.textContent=rec.customerNumber+(rec.customerCompany?' · '+rec.customerCompany:'');}
       else if(key==='status'){
         const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
-        const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),overdue?'Überfällig':(rec.status||'–'));
+        const shownStatus=state.tab==='offerten'?offerDisplayStatus(rec):rec.status;
+        const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue?'Überfällig':(shownStatus||'–'));
         if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
         td.append(tag);
+        if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','','Kundenannahme erfasst · interne Abwicklung ausstehend');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
       }
       else if(key==='onboarding'){
         const stage=projectOnboardingState(rec);
@@ -1679,6 +1681,7 @@ function quoteItemsFromForm(){
   }
   return items;
 }
+function offerDisplayStatus(offer){return offer?.status==='Versendet'&&['customer_response_recorded','awaiting_lszh_confirmation','confirmed'].includes(offer.onlineAcceptance?.state)?'Angenommen':offer?.status||'';}
 function isOfferLocked(offer){
   if(!offer)return false;
   return ['Angenommen','Versendet'].includes(offer.status) ||
@@ -1761,11 +1764,11 @@ async function renderContractWorkflow(offer){
         }
         return;
       }
-      area.append(el('p','','Die Auftragsbestätigung ist versendet und geprüft. Übernimm jetzt den Auftrag, damit die Offerte auf Angenommen wechselt und Kunde und Projekt zugeordnet werden.'));
+      area.append(el('p','','Die Auftragsbestätigung ist versendet und geprüft. Übernimm jetzt den bereits angenommenen Auftrag, damit Kunde, Projekt und Rechnungsentwurf zugeordnet werden.'));
       if(offer.status==='Versendet'){
         const accept=el('button','btn primary','Auftrag übernehmen und Projekt anlegen');accept.type='button';
         accept.addEventListener('click',async()=>{
-          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Die Offerte wechselt auf Angenommen; Kunde und Projekt werden zugeordnet und ein Rechnungsentwurf für einmalige Leistungen wird erstellt. Es wird nichts versendet.'))return;
+          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Kunde und Projekt werden zugeordnet und ein Rechnungsentwurf für einmalige Leistungen wird erstellt. Es wird nichts versendet.'))return;
           accept.disabled=true;message.hidden=true;
           try{await api('/api/records/offerten/'+encodeURIComponent(offer.id),{method:'PATCH',body:JSON.stringify({status:'Angenommen'})});await reopenSavedOffer(offer.id);}
           catch(error){message.textContent=error.message||'Auftrag konnte nicht übernommen werden. Bitte Offerte neu öffnen und den Status prüfen.';message.hidden=false;accept.disabled=false;}
@@ -1829,7 +1832,6 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
       }else{
         const preview=await api(base+'/confirmation-preview');if(area.dataset.offerId!==offer.id)return;
         area.append(el('h4','','Auftragsbestätigung'),el('p','','Empfänger: '+preview.recipient),el('p','',preview.subject));
-        const text=el('pre','',preview.text);text.style.whiteSpace='pre-wrap';text.style.overflowWrap='anywhere';area.append(text);
         const pdf=el('button','btn','Auftragsbestätigung als PDF prüfen');pdf.type='button';pdf.addEventListener('click',()=>{const uri=URL.createObjectURL(new Blob([Uint8Array.from(atob(preview.data),c=>c.charCodeAt(0))],{type:'application/pdf'}));window.open(uri,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(uri),300000);});area.append(pdf);
         const label=el('label','','Empfänger und Auftragsbestätigung geprüft.'),checked=el('input','','');checked.type='checkbox';label.append(checked);area.append(label);
         const send=el('button','btn primary','Auftragsbestätigung senden');send.type='button';
@@ -1842,7 +1844,7 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
     }else area.append(el('p','','Der Bestätigungsversand ist noch nicht freigeschaltet.'));
     return;
   }
-  if(value.state==='confirmed'){area.append(el('p','','Auftragsbestätigung versendet und geprüft. Du kannst die Offerte jetzt auf Angenommen setzen und damit Kunde und Projekt anlegen.'));return;}
+  if(value.state==='confirmed'){area.append(el('p','','Auftragsbestätigung versendet und geprüft. Du kannst den angenommenen Auftrag jetzt intern übernehmen und Kunde und Projekt anlegen.'));return;}
   if(!value.mayCreateDraft&&!value.mayPrepare&&value.state!=='prepared'){area.append(el('p','','Online-Annahme ist für gültige, versandbereite Offerten verfügbar.'));return;}
   const preview=await api(base+'/preview');
   if(area.dataset.offerId!==offer.id)return;
@@ -2040,14 +2042,14 @@ function openOfferEditor(record=null,draft=null){
   $('offerEditor').classList.toggle('is-locked',state.offerLocked);
   $('offerLockedNotice').hidden=!state.offerLocked;
   if(state.offerLocked){
-    const sent=record?.status==='Versendet';
+    const sent=offerDisplayStatus(record)==='Versendet';
     $('offerLockedNotice').querySelector('strong').textContent=sent?'Offerte als versendet dokumentiert':'Offerte angenommen – schreibgeschützt';
     $('offerLockedNotice').querySelector('span').textContent=sent
       ?'Die versendete Offerte ist für Änderungen gesperrt. Nachfassen oder Kundenentscheidung unten dokumentieren.'
-      :'Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.';
+      :record?.status==='Angenommen'?'Der Auftrag ist übernommen. Änderungen sind nur über eine berechtigte, protokollierte Korrektur möglich.':'Der Kunde hat die Offerte online angenommen. Auftragsbestätigung und interne Auftragsübernahme können anschliessend erfolgen.';
   }
   $('offerEditorTitle').textContent=record
-    ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – Angenommen':' bearbeiten')
+    ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – '+offerDisplayStatus(record):' bearbeiten')
     :'Neue Offerte';
   $('offerFields').replaceChildren();
   $('offerLines').replaceChildren();
@@ -2057,6 +2059,7 @@ function openOfferEditor(record=null,draft=null){
     const field=makeField(key,label,type,record?.[key] ?? draft?.[key]);
     field.addEventListener('input',markQuoteUnsaved);
     field.addEventListener('change',markQuoteUnsaved);
+    if(key==='status'&&record?.onlineAcceptance&&record.status==='Versendet'){const option=field.querySelector('option[value="Versendet"]');if(option)option.textContent=offerDisplayStatus(record);}
     if(state.offerLocked){
       const control=field.querySelector('input,select,textarea');
       if(control)control.disabled=true;

@@ -900,3 +900,15 @@ test('invoice claim rejects inconsistent totals without leaving a sending reserv
  const key='lszh_crm_v2_staging_rechnungen/'+i.id;db.storage.set(key,{...db.storage.get(key),amountCHF:101});
  const before=JSON.stringify([...db.storage]);await assert.rejects(()=>store.claimInvoiceSend(i.id,admin),/Gesamtbetrag/);assert.equal(JSON.stringify([...db.storage]),before);
 });
+
+
+test('customer acceptance appears in accepted filter immediately without internal win or data changes',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_'),{offerDisplayStatus}=require('../offer-tracking');
+ for(const [id,state] of [['accepted','customer_response_recorded'],['reviewed','awaiting_lszh_confirmation'],['confirmed','confirmed'],['waiting',null]])db.storage.set('lszh_crm_v2_staging_offerten/'+id,{title:id,number:id,createdAt:'2026-10-26T10:00:00Z',status:'Versendet',...(state?{onlineAcceptance:{state,archiveState:'pending'}}:{})});
+ const before=JSON.stringify([...db.storage]);
+ const accepted=await store.searchPage('offerten',{status:'Angenommen'}),sent=await store.searchPage('offerten',{status:'Versendet'});
+ assert.deepEqual(accepted.records.map(x=>x.id).sort(),['accepted','confirmed','reviewed']);assert.deepEqual(sent.records.map(x=>x.id),['waiting']);
+ assert.equal(offerDisplayStatus(await store.get('offerten','accepted')),'Angenommen');
+ assert.equal((await store.get('offerten','accepted')).status,'Versendet');assert.equal(JSON.stringify([...db.storage]),before);
+ assert.equal(offerDisplayStatus({status:'Versendet'}),'Versendet');assert.equal(offerDisplayStatus({status:'Abgelehnt',onlineAcceptance:{state:'confirmed'}}),'Abgelehnt');
+});

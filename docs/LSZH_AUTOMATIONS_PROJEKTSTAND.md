@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Kundenannahme sofort sichtbar, 26.10.2026
+
+CRM **`lszh-crm-v2-00101-caf`** erhält 100 % Verkehr. Eine gespeicherte Online-Kundenannahme erscheint sofort als **Angenommen** in Offertenliste, Fenstertitel, gesperrtem Statusfeld und Statusfilter - ohne vorherige separate Auftragsbestätigung und unabhängig vom noch laufenden Archivnachweis. Die interne Auftragsübernahme bleibt ein eigener Schritt; dadurch entstehen keine vorgezogenen Projekte oder Rechnungen und keine Datenmigration.
+
+Der Bestätigungsbereich enthält Empfänger, Betreff, PDF-Vorschau, Prüfbestätigung und Versandbutton. Der lange Bestätigungstext entfällt im Fenster; PDF und Mail selbst bleiben unverändert.
+
+478 CRM-Tests und beide GitHub-Prüfungen inklusive Firestore-Emulatortests erfolgreich. Desktop und Mobil geprüft. Alle 79 gebauten Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Keine Kundendatenänderung, kein Versand. Portal und Make unverändert.
+
+[Bedienung und Nachweis](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#kundenannahme-sofort-als-angenommen-anzeigen) - [Live-Manifest](../releases/customer-acceptance-display-live-20261026.json) - [PR 25](https://github.com/lszh-automations/lszh-automations-site/pull/25).
+
+---
+
 # Aktiver Live-Stand - Rechnungsprüfung und Projektabrechnung, 26.10.2026
 
 CRM **`lszh-crm-v2-00099-pok`** erhält 100 % Verkehr. Das Rechnungsfenster zeigt fehlende Angaben und die nächste Aufgabe. Versandfreigabe im CRM nach vollständigen Daten, erfolgreichem Laden des gespeicherten Swiss-QR-PDFs und bewusster Prüfbestätigung. Änderungen setzen diese zurück. Der Server prüft die Daten vor der Versandreservierung erneut. Die Bedienerbestätigung ist kein automatischer Lesebeweis.

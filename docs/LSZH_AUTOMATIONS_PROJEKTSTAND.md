@@ -1,3 +1,13 @@
+# Aktiver Live-Stand – Mail und PDF im aktuellen LSZH-Design, 26.10.2026
+
+CRM **`lszh-crm-v2-00091-xor`** erhält 100 % Verkehr. Jetzt passen auch die künftigen Auftragsbestätigungs-PDFs zum bereits übernommenen Maildesign: dunkler Kopf mit Logo, Farbakzente, Infokarte, Make-Abschnitt und Firmenfuss mit Seitenzahlen. Neue Archivdokumente verwenden `confirmation-v2`; bestehende PDFs und Nachweise bleiben erhalten und weiterhin prüfbar. Keine erneute Kundenmail und keine Kundendatenänderung.
+
+467 CRM-Tests, drei gerenderte PDF-Varianten und vollständige Text-/Seitenzahlenprüfung erfolgreich. Alle 79 tatsächlichen Laufzeitdateien bestätigt. Konfiguration, Dienstkonto, Portal und Make unverändert. Kundennummern und Rechnungsentwürfe bleiben aktiv.
+
+[PDF-Anpassung und Nachweis](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#pdf-design-an-die-auftragsbestätigungs-mail-angepasst) · [Live-Manifest](../releases/confirmation-pdf-design-live-20261026.json).
+
+---
+
 # Aktiver Live-Stand – Auftragsbestätigungs-Mail im LSZH-Design, 26.10.2026
 
 CRM **`lszh-crm-v2-00089-mar`** erhält 100 % Verkehr. Künftige Auftragsbestätigungs-Mails verwenden das aktuelle LSZH-Kundenmaildesign mit dunklem Kopf, Logo, drei Farbakzenten, Infobox und Firmenfuss. PDF, Vertragsinhalt und Versandnachweis bleiben erhalten; keine Mail erneut gesendet und keine Kundendaten geändert. Kundennummern und automatische Rechnungsentwürfe aus dem vorigen Release bleiben aktiv.

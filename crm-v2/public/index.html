@@ -397,6 +397,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     </div>
     <p class="offer-hint" id="offerHint">PDF-Vorschau verwendet die zuletzt gespeicherte Version. Kein Kundenversand.</p>
     <div id="offerWorkflow" class="offer-workflow" hidden></div>
+    <div id="offerContractWorkflow" class="offer-workflow" hidden></div>
     <div class="offer-actions">
       <button type="button" class="btn" id="offerPrint" disabled>Druckansicht / PDF</button>
       <button type="button" class="btn" id="offerCancel">Schliessen</button>
@@ -517,7 +518,7 @@ const definitions={
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'dashboard',invoiceDueFilter:'all',filterStatus:'',searchRows:[],searchInfo:{},searchTotal:null,searchPending:false,searchError:'',searchNonce:0,records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:''};
+const state={token:'',tab:'dashboard',invoiceDueFilter:'all',filterStatus:'',searchRows:[],searchInfo:{},searchTotal:null,searchPending:false,searchError:'',searchNonce:0,records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:'',contractActionsEnabled:false};
 let lastFollowUpDay=localDateKey();
 const LEAD_REFRESH_INTERVAL_MS=30000;
 let leadsRefreshPending=false;
@@ -1549,6 +1550,7 @@ function markQuoteUnsaved(){
   if(state.offerLocked)return;
   $('offerPrint').disabled=true;
   $('offerWorkflow').hidden=true;
+  $('offerContractWorkflow').hidden=true;
   $('offerHint').textContent='Ungespeicherte Änderungen. Bitte zuerst speichern, danach die Druckansicht öffnen.';
 }
 function updateQuoteTotals(){
@@ -1643,7 +1645,7 @@ function isOfferLocked(offer){
 }
 
 function dueOfferFollowUps(offers,day=localDateKey()){
-  return (offers||[]).filter(offer=>offer.status==='Versendet'&&
+  return (offers||[]).filter(offer=>offer.status==='Versendet'&&!offer.onlineAcceptance&&
     typeof offer.followUpDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(offer.followUpDate)&&
     offer.followUpDate<=day)
     .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
@@ -1676,7 +1678,117 @@ async function reopenSavedOffer(id){
   const updated=(state.records.offerten||[]).find(x=>x.id===id);
   if(updated)openOfferEditor(updated);
 }
+
+async function renderContractWorkflow(offer){
+  const area=$('offerContractWorkflow');area.replaceChildren();area.hidden=!offer||!state.contractActionsEnabled;
+  area.dataset.offerId=offer?.id||'';
+  if(area.hidden)return;
+  area.append(el('h3','','Online-Kundenannahme'),el('p','','Vertragsunterlagen und Freigaben werden vor jeder Aktion geprüft.'));
+  try{
+    const base='/api/records/offerten/'+encodeURIComponent(offer.id)+'/contract';
+    const value=await api(base);
+    if(area.hidden||area.dataset.offerId!==offer.id)return;
+    const labels={missing_package:'Noch kein freigegebenes Vertragspaket zugeordnet.',prepared:'Vertragspaket vorbereitet.',delivery_review:'Versand unklar – Postfach prüfen. Kein erneuter Versand.',sent:'Vollständiger Paketversand nachgewiesen.',customer_response_recorded:'Kundenannahme eingegangen – interne Prüfung erforderlich.',awaiting_lszh_confirmation:'Interne Prüfung abgeschlossen. Schriftliche LSZH-Bestätigung noch nachweisen.',confirmed:'Schriftliche LSZH-Bestätigung nachgewiesen.'};
+    area.append(el('p','',labels[value.state]||'Online-Annahme noch nicht freigeschaltet.'));
+    const message=el('p','offer-workflow-error','');message.hidden=true;area.append(message);
+    function action(caption,name,warning,withMessage=false){
+      let messageInput;if(withMessage){const label=el('label','','Nachrichten-ID aus dem geschäftlichen Gmail-Postfach');messageInput=el('input','','');messageInput.type='text';messageInput.placeholder='Gmail-Nachrichten-ID';label.append(messageInput);area.append(label);}
+      const button=el('button','btn',caption);button.type='button';
+      button.addEventListener('click',async()=>{
+        if(!window.confirm(warning))return;
+        let payload={};if(withMessage){const id=messageInput.value.trim();if(!/^[A-Za-z0-9_-]{4,200}$/.test(id)){message.textContent='Bitte zuerst die Gmail-Nachrichten-ID eintragen.';message.hidden=false;return;}payload.messageId=id;}
+        button.disabled=true;message.hidden=true;
+        try{const result=await api(base+'/'+name,{method:'POST',body:JSON.stringify(payload)});
+          if(name==='issue-link'){
+            const link=el('a','', 'Privaten Kundenlink öffnen');link.href=result.url;link.target='_blank';link.rel='noopener noreferrer';
+            area.append(el('p','','Befristeter Link: nur an die freigegebene Kontaktperson weitergeben.'),link);
+          }else await reopenSavedOffer(offer.id);
+        }catch{message.textContent='Die Aktion wurde nicht freigegeben oder konnte nicht bestätigt werden. Bitte Paket, Archiv und Versandnachweis prüfen. Keinen Versand wiederholen.';message.hidden=false;}
+        finally{button.disabled=false;}
+      });area.append(button);
+    }
+    if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action});return;}
+    if(value.mayCreateDraft){
+      const classification=el('select','','');
+      for(const [val,text] of [['review','AVV-Einstufung wählen'],['no','Keine Verarbeitung fremder Personendaten im Auftrag'],['yes','AVV erforderlich – ausgefüllte Anlagen A, B und C nötig']]){const option=el('option','',text);option.value=val;classification.append(option);}
+      const classificationLabel=el('label','','Verarbeitet LSZH im Auftrag Personendaten?');classificationLabel.append(classification);area.append(classificationLabel);
+      function check(text){const label=el('label','',text),input=el('input','','');input.type='checkbox';label.append(input);area.append(label);return input;}
+      const documents=check('Gespeicherte Offerte, Kontaktadresse und Projektbedingungen v1.0 geprüft. Schriftliche LSZH-Bestätigung bleibt erforderlich.');
+      const retention=check('Dauerhafte private Aufbewahrung der Dokumente und Annahmenachweise im CRM und Archiv für diese Offerte freigeben.');
+      area.append(el('p','','Die Freigabe gilt höchstens 48 Stunden und endet spätestens mit der Offertengültigkeit. Ein erforderlicher AVV muss zuvor mit kundenspezifischen Anlagen geprüft und zugeordnet sein.'));
+      const create=el('button','btn','Dokumentpaket erstellen');create.type='button';
+      create.addEventListener('click',async()=>{
+        if(classification.value==='review'||!documents.checked||!retention.checked){message.textContent='Bitte AVV einstufen und beide Prüfungen bestätigen.';message.hidden=false;return;}
+        create.disabled=true;
+        try{await api(base+'/draft',{method:'POST',body:JSON.stringify({avvRequired:classification.value,documentsReviewed:true,retentionApproved:true})});await reopenSavedOffer(offer.id);}
+        catch{message.textContent='Paket konnte nicht vollständig vorbereitet werden. Bei erforderlichem AVV müssen die ausgefüllten Anlagen zuvor geprüft zugeordnet sein. Bei unklarem Archivierungsstand nicht erneut auslösen.';message.hidden=false;}
+        finally{create.disabled=false;}
+      });area.append(create);
+    }
+    if(value.mayPrepare)action('Vertragspaket prüfen und vorbereiten','prepare','Gespeicherte Offerte und zugeordnete Vertragsversionen prüfen und festhalten? Es wird noch nichts versendet.');
+    if(value.state==='prepared')action('Vollständiges Paket einmalig versenden','dispatch','Das vollständige Vertragspaket jetzt genau einmal an die freigegebene Kundenadresse senden?');
+    if(value.state==='delivery_review')action('Versand im Postfach nachweisen','reconcile','Die tatsächliche Paketnachricht im geschäftlichen Postfach anhand ihrer Nachrichten-ID prüfen? Es wird nichts erneut versendet.',true);
+    if(value.state==='sent')action('Befristeten Kundenlink erstellen','issue-link','Einen privaten Annahmelink für die bereits freigegebene Kontaktperson erstellen? Es wird keine zusätzliche E-Mail gesendet.');
+    if(value.reviewEnabled&&value.state==='customer_response_recorded'&&value.archiveState==='complete')action('Interne Prüfung bestätigen','review','Identität, Vertretungsberechtigung, Dokumente und Annahmenachweis geprüft und freigeben? Es wird noch keine Auftragsbestätigung gesendet.');
+    if(value.reviewEnabled&&value.state==='awaiting_lszh_confirmation')action('Schriftliche Bestätigung nachweisen','confirmation','Die bereits separat versendete schriftliche LSZH-Auftragsbestätigung unabhängig im Postfach prüfen?',true);
+  }catch{if(area.dataset.offerId===offer.id)area.append(el('p','','Online-Annahme ist noch nicht betriebsbereit. Bestehender CRM-Ablauf bleibt verfügbar.'));}
+}
+
+
+async function renderSimpleContractSend({area,offer,value,base,message,action}){
+  if(value.state==='delivery_review'){
+    area.append(el('p','','Der Versand wird nicht wiederholt. Erst den tatsächlichen Versand prüfen.'));
+    if(value.hasSendReceipt)action('Versandstatus prüfen','check','Den bestehenden Versand prüfen und bei Erfolg den persönlichen Annahmelink einmalig zustellen? Es werden keine PDFs erneut versendet.');
+    else action('Versandnachweis zuordnen','reconcile','Den vorhandenen Versandnachweis prüfen und bei Erfolg den persönlichen Annahmelink einmalig zustellen?',true);
+    return;
+  }
+  if(value.state==='sent'){
+    if(value.invitationState==='sent')area.append(el('p','','Die Unterlagen und der persönliche Annahmelink wurden zugestellt. Wir warten auf die Rückmeldung des Kunden.'));
+    else if(value.invitationState)area.append(el('p','','Die Zustellung der Einladung konnte nicht sicher bestätigt werden. Bitte intern prüfen; keine erneute Einladung auslösen.'));
+    else action('Persönlichen Annahmelink zustellen','invite','Den persönlichen Annahmelink jetzt genau einmal an die gespeicherte Kundenadresse senden?');
+    return;
+  }
+  if(value.state==='customer_response_recorded'){
+    area.append(el('p','',value.archiveState==='complete'?'Die Kundenannahme ist im privaten Archiv gesichert.':'Die Kundenannahme ist gespeichert. Der Archivnachweis wird noch vervollständigt.'));
+    if(value.reviewEnabled&&value.archiveState==='complete')action('Kundenannahme prüfen und freigeben','review','Identität, Vertretungsberechtigung, Dokumente und Annahmenachweis geprüft? Die schriftliche LSZH-Bestätigung folgt separat.');
+    return;
+  }
+  if(value.state==='awaiting_lszh_confirmation'){
+    area.append(el('p','','Die interne Prüfung ist abgeschlossen. Die schriftliche Auftragsbestätigung erfolgt separat.'));
+    if(value.reviewEnabled)action('Schriftliche Bestätigung zuordnen','confirmation','Die bereits versendete schriftliche LSZH-Bestätigung unabhängig nachweisen?',true);
+    return;
+  }
+  if(value.state==='confirmed')return;
+  if(!value.mayCreateDraft&&!value.mayPrepare&&value.state!=='prepared'){area.append(el('p','','Online-Annahme ist für gültige, versandbereite Offerten verfügbar.'));return;}
+  const preview=await api(base+'/preview');
+  if(area.dataset.offerId!==offer.id)return;
+  area.append(el('h4','','Versandvorschau'),el('p','','Empfänger: '+preview.recipient),el('p','','Offerte '+preview.offerNumber+' – '+(preview.title||'')));
+  for(const name of preview.documents)area.append(el('p','','PDF: '+name));
+  const print=el('button','btn','Offerte in der PDF-Ansicht prüfen');print.type='button';print.addEventListener('click',()=>openCloudPrint('offerte',offer.id));area.append(print);
+  function documentButton(caption,kind){const button=el('button','btn',caption);button.type='button';button.addEventListener('click',async()=>{const tab=window.open('about:blank','_blank');if(!tab){message.textContent='Bitte Pop-ups für die Dokumentansicht erlauben.';message.hidden=false;return;}tab.opener=null;try{const doc=await api(base+'/preview-'+kind),binary=Uint8Array.from(atob(doc.data),c=>c.charCodeAt(0)),uri=URL.createObjectURL(new Blob([binary],{type:'application/pdf'}));tab.location.replace(uri);setTimeout(()=>URL.revokeObjectURL(uri),300000);}catch{tab.close();message.textContent='Das Dokument konnte nicht geprüft geöffnet werden. Bitte noch nicht versenden.';message.hidden=false;}});area.append(button);}
+  documentButton('Projektbedingungen prüfen','terms');if(preview.avvReady)documentButton('Kundenspezifische AVV prüfen','avv');
+  const classification=el('select','','');
+  for(const [val,text] of [['review','Bitte auswählen'],['no','Nein – keine Verarbeitung fremder Personendaten im Auftrag'],['yes','Ja – kundenspezifische AVV erforderlich']]){const option=el('option','',text);option.value=val;classification.append(option);}
+  classification.value='review';
+  const label=el('label','','Verarbeiten wir im Auftrag des Kunden Personendaten?');label.append(classification);area.append(label);
+  if(preview.avvReady)area.append(el('p','','Bei AVV-Pflicht zusätzlich: '+preview.avvFilename));
+  function check(text){const label=el('label','',text),input=el('input','','');input.type='checkbox';label.append(input);area.append(label);return input;}
+  const documents=check('Kundenadresse, gespeicherte Offerte und zugehörige Vertragsunterlagen geprüft. Die schriftliche LSZH-Auftragsbestätigung bleibt erforderlich.');
+  const retention=check('Dokumente und Annahmenachweise für diese Offerte dauerhaft im privaten CRM und Archiv aufbewahren.');
+  area.append(el('p','','Nach deiner Freigabe erhält der Kunde die PDFs und danach eine separate Nachricht mit seinem persönlichen Annahmelink. Der Link gilt höchstens 48 Stunden und endet spätestens mit der Offertengültigkeit.'));
+  const send=el('button','btn primary','Prüfen und senden');send.type='button';
+  send.addEventListener('click',async()=>{
+    if(!['yes','no'].includes(classification.value)||!documents.checked||!retention.checked){message.textContent='Bitte die Frage zu Personendaten beantworten und beide Prüfungen bestätigen.';message.hidden=false;return;}
+    if(classification.value==='yes'&&!preview.avvReady){message.textContent='Bitte zuerst die kundenspezifische AVV mit den ausgefüllten Anlagen prüfen und zuordnen lassen.';message.hidden=false;return;}
+    send.disabled=true;send.textContent='Unterlagen werden geprüft und versendet …';message.hidden=true;
+    try{await api(base+'/send',{method:'POST',body:JSON.stringify({avvRequired:classification.value,documentsReviewed:true,retentionApproved:true,offerSnapshotSha256:preview.offerSnapshotSha256})});await reopenSavedOffer(offer.id);}
+    catch{message.textContent='Der Vorgang wurde nicht vollständig bestätigt. Bitte die Offerte neu öffnen und den angezeigten Status prüfen. Keinen zweiten Versand auslösen.';message.hidden=false;}
+    finally{send.disabled=false;send.textContent='Prüfen und senden';}
+  });area.append(send);
+}
+
 function renderOfferWorkflow(offer){
+  renderContractWorkflow(offer);
   const area=$('offerWorkflow');
   area.replaceChildren();
   area.hidden=!offer;
@@ -1685,6 +1797,12 @@ function renderOfferWorkflow(offer){
   const message=el('p','','');
   const error=el('p','offer-workflow-error','');error.hidden=true;
   area.append(title,message,error);
+  if(offer.onlineAcceptance){
+    const acceptance=offer.onlineAcceptance;
+    message.textContent='Kundenannahme erfasst – interne Prüfung erforderlich. Die schriftliche LSZH-Bestätigung erfolgt separat.';
+    area.append(el('p','','Nachweis: '+acceptance.responseId),el('p','',acceptance.archiveState==='complete'?'Annahmenachweis im Geschäftsarchiv gespeichert.':'Archivablage ausstehend – Annahmenachweis dauerhaft im CRM gespeichert.'));
+    return;
+  }
   const notify=err=>{error.textContent=err.message||String(err);error.hidden=false;};
   const button=(caption,handler,primary=false)=>{
     const elButton=el('button','btn'+(primary?' primary':''),caption);
@@ -2211,6 +2329,7 @@ function renderInvoiceDispatch(invoice){
       ['Im Postfach bestätigt','confirmed','Wurde diese Rechnung tatsächlich in Gmail Gesendet gefunden?'],
       ['Sicher nicht versendet','not_sent','Hast du bestätigt, dass weder Make noch Gmail die Rechnung versendet hat?']
     ]){
+      let messageInput;if(withMessage){const label=el('label','','Nachrichten-ID aus dem geschäftlichen Gmail-Postfach');messageInput=el('input','','');messageInput.type='text';messageInput.placeholder='Gmail-Nachrichten-ID';label.append(messageInput);area.append(label);}
       const button=el('button','btn',caption);button.type='button';
       button.addEventListener('click',async()=>{
         if(!window.confirm(question))return;
@@ -2348,6 +2467,7 @@ async function signedIn(token){
     $('who').textContent=me.email;
     // Refresh the private TEST_ONLY recipient only after Google authentication.
     const privateConfig=await api('/api/config');
+    state.contractActionsEnabled=privateConfig.contractActionsEnabled===true;
     state.invoiceMailTestTo=String(privateConfig.invoiceMailTestTo||'').toLowerCase();
     await loadAll();
     $('signin').hidden=true;$('workspace').hidden=false;$('error').textContent='';
@@ -2357,6 +2477,7 @@ async function signedIn(token){
 async function initialise(){
   try{
     const config=await api('/api/config');
+    state.contractActionsEnabled=config.contractActionsEnabled===true;
     state.offerMailEnabled=config.offerMailEnabled===true;
     state.offerMailMode=config.offerMailMode||'disabled';
     state.offerMailTestTo=String(config.offerMailTestTo||'').toLowerCase();

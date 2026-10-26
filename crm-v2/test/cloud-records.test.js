@@ -788,3 +788,16 @@ test('paginated Firestore reads cover 230 records with stable ties, no duplicate
   for await(const row of store.scan('kunden'))count.push(row.id);
   assert.equal(count.length,230);
 });
+
+test('online acceptance cannot bypass internal review via offer accepted or lead won',async()=>{
+  const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+  const lead=await store.create('leads',newLead(),admin);await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
+  const offer=(await store.list('offerten'))[0],path='lszh_crm_v2_staging_offerten/'+offer.id;
+  const saved=db.storage.get(path);db.storage.set(path,{...saved,status:'Versendet',onlineAcceptance:{state:'customer_response_recorded',reviewRequired:true,archiveState:'complete'}});
+  await assert.rejects(store.update('offerten',offer.id,{status:'Angenommen'},admin),{status:409});
+  await assert.rejects(store.update('leads',lead.id,{status:'Gewonnen'},admin),{status:409});
+  assert.equal((await store.list('kunden')).length,0);assert.equal((await store.list('projekte')).length,0);
+  db.storage.set(path,{...db.storage.get(path),onlineAcceptance:{state:'confirmed',reviewRequired:false,archiveState:'complete'}});
+  await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+  assert.equal((await store.list('projekte')).length,1);
+});

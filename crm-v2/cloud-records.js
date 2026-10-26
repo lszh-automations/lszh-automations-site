@@ -125,6 +125,8 @@ function buildStore(db,prefix){
   // The helper performs every remaining read BEFORE any transaction writes.
   async function win(tx,{offerRef,offer,leadRef=null,lead=null,leadUpdate={}},user,date){
     if(!offer)throw err('Gewonnen setzt eine bestehende Offerte voraus');
+    if(offer.onlineAcceptance&&(offer.onlineAcceptance.state!=='confirmed'||offer.onlineAcceptance.reviewRequired!==false||offer.onlineAcceptance.archiveState!=='complete'))
+      throw err('Online-Annahme zuerst intern prüfen und schriftliche LSZH-Auftragsbestätigung nachweisen',409);
     if(!lead&&!offer.customerId)
       throw err('Angenommene Offerte benötigt einen verknüpften Lead oder einen bestehenden Kunden');
     const custRef=offer.customerId?col('kunden').doc(offer.customerId):null;
@@ -758,6 +760,18 @@ function buildStore(db,prefix){
     });
     return claimed;
   }
+  async function recordOfferDispatchSnapshot(id,attemptId,snapshot){
+    if(!snapshot||snapshot.attemptId!==attemptId||snapshot.offerId!==id||snapshot.completeContractPackage!==false||
+       !/^[a-f0-9]{64}$/.test(snapshot.offerSnapshotSha256||'')||!/^[a-f0-9]{64}$/.test(snapshot.pdfSha256||''))throw err('Ungültiger Versand-Snapshot');
+    const ref=col('offerten').doc(id),archive=db.collection(prefix+'offer_dispatch_snapshots').doc(attemptId);
+    await db.runTransaction(async tx=>{
+      const offer=await tx.get(ref),old=await tx.get(archive);
+      if(!offer.exists||offer.data().offerDispatchState!=='sending'||offer.data().offerDispatchAttemptId!==attemptId||
+         offer.data().offerDispatchTo!==snapshot.recipient)throw err('Versandreservierung passt nicht zum Snapshot',409);
+      if(old.exists){if(old.data().offerSnapshotSha256!==snapshot.offerSnapshotSha256||old.data().pdfSha256!==snapshot.pdfSha256)throw err('Versand-Snapshot ist unveränderlich',409);return;}
+      tx.create(archive,{...snapshot,capturedAt:now()});
+    });
+  }
   async function finishOfferSend(id,attemptId,status,receipt=''){
     if(!['confirmed','preparation_failed','manual_review'].includes(status))
       throw err('Ungültiges Versandresultat');
@@ -891,6 +905,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

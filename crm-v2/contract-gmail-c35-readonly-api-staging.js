@@ -10,6 +10,8 @@ const ROOT='https://gmail.googleapis.com/gmail/v1/users/me';
 const SCOPE='https://www.googleapis.com/auth/gmail.readonly';
 const MAILBOX=/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
 const IDENTIFIER=/^[A-Za-z0-9_-]{4,200}$/;
+// Attachment IDs are opaque and can exceed message-ID lengths (observed: 404).
+const ATTACHMENT_IDENTIFIER=/^[A-Za-z0-9_-]{4,2048}$/;
 
 function mailbox(value){
   if(typeof value!=='string'||value.length>254||!MAILBOX.test(value)||
@@ -17,8 +19,8 @@ function mailbox(value){
     throw blocked('C3.5 expected Gmail mailbox invalid');
   return value;
 }
-function validId(value){
-  if(typeof value!=='string'||!IDENTIFIER.test(value))
+function validId(value,pattern=IDENTIFIER){
+  if(typeof value!=='string'||!pattern.test(value))
     throw blocked('C3.5 unsafe Gmail identifier');
   return value;
 }
@@ -33,7 +35,7 @@ function createC35GmailApiReadOnlyAdapter({
     // Fixed allowlist, never arbitrary URL, non-GET, or attacker-controlled path.
     if(url!==ROOT+'/profile'&&
        !/^https:\/\/gmail\.googleapis\.com\/gmail\/v1\/users\/me\/messages\/[A-Za-z0-9_-]{4,200}\?format=full$/.test(url)&&
-       !/^https:\/\/gmail\.googleapis\.com\/gmail\/v1\/users\/me\/messages\/[A-Za-z0-9_-]{4,200}\/attachments\/[A-Za-z0-9_-]{4,200}$/.test(url))
+       !/^https:\/\/gmail\.googleapis\.com\/gmail\/v1\/users\/me\/messages\/[A-Za-z0-9_-]{4,200}\/attachments\/[A-Za-z0-9_-]{4,2048}$/.test(url))
       throw blocked('C3.5 unexpected Gmail read endpoint');
     const response=await authClient.request({
       method:'GET',url,timeout:timeoutMs
@@ -58,7 +60,7 @@ function createC35GmailApiReadOnlyAdapter({
     return value;
   }
   async function getAttachment(messageId,attachmentId){
-    validId(messageId);validId(attachmentId);
+    validId(messageId);validId(attachmentId,ATTACHMENT_IDENTIFIER);
     await verifyMailbox();
     return get(ROOT+'/messages/'+messageId+'/attachments/'+attachmentId);
   }

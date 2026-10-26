@@ -55,6 +55,10 @@ function createOfferSender(store,config={}){
         throw Error('pdf_attachment_invalid');
       mail=renderOfferEmail(claim.offer,claim.recipient);
       if(testTo)mail.subject='[TEST_ONLY] '+mail.subject;
+      if(config.captureDispatchSnapshot===true){
+        const snapshot=require('./offer-dispatch-snapshot').captureOfferSnapshot(claim,attachment);
+        await store.recordOfferDispatchSnapshot(id,claim.attemptId,snapshot);
+      }
     }catch(e){
       await store.finishOfferSend(id,claim.attemptId,'preparation_failed');
       throw error('PDF- oder E-Mail-Erstellung fehlgeschlagen. Es wurde nichts versendet.',500);

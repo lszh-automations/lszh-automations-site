@@ -1,3 +1,5 @@
+> Historische Einrichtungsanleitung: PR #10 ist seit 22.10.2026 gemergt, der Website-V2-Eingang ist produktiv aktiviert. Aktueller Stand: [Produktionsrelease 26.10.2026](LSZH_PRODUCTION_RELEASE_20261026.md).
+
 # LSZH CRM V2 – Websiteformular direkt an Firestore
 
 Stand: 22.10.2026. Implementiert im Entwicklungsbranch `feature/crm-v2-foundation-20261022`; **noch nicht produktiv geschaltet**.

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de-CH">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vertragspaket prüfen | LSZH Automations</title><link rel="stylesheet" href="/acceptance.css"><script defer src="/acceptance.js"></script></head>
+<body>
+<header><a class="brand" href="/">LSZH<span>AUTOMATIONS</span></a><span class="badge">INTERNE TESTVORSCHAU</span></header>
+<main>
+  <section class="intro"><p class="eyebrow">IHR VERTRAGSPAKET</p><h1>Alles in Ruhe prüfen.<br>Bewusst bestätigen.</h1><p class="lede">Hier finden Sie die Dokumente zu Ihrer Offerte. Ihre Rückmeldung wird mit genau diesen Versionen gespeichert.</p></section>
+  <div class="notice"><strong>Testmodus – kein Vertrag</strong><span>Nur synthetische Unterlagen. Es entsteht kein Auftrag und keine Zahlungspflicht. Die Anmeldung ist in dieser lokalen Vorschau simuliert.</span></div>
+  <p id="loading" role="status">Dokumentpaket wird geprüft …</p>
+  <div id="error" class="error" role="alert" hidden></div>
+  <section id="login" class="card" hidden><h2>Sicher anmelden</h2><p>Wir senden einen kurz gültigen Anmeldecode an die für dieses Dokumentpaket hinterlegte E-Mail-Adresse.</p><button id="request-code" type="button">Anmeldecode anfordern</button><form id="login-form" hidden><label for="login-code">Achtstelliger Code aus Ihrer E-Mail</label><input id="login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required><button id="verify-code" type="submit">Anmelden</button></form><p id="login-status" role="status"></p></section>
+  <div id="package" hidden>
+    <div class="layout">
+      <section class="card documents"><div class="section-heading"><span class="step">01</span><div><h2>Ihre Dokumente</h2><p id="package-label"></p></div></div><div id="documents"></div><p class="fine">Alle Downloads entsprechen den für dieses Paket hinterlegten Dokumentversionen.</p></section>
+      <aside class="card summary"><p class="eyebrow">AUF EINEN BLICK</p><h2>Ihre Rückmeldung</h2><dl><dt>Offerte</dt><dd id="offer-number"></dd><dt>Adressiert an</dt><dd id="recipient"></dd><dt>Link gültig bis</dt><dd id="expires"></dd></dl><div class="timeline"><div><i></i><span>Dokumente prüfen</span></div><div><i></i><span>Zustimmung ausdrücklich abgeben</span></div><div><i></i><span>Interne Prüfung durch LSZH</span></div></div><p>Eine schriftliche Auftragsbestätigung von LSZH bleibt ein separater Schritt.</p></aside>
+      <section class="card consent"><div class="section-heading"><span class="step">02</span><div><h2>Ihre Erklärung</h2><p>Bitte bestätigen Sie die zutreffenden Punkte einzeln.</p></div></div>
+        <form id="accept-form"><label class="check"><input id="terms" type="checkbox" required><span id="terms-text"></span></label><label class="check" id="avv-row" hidden><input id="avv" type="checkbox"><span id="avv-text"></span></label><label class="check"><input id="representative" type="checkbox" required><span id="representative-text"></span></label><div class="submit-row"><button id="submit" type="submit" disabled>Test-Annahme protokollieren <span aria-hidden="true">→</span></button><p>Einmalige Rückmeldung.<br>Keine automatische Auftragsbestätigung.</p></div></form>
+      </section>
+    </div>
+  </div>
+  <section id="success" class="card success" hidden><span class="success-icon" aria-hidden="true">✓</span><p class="eyebrow">RÜCKMELDUNG GESPEICHERT</p><h2>Vielen Dank. Ihre Test-Annahme ist erfasst.</h2><p>Die Erklärung ist den geprüften Dokumentversionen zugeordnet. Als Nächstes folgt die interne Prüfung durch LSZH.</p><dl><dt>Nachweisnummer</dt><dd id="response-id"></dd><dt>Gespeichert am</dt><dd id="accepted-at"></dd></dl><p class="fine">Dieser Test löst keinen Auftrag, keine E-Mail und keine Zahlung aus.</p></section>
+</main>
+<footer><span>LSZH AUTOMATIONS</span><span>Dokumente · Zustimmung · Nachweis</span></footer>
+</body></html>

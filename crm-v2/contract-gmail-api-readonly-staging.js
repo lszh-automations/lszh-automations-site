@@ -4,6 +4,7 @@
 // Does not create/send drafts, messages, requests, or provider connections.
 const {blocked}=require('./contract-dispatch-release-staging');
 const MSG=/^[A-Za-z0-9_./:+-]{4,200}$/;
+const ATTACHMENT_ID=/^[A-Za-z0-9_-]{4,2048}$/;
 function mimeBase64url(encoded,limit=7_000_000){
   if(typeof encoded!=='string'||encoded.length===0||encoded.length>limit||
      !/^[A-Za-z0-9_-]+={0,2}$/.test(encoded))
@@ -82,7 +83,7 @@ function createGmailApiReadOnlyAdapter({getMessage,getAttachment}={}){
       let encoded=p.body.data;
       if(encoded===undefined){
         const attachmentId=p.body.attachmentId;
-        if(typeof attachmentId!=='string'||!MSG.test(attachmentId))
+        if(typeof attachmentId!=='string'||!ATTACHMENT_ID.test(attachmentId))
           throw blocked('missing Gmail read-only attachment identifier');
         const response=await getAttachment(messageId,attachmentId);
         encoded=response?.data;

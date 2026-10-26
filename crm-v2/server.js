@@ -23,6 +23,12 @@ const INTAKE_ENABLED=process.env.CRM_WEBSITE_INTAKE_ENABLED==='true';
 const authClient=new OAuth2Client(CLIENT_ID);
 const db=new Firestore();
 const store=buildStore(db,PREFIX);
+const CONTRACT_ACTIONS_ENABLED=process.env.CRM_CONTRACT_ACTIONS_ENABLED==='true';
+let contractActions=null;
+function getContractActions(){
+  if(!contractActions)contractActions=require('./contract-crm-runtime').createContractCrmRuntime({db,prefix:PREFIX,allowedEmails:[...ALLOWED]});
+  return contractActions;
+}
 // Install the read-only coalescer lazily, after successful CRM authorization.
 // Anonymous and unrelated HTTP paths must not initialize dashboard dependencies.
 let readCockpitSummary=null;
@@ -45,7 +51,8 @@ const offerSender=createOfferSender(store,{
   enabled:process.env.CRM_OFFER_MAIL_ENABLED==='true',
   webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
   testTo:process.env.CRM_OFFER_MAIL_TEST_TO,
-  mode:process.env.CRM_OFFER_MAIL_MODE
+  mode:process.env.CRM_OFFER_MAIL_MODE,
+  captureDispatchSnapshot:process.env.CRM_OFFER_SNAPSHOT_ENABLED==='true'
 });
 // Invoice email is independent of lead/offer mail; disabled in production until
 // dedicated manual release flags are approved. Reuses the same Make/Gmail gateway.
@@ -144,6 +151,7 @@ async function handler(req,res){
     const authorised=Boolean(req.headers.authorization)&&Boolean(await userFrom(req));
     return reply(res,configured()?200:503,configured()?{
       clientId:CLIENT_ID,
+      contractActionsEnabled:authorised&&CONTRACT_ACTIONS_ENABLED,
       offerMailEnabled:offerSender.stats().enabled,
       offerMailMode:offerSender.stats().mode,
       offerMailTestTo:offerSender.stats().testTo,
@@ -184,6 +192,18 @@ async function handler(req,res){
   const user=await userFrom(req);
   if(!user)return reply(res,401,{error:'unauthorized'});
   if(req.method==='GET'&&pathname==='/api/me')return reply(res,200,{email:user.email});
+  if(/^\/api\/records\/offerten\/[A-Za-z0-9_-]{1,100}\/contract(?:\/|$)/.test(pathname)){
+    try{
+      const handled=await require('./contract-crm-actions').routeCrmContract({req,res,path:pathname,user,
+        enabled:CONTRACT_ACTIONS_ENABLED,getActions:getContractActions,readJson:json,reply});
+      if(handled)return;
+    }catch(error){
+      const safe=typeof error.code==='string'&&/^[A-Z_]{3,50}$/.test(error.code);
+      return reply(res,safe?(error.status||400):[400,413].includes(error.status)?error.status:503,{error:safe?error.code:[400,413].includes(error.status)?'INVALID_REQUEST':'CONTRACT_ACTION_FAILED'});
+    }
+    return reply(res,404,{error:'not_found'});
+  }
+
   if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
     return reply(res,200,{summary:await getCockpitSummary()});
   }

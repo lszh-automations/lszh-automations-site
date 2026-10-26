@@ -41,7 +41,7 @@ function normalizeFollowUpInput(input,today){
   return {followUpDate:date,note:String(input.note||'').trim()};
 }
 function dueOfferFollowUps(offers,today){
-  return (offers||[]).filter(offer=>offer.status==='Versendet'&&
+  return (offers||[]).filter(offer=>offer.status==='Versendet'&&!offer.onlineAcceptance&&
     validDate(offer.followUpDate)&&offer.followUpDate<=today)
     .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
 }

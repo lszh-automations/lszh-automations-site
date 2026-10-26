@@ -280,3 +280,15 @@ test('offer PDF supports multi-line offer titles without overlapping price rows'
   assert.match(pdf,/Monatlich/);
   assert.match(pdf,/%%EOF/);
 });
+
+test('enabled snapshot persistence happens before provider send, and snapshot failure prevents mail',async()=>{
+  const db=store();let stored=false,sends=0;
+  db.recordOfferDispatchSnapshot=async(id,attempt,snapshot)=>{assert.equal(id,saved.id);assert.equal(attempt,'attempt-123');assert.equal(snapshot.completeContractPackage,false);stored=true;};
+  const sender=createOfferSender(db,{enabled:true,webhookUrl:hook,mode:'production',captureDispatchSnapshot:true,
+    fetchImpl:async()=>{assert.equal(stored,true);sends++;return {ok:true,json:async()=>({ok:true,eventId:'offer_send_attempt-123',messageId:'synthetic_receipt'})};}});
+  await sender.send(saved.id,{followUpDate:'2026-11-02'},user);assert.equal(sends,1);
+  const broken=store();broken.recordOfferDispatchSnapshot=async()=>{throw Error('persistence unavailable');};
+  const fail=createOfferSender(broken,{enabled:true,webhookUrl:hook,mode:'production',captureDispatchSnapshot:true,fetchImpl:async()=>{sends++;}});
+  await assert.rejects(fail.send(saved.id,{followUpDate:'2026-11-02'},user),{status:500});
+  assert.equal(sends,1);assert.equal(broken.calls.at(-1)[3],'preparation_failed');
+});

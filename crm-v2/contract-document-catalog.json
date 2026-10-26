@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-25",
+  "businessAccount": "lars@lszh-automations.ch",
+  "sourceFolderId": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
+  "sentOriginalsFolderId": "1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe",
+  "terms": {
+    "kind": "terms",
+    "version": "v1.0_20261019",
+    "archiveFileId": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
+    "filename": "LSZH_Projektbedingungen_v1_0_GESCHAEFTLICH_FREIGEGEBEN_20261019.pdf",
+    "bytes": 95511,
+    "sha256": "b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa"
+  },
+  "avvTemplate": {
+    "archiveFileId": "1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x",
+    "version": "v1.0_20261019",
+    "bytes": 89954,
+    "sha256": "bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1",
+    "readyForCustomerUse": false,
+    "requiresCustomerAnnexes": ["A", "B", "C"]
+  },
+  "customerSendingEnabled": false,
+  "independentLegalReviewClaimed": false
+}

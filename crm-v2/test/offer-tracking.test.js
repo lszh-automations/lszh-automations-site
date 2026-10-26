@@ -30,6 +30,7 @@ test('date and event validation reject past dates, malformed payloads and oversi
 test('dashboard only shows sent offers that are actually due and orders oldest first',()=>{
   const offers=[
     {id:'future',status:'Versendet',followUpDate:'2026-10-24'},
+    {id:'response_pending',onlineAcceptance:{reviewRequired:true},status:'Versendet',followUpDate:'2026-10-20'},
     {id:'today',status:'Versendet',followUpDate:'2026-10-23'},
     {id:'overdue',status:'Versendet',followUpDate:'2026-10-20'},
     {id:'accepted',status:'Angenommen',followUpDate:'2026-10-21'},

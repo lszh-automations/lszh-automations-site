@@ -1,3 +1,17 @@
+# Aktueller Produktionsstand – 26.10.2026
+
+**Die vollständige Online-Vertragsannahme funktioniert. C3.7.2 ist erfolgreich abgeschlossen.** CRM und Kundenportal sind produktiv; ältere offene Punkte unten sind historisch.
+
+Verbindlicher aktueller Überblick: [Produktionsrelease 26.10.2026](LSZH_PRODUCTION_RELEASE_20261026.md). Exakte Cloud-Quellen, Images und Dateiprüfsummen: [Release-Manifest](../releases/production-20261026.json).
+
+CRM: lszh-crm-v2-00078-fox (100 %). Kundenportal: lszh-customer-acceptance-pilot-00005-rab (100 %, allgemeiner Kundenmodus). Render-Website unverändert auf main 86b2e4d. CRM-/Rechnungs-/Mail-/Vertragsaktionen aktiviert. Keine erneute Umsetzung der funktionierenden Online-Annahme oder Reparatur von C3.7.2 erforderlich.
+
+Neu validiert: 427 CRM-Tests, 29 echte Demo-Firestore-Emulatortests, 30 Tests gegen die deployte Portalquelle; 101 deployte Dateien bytegenau zugeordnet. Dokumentation und Quellstand wurden gesichert; keine Produktion oder Kundendaten verändert.
+
+---
+
+## Historische Arbeitsdokumentation (nachfolgend unverändert)
+
 > **24.10.2026 – PAGINATION/SERVER-COCKPIT CI PASS, NUR 0%-CANDIDATE UND RELEASE AUSSTEHEND:** Alle drei GitHub Actions erfolgreich auf Commit `4eb2887a8`: CRM `133/133` (`40117949043`), QR/Windows PS5.1/CRLF (`40117945428`) und Chromium+authentifizierte HTTP-API+Firestore-Emulator (`40117945517`). Browser-E2E liest 206 synthetische Kunden in 5 x 50/Rest-Seiten ohne Duplikat, prüft vollständige serverweite Summen und HTTP-401 bei anonymem Summary-Zugriff. Keine produktiven Mails, Mahnungen, Zahlungen, Seeds oder Cloud-Run-Umschaltung. **Live unverändert `lszh-crm-v2-00059-puj` (100 %).** Vorbereitung: `git pull --ff-only`, `scripts/prepare-crm-pagination-live.ps1 -DeployCandidate`; erst nach ZERO TRAFFIC PASS später Freigabe `LIVE PAGINATION` in eigenständigem Aktivierungsskript. **Grenzen:** Suche/Filter nur geladene Seiten, serverseitiger Fullscan O(N) Reads; nicht als 100k-Record-optimiert darstellen. [CRM-Handoff](./LSZH_CRM_V2_HANDOFF_20261023.md).
 
 > **24.10.2026 – SEITENNAVIGATION + VOLLSTÄNDIGE CRM-SERVER-SUMMEN IM FEATURE-BRANCH, NOCH NICHT LIVE:** `crm-v2/cloud-records.js` bietet authentifizierte 50er-Cursor-Pages; neue Browserliste kann `Weitere 50 laden`, statt die alte 200er-Grenze im normalen Client zu verwenden. `crm-v2/cockpit-summary.js` scannt **alle** Daten serverseitig und liefert für das Cockpit/überfällige Rechnungen vollständige rappen-genaue Kennzahlen, unabhängig von sichtbaren Seiten; Tests decken 230/235 synthetische Datensätze samt Teilzahlung/Korrektur ab. Bei fehlender Gesamt-API keine falschen Teilsummen ausgeben. **Einschränkungen:** Suche und Filter aktuell nur auf geladenen Seiten; serverseitiger Scan benötigt O(N) Firestore-Lesezugriffe pro Refresh, für Massenskalierung künftig materialisierte Aggregationen. Sicherheit: kein automatischer Versand, keine Zahlung, keine Firestore-Seed/Live-Datenänderung. Die veraltete Legacy-List-API bleibt aus Kompatibilitätsgründen bei 200; der Browser verwendet 50er-Seiten. Sicherer 0%-Release vorbereitet: `scripts/prepare-crm-pagination-live.ps1 -DeployCandidate` und getrennt `scripts/activate-crm-pagination-live.ps1` mit Freigabe `LIVE PAGINATION`, Rollback `lszh-crm-v2-00059-puj`. **Letzter bestätigter produktiver Stand weiter `lszh-crm-v2-00059-puj` (100 %)**; kein Cloud-Run-Kandidat für diese Iteration bisher. [Handoff](./LSZH_CRM_V2_HANDOFF_20261023.md).

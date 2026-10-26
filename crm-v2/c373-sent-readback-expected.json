@@ -1,0 +1,31 @@
+{
+  "eventId": "contract_send_pkg_test_c373_transport_001_r1",
+  "packageSha256": "5f94e7014a84c895527b7e58b39d5c8bb70d10cbca9019082a61321d0bb15a78",
+  "recipient": "lars.schulthess@outlook.com",
+  "documentHashes": [
+    {
+      "kind": "offer",
+      "filename": "TEST_ONLY_offer.pdf",
+      "version": "TEST_ONLY_v1",
+      "archiveFileId": "test_c373_archive_offer",
+      "sha256": "9e25f1de4ec89f546917942787f0c1613c0c0d99cec97f4a8de44000e1c10571",
+      "bytes": 2291
+    },
+    {
+      "kind": "terms",
+      "filename": "TEST_ONLY_terms.pdf",
+      "version": "TEST_ONLY_v1",
+      "archiveFileId": "test_c373_archive_terms",
+      "sha256": "117bf5336a7dfb3e436f5f6ac058356e041f31df21142d9362a25b7419bada59",
+      "bytes": 2343
+    },
+    {
+      "kind": "avv",
+      "filename": "TEST_ONLY_avv.pdf",
+      "version": "TEST_ONLY_v1",
+      "archiveFileId": "test_c373_archive_avv",
+      "sha256": "2d1c7f9932fbeb75c578c2883d980e24d025f684eeb7bbec47283eb75e497aa9",
+      "bytes": 2309
+    }
+  ]
+}

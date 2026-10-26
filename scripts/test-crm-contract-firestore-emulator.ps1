@@ -40,7 +40,7 @@ try{
   $env:FIREBASE_PROJECT_ID=$project
   Remove-Item Env:\GOOGLE_APPLICATION_CREDENTIALS -ErrorAction SilentlyContinue
   Write-Host 'CONTRACT FIRESTORE EMULATOR ONLY: demo project, 127.0.0.1:8788, no cloud credentials or emails.'
-  & npx.cmd --yes firebase-tools@15.1.0 emulators:exec --only firestore --project $project 'node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js'
+  & npx.cmd --yes firebase-tools@15.1.0 emulators:exec --only firestore --project $project 'node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js crm-v2/emulator-tests/contract-acceptance-firestore.test.js crm-v2/emulator-tests/customer-acceptance-durable.test.js crm-v2/emulator-tests/contract-acceptance-review.test.js crm-v2/emulator-tests/contract-package-publisher.test.js'
   if($LASTEXITCODE -ne 0){throw 'Firestore emulator test failed. Do not send or deploy anything.'}
   Write-Host 'CONTRACT FIRESTORE EMULATOR TEST PASS (demo only).'
 }finally{

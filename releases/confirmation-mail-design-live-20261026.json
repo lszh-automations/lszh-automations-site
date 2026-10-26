@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "6c5e80c4d1f062607d181425c9a485ecbfdcebb0",
+  "service": "lszh-crm-v2",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "configurationUnchanged": true,
+  "anonymousPreviewStatus": 401,
+  "buildId": {
+    "lszh-crm-v2-1": "79f43ae5-8d0e-4808-bd2c-0918bec3f50f"
+  },
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793030694.967804-b84871e71cf542eb8b4b0dea372dfeb1.zip#1793030696254816"
+  },
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:a0eab3b0cf8775bfc56c9ecc2f37f8b3b7c8f7b569af77e195ee3323e3d84167",
+  "rollback": "lszh-crm-v2-00087-los",
+  "revision": "lszh-crm-v2-00089-mar",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 465,
+  "browserChecks": 4,
+  "parentRelease": "customer-billing-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "order-confirmation.js",
+      "sha256": "137a17c98945e906cfd317a112f40954a5baedf8b655de084d38bfdf7514c00b",
+      "bytes": 15749
+    }
+  ],
+  "customerDataChanged": false,
+  "emailSent": false,
+  "acceptedPackageAndPdfUnchanged": true,
+  "portalAndMakeUnchanged": true
+}

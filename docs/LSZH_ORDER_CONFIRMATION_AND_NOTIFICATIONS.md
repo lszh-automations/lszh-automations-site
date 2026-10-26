@@ -56,3 +56,12 @@ Die CRM-Version `lszh-crm-v2-00085-tep` (100 % Verkehr) ergänzt deshalb nach nac
 455 CRM-Tests bestanden, einschliesslich fehlendem Button, Abbruch, Doppelklick, bereits angenommener Offerte und Backend-Freigabesicherheit. Desktop-/Mobilbrowser mit gesperrtem Netz geprüft. Alle 79 tatsächlichen CRM-Laufzeitdateien entsprechen den vorbereiteten Quellen; unveränderte Konfiguration und Dienstkonto, anonyme API HTTP 401, neue Oberfläche live HTTP 200. Portal und Make wurden bei dieser Korrektur nicht verändert. Offerte 1006 wurde nur lesend geprüft; ihre Übernahme bleibt dem Benutzerklick vorbehalten.
 
 [Korrektur-Manifest](../releases/acceptance-button-fix-live-20261026.json), Quellcommit `6477e6348dec8732d50313677368ccc3f9dc7577`. Rückfallversion CRM `00083-xap`.
+
+
+## Maildesign an bestehende Kundenmails angepasst
+
+Am 26.10.2026 wurde das Design der Auftragsbestätigungs-Mail an die vorhandenen Offerten-/Kundenmails angeglichen. Live: CRM **lszh-crm-v2-00089-mar**, 100 % Verkehr. Dunkler Kopf mit L-Logo, dreifarbige Akzentleiste, helle Infobox für Offertennummer/Empfänger/PDF-Anhang, abgegrenzter versionsgebundener Make-Hinweis und derselbe Firmenfuss. Tabellenlayout und Inline-CSS ohne externe Bilder oder Skripte. Technische Paket-/Hashangaben bleiben im unveränderten PDF und werden nicht mehr im sichtbaren Mailtext wiederholt. Vertragliche Aussagen, Empfänger, Betreff, Anhang und Versand-/Nachweissperren bleiben erhalten.
+
+465 CRM-Tests bestanden, einschliesslich tatsächlichem HTML-Versandpfad, exakt gleichem PDF, sicherem Escaping und fehlendem nachträglichem Make-Hinweis bei alten Paketen. Vier lokale HTML-Browserprüfungen (Desktop/Mobil, mit/ohne Make-Hinweis) ohne Netzwerkzugriffe und horizontalen Überlauf; visuell kontrolliert. Dies ersetzt keinen separaten Test in jeder Gmail-/Outlook-Clientversion. Keine echte Mail zur Abnahme verschickt und keine Kundendaten geändert. Keine erneute Bestätigung für Offerte 1006.
+
+[Live-Nachweis](../releases/confirmation-mail-design-live-20261026.json), [PR 19](https://github.com/lszh-automations/lszh-automations-site/pull/19), Quellcommit `6c5e80c4d1f062607d181425c9a485ecbfdcebb0`. Alle 79 tatsächlich gebauten Laufzeitdateien geprüft; gegenüber dem Kunden-/Rechnungsrelease ist nur `order-confirmation.js` verändert. Konfiguration und Dienstkonto unverändert. Öffentliche Oberfläche HTTP 200, anonyme Bestätigungsvorschau HTTP 401; bei Abschluss keine Error-Level-Logs. Portal und Make unverändert. Rückfallversion: CRM `00087-los`; vorhandene Versandclaims nie löschen oder erneut auslösen.

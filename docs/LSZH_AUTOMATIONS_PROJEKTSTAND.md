@@ -1,3 +1,13 @@
+# Aktiver Live-Stand – Auftragsbestätigungs-Mail im LSZH-Design, 26.10.2026
+
+CRM **`lszh-crm-v2-00089-mar`** erhält 100 % Verkehr. Künftige Auftragsbestätigungs-Mails verwenden das aktuelle LSZH-Kundenmaildesign mit dunklem Kopf, Logo, drei Farbakzenten, Infobox und Firmenfuss. PDF, Vertragsinhalt und Versandnachweis bleiben erhalten; keine Mail erneut gesendet und keine Kundendaten geändert. Kundennummern und automatische Rechnungsentwürfe aus dem vorigen Release bleiben aktiv.
+
+465 CRM-Tests und vier lokale Desktop-/Mobilprüfungen erfolgreich. Alle 79 tatsächlichen Laufzeitdateien bestätigt; nur das Mailmodul gegenüber dem vorigen Release verändert. Konfiguration, Dienstkonto, Portal und Make unverändert.
+
+[Design und Nachweis](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#maildesign-an-bestehende-kundenmails-angepasst) · [Live-Manifest](../releases/confirmation-mail-design-live-20261026.json).
+
+---
+
 # Aktiver Live-Stand – Kundennummern und Rechnungsentwürfe, 26.10.2026
 
 CRM **`lszh-crm-v2-00087-los`** erhält 100 % Verkehr. Neue Kunden erhalten sichtbare Nummern ab **KD-1000**. Wiederkehrende Aufträge behalten dieselbe Kunden-ID/-Nummer. Bei Auftragsübernahme entsteht atomar ein Rechnungsentwurf nur für einmalige Positionen; monatliche Kosten und Versand bleiben separat. Kundennummern sind in Registern, Verweisen und Suche verfügbar.

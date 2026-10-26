@@ -17,6 +17,32 @@ function confirmationText(pkg,recipient,acceptedAt){
   'Bei Fragen erreichen Sie uns unter info@lszh-automations.ch.',
   'Paketreferenz: '+pkg.packageId,'SHA-256: '+pkg.packageSha256];
 }
+function renderConfirmationEmail(preview){
+ // Same inline/table design as the live offer and customer acknowledgement.
+ // Contractual text still originates solely from the accepted package/PDF.
+ const lines=preview.text.split('\n\n'),paragraph=content=>'<p style="margin:0 0 18px;color:#344259;font-size:15px;line-height:25px;overflow-wrap:anywhere;word-break:break-word;">'+escape(content)+'</p>';
+ const body=lines.slice(3).filter(line=>!line.startsWith('Paketreferenz: ')&&!line.startsWith('SHA-256: ')).map(line=>{
+  if(line==='Angenommene Unterlagen:')return '<p style="margin:26px 0 12px;color:#06101d;font-size:13px;font-weight:700;line-height:21px;">'+escape(line)+'</p>';
+  if(line.startsWith('Für die Einrichtung verwenden Sie Ihre eigene Make-Organisation.'))return '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;"><tr><td style="padding:19px 20px;"><p style="margin:0 0 8px;color:#06101d;font-size:13px;font-weight:700;line-height:21px;">Ihr Make-Konto und die Einrichtung</p><p style="margin:0;color:#344259;font-size:14px;line-height:23px;">'+escape(line)+'</p></td></tr></table>';
+  return paragraph(line);
+ }).join('');
+ return '<!doctype html><html lang="de-CH"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LSZH Automations – Auftragsbestätigung</title></head>'+
+  '<body style="margin:0;padding:0;background-color:#f4f7fb;color:#0f1726;font-family:Arial,Helvetica,sans-serif;">'+
+  '<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Ihre Auftragsbestätigung von LSZH Automations als PDF im Anhang.</div>'+
+  '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;background-color:#f4f7fb;"><tr><td align="center" style="padding:28px 14px 36px;">'+
+  '<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
+  '<tr><td bgcolor="#06101d" style="background-color:#06101d;padding:29px 32px;"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>'+
+  '<td width="53" valign="middle"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td width="43" height="43" align="center" bgcolor="#5b8cff" style="background-color:#5b8cff;color:#ffffff;font-size:27px;font-weight:800;line-height:43px;border-radius:12px;">L</td></tr></table></td>'+
+  '<td valign="middle" style="padding-left:10px;"><div style="font-size:18px;color:#ffffff;font-weight:700;line-height:23px;">LSZH Automations</div><div style="font-size:9px;color:#b2bfd3;font-weight:700;line-height:16px;letter-spacing:1.6px;">AUTOMATION FÜR SCHWEIZER KMU</div></td></tr></table></td></tr>'+
+  '<tr><td><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td width="34%" height="4" bgcolor="#74d8ff" style="height:4px;background-color:#74d8ff;font-size:0;line-height:0;">&nbsp;</td><td width="33%" height="4" bgcolor="#5b8cff" style="height:4px;background-color:#5b8cff;font-size:0;line-height:0;">&nbsp;</td><td width="33%" height="4" bgcolor="#8e72ff" style="height:4px;background-color:#8e72ff;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>'+
+  '<tr><td style="padding:37px 28px 36px;"><p style="margin:0 0 12px;color:#5b8cff;font-size:11px;font-weight:700;line-height:18px;letter-spacing:1.4px;">IHRE AUFTRAGSBESTÄTIGUNG</p>'+
+  '<h1 style="margin:0 0 24px;color:#06101d;font-size:27px;line-height:36px;">Ihr Auftrag ist bestätigt</h1>'+paragraph('Guten Tag')+paragraph('Vielen Dank für Ihr Vertrauen in LSZH Automations.')+
+  '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 25px;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;"><tr><td style="padding:19px 20px;">'+
+  '<p style="margin:0 0 8px;color:#06101d;font-size:16px;font-weight:700;line-height:25px;">'+escape(lines[1])+'</p><p style="margin:0 0 12px;color:#526278;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">Empfänger: '+escape(preview.recipient)+'</p><p style="margin:0;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">PDF im Anhang: <strong>'+escape(preview.filename)+'</strong></p></td></tr></table>'+body+
+  '<p style="margin:24px 0 0;color:#344259;font-size:14px;line-height:23px;">Freundliche Grüsse<br><strong style="color:#06101d;">Ihr Team von LSZH Automations</strong></p></td></tr>'+
+  '<tr><td bgcolor="#0a1728" style="background-color:#0a1728;padding:25px 28px 27px;"><p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;line-height:21px;">LSZH Automations</p><p style="margin:0 0 11px;color:#b2bfd3;font-size:11px;line-height:19px;">Ein Geschäftsbereich der LSZH Invest GmbH<br>Rummelmatt 8 · 5610 Wohlen AG · Schweiz<br>UID: CHE-369.474.125</p>'+
+  '<p style="margin:0;color:#74d8ff;font-size:11px;line-height:19px;"><a href="mailto:info@lszh-automations.ch" style="color:#74d8ff;text-decoration:none;">info@lszh-automations.ch</a> · <a href="https://lszh-automations.ch/" style="color:#74d8ff;text-decoration:none;">lszh-automations.ch</a></p></td></tr></table></td></tr></table></body></html>';
+}
 async function confirmationPdf(lines,date){
  const pdf=await PDFDocument.create();pdf.setCreationDate(new Date(date));pdf.setModificationDate(new Date(date));
  pdf.setTitle('LSZH Automations – Auftragsbestätigung');
@@ -70,7 +96,7 @@ function createOrderConfirmation({transaction,authorizeOperator,review,archivePd
     tx.create(docId,{packageSha256:b.pkg.packageSha256,recipient:b.recipient,approvedBy:operator,document});tx.set(claim,{...row,state:'sending',document});
    });
    const eventId='confirmation_'+b.pkg.packageId;
-   const receipt=await sendOnce({kind:'order_confirmation',sendMode:'customer',from:'info@lszh-automations.ch',to:[b.recipient],cc:[],bcc:[],eventId,packageSha256:b.pkg.packageSha256,subject:p.subject,html:p.text.split('\n\n').map(x=>'<p>'+escape(x)+'</p>').join(''),attachments:[{filename:p.filename,data:p.data}]});
+   const receipt=await sendOnce({kind:'order_confirmation',sendMode:'customer',from:'info@lszh-automations.ch',to:[b.recipient],cc:[],bcc:[],eventId,packageSha256:b.pkg.packageSha256,subject:p.subject,html:renderConfirmationEmail(p),attachments:[{filename:p.filename,data:p.data}]});
    if(receipt?.ok!==true||receipt.eventId!==eventId||receipt.packageSha256!==b.pkg.packageSha256||!/^[A-Za-z0-9_-]{4,200}$/.test(receipt.messageId||''))throw fault('CONFIRMATION_RECEIPT_REQUIRED',409);
    // Persist before independent Gmail verification: checking never dispatches again.
    await transaction(async tx=>{const row=await tx.get(claim);tx.set(claim,{...row,state:'verification_pending',messageId:receipt.messageId});});
@@ -87,4 +113,4 @@ function createConfirmationTransport({webhookUrl,fetchImpl=fetch}={}){
   const r=await fetchImpl(webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(30000)});const receipt=await r.json().catch(()=>null);if(!r.ok)throw fault('CONFIRMATION_UNCONFIRMED',409);return receipt;
  };
 }
-module.exports={createOrderConfirmation,createConfirmationTransport,confirmationKey,confirmationPdf,confirmationText};
+module.exports={createOrderConfirmation,createConfirmationTransport,confirmationKey,confirmationPdf,confirmationText,renderConfirmationEmail};

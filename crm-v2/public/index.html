@@ -23,16 +23,26 @@ main{padding:30px clamp(20px,4vw,66px);max-width:1600px;width:100%;margin:0 auto
 .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:29px}
 .eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
 h1{font-size:clamp(28px,3.4vw,39px);letter-spacing:-.04em;line-height:1.15;margin:7px 0}h2{font-size:22px;letter-spacing:-.02em;margin:0}
-.sub{color:var(--muted);margin:0}.identity{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.sub{color:var(--muted);margin:0}.identity{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}.sync-status{font-size:11px;color:var(--muted)}
 .btn{padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:650}
 .btn.primary{background:#a4d4f4;border-color:#a4d4f4;color:#091724}.btn:hover{filter:brightness(1.08)}
 .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;margin-bottom:28px}
+#kpis[hidden]{display:none}
 .kpi{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:16px}
 .kpi strong{font-size:29px;letter-spacing:-.045em;display:block;margin:3px 0}.kpi span{font-size:12px;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:15px;overflow:hidden}
 .toolbar{padding:22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .toolbar p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .search{background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;min-width:235px}
+.lead-delete{margin-left:10px;width:27px;height:27px;padding:0;border:1px solid #844451;border-radius:7px;background:transparent;color:#ffa6ae;font-size:18px;line-height:1;cursor:pointer;vertical-align:middle}
+.lead-delete:hover{background:#42242f;border-color:#ffa6ae}
+.lead-delete:focus-visible{outline:2px solid #ffa6ae;outline-offset:2px}
+.lead-delete:disabled{opacity:.5;cursor:wait}
+.lead-age{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:12px;font-weight:650;padding:5px 10px;border:1px solid var(--border);border-radius:99px;color:var(--muted);background:var(--panel2)}
+.lead-age::before{content:'';display:inline-block;flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:currentColor}
+.lead-age-green{color:#8ce5bc;background:#15362c;border-color:#29624c}
+.lead-age-orange{color:#ffd18a;background:#453019;border-color:#926534}
+.lead-age-red{color:#ffacb3;background:#44232e;border-color:#95505d}
 .scroll{overflow:auto;width:100%}table{border-collapse:collapse;width:100%;min-width:700px}
 th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.09em;background:#111a27}
 th,td{padding:15px 18px;border-top:1px solid var(--border)}td{font-size:13px}td:first-child{font-weight:650}
@@ -50,6 +60,261 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field.wide{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+
+/* Invoice V1: a short form, a few positions, one amount */
+.invoice-dialog{width:min(940px,calc(100vw - 28px));max-height:92vh}
+#invoiceForm{overflow:auto;max-height:calc(92vh - 80px)}
+.invoice-fields{padding:20px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.invoice-fields .wide{grid-column:1/-1}
+.invoice-fields select{width:100%;border:1px solid #35485d;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.invoice-lines-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 24px 14px;border-top:1px solid var(--border);font-size:14px}
+.invoice-lines{padding:0 24px 10px;display:grid;gap:10px}
+.invoice-line{display:grid;grid-template-columns:minmax(175px,2.2fr) 85px minmax(130px,1fr) minmax(125px,1fr) 38px;gap:10px;align-items:end;border:1px solid #304357;border-radius:12px;background:#152333;padding:11px}
+.invoice-line label{display:grid;gap:6px;color:#a8bfd2;font-size:11px}
+.invoice-line input{width:100%;min-width:0;border:1px solid #354b61;border-radius:8px;background:#0b141e;color:#f3f8ff;padding:10px;font-size:12px}
+.invoice-line-total{display:grid;gap:7px;align-self:end}
+.invoice-line-total small{color:#a8bfd2;font-size:11px}
+.invoice-line-total strong{padding:8px 0;font-size:12px;white-space:nowrap}
+.invoice-line-remove{height:38px;border:1px solid #41566f;border-radius:8px;background:#24374b;color:#ecf4ff;font-size:18px}
+.invoice-total{margin:15px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px;border-radius:12px;border:1px solid #3c5c7a;background:#172b40}
+.invoice-total span{font-size:12px;color:#b6c9db}.invoice-total strong{font-size:24px;letter-spacing:-.03em}
+.invoice-caption{padding:0 24px;font-size:11px;color:#a2b5c7;line-height:1.5}
+.invoice-error{padding:0 24px;font-size:12px;color:#ffb6ac}
+.invoice-payments{margin:14px 24px 4px;padding:18px;border:1px solid #38516a;border-radius:13px;background:#122235}
+.invoice-payments-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.invoice-payments-head strong{font-size:15px}
+.invoice-payment-kpis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr);gap:10px;margin:14px 0}
+.invoice-payment-kpi{display:grid;align-content:center;gap:7px;min-width:0;padding:14px 15px;background:#17293c;border:1px solid #36516a;border-radius:11px}
+.invoice-payment-kpi-label{color:#b4cde1;font-size:12px;font-weight:650}
+.invoice-payment-kpi-value{font-size:clamp(16px,2vw,21px);font-weight:800;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.invoice-payment-kpi--open{background:#1c384f;border:2px solid #7fc6e9;padding:13px 14px}
+.invoice-payment-kpi--open .invoice-payment-kpi-label{color:#c8eaff;font-size:13px}
+.invoice-payment-kpi--open .invoice-payment-kpi-value{font-size:clamp(23px,2.9vw,32px);color:#ffffff}
+.invoice-payment-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#b9cde0;font-size:12px;font-weight:650;margin:12px 0 6px}
+.invoice-payment-progress-head strong{color:#dcf4ff;font-size:14px;font-variant-numeric:tabular-nums}
+.invoice-payment-progress{display:block;width:100%;height:10px;appearance:none;-webkit-appearance:none;border:0;border-radius:99px;overflow:hidden;background:#30465d}
+.invoice-payment-progress::-webkit-progress-bar{background:#30465d;border-radius:99px}
+.invoice-payment-progress::-webkit-progress-value{background:#74cbe7;border-radius:99px}
+.invoice-payment-progress::-moz-progress-bar{background:#74cbe7;border-radius:99px}
+.invoice-payments-summary{font-size:12px;color:#b4cde1;margin:10px 0 14px}
+.invoice-payments-history{display:grid;gap:7px;margin:10px 0}
+.invoice-payments-history div{display:flex;gap:10px;justify-content:space-between;font-size:12px;padding:8px 10px;border:1px solid #2c455c;border-radius:8px}
+.invoice-payments-entry{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:10px;align-items:end;margin-top:12px}
+.invoice-payments-entry label{display:grid;gap:5px;font-size:11px;color:#b5cbdd}
+.invoice-payments-entry input,.invoice-payments-entry select{width:100%;min-width:0;border:1px solid #354b61;background:#091621;color:#e6f3ff;border-radius:8px;padding:9px}
+.invoice-payments-entry button{grid-column:1/-1;justify-self:end}
+.invoice-due-overview{margin:0 22px 20px;display:grid;gap:12px}
+.invoice-due-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.invoice-due-card{min-width:0;border:1px solid #375169;border-radius:12px;background:#15283b;padding:14px 16px;display:grid;gap:4px}
+.invoice-due-card strong{font-size:clamp(18px,2vw,24px);font-weight:800;letter-spacing:-.025em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.invoice-due-card span{color:#c4d8e7;font-size:12px}
+.invoice-due-card--overdue{border-color:#b57051;background:#312820}
+.invoice-due-card--overdue strong{color:#ffcca9}
+.invoice-due-note{margin:0;color:#afc4d7;font-size:12px;line-height:1.5}
+.invoice-due-filter{width:auto;min-width:185px;max-width:100%;border:1px solid #45617e;border-radius:10px;background:#0b141e;color:#e7f2ff;padding:10px}
+@media(max-width:600px){.invoice-due-overview{margin:0 15px 16px}.invoice-due-cards{grid-template-columns:1fr}.invoice-due-card{padding:12px 14px}}
+.invoice-reminders{margin:14px 24px 4px;padding:18px;border:1px solid #41536c;border-radius:13px;background:#111c2d}
+.invoice-reminders h3{margin:0;font-size:15px}
+.invoice-reminders p{font-size:12px;color:#b7c9db}
+.invoice-reminder-status{font-size:13px!important;font-weight:700;color:#e7f2ff!important;margin:12px 0 5px}
+.invoice-reminder-check{font-size:11px!important;color:#c3d6e7!important;border-left:2px solid #6f9bc1;padding:7px 11px;background:#152639;border-radius:3px;margin:10px 0}
+.invoice-reminders textarea{display:block;width:100%;min-height:130px;resize:vertical;border:1px solid #41546c;border-radius:9px;background:#0a1625;color:#ecf4ff;padding:10px;font:inherit;font-size:12px;line-height:1.6}
+.invoice-reminder-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.invoice-reminder-history{font-size:12px;color:#a5bed4;margin-top:12px;display:grid;gap:8px}
+.invoice-reminder-record{border:1px solid #405b72;background:#16283b;border-radius:9px;padding:10px 12px;display:grid;gap:4px;overflow-wrap:anywhere}
+.invoice-reminder-record strong{color:#e0f0fc;font-size:12px}
+.invoice-reminder-record span{color:#b4ccde;font-size:11px;line-height:1.5}
+@media(max-width:740px){.invoice-payments-entry{grid-template-columns:1fr 1fr}.invoice-payment-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.invoice-payment-kpi--open{grid-column:1/-1}}
+@media(max-width:460px){.invoice-payments-entry{grid-template-columns:1fr}.invoice-payments{margin:12px}.invoice-payment-kpis{gap:7px}.invoice-payment-kpi{padding:12px 10px}.invoice-payment-kpi--open{padding:13px 12px}}
+.invoice-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:19px 24px 22px;border-top:1px solid var(--border)}
+.invoice-lock{margin:18px 24px 0;padding:14px 16px;color:#d1e9ff;border:1px solid #426585;background:#1a2c40;border-radius:11px;font-size:13px}
+.invoice-dialog.is-locked input:disabled,.invoice-dialog.is-locked select:disabled,.invoice-dialog.is-locked textarea:disabled{opacity:1;background:#152231;color:#aebfd0}
+@media(max-width:740px){.invoice-line{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.invoice-line-total{align-self:center}}
+@media(max-width:600px){.invoice-fields{grid-template-columns:1fr;padding:16px}.invoice-fields .wide{grid-column:1}.invoice-line{grid-template-columns:1fr 1fr}.invoice-line label:first-child{grid-column:1/-1}.invoice-lines,.invoice-lines-head,.invoice-actions{padding-left:16px;padding-right:16px}.invoice-total{margin:16px}.invoice-caption,.invoice-error{padding:0 16px}.invoice-actions .btn{flex:1}}
+
+
+/* Simple project execution - one project, a status, a date and a checklist */
+.project-dialog{width:min(820px,calc(100vw - 30px));max-height:92vh}
+#projectForm{max-height:calc(92vh - 78px);overflow:auto}
+.project-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:22px 24px}
+.project-fields .wide{grid-column:1/-1}
+.project-fields select{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.project-tasks-head{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid var(--border);padding:18px 24px 12px}
+.project-tasks-head strong{font-size:15px}
+.project-tasks-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.project-tasks{display:grid;gap:8px;padding:0 24px 18px}
+.project-task{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #304357;background:#162331;border-radius:10px}
+.project-task-check{width:19px;height:19px;accent-color:#65d7b5;flex-shrink:0}
+.project-task-title{min-width:0;flex:1;background:#0b141e;border:1px solid #344255;color:var(--text);padding:10px 11px;border-radius:8px}
+.project-task-title.done{text-decoration:line-through;color:#a3b5c6}
+.project-task-delete{width:36px;height:38px;background:#273549;border:1px solid #42566d;border-radius:8px;color:#e9f4ff;font-size:18px}
+.project-tasks-empty{color:#9caabd;font-size:12px;padding:10px 0}
+.project-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border);padding:19px 24px}
+.project-error{margin:0;padding:0 24px 20px;color:#ffb6ad;font-size:13px}
+.project-overdue{font-size:11px;color:#ffbc8a;display:block;margin-top:3px}
+@media(max-width:650px){.project-fields{grid-template-columns:1fr;padding:16px}.project-fields .wide{grid-column:1}.project-tasks-head,.project-actions{padding-left:16px;padding-right:16px}.project-tasks{padding-left:16px;padding-right:16px}.project-actions .btn{flex:1}}
+
+
+/* Straightforward quote editor - local test version */
+.offer-dialog{width:min(1030px,calc(100vw - 30px));max-height:92vh}
+.offer-locked-notice{margin:20px 24px 0;padding:15px 17px;border:1px solid #536f90;border-radius:11px;background:#182d42;display:grid;gap:4px}
+.offer-locked-notice strong{font-size:13px;color:#e0f1ff}
+.offer-locked-notice span{font-size:12px;color:#abc3d8}
+.offer-dialog.is-locked input:disabled,.offer-dialog.is-locked textarea:disabled,.offer-dialog.is-locked select:disabled{opacity:1;background:#15202e;color:#b2c2d3;cursor:default}
+.offer-dialog.is-locked .offer-line-remove:disabled{opacity:.45;cursor:default}
+@media(max-width:600px){.offer-locked-notice{margin:14px 16px 0}}
+#offerForm{display:block;max-height:calc(92vh - 80px);overflow:auto}
+.offer-fields{padding:22px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.offer-fields .wide{grid-column:1 / -1}
+.offer-fields .field select{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.offer-lines-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:20px 24px 14px;border-top:1px solid var(--border)}
+.offer-lines-head strong{font-size:15px}
+.offer-lines-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.offer-lines{padding:0 24px 8px;display:grid;gap:9px}
+.offer-line{display:grid;grid-template-columns:minmax(165px,2.4fr) 85px minmax(112px,1fr) minmax(120px,1fr) minmax(105px,.9fr) 36px;gap:8px;align-items:end;background:#162130;padding:12px;border:1px solid #2b3f53;border-radius:12px}
+.offer-line label{display:grid;gap:5px;color:#a8bdcf;font-size:11px}
+.offer-line input,.offer-line select{width:100%;min-width:0;border:1px solid #34475d;border-radius:8px;background:#0d1723;color:#f2f7ff;padding:9px;min-height:38px;font-size:12px}
+.offer-line-total{display:grid;gap:6px;align-self:end}
+.offer-line-total small{color:#a8bdcf;font-size:11px}
+.offer-line-total strong{font-size:12px;white-space:nowrap;padding:8px 0}
+.offer-line-remove{height:38px;width:36px;border:1px solid #485b70;border-radius:8px;background:#273549;color:#e8f2fb;font-size:18px;cursor:pointer}
+.offer-totals{margin:16px 24px;padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;border:1px solid #385775;background:linear-gradient(120deg,#182b3e,#142333);border-radius:13px}
+.offer-totals>div{display:grid;gap:4px}
+.offer-totals span{font-size:12px;color:#b8ccde}
+.offer-totals strong{font-size:22px;letter-spacing:-.035em}
+.offer-hint{font-size:11px;color:#99aabd;margin:0;padding:0 24px}
+.offer-actions{padding:18px 24px 22px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.offer-workflow{margin:12px 24px 8px;padding:18px;border:1px solid #35536d;background:#152434;border-radius:13px;display:grid;gap:13px}
+.offer-workflow h3{margin:0;font-size:16px}
+.offer-workflow p{color:#afc3d8;font-size:12px;line-height:1.55;margin:0}
+.offer-workflow-meta{display:grid;gap:4px;color:#afc3d8;font-size:12px}
+.offer-workflow-meta strong{color:#e8f3ff}
+.offer-workflow-row{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.offer-workflow-row label{display:grid;gap:5px;font-size:12px;color:#bdcee0;min-width:175px;flex:1}
+.offer-workflow-row input{background:#0b141e;color:var(--text);border:1px solid #45617e;border-radius:8px;padding:10px;min-height:40px;max-width:100%}
+.offer-workflow-error{color:#ffafb0!important}
+.offer-workflow-history{padding:12px;border-radius:9px;background:#101c2a;display:grid;gap:7px}
+.offer-workflow-history span{font-size:11px;color:#aec1d2;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){.offer-workflow{margin:12px 16px 8px;padding:14px}}
+@media(max-width:880px){.offer-line{grid-template-columns:minmax(160px,2fr) 75px minmax(100px,1fr);}.offer-line-total{align-self:center}}
+@media(max-width:600px){.offer-fields{grid-template-columns:1fr;padding:16px}.offer-line{grid-template-columns:1fr 1fr;padding:10px}.offer-line label:first-child{grid-column:1/-1}.offer-lines,.offer-lines-head{padding-left:16px;padding-right:16px}.offer-lines-head{flex-wrap:wrap}.offer-totals{grid-template-columns:1fr;margin:16px}.offer-actions{padding:16px}.offer-actions .btn{flex:1}.offer-hint{padding:0 16px}}
+
+.lead-dialog{width:min(740px,calc(100vw - 30px))}
+.lead-detail-body{padding:22px 24px;max-height:min(60vh,590px);overflow:auto}
+.lead-status{display:flex;align-items:end;gap:15px;margin-bottom:22px;flex-wrap:wrap}
+.lead-status-label{display:grid;gap:6px;color:#9caabd;font-size:11px;font-weight:700}
+.lead-status-select{min-width:180px;border:1px solid #547695;border-radius:9px;background:#172c42;color:#f0f8ff;padding:10px 12px;font-size:13px;font-weight:700}
+.lead-status-select:focus-visible{outline:2px solid #8bc7f2;outline-offset:2px}
+.lead-status-hint{color:var(--muted);font-size:12px}
+.lead-detail-group{margin:22px 0 0}
+.lead-detail-group h3{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#a3c7e7;margin:0 0 10px}
+.lead-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.lead-detail-cell{min-width:0;padding:13px 15px;border-radius:10px;background:#172231;border:1px solid #293b50}
+.lead-detail-label{display:block;color:#9caabd;font-size:11px;margin-bottom:5px}
+.lead-detail-value{font-size:13px;color:#eff6ff;white-space:pre-wrap;overflow-wrap:anywhere}
+.lead-detail-actions{border-top:1px solid var(--border);padding:20px 24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.lead-detail-error{padding:0 24px 20px;margin:0;color:#ffb6ad;font-size:13px}
+@media(max-width:700px){.lead-detail-grid{grid-template-columns:1fr}.lead-detail-body{padding:16px}.lead-detail-actions{padding:16px;justify-content:stretch}.lead-detail-actions .btn{flex:1}}
+
+/* CRM V2 command center */
+
+/* Contact workflow lives inside the existing lead details dialog. */
+.lead-workflow-section{margin-top:22px}
+.lead-workflow-note{margin:5px 0 15px;color:var(--muted);font-size:12px;line-height:1.55}
+.lead-workflow-form{display:grid;gap:12px;margin-top:10px}
+.lead-workflow-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lead-workflow-label{display:grid;gap:6px;color:#b7c8d9;font-size:12px;font-weight:650}
+.lead-workflow-label.wide{grid-column:1/-1}
+.lead-workflow-label input,.lead-workflow-label select,.lead-workflow-label textarea{width:100%;min-width:0;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:10px;border-radius:8px;font:inherit;font-size:13px}
+.lead-workflow-label textarea{min-height:75px;resize:vertical}
+.lead-workflow-actions{display:flex;flex-wrap:wrap;gap:10px}
+.lead-workflow-history{display:grid;gap:10px;margin-top:15px}
+.lead-workflow-entry{border-left:3px solid #527dae;background:var(--panel2);border-radius:7px;padding:12px}
+.lead-workflow-entry strong{display:block;font-size:12px;margin-bottom:4px}
+.lead-workflow-entry p{font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0}
+.lead-workflow-date{font-size:11px;color:var(--muted)}
+.lead-followup-badge{display:inline-flex;padding:4px 9px;border-radius:99px;background:#1a3a32;color:#8ce5bc;font-size:12px}
+.lead-followup-badge.overdue{background:#44232e;color:#ffacb3}
+@media(max-width:620px){.lead-workflow-fields{grid-template-columns:1fr}}
+.dashboard-intro-wrapper{margin-bottom:20px}
+.dashboard-area{display:grid;gap:18px}
+.dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
+.dash-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;min-width:0;overflow:hidden}
+.dash-panel-header{padding:22px 24px 17px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border)}
+.dash-panel-header h2{font-size:18px;line-height:1.3;letter-spacing:-.02em}
+.dash-panel-header p{font-size:12px;line-height:1.45;color:var(--muted);margin:5px 0 0}
+.dash-panel-body{padding:13px 24px 22px}
+.dash-intro{padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #2d4660;border-radius:16px;background:linear-gradient(120deg,rgba(31,59,87,.68),rgba(18,31,48,.75))}
+.dash-intro strong{display:block;font-size:18px;letter-spacing:-.02em;margin:2px 0}
+.dash-intro p{color:#b2c3d8;margin:3px 0 0;font-size:12px}
+.dash-meta{padding:9px 12px;border:1px solid #39546f;border-radius:99px;color:#c9e9fb;font-size:11px;white-space:nowrap}
+.kpi.dash-kpi{width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.kpi.dash-kpi:hover{background:#192737;border-color:#40627e;transform:translateY(-2px)}
+.kpi.dash-kpi:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.dash-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dash-kpi-arrow{color:#81c9ef;font-size:17px}
+.kpi.dash-kpi strong{font-size:clamp(23px,2.2vw,30px);white-space:nowrap}
+.dash-kpi-note{display:block;color:#819ab3;font-size:11px;line-height:1.35}
+.dash-task,.dash-lead{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--text);padding:14px 12px;cursor:pointer}
+.dash-task + .dash-task,.dash-lead + .dash-lead{border-top:1px solid var(--border);border-top-left-radius:0;border-top-right-radius:0}
+.dash-task:hover,.dash-lead:hover{background:#1c2b3e;border-color:#304b68}
+.dash-task strong,.dash-lead strong{display:block;font-size:13px;line-height:1.35}
+.dash-task small,.dash-lead small{display:block;color:var(--muted);font-size:11px;margin-top:5px;line-height:1.45}
+.dash-task-icon{flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:#abdbfb;background:#203a52;font-size:17px;font-weight:800}
+.dash-task-content{flex:1;min-width:0}
+.dash-task-next{font-size:11px;font-weight:700;color:#9ed9fb;white-space:nowrap}
+.dash-lead-info{min-width:0}
+.dash-lead-side{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.dash-open{font-size:11px;color:#9ed9fb;font-weight:700}
+.dash-empty{padding:22px 8px;color:var(--muted);font-size:13px}
+.dash-empty strong{display:block;color:var(--text);font-size:15px;margin-bottom:6px}
+.dash-pipeline-row{display:grid;grid-template-columns:104px minmax(0,1fr) 25px;align-items:center;gap:12px;margin:15px 0}
+.dash-pipeline-label{font-size:12px;color:#c9d7e5;white-space:nowrap}
+.dash-pipeline-track{height:9px;border-radius:20px;background:#202e3e;overflow:hidden}
+.dash-pipeline-fill{height:100%;border-radius:20px;background:#81bff4;min-width:0}
+.dash-pipeline-fill.stage-1{background:#7aa7e5}.dash-pipeline-fill.stage-2{background:#64cfaa}.dash-pipeline-fill.stage-3{background:#67d1ae}.dash-pipeline-fill.stage-4{background:#7d8799}
+.dash-pipeline-value{font-size:12px;font-weight:700;text-align:right}
+.dash-finance{display:grid;gap:0}
+.dash-finance-item{padding:13px 0;display:flex;align-items:baseline;justify-content:space-between;gap:15px;border-bottom:1px solid var(--border)}
+.dash-finance-item:last-child{border-bottom:0}
+.dash-finance-item span{color:#b8c9dc;font-size:12px}
+.dash-finance-item strong{font-size:14px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dash-finance-item--priority strong{font-size:20px;color:#a9d9f6}
+.dash-finance-note{font-size:11px;line-height:1.6;color:#a1b8cf;margin:14px 0 0}
+.dash-receivable-amount{color:#d8ebf8;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.dash-receivable-overdue{color:#ffbc8a!important}
+.crm-page-more{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;padding:16px 20px;border-top:1px solid var(--border)}
+.crm-page-more p{color:#b4c8dc;font-size:12px;margin:0}
+.crm-page-more button{border:1px solid #4a6a86;color:#d9f1ff;background:#19334c;border-radius:10px;padding:11px 17px;font-weight:750}
+.dash-data-scope{margin:0 0 18px;padding:13px 16px;border:1px solid #35536e;background:#11243a;border-radius:11px;font-size:12px;color:#b8d4e9;line-height:1.6}
+.dash-data-scope--limited{background:#3a2c1e;border-color:#8a6041;color:#f7d1a3}
+.dash-meter-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#bdcfe0;margin:18px 0 7px}
+.dash-meter{height:11px;width:100%;appearance:none;-webkit-appearance:none;border:0;border-radius:99px;overflow:hidden;background:#30465d}
+.dash-meter::-webkit-progress-bar{background:#30465d}
+.dash-meter::-webkit-progress-value{background:#72c5e6}
+.dash-meter::-moz-progress-bar{background:#72c5e6}
+.dash-section-footnote{font-size:11px;line-height:1.5;color:#93a9bc;margin:12px 0 0}
+.dash-project-row{display:grid;grid-template-columns:110px minmax(0,1fr) 33px;align-items:center;gap:12px;margin:17px 0;font-size:12px;color:#c6d8e9}
+.dash-project-track{height:10px;background:#23374a;border-radius:99px;overflow:hidden}
+.dash-project-fill{height:100%;border-radius:99px;background:#80c2e8}
+.dash-project-fill--waiting{background:#e5ba75}
+.dash-project-fill--done{background:#70d6b3}
+.dash-project-row strong{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:620px){.dash-receivable-amount{font-size:12px}.dash-project-row{grid-template-columns:105px minmax(0,1fr) 25px;gap:8px}}
+
+.dash-finance-item strong{font-size:17px;letter-spacing:-.025em;white-space:nowrap}
+.dash-finance-note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}
+@media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
+@media(max-width:700px){
+ .dashboard-area{gap:12px}.dash-grid{gap:12px}
+ .dash-intro{padding:18px;align-items:flex-start;flex-direction:column}
+ .dash-panel-header{padding:19px 18px 13px}.dash-panel-body{padding:10px 13px 18px}
+ .dash-task,.dash-lead{padding:13px 7px}
+ .dash-task-next,.dash-open{display:none}
+ .dash-pipeline-row{grid-template-columns:86px minmax(0,1fr) 22px;gap:9px}
+ .kpi.dash-kpi strong{font-size:23px}
+}
+
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:720px){.layout{display:block}aside{padding:14px;gap:13px}.brand{padding:0 4px}nav{display:flex;overflow:auto}.nav-caption,.aside-bottom{display:none}nav button{white-space:nowrap;min-width:max-content}main{padding:22px 14px}.kpis{grid-template-columns:repeat(2,1fr)}.toolbar{padding:16px}.search{width:100%}#editorForm{grid-template-columns:1fr}.field{grid-column:1/-1}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -66,8 +331,9 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 <div id="workspace" class="layout" hidden>
   <aside>
     <div class="brand"><div class="mark">L</div><div><strong>LSZH</strong><small>AUTOMATIONS CRM</small></div></div>
-    <div><div class="nav-caption">Register</div><nav id="nav" aria-label="CRM Register">
-      <button data-tab="leads" class="active"><span class="nav-icon">◈</span>Website Leads</button>
+    <div><div class="nav-caption">Arbeitsbereich</div><nav id="nav" aria-label="CRM Navigation">
+      <button data-tab="dashboard" class="active"><span class="nav-icon">▦</span>Dashboard</button>
+      <button data-tab="leads"><span class="nav-icon">◈</span>Website Leads</button>
       <button data-tab="kunden"><span class="nav-icon">◎</span>Kunden</button>
       <button data-tab="offerten"><span class="nav-icon">▤</span>Offerten</button>
       <button data-tab="rechnungen"><span class="nav-icon">▣</span>Rechnungen</button>
@@ -77,15 +343,36 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   </aside>
   <main>
     <div class="head">
-      <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Website Leads</h1><p id="pageDesc" class="sub"></p></div>
-      <div class="identity"><span id="who"></span><button class="btn" id="logout">Abmelden</button></div>
+      <div><div class="eyebrow">ARBEITSPLATZ / ÜBERSICHT</div><h1 id="pageTitle">Dashboard</h1><p id="pageDesc" class="sub"></p></div>
+      <div class="identity"><span id="who"></span><span class="sync-status" id="syncStatus" role="status" aria-live="polite"></span><button class="btn" id="refreshLeads" type="button" title="Alle Registerseiten und Gesamtauswertung aktualisieren">↻ Aktualisieren</button><button class="btn" id="logout">Abmelden</button></div>
     </div>
+    <div id="dashboardIntro" class="dashboard-intro-wrapper" hidden></div>
     <div class="kpis" id="kpis"></div>
-    <section class="panel">
+    <div id="dashboardArea" class="dashboard-area"></div>
+    <section class="panel" id="recordsPanel" hidden>
       <div class="toolbar">
         <div><h2 id="listTitle">Website Leads</h2><p id="listHint"></p></div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px"><input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <select id="statusFilter" class="invoice-due-filter" aria-label="Register nach Status filtern" hidden>
+            <option value="">Alle Status</option>
+          </select>
+          <select id="invoiceDueFilter" class="invoice-due-filter" aria-label="Rechnungen nach Fälligkeit filtern" hidden>
+            <option value="all">Alle Rechnungen</option>
+            <option value="overdue">Überfällig</option>
+            <option value="soon">Fällig in 7 Tagen</option>
+            <option value="open">Offene Beträge</option>
+          </select>
+          <input class="search" id="search" type="search" placeholder="Datensätze durchsuchen ..." aria-label="Datensätze durchsuchen"><button class="btn primary" id="add">+ Neu erfassen</button>
+        </div>
       </div>
+      <section id="invoiceDueOverview" class="invoice-due-overview" aria-label="Fälligkeitsübersicht" hidden>
+        <div class="invoice-due-cards">
+          <div class="invoice-due-card invoice-due-card--overdue"><span>Überfällige Rechnungen</span><strong id="invoiceDueOverdueCount">0</strong></div>
+          <div class="invoice-due-card"><span>Überfälliger Restbetrag</span><strong id="invoiceDueOverdueAmount">CHF 0.00</strong></div>
+          <div class="invoice-due-card"><span>Fällig in 7 Tagen (inkl. heute)</span><strong id="invoiceDueSoonCount">0</strong></div>
+        </div>
+        <p class="invoice-due-note" id="invoiceDueNote">Nur geladene Rechnungen. Keine automatische Mahnung oder Zahlung.</p>
+      </section>
       <div id="tableArea"></div>
     </section>
   </main>
@@ -94,34 +381,154 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   <div class="modal-head"><h2 id="editorTitle">Eintrag</h2><button class="btn" id="close" type="button" aria-label="Schliessen">✕</button></div>
   <form id="editorForm"><div class="form-actions"><button class="btn" id="cancel" type="button">Abbrechen</button><button class="btn primary" id="save" type="submit">Speichern</button></div></form>
 </dialog>
+<dialog id="offerEditor" class="offer-dialog" aria-labelledby="offerEditorTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / OFFERTEN</span><h2 id="offerEditorTitle">Offerte bearbeiten</h2></div><button class="btn" id="offerClose" type="button" aria-label="Schliessen">✕</button></div>
+  <form id="offerForm">
+    <div id="offerLockedNotice" class="offer-locked-notice" role="status" hidden>
+      <strong>Offerte angenommen – schreibgeschützt</strong>
+      <span>Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.</span>
+    </div>
+    <div id="offerFields" class="offer-fields"></div>
+    <div class="offer-lines-head"><div><strong>Positionen</strong><p>Einmalige und monatliche Leistungen getrennt erfassen.</p></div><button class="btn" id="offerAddLine" type="button">+ Position hinzufügen</button></div>
+    <div id="offerLines" class="offer-lines"></div>
+    <div class="offer-totals">
+      <div><span>Einmaliger Gesamtbetrag</span><strong id="offerOnce">CHF 0.00</strong></div>
+      <div><span>Monatlicher Gesamtbetrag</span><strong id="offerMonthly">CHF 0.00 / Monat</strong></div>
+    </div>
+    <p class="offer-hint" id="offerHint">PDF-Vorschau verwendet die zuletzt gespeicherte Version. Kein Kundenversand.</p>
+    <div id="offerWorkflow" class="offer-workflow" hidden></div>
+    <div id="offerContractWorkflow" class="offer-workflow" hidden></div>
+    <div class="offer-actions">
+      <button type="button" class="btn" id="offerPrint" disabled>Druckansicht / PDF</button>
+      <button type="button" class="btn" id="offerCancel">Schliessen</button>
+      <button type="submit" class="btn primary" id="offerSave">Speichern</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="invoiceEditor" class="invoice-dialog" aria-labelledby="invoiceEditorTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / RECHNUNGEN</span><h2 id="invoiceEditorTitle">Rechnung</h2></div><button class="btn" type="button" id="invoiceClose" aria-label="Schliessen">✕</button></div>
+  <form id="invoiceForm">
+    <div class="invoice-lock" id="invoiceLocked" role="status" hidden>Diese Rechnung ist abgeschlossen und schreibgeschützt. Die gespeicherte Druckansicht bleibt verfügbar.</div>
+    <div class="invoice-fields" id="invoiceFields"></div>
+    <div class="invoice-lines-head"><strong>Rechnungspositionen</strong><button class="btn" type="button" id="invoiceAddLine">+ Position</button></div>
+    <div class="invoice-lines" id="invoiceLines"></div>
+    <div class="invoice-total"><span>Gesamtbetrag</span><strong id="invoiceTotal">CHF 0.00</strong></div>
+    <p class="invoice-caption">Rechnungsbeträge ohne MWST-Ausweis. Zahlungseingänge werden ausschliesslich nach tatsächlichem Nachweis manuell verbucht.</p>
+    <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
+    <div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
+    <div id="invoiceDispatchReview" class="invoice-actions" hidden></div>
+    <section id="invoicePaymentsPanel" class="invoice-payments" hidden aria-label="Zahlungseingänge">
+      <div class="invoice-payments-head"><strong>Zahlungseingänge</strong><span class="badge" id="invoicePaymentStatus">Offen</span></div>
+      <div class="invoice-payment-kpis" aria-label="Rechnungsbeträge">
+        <div class="invoice-payment-kpi">
+          <span class="invoice-payment-kpi-label">Gesamtbetrag</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentTotal">CHF 0.00</strong>
+        </div>
+        <div class="invoice-payment-kpi">
+          <span class="invoice-payment-kpi-label">Eingegangen</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentReceived">CHF 0.00</strong>
+        </div>
+        <div class="invoice-payment-kpi invoice-payment-kpi--open">
+          <span class="invoice-payment-kpi-label">Noch offen</span>
+          <strong class="invoice-payment-kpi-value" id="invoicePaymentOpen">CHF 0.00</strong>
+        </div>
+      </div>
+      <div class="invoice-payment-progress-head"><span>Zahlungsfortschritt</span><strong id="invoicePaymentPercent">0 % bezahlt</strong></div>
+      <progress id="invoicePaymentProgress" class="invoice-payment-progress" value="0" max="100" aria-label="Zahlungsfortschritt in Prozent"></progress>
+      <p class="invoice-payments-summary" id="invoicePaymentSummary"></p>
+      <div id="invoicePaymentHistory" class="invoice-payments-history"></div>
+      <div class="invoice-payments-entry" id="invoicePaymentEntry">
+        <label>Betrag CHF<input id="invoicePaymentAmount" type="number" min="0.01" max="100000000" step="0.01"></label>
+        <label>Valutadatum<input id="invoicePaymentDate" type="date"></label>
+        <label>Zahlungsart<select id="invoicePaymentMethod"><option>Banküberweisung</option><option>TWINT</option><option>Bar</option><option>Karte</option><option>Andere</option></select></label>
+        <label>Referenz / Buchungsvermerk<input id="invoicePaymentReference" maxlength="120" placeholder="z. B. Bank-Transaktions-ID"></label>
+        <button class="btn primary" type="button" id="invoiceRecordPayment">Geprüfte Zahlung verbuchen</button>
+      </div>
+    </section>
+    <section id="invoiceReminderPanel" class="invoice-reminders" hidden aria-label="Zahlungserinnerungen">
+      <h3>Fälligkeitskontrolle und Mahnwesen</h3>
+      <p id="invoiceReminderStatus" class="invoice-reminder-status" role="status"></p>
+      <p id="invoiceReminderNotice"></p>
+      <p id="invoiceReminderHistory" class="invoice-reminder-history"></p>
+      <div id="invoiceReminderActions" hidden>
+        <p class="invoice-reminder-check">Vor jedem manuellen Versand: Zahlungseingänge, Empfänger, Restbetrag und Inhalt prüfen. Das CRM versendet keine Mahnung automatisch.</p>
+        <textarea id="invoiceReminderText" aria-label="Entwurf Zahlungserinnerung" readonly></textarea>
+        <div class="invoice-reminder-buttons">
+          <button class="btn" type="button" id="invoiceCopyReminder">Erinnerungstext kopieren</button>
+          <button class="btn" type="button" id="invoiceLogReminder">Externen Versand bestätigen</button>
+        </div>
+      </div>
+    </section>
+    <div class="invoice-actions">
+      <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button>
+      <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
+      <button class="btn" type="button" id="invoiceSend" disabled>Rechnung senden</button>
+      <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
+      <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="projectEditor" class="project-dialog" aria-labelledby="projectEditorTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / PROJEKTE</span><h2 id="projectEditorTitle">Projekt</h2></div><button class="btn" type="button" id="projectClose" aria-label="Schliessen">✕</button></div>
+  <form id="projectForm">
+    <div id="projectFields" class="project-fields"></div>
+    <div class="project-tasks-head">
+      <div><strong>Aufgaben</strong><p id="projectProgress">0 von 0 erledigt</p></div>
+      <button class="btn" type="button" id="projectAddTask">+ Aufgabe</button>
+    </div>
+    <div id="projectTasks" class="project-tasks"></div>
+    <div class="project-actions">
+      <button type="button" class="btn" id="projectCustomerOpen" hidden>Kunde öffnen</button>
+      <button type="button" class="btn" id="projectOfferOpen" hidden>Offerte öffnen</button>
+      <button type="button" class="btn" id="projectCreateInvoice" hidden>Rechnung erstellen</button>
+      <button type="button" class="btn" id="projectCancel">Schliessen</button>
+      <button type="submit" class="btn primary" id="projectSave">Speichern</button>
+    </div>
+    <p id="projectError" class="project-error" role="alert" hidden></p>
+  </form>
+</dialog>
+<dialog id="leadDetail" class="lead-dialog" aria-labelledby="leadDetailTitle">
+  <div class="modal-head">
+    <div><span class="eyebrow">WEBSITE-ANFRAGE</span><h2 id="leadDetailTitle">Lead</h2></div>
+    <button class="btn" id="leadDetailClose" type="button" aria-label="Schliessen">✕</button>
+  </div>
+  <div id="leadDetailBody" class="lead-detail-body"></div>
+  <div class="lead-detail-actions" id="leadDetailActions"></div>
+  <p id="leadDetailError" class="lead-detail-error" role="alert" hidden></p>
+</dialog>
+<!-- LSZH CRM READ PERF: firestore-status-index-singleflight-v1 -->
 <script>
 'use strict';
 const definitions={
   leads:{title:'Website Leads',description:'Alle neuen Anfragen aus dem Website-Formular.',fields:[
     ['name','Name','text'],['company','Firma','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['message','Anfrage','textarea'],['currentProcess','Heutiger Ablauf','textarea'],['systems','Beteiligte Systeme','textarea'],['mainProblem','Grösstes Problem','text'],['frequency','Häufigkeit','text'],['desiredResult','Gewünschtes Ergebnis','textarea'],['status','Status','status']
-  ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['status','Status']]},
+  ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['createdAt','Eingegangen'],['followUpDate','Wiedervorlage'],['status','Status']]},
   kunden:{title:'Kunden',description:'Stammdaten deiner Geschäftskunden.',fields:[
     ['company','Firma','text'],['contactName','Ansprechpartner','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['notes','Notizen','textarea'],['status','Status','status']
   ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
-    ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Bezeichnung','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['title','Offerte'],['customerId','Kunde'],['oneTimeCHF','Einmalig CHF'],['status','Status']]},
-  rechnungen:{title:'Rechnungen',description:'Rechnungsentwürfe und Zahlungsstatus; noch kein Versand oder Swiss QR.',fields:[
-    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['amountCHF','Betrag CHF','number'],['dueDate','Fällig am','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['status','Status']]},
+    ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
+  ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
+  rechnungen:{title:'Rechnungen',description:'Rechnungen mit nummerierter PDF und Swiss-QR-Zahlteil (nach Zahlungsfreigabe).',fields:[
+    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
+  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
-  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['status','Status']]}
+  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
 };
-const statuses={leads:['Neu','In Prüfung','Qualifiziert','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
+const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
-const state={token:'',tab:'leads',records:{},editing:null};
+const state={token:'',tab:'dashboard',invoiceDueFilter:'all',filterStatus:'',searchRows:[],searchInfo:{},searchTotal:null,searchPending:false,searchError:'',searchNonce:0,records:{},pageInfo:{},summary:null,reminders:[],editing:null,offerMailEnabled:false,offerMailMode:'disabled',offerMailTestTo:'',invoiceMailEnabled:false,invoiceMailMode:'disabled',invoiceMailTestTo:'',contractActionsEnabled:false};
+let lastFollowUpDay=localDateKey();
+const LEAD_REFRESH_INTERVAL_MS=30000;
+let leadsRefreshPending=false;
+let searchDebounce=null;
 const $=id=>document.getElementById(id);
 function el(tag,cls,text) {const node=document.createElement(tag); if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;}
 async function api(path,options={}) {
   const r=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{'Authorization':'Bearer '+state.token}:{}),...(options.headers||{})}});
   const result=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(result.error || 'HTTP '+r.status);
+  if(!r.ok){const err=new Error(result.error || 'HTTP '+r.status);err.status=r.status;throw err;}
   return result;
 }
 function titleOf(table,record) {return (record && (record.company || record.title || record.name || record.number)) || '–';}
@@ -136,26 +543,563 @@ function valueText(key,value) {
   if(key==='amountCHF'||key==='oneTimeCHF'||key==='monthlyCHF')return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(value);
   return String(value);
 }
-function renderKpis() {
-  $('kpis').replaceChildren();
-  for(const table of order){
-    const item=el('div','kpi');item.append(el('span','',definitions[table].title),el('strong','',String((state.records[table]||[]).length)));
-    $('kpis').append(item);
+function leadAge(createdAt,nowMs=Date.now()){
+  const start=Date.parse(createdAt||'');
+  if(!Number.isFinite(start))return '–';
+  const minutes=Math.max(0,Math.floor((nowMs-start)/60000));
+  if(minutes===0)return 'gerade eben';
+  if(minutes<60)return 'vor '+minutes+' Min.';
+  const hours=Math.floor(minutes/60);
+  if(hours<24)return 'vor '+hours+' Std.';
+  const days=Math.floor(hours/24);
+  if(days<30)return 'vor '+days+' '+(days===1?'Tag':'Tagen');
+  const months=Math.floor(days/30);
+  if(months<12)return 'vor '+months+' '+(months===1?'Monat':'Monaten');
+  const years=Math.floor(days/365);
+  return 'vor '+Math.max(1,years)+' '+(years===1?'Jahr':'Jahren');
+}
+function leadUrgency(createdAt,nowMs=Date.now()){
+  const start=Date.parse(createdAt||'');
+  if(!Number.isFinite(start))return '';
+  const elapsed=Math.max(0,nowMs-start);
+  if(elapsed<8*60*60*1000)return 'green';
+  if(elapsed<16*60*60*1000)return 'orange';
+  return 'red';
+}
+const LEAD_URGENCY_LABELS={
+  green:'Grün: unter 8 Stunden',
+  orange:'Orange: 8 bis unter 16 Stunden',
+  red:'Rot: 16 Stunden oder älter'
+};
+function refreshLeadAges(){
+  // Due dates are based on the Swiss-local calendar day, not UTC. Refresh
+  // the dashboard once when the day changes, without additional API traffic.
+  if(typeof state!=='undefined' && typeof lastFollowUpDay!=='undefined' &&
+     state.token&&state.tab==='dashboard'&&lastFollowUpDay!==localDateKey()){
+    lastFollowUpDay=localDateKey();
+    render();
+  }
+  const nowMs=Date.now();
+  document.querySelectorAll('[data-lead-created-at]').forEach(element=>{
+    const age=leadAge(element.dataset.leadCreatedAt,nowMs);
+    const urgency=leadUrgency(element.dataset.leadCreatedAt,nowMs);
+    element.textContent=age;
+    element.className='lead-age'+(urgency?' lead-age-'+urgency:'');
+    element.setAttribute('aria-label',urgency?age+' – '+LEAD_URGENCY_LABELS[urgency]:age);
+  });
+}
+async function deleteNewLead(lead,button){
+  if(lead.status!=='Neu')return;
+  const label=lead.company||lead.name||'diesen Lead';
+  if(!window.confirm('Lead «'+label+'» wirklich dauerhaft löschen?'))return;
+  button.disabled=true;
+  try {
+    await api('/api/records/leads/'+encodeURIComponent(lead.id),{method:'DELETE'});
+    await loadAll();
+  }catch(error){
+    window.alert('Lead konnte nicht gelöscht werden: '+error.message);
+    // A different browser may have changed this record in the meantime.
+    await loadAll().catch(()=>{});
+  }finally{button.disabled=false;}
+}
+function formatCHF(value){
+  return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
+}
+// Due-date overview is read-only. Count only open/part-paid balances,
+// including reversed payment history, and compare Swiss calendar days.
+function invoiceDueInfo(invoice,today=localDateKey()){
+  if(!invoice||!['Offen','Teilbezahlt'].includes(invoice.status))return {kind:'closed',remaining:0};
+  const total=Math.round(Number(invoice.amountCHF||0)*100);
+  const history=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
+  const received=history.reduce((sum,p)=>sum+(p.voidedAt?0:Math.round(Number(p.amountCHF||0)*100)),0);
+  const remaining=Math.max(0,total-received);
+  if(!remaining)return {kind:'closed',remaining:0};
+  if(typeof invoice.dueDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(invoice.dueDate))
+    return {kind:'open',remaining};
+  const dueMs=Date.parse(invoice.dueDate+'T12:00:00Z');
+  const todayMs=Date.parse(today+'T12:00:00Z');
+  if(!Number.isFinite(dueMs)||!Number.isFinite(todayMs)||new Date(dueMs).toISOString().slice(0,10)!==invoice.dueDate)
+    return {kind:'open',remaining};
+  const days=Math.round((dueMs-todayMs)/86400000);
+  return {kind:days<0?'overdue':days<=7?'soon':'open',remaining,days};
+}
+function invoiceDueTotals(invoices,today=localDateKey()){
+  const result={overdueCount:0,overdueCents:0,soonCount:0,soonCents:0};
+  for(const invoice of invoices||[]){
+    const info=invoiceDueInfo(invoice,today);
+    if(info.kind==='overdue'){result.overdueCount++;result.overdueCents+=info.remaining;}
+    if(info.kind==='soon'){result.soonCount++;result.soonCents+=info.remaining;}
+  }
+  return result;
+}
+// Read-only business cockpit. Amounts always use integer Swiss rappen;
+// actual booked payments are distinct from legacy paid flags and quote volume.
+function cockpitMetrics(records,today=localDateKey()){
+  const invoices=records.rechnungen||[],offers=records.offerten||[];
+  const projects=records.projekte||[];
+  const summary={
+    invoiceCount:invoices.length,openCount:0,openCents:0,overdueCount:0,overdueCents:0,
+    soonCount:0,soonCents:0,bookedCents:0,legacyPaidCount:0,
+    openOfferCount:0,openOfferCents:0,acceptedMonthlyCents:0,
+    projectActive:0,projectWaiting:0,projectDone:0,projectOverdue:0,
+    tasksDone:0,tasksTotal:0,receivables:[]
+  };
+  const moneyCents=value=>{
+    const n=Number(value);
+    return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n*100)):0;
+  };
+  for(const inv of invoices){
+    if(!inv||!['Offen','Teilbezahlt','Bezahlt'].includes(inv.status))continue;
+    const history=Array.isArray(inv.paymentHistory)?inv.paymentHistory:[];
+    const booked=history.reduce((sum,p)=>sum+(p.voidedAt?0:moneyCents(p.amountCHF)),0);
+    summary.bookedCents+=booked;
+    if(inv.status==='Bezahlt'&&!history.length)summary.legacyPaidCount++;
+    const info=invoiceDueInfo(inv,today);
+    if(!info.remaining)continue;
+    summary.openCount++;
+    summary.openCents+=info.remaining;
+    if(info.kind==='overdue'){summary.overdueCount++;summary.overdueCents+=info.remaining;}
+    if(info.kind==='soon'){summary.soonCount++;summary.soonCents+=info.remaining;}
+    summary.receivables.push({invoice:inv,info});
+  }
+  for(const offer of offers){
+    if(['Entwurf','Bereit','Versendet'].includes(offer.status)){
+      summary.openOfferCount++;
+      summary.openOfferCents+=moneyCents(offer.oneTimeCHF);
+    }
+    if(offer.status==='Angenommen')summary.acceptedMonthlyCents+=moneyCents(offer.monthlyCHF);
+  }
+  for(const project of projects){
+    if(project.status==='Abgeschlossen')summary.projectDone++;
+    if(['Geplant','In Arbeit','Wartet auf Kunde'].includes(project.status))summary.projectActive++;
+    if(project.status==='Wartet auf Kunde')summary.projectWaiting++;
+    if(project.status!=='Abgeschlossen'&&typeof project.dueDate==='string'&&
+       /^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)&&project.dueDate<today)summary.projectOverdue++;
+    const tasks=Array.isArray(project.tasks)?project.tasks:[];
+    summary.tasksTotal+=tasks.length;
+    summary.tasksDone+=tasks.filter(t=>t.done===true).length;
+  }
+  const rank={overdue:0,soon:1,open:2};
+  summary.receivables.sort((a,b)=>
+    (rank[a.info.kind]??3)-(rank[b.info.kind]??3)||
+    String(a.invoice.dueDate||'9999-99-99').localeCompare(String(b.invoice.dueDate||'9999-99-99'))||
+    String(a.invoice.number||'').localeCompare(String(b.invoice.number||'')));
+  return summary;
+}
+function renderInvoiceDueOverview(){
+  const invoices=state.records.rechnungen||[];
+  const complete=state.summary;
+  const totals=complete?{
+    overdueCount:complete.overdueCount,overdueCents:complete.overdueCents,
+    soonCount:complete.soonCount,soonCents:complete.soonCents
+  }:invoiceDueTotals(invoices);
+  $('invoiceDueOverdueCount').textContent=String(totals.overdueCount);
+  $('invoiceDueOverdueAmount').textContent=invoiceCHF(totals.overdueCents/100);
+  $('invoiceDueSoonCount').textContent=String(totals.soonCount);
+  $('invoiceDueNote').textContent=complete?
+    'Serverseitige Gesamtübersicht aller '+complete.counts.rechnungen+' Rechnungen. '+invoices.length+
+    ' davon im Register geladen. Mahnungen ausschliesslich manuell nach Prüfung.':
+    'Nur aktuell geladene Rechnungen. Gesamtübersicht zurzeit nicht verfügbar; bitte aktualisieren.';
+}
+function dashboardStats(records){
+  const remote=state.summary;
+  if(remote)return {
+    newLeads:remote.newLeads,openOffers:remote.openOffers,openInvoices:remote.openInvoices,
+    openInvoiceAmount:remote.openInvoiceCents/100,activeProjects:remote.activeProjects,
+    waitingProjects:remote.waitingProjects,paidAmount:remote.paidCents/100,
+    openOfferVolume:remote.openOfferCents/100,acceptedMonthly:remote.acceptedMonthlyCents/100,
+    leadCount:remote.leadCount
+  };
+  const result=cockpitMetrics(records);
+  return {
+    newLeads:(records.leads||[]).filter(x=>x.status==='Neu').length,
+    openOffers:result.openOfferCount,
+    openInvoices:result.openCount,
+    openInvoiceAmount:result.openCents/100,
+    activeProjects:result.projectActive,
+    waitingProjects:result.projectWaiting,
+    paidAmount:result.bookedCents/100,
+    openOfferVolume:result.openOfferCents/100,
+    acceptedMonthly:result.acceptedMonthlyCents/100,
+    leadCount:(records.leads||[]).length
+  };
+}
+function navigateTo(tab,record,invoiceDueFilter='all'){
+  clearTimeout(searchDebounce);
+  state.searchNonce++;
+  state.tab=tab;
+  state.filterStatus='';
+  state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+  state.searchPending=false;state.searchError='';
+  const statusSelect=$('statusFilter');
+  statusSelect.replaceChildren(new Option('Alle Status',''));
+  for(const status of (statuses[tab]||[]))statusSelect.add(new Option(status,status));
+  statusSelect.value='';
+  state.invoiceDueFilter=tab==='rechnungen'?invoiceDueFilter:'all';
+  $('invoiceDueFilter').value=state.invoiceDueFilter;
+  $('search').value='';
+  render();
+  if(tab==='rechnungen'&&state.invoiceDueFilter!=='all')loadFilteredRows();
+  if(record){
+    if(tab==='leads')openLeadDetail(record);
+    else openEditor(record);
   }
 }
-function render() {
-  const d=definitions[state.tab];
-  $('pageTitle').textContent=d.title;$('pageDesc').textContent=d.description;$('listTitle').textContent=d.title;
-  $('listHint').textContent=(state.records[state.tab]||[]).length+' Einträge (maximal 200 werden geladen)';
+function dashboardPanel(title,description){
+  const panel=el('section','dash-panel'),head=el('div','dash-panel-header');
+  const heading=el('div');
+  heading.append(el('h2','',title),el('p','',description));
+  head.append(heading);
+  const body=el('div','dash-panel-body');
+  panel.append(head,body);
+  return {panel,body};
+}
+function renderKpis(){
+  const container=$('kpis');
+  container.replaceChildren();
+  container.hidden=state.tab!=='dashboard';
+  if(container.hidden)return;
+  // Fail closed: never display partial client-side financial totals as global
+  // KPIs when the authenticated server-wide summary is unavailable.
+  if(!state.summary&&Object.keys(state.pageInfo||{}).length)return;
+  const stats=dashboardStats(state.records);
+  const items=[
+    {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
+    {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
+    {title:'Offene Forderungen',value:invoiceCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Rechnungen mit Restbetrag',tab:'rechnungen'},
+    {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'},
+    {title:'Verbuchte Zahlungen',value:invoiceCHF(stats.paidAmount),note:'Manuell erfasste Beträge · alle Zeiten',tab:'rechnungen'}
+  ];
+  for(const item of items){
+    const card=el('button','kpi dash-kpi');
+    card.type='button';
+    card.setAttribute('aria-label',item.title+': '+item.value+'. '+definitions[item.tab].title+' öffnen');
+    const top=el('div','dash-kpi-top');
+    top.append(el('span','',item.title),el('span','dash-kpi-arrow','↗'));
+    card.append(top,el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));
+    card.addEventListener('click',()=>navigateTo(item.tab));
+    container.append(card);
+  }
+}
+function renderDashboard(){
+  const area=$('dashboardArea');area.replaceChildren();
+  const stats=dashboardStats(state.records);
+  const intro=el('div','dash-intro'),introText=el('div');
+  introText.append(
+    el('span','eyebrow','DEIN LSZH COCKPIT'),
+    el('strong','','Alles Wichtige auf einen Blick'),
+    el('p','','Anfragen priorisieren, offene Vorgänge finden und finanzielle Werte einordnen.')
+  );
+  const stamp=el('span','dash-meta','Stand: '+new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()));
+  intro.append(introText,stamp);
+  $('dashboardIntro').replaceChildren(intro);
+  const scope=el('p','dash-data-scope');
+  const tables=['leads','kunden','offerten','rechnungen','projekte'];
+  const lengths=tables.map(name=>definitions[name].title+': '+
+    (state.summary?.counts?.[name]??(state.records[name]||[]).length)).join(' · ');
+  scope.textContent=state.summary?
+    'Datenbasis: serverseitige Auswertung aller CRM-Register. '+lengths+
+    ' · Die Listen laden Seiten zu je 50 Einträgen. Keine Bankdaten oder automatische Buchhaltung.':
+    'Datenbasis eingeschränkt: serverseitige Kennzahlen derzeit nicht geladen. '+lengths+
+    ' · Summen und Prioritäten können unvollständig sein.';
+  if(!state.summary)scope.classList.add('dash-data-scope--limited');
+  area.append(scope);
+  if(!state.summary&&Object.keys(state.pageInfo||{}).length){
+    const unavailable=dashboardPanel('Gesamtkennzahlen vorübergehend nicht verfügbar',
+      'Die vollständige serverseitige Berechnung konnte nicht geladen werden.');
+    unavailable.body.append(el('p','dash-finance-note',
+      'Zur Sicherheit zeigt das CRM keine unvollständigen finanziellen Summen als Gesamtzahlen an. Bitte aktualisieren.'));
+    area.append(unavailable.panel);
+    return;
+  }
+  const upper=el('div','dash-grid');
+  const tasks=dashboardPanel('Jetzt wichtig','Vorgänge, die deine Aufmerksamkeit benötigen.');
+  const priorities=[
+    {n:(state.summary?state.summary.dueOfferCount:dueOfferFollowUps(state.records.offerten).length),title:'Offerten nachfassen',description:'Versendete Offerten mit heute fälliger oder überfälliger Wiedervorlage',tab:'offerten',icon:'▤'},
+    {n:(state.summary?state.summary.dueLeadCount:dueLeadFollowUps(state.records.leads).length),title:'Fällige Wiedervorlagen',description:'Heute fällige und überfällige nächste Aktionen',tab:'leads',icon:'◷'},
+    {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Website-Leads mit Status „Neu“',tab:'leads',icon:'↗'},
+    {n:(state.summary?state.summary.reminderPreviewCount:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length),title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – es wurde keine E-Mail verschickt',tab:'leads',icon:'◷'},
+    {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤'},
+    {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Rechnungen mit Status „Offen“',tab:'rechnungen',icon:'▣'},
+    {n:(state.summary?state.summary.overdueCount:invoiceDueTotals(state.records.rechnungen).overdueCount),title:'Überfällige Rechnungen',description:'Offene Restbeträge inklusive Teilzahlungen; manuell prüfen',tab:'rechnungen',filter:'overdue',icon:'◷'},
+    {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Projekte mit Status „Wartet auf Kunde“',tab:'projekte',icon:'◇'},
+    {n:(state.summary?state.summary.projectOverdue:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length),title:'Überfällige Projekttermine',description:'Zieltermin überschritten, Projekt nicht abgeschlossen',tab:'projekte',icon:'◷'}
+  ].filter(x=>x.n>0);
+  if(!priorities.length){
+    const empty=el('div','dash-empty');
+    empty.append(el('strong','','Keine offenen Aufgaben aus diesen Kategorien'),el('span','','Neue Leads, offene Offerten und Rechnungen erscheinen hier automatisch.'));
+    tasks.body.append(empty);
+  }
+  for(const task of priorities){
+    const button=el('button','dash-task');button.type='button';
+    const icon=el('span','dash-task-icon',task.icon);
+    const content=el('span','dash-task-content');
+    content.append(el('strong','',task.n+' × '+task.title),el('small','',task.description));
+    button.append(icon,content,el('span','dash-task-next','Ansehen →'));
+    button.addEventListener('click',()=>navigateTo(task.tab,null,task.filter||'all'));
+    tasks.body.append(button);
+  }
+  const recent=dashboardPanel('Aktuelle Website-Leads','Die zuletzt erfassten Anfragen.');
+  const recentLeads=state.summary?state.summary.recentLeads:
+    [...(state.records.leads||[])].sort((a,b)=>
+      String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,4);
+  if(!recentLeads.length){
+    const empty=el('div','dash-empty');
+    empty.append(el('strong','','Noch keine Leads vorhanden'),el('span','','Neue Anfragen erscheinen hier nach der Erfassung.'));
+    recent.body.append(empty);
+  }
+  for(const lead of recentLeads){
+    const button=el('button','dash-lead');button.type='button';
+    const details=el('span','dash-lead-info');
+    details.append(el('strong','',lead.company||lead.name||'Unbenannter Lead'));
+    const secondary=[lead.name,lead.city].filter(Boolean).join(' · ');
+    details.append(el('small','',secondary||'Website-Anfrage'));
+    const side=el('span','dash-lead-side');
+    side.append(el('span','badge'+(lead.status==='Qualifiziert'?' success':''),lead.status||'–'),el('span','dash-open','Öffnen →'));
+    button.append(details,side);
+    button.addEventListener('click',()=>navigateTo('leads',lead));
+    recent.body.append(button);
+  }
+  const followUps=dashboardPanel('Fällige Wiedervorlagen','Heute fällige und überfällige nächste Aktionen.');
+  const due=state.summary?state.summary.dueLeads:dueLeadFollowUps(state.records.leads);
+  if(!due.length){
+    followUps.body.append(el('div','dash-empty','Keine Wiedervorlagen fällig.'));
+  }
+  for(const lead of due.slice(0,8)){
+    const button=el('button','dash-lead');button.type='button';
+    const content=el('span','dash-lead-info');
+    content.append(el('strong','',lead.company||lead.name||'Lead'),
+      el('small','',lead.nextAction+' · '+lead.followUpDate));
+    button.append(content,el('span','dash-open','Öffnen →'));
+    button.addEventListener('click',()=>navigateTo('leads',lead));
+    followUps.body.append(button);
+  }
+  const offerTasks=dashboardPanel('Offerten-Nachverfolgung','Versendete Offerten, bei denen eine Rückmeldung fällig ist.');
+  const dueOffers=state.summary?state.summary.dueOffers:dueOfferFollowUps(state.records.offerten);
+  if(!dueOffers.length)offerTasks.body.append(el('div','dash-empty','Keine Offerten zum Nachfassen fällig.'));
+  for(const offer of dueOffers.slice(0,8)){
+    const item=el('button','dash-lead');item.type='button';
+    const copy=el('span','dash-lead-info');
+    copy.append(el('strong','','Offerte '+(offer.number||'–')+' · '+(offer.title||'')),
+      el('small','','Nachfassen am '+offer.followUpDate+' · '+(offer.sentTo||'')));
+    item.append(copy,el('span','dash-open','Öffnen →'));
+    item.addEventListener('click',()=>navigateTo('offerten',offer));
+    offerTasks.body.append(item);
+  }
+  upper.append(tasks.panel,recent.panel);
+  const lower=el('div','dash-grid');
+  const pipeline=dashboardPanel('Lead-Pipeline','Verteilung aller geladenen Leads nach Bearbeitungsstatus.');
+  const stages=['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'];
+  for(let i=0;i<stages.length;i++){
+    const count=state.summary?Number(state.summary.leadStages?.[stages[i]]||0):
+      (state.records.leads||[]).filter(x=>x.status===stages[i]).length;
+    const row=el('div','dash-pipeline-row');
+    const track=el('div','dash-pipeline-track'),fill=el('div','dash-pipeline-fill stage-'+i);
+    fill.style.width=(stats.leadCount?Math.round(100*count/stats.leadCount):0)+'%';
+    track.append(fill);
+    row.append(el('span','dash-pipeline-label',stages[i]),track,el('strong','dash-pipeline-value',String(count)));
+    pipeline.body.append(row);
+  }
+  const finance=dashboardPanel('Finanz- und Forderungsüberblick',
+    'CHF-Beträge rappen-genau; Zahlungen, offene Forderungen und Offerten strikt getrennt.');
+  const cockpit=state.summary?{
+    openCents:state.summary.openInvoiceCents,overdueCents:state.summary.overdueCents,
+    soonCents:state.summary.soonCents,bookedCents:state.summary.paidCents,
+    openOfferCents:state.summary.openOfferCents,acceptedMonthlyCents:state.summary.acceptedMonthlyCents,
+    legacyPaidCount:state.summary.legacyPaidCount,projectActive:state.summary.activeProjects,
+    projectWaiting:state.summary.waitingProjects,projectDone:state.summary.projectDone,
+    projectOverdue:state.summary.projectOverdue,tasksDone:state.summary.tasksDone,
+    tasksTotal:state.summary.tasksTotal,
+    receivables:state.summary.receivables.map(({invoice,kind,remaining})=>({
+      invoice,info:{kind,remaining}
+    }))
+  }:cockpitMetrics(state.records);
+  const financeRows=[
+    ['Offene Forderungen',invoiceCHF(cockpit.openCents/100),true],
+    ['Davon überfällig',invoiceCHF(cockpit.overdueCents/100),true],
+    ['Innerhalb 7 Tagen fällig',invoiceCHF(cockpit.soonCents/100),false],
+    ['Erfasste Zahlungseingänge (alle Zeiten)',invoiceCHF(cockpit.bookedCents/100),false],
+    ['Offenes einmaliges Offertenvolumen',invoiceCHF(cockpit.openOfferCents/100),false],
+    ['Vereinbarte Monatswerte aus angenommenen Offerten',invoiceCHF(cockpit.acceptedMonthlyCents/100),false]
+  ];
+  const financeList=el('div','dash-finance');
+  for(const [label,value,highlight] of financeRows){
+    const row=el('div','dash-finance-item'+(highlight?' dash-finance-item--priority':''));
+    row.append(el('span','',label),el('strong','',value));financeList.append(row);
+  }
+  const denom=cockpit.openCents+cockpit.bookedCents;
+  const progress=denom?Math.round(cockpit.bookedCents/denom*100):0;
+  const meterTitle=el('div','dash-meter-head');
+  meterTitle.append(el('span','','Anteil verbuchter Beträge am dargestellten Rechnungsportfolio'),
+    el('strong','',progress+' %'));
+  const meter=el('progress','dash-meter');meter.max=100;meter.value=progress;
+  meter.setAttribute('aria-label','Anteil verbuchter Beträge im geladenen Rechnungsportfolio');
+  finance.body.append(financeList,meterTitle,meter,el('p','dash-finance-note',
+    'Die erfassten Zahlungen sind manuelle Buchungen, keine bestätigten Bankkontostände. '+
+    'Historische „Bezahlt“-Markierungen ohne Einzelbuchung werden nicht als Zahlungseingang gezählt'+
+    (cockpit.legacyPaidCount?' ('+cockpit.legacyPaidCount+' solche Altrechnungen).':'.')+
+    ' Offerten und Monatswerte sind weder Zahlungseingänge noch realisierter Umsatz. '+
+    'Der Prozentwert ist keine Bilanz- oder Cashflow-Kennzahl.'));
+  const receivables=dashboardPanel('Offene Forderungen im Blick',
+    'Älteste überfällige zuerst, danach bald fällige. Direkter Sprung zur Rechnung.');
+  if(!cockpit.receivables.length)receivables.body.append(el('p','dash-empty','Keine offenen Restbeträge in den geladenen Rechnungen.'));
+  for(const item of cockpit.receivables.slice(0,6)){
+    const inv=item.invoice,info=item.info;
+    const button=el('button','dash-lead');button.type='button';
+    const copy=el('span','dash-lead-info');
+    copy.append(el('strong','',inv.number||'Rechnung'),el('small','',
+      (inv.dueDate?'Fällig: '+inv.dueDate.slice(8,10)+'.'+inv.dueDate.slice(5,7)+'.'+inv.dueDate.slice(0,4):'Ohne Fälligkeit')+
+      ' · '+(info.kind==='overdue'?'Überfällig':info.kind==='soon'?'Bald fällig':'Offen')+
+      ' · '+(inv.status||'')));
+    button.append(copy,el('span','dash-receivable-amount'+(info.kind==='overdue'?' dash-receivable-overdue':''),invoiceCHF(info.remaining/100)));
+    button.addEventListener('click',()=>navigateTo('rechnungen',inv));
+    receivables.body.append(button);
+  }
+  receivables.body.append(el('p','dash-section-footnote',
+    'Auswahl: maximal sechs der geladenen offenen Rechnungen. Keine Zahlung oder Mahnung durch Öffnen der Rechnung.'));
+  const projectPanel=dashboardPanel('Projektstatus',
+    'Status und Aufgabenfortschritt der geladenen Projekte; kein finanzieller Umsatz.');
+  const groups=[
+    ['Aktiv',cockpit.projectActive,''],
+    ['Wartet auf Kunde',cockpit.projectWaiting,'waiting'],
+    ['Abgeschlossen',cockpit.projectDone,'done'],
+    ['Termin überschritten',cockpit.projectOverdue,'waiting']
+  ];
+  const projectsTotal=state.summary?state.summary.counts.projekte:(state.records.projekte||[]).length;
+  for(const [label,count,tone] of groups){
+    const line=el('div','dash-project-row'),track=el('div','dash-project-track');
+    const fill=el('div','dash-project-fill'+(tone?' dash-project-fill--'+tone:''));
+    fill.style.width=(projectsTotal?Math.round(count/projectsTotal*100):0)+'%';
+    track.append(fill);line.append(el('span','',label),track,el('strong','',String(count)));
+    projectPanel.body.append(line);
+  }
+  projectPanel.body.append(el('p','dash-section-footnote',
+    cockpit.tasksDone+' von '+cockpit.tasksTotal+' Projektaufgaben erledigt. '+
+    'Statusgruppen können sich überschneiden: „Wartet auf Kunde“ zählt auch als aktiv.'));
+  lower.append(pipeline.panel,finance.panel);
+  const operations=el('div','dash-grid');operations.append(receivables.panel,projectPanel.panel);
+  area.append(upper,lower,operations,followUps.panel,offerTasks.panel);
+}
+function projectIsOverdue(project){
+  if(!project?.dueDate||project.status==='Abgeschlossen')return false;
+  const now=new Date();
+  const date=[String(now.getFullYear()),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+  return /^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)&&project.dueDate<date;
+}
+function projectDoneCount(project){
+  const tasks=Array.isArray(project?.tasks)?project.tasks:[];
+  return {total:tasks.length,done:tasks.filter(t=>t.done===true).length};
+}
+// Search and status filters are sent to the authenticated server; they never
+// search just the first 50 records already loaded in the browser.
+function filterActive(){
+  return state.tab!=='dashboard'&&
+    (Boolean($('search').value.trim())||Boolean(state.filterStatus)||
+     (state.tab==='rechnungen'&&state.invoiceDueFilter!=='all'));
+}
+function filteredSearchUrl(tab,cursor=''){
+  const params=new URLSearchParams({pageSize:'50'});
+  const needle=$('search').value.trim();
+  if(needle)params.set('q',needle);
+  if(state.filterStatus)params.set('status',state.filterStatus);
+  if(tab==='rechnungen'&&state.invoiceDueFilter!=='all')
+    params.set('due',state.invoiceDueFilter);
+  if(cursor)params.set('cursor',cursor);
+  return '/api/records/'+tab+'?'+params.toString();
+}
+async function loadFilteredRows(){
+  const request=++state.searchNonce,tab=state.tab;
+  if(!filterActive()){
+    state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+    state.searchPending=false;state.searchError='';
+    render();return;
+  }
+  state.searchRows=[];state.searchInfo={};state.searchTotal=null;
+  state.searchPending=true;state.searchError='';render();
+  try{
+    const result=await api(filteredSearchUrl(tab));
+    if(request!==state.searchNonce||tab!==state.tab)return;
+    state.searchRows=result.records||[];
+    state.searchInfo={hasMore:Boolean(result.hasMore),nextCursor:result.nextCursor,loading:false};
+    state.searchTotal=result.totalMatches;
+  }catch(err){
+    if(request!==state.searchNonce||tab!==state.tab)return;
+    state.searchError='Suche konnte nicht geladen werden: '+err.message;
+  }finally{
+    if(request===state.searchNonce&&tab===state.tab){
+      state.searchPending=false;render();
+    }
+  }
+}
+function renderPageMore(area){
+  const tab=state.tab,filtered=filterActive();
+  const info=filtered?state.searchInfo:state.pageInfo[tab];
+  if(!info?.hasMore||state.searchPending)return;
+  const shell=el('div','crm-page-more'),button=el('button','','Weitere 50 laden');
+  button.type='button';button.disabled=Boolean(info.loading);
+  shell.append(el('p','',filtered?
+    'Suche und Filter gelten für alle Datensätze, auch auf weiteren Seiten.':
+    'Weitere Datensätze aus diesem Register laden.'),button);
+  button.addEventListener('click',async()=>{
+    if(info.loading||!info.hasMore)return;
+    const request=state.searchNonce;
+    info.loading=true;button.disabled=true;
+    try{
+      const result=await api(filtered?
+        filteredSearchUrl(tab,info.nextCursor):
+        '/api/records/'+tab+'?pageSize=50&cursor='+encodeURIComponent(info.nextCursor));
+      if(state.tab!==tab||(filtered&&request!==state.searchNonce))return;
+      const target=filtered?state.searchRows:state.records[tab];
+      const existing=new Set((target||[]).map(x=>x.id));
+      target.push(...(result.records||[]).filter(x=>!existing.has(x.id)));
+      const next={nextCursor:result.nextCursor,hasMore:result.hasMore,loading:false};
+      if(filtered){state.searchInfo=next;state.searchTotal=result.totalMatches;}
+      else state.pageInfo[tab]=next;
+      render();
+    }catch(err){
+      info.loading=false;button.disabled=false;
+      window.alert('Weitere Datensätze konnten nicht geladen werden: '+err.message);
+    }
+  });
+  area.append(shell);
+}
+function render(){
+  const dashboard=state.tab==='dashboard';
+  const d=dashboard
+    ?{title:'Dashboard',description:'Dein Arbeitsplatz für Leads, Offerten, Rechnungen und Projekte.'}
+    :definitions[state.tab];
+  $('pageTitle').textContent=d.title;
+  $('pageDesc').textContent=d.description;
+  $('recordsPanel').hidden=dashboard;
+  $('statusFilter').hidden=dashboard;
+  $('invoiceDueFilter').hidden=state.tab!=='rechnungen';
+  $('invoiceDueOverview').hidden=state.tab!=='rechnungen';
+  if(state.tab==='rechnungen')renderInvoiceDueOverview();
+  $('dashboardIntro').hidden=!dashboard;
+  $('dashboardArea').hidden=!dashboard;
   document.querySelectorAll('#nav button').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===state.tab));
   renderKpis();
+  if(dashboard){renderDashboard();return;}
+  $('listTitle').textContent=d.title;
+  const filtered=filterActive();
+  const available=state.summary?.counts?.[state.tab];
+  $('listHint').textContent=filtered
+    ?(state.searchPending?'Suche läuft …':
+      state.searchError?'Suche nicht verfügbar':
+      state.searchRows.length+' geladen von '+(state.searchTotal??0)+' Treffern · gesamtes Register')
+    :(state.records[state.tab]||[]).length+' geladen'+
+      (available!==undefined?' von '+available+' Einträgen':'')+
+      ' · Weitere Seiten verfügbar';
   const needle=$('search').value.toLocaleLowerCase('de-CH');
-  const records=(state.records[state.tab]||[]).filter(record=>JSON.stringify(record).toLocaleLowerCase('de-CH').includes(needle));
+  const records=filtered?state.searchRows:(state.records[state.tab]||[]);
   const area=$('tableArea');area.replaceChildren();
   if(!records.length){
     const empty=el('div','empty');
-    empty.append(el('strong','',needle?'Keine passenden Einträge':'Noch keine Einträge'),el('div','',needle?'Versuche einen anderen Suchbegriff.':'Lege den ersten Datensatz über „Neu erfassen“ an.'));
-    area.append(empty);return;
+    empty.append(
+      el('strong','',filtered?(state.searchPending?'Suche läuft …':state.searchError||'Keine passenden Einträge'):'Noch keine Einträge'),
+      el('div','',filtered?'Prüfe die Suchbegriffe und Filter.':'Lege den ersten Datensatz über „Neu erfassen“ an.')
+    );
+    area.append(empty);renderPageMore(area);return;
   }
   const wrap=el('div','scroll'),table=el('table'),thead=el('thead'),tr=el('tr');
   for(const col of d.columns)tr.append(el('th','',col[1]));
@@ -165,14 +1109,394 @@ function render() {
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='status'){const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert'].includes(rec.status)?' success':''),rec.status||'–');td.append(tag);}
+      if(key==='createdAt'&&state.tab==='leads'){
+        const urgency=leadUrgency(rec.createdAt);
+        const age=el('span','lead-age'+(urgency?' lead-age-'+urgency:''),leadAge(rec.createdAt));
+        age.dataset.leadCreatedAt=rec.createdAt||'';
+        age.setAttribute('aria-label',urgency?leadAge(rec.createdAt)+' – '+LEAD_URGENCY_LABELS[urgency]:leadAge(rec.createdAt));
+        const timestamp=Date.parse(rec.createdAt||'');
+        if(Number.isFinite(timestamp))age.title=new Intl.DateTimeFormat('de-CH',{
+          day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+        }).format(new Date(timestamp));
+        td.append(age);
+      }
+      else if(key==='followUpDate'&&state.tab==='leads'){
+        if(rec.followUpDate&&rec.nextAction){
+          const due=rec.followUpDate<=localDateKey()&&['Neu','Kontaktiert','Qualifiziert'].includes(rec.status);
+          const label=el('span',due?'lead-followup-badge overdue':'lead-followup-badge',
+            rec.followUpDate);
+          label.title=rec.nextAction;
+          td.append(label);
+        }else td.textContent='–';
+      }
+      else if(key==='followUpDate'&&state.tab==='offerten'){
+        if(rec.status==='Versendet'&&rec.followUpDate){
+          const due=rec.followUpDate<=localDateKey();
+          td.append(el('span',due?'lead-followup-badge overdue':'lead-followup-badge',rec.followUpDate));
+        }else td.textContent='–';
+      }
+      else if(key==='status'){
+        const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
+        const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),overdue?'Überfällig':(rec.status||'–'));
+        if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
+        td.append(tag);
+      }
+      else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
+      else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
+        td.textContent=rec.dueDate&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dueDate)
+          ?new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(rec.dueDate+'T12:00:00'))
+          :(rec.dueDate||'–');
+        if(state.tab==='projekte'&&projectIsOverdue(rec))td.append(el('span','project-overdue','Überfällig'));
+        if(state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey())td.append(el('span','project-overdue','Überfällig'));
+      }
       else td.textContent=valueText(key,rec[key]);
       row.append(td);
     }
     const td=el('td'),edit=el('button','link-btn','Bearbeiten');
-    edit.type='button';edit.addEventListener('click',()=>openEditor(rec));td.append(edit);row.append(td);tbody.append(row);
+    edit.type='button';
+    if(state.tab==='leads'){
+      edit.textContent='Öffnen';
+      edit.addEventListener('click',()=>openLeadDetail(rec));
+    }else if(state.tab==='projekte'){
+      edit.textContent='Öffnen';
+      edit.addEventListener('click',()=>openProjectEditor(rec));
+    }else edit.addEventListener('click',()=>openEditor(rec));
+    td.append(edit);
+    if(state.tab==='leads'&&rec.status==='Neu'){
+      const remove=el('button','lead-delete','×');
+      remove.type='button';
+      remove.setAttribute('aria-label','Lead '+(rec.company||rec.name||'')+' löschen');
+      remove.title='Neuen Lead löschen';
+      remove.addEventListener('click',()=>deleteNewLead(rec,remove));
+      td.append(remove);
+    }
+    row.append(td);tbody.append(row);
   }
   table.append(tbody);wrap.append(table);area.append(wrap);
+  renderPageMore(area);
+}
+
+function leadOffers(leadId){
+  return (state.records.offerten||[]).filter(x=>x.leadId===leadId)
+    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+}
+function leadCustomer(lead){
+  const normalized=x=>String(x||'').trim().toLocaleLowerCase('de-CH');
+  return (state.records.kunden||[]).find(c=>
+    (lead.email&&normalized(c.email)===normalized(lead.email))||
+    (lead.company&&normalized(c.company)===normalized(lead.company)));
+}
+function detailGroup(root,title,fields){
+  const group=el('section','lead-detail-group');
+  group.append(el('h3','',title));
+  const grid=el('div','lead-detail-grid');
+  for(const [label,value] of fields){
+    const cell=el('div','lead-detail-cell');
+    cell.append(el('span','lead-detail-label',label),
+      el('div','lead-detail-value',value==null||String(value).trim()===''?'–':String(value)));
+    grid.append(cell);
+  }
+  group.append(grid);root.append(group);
+}
+function detailAction(container,label,callback,primary=false){
+  const button=el('button','btn'+(primary?' primary':''));
+  button.type='button';button.textContent=label;
+  button.addEventListener('click',async()=>{
+    button.disabled=true;
+    $('leadDetailError').hidden=true;
+    try{await callback();}
+    catch(err){
+      $('leadDetailError').textContent='Aktion fehlgeschlagen: '+err.message;
+      $('leadDetailError').hidden=false;
+    }finally{button.disabled=false;}
+  });
+  container.append(button);
+}
+
+function localDateKey(now=new Date()){
+  return [String(now.getFullYear()),String(now.getMonth()+1).padStart(2,'0'),
+    String(now.getDate()).padStart(2,'0')].join('-');
+}
+function dueLeadFollowUps(leads,day=localDateKey()){
+  return (leads||[]).filter(lead=>['Neu','Kontaktiert','Qualifiziert'].includes(lead.status)&&
+    typeof lead.followUpDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(lead.followUpDate)&&
+    lead.followUpDate<=day && lead.nextAction)
+    .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
+}
+function leadDate(value){
+  const timestamp=Date.parse(value||'');
+  if(!Number.isFinite(timestamp))return '–';
+  return new Intl.DateTimeFormat('de-CH',{
+    day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+  }).format(new Date(timestamp));
+}
+function workflowLabel(caption,type,value='',wide=false){
+  const wrap=el('label','lead-workflow-label'+(wide?' wide':''),caption);
+  const input=el(type==='textarea'?'textarea':type==='select'?'select':'input');
+  if(type!=='textarea'&&type!=='select')input.type=type;
+  input.value=value||'';
+  wrap.append(input);
+  return {wrap,input};
+}
+function showLeadWorkflowError(message){
+  $('leadDetailError').textContent=message;
+  $('leadDetailError').hidden=false;
+}
+async function reloadOpenLead(id){
+  await loadAll();
+  const updated=(state.records.leads||[]).find(lead=>lead.id===id);
+  if(updated)renderLeadDetail(updated);
+}
+function appendContactSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Kontaktverlauf'),
+    el('p','lead-workflow-note','Telefonate, E-Mails und Besprechungen als manuelle Einträge dokumentieren.'));
+  const form=el('form','lead-workflow-form');
+  const fields=el('div','lead-workflow-fields');
+  const channel=workflowLabel('Kontaktart','select'),outcome=workflowLabel('Ergebnis','select');
+  for(const value of ['Telefon','E-Mail','Besprechung','Sonstiges']){
+    const option=el('option','',value);option.value=value;channel.input.append(option);
+  }
+  for(const value of ['Erreicht','Nicht erreicht','Nachricht gesendet']){
+    const option=el('option','',value);option.value=value;outcome.input.append(option);
+  }
+  const note=workflowLabel('Gesprächsnotiz','textarea','',true);
+  note.input.required=true;note.input.maxLength=1500;
+  note.input.placeholder='Was wurde vereinbart oder besprochen?';
+  fields.append(channel.wrap,outcome.wrap,note.wrap);
+  const save=el('button','btn primary','Kontakt erfassen');save.type='submit';
+  form.append(fields,save);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    save.disabled=true;$('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id)+'/contacts',{
+        method:'POST',body:JSON.stringify({
+          channel:channel.input.value,outcome:outcome.input.value,note:note.input.value
+        })
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Kontakt konnte nicht gespeichert werden: '+error.message);}
+    finally{save.disabled=false;}
+  });
+  section.append(form);
+  const history=Array.isArray(lead.contactHistory)?lead.contactHistory:[];
+  const list=el('div','lead-workflow-history');
+  if(!history.length)list.append(el('p','lead-workflow-note','Noch keine Kontakte erfasst.'));
+  for(const entry of [...history].reverse().slice(0,20)){
+    const card=el('div','lead-workflow-entry');
+    card.append(el('strong','',entry.channel+' · '+entry.outcome),
+      el('span','lead-workflow-date',leadDate(entry.createdAt)+' · '+(entry.createdBy||'')),
+      el('p','',entry.note||''));
+    list.append(card);
+  }
+  if(history.length>20)list.append(el('p','lead-workflow-note','Die letzten 20 von '+history.length+' Einträgen.'));
+  section.append(list);body.append(section);
+}
+function appendFollowUpSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Nächste Aktion & Wiedervorlage'),
+    el('p','lead-workflow-note','Offene Termine erscheinen am Fälligkeitstag im Dashboard. Es wird keine E-Mail automatisch verschickt.'));
+  if(lead.followUpDate&&lead.nextAction){
+    const overdue=lead.followUpDate<localDateKey();
+    section.append(el('span','lead-followup-badge'+(overdue?' overdue':''),
+      (overdue?'Überfällig: ':'Vorgemerkt: ')+lead.followUpDate+' · '+lead.nextAction));
+  }
+  const form=el('form','lead-workflow-form'),fields=el('div','lead-workflow-fields');
+  const action=workflowLabel('Nächste Aktion','text',lead.nextAction||'',true);
+  action.input.maxLength=180;action.input.placeholder='z. B. Kunden zurückrufen';
+  const date=workflowLabel('Wiedervorlage am','date',lead.followUpDate||'',true);
+  fields.append(action.wrap,date.wrap);
+  const actions=el('div','lead-workflow-actions'),save=el('button','btn primary','Wiedervorlage speichern');
+  save.type='submit';actions.append(save);
+  if(lead.followUpDate||lead.nextAction){
+    const done=el('button','btn','Als erledigt markieren');done.type='button';
+    done.addEventListener('click',async()=>{
+      done.disabled=true;$('leadDetailError').hidden=true;
+      try{
+        await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+          method:'PATCH',body:JSON.stringify({nextAction:'',followUpDate:''})
+        });
+        await reloadOpenLead(lead.id);
+      }catch(error){showLeadWorkflowError('Wiedervorlage konnte nicht abgeschlossen werden: '+error.message);}
+      finally{done.disabled=false;}
+    });
+    actions.append(done);
+  }
+  form.append(fields,actions);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();save.disabled=true;$('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify({nextAction:action.input.value,followUpDate:date.input.value})
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Wiedervorlage konnte nicht gespeichert werden: '+error.message);}
+    finally{save.disabled=false;}
+  });
+  section.append(form);body.append(section);
+}
+function appendQualificationSection(body,lead){
+  const section=el('section','lead-detail-group lead-workflow-section');
+  section.append(el('h3','','Qualifizierung'),
+    el('p','lead-workflow-note','Bedarfsangaben fliessen bei der ersten Qualifizierung in den Offertenentwurf ein. Budget und interne Notizen bleiben ausschliesslich im CRM.'));
+  const form=el('form','lead-workflow-form'),fields=el('div','lead-workflow-fields');
+  const controls={};
+  const definitions=[
+    ['currentProcess','Aktueller Ablauf','textarea'],
+    ['systems','Vorhandene Systeme','textarea'],
+    ['mainProblem','Grösstes Problem','text'],
+    ['frequency','Häufigkeit','text'],
+    ['desiredResult','Gewünschtes Ergebnis','textarea'],
+    ['budgetRange','Budgetrahmen (optional)','text'],
+    ['qualificationNotes','Weitere Qualifizierungsnotizen','textarea']
+  ];
+  for(const [key,title,type] of definitions){
+    const item=workflowLabel(title,type,lead[key]||'',type==='textarea');
+    if(key==='budgetRange')item.input.maxLength=100;
+    if(key==='qualificationNotes')item.input.maxLength=2000;
+    if(key==='mainProblem'||key==='frequency')item.input.maxLength=500;
+    controls[key]=item.input;fields.append(item.wrap);
+  }
+  const actions=el('div','lead-workflow-actions');
+  const canQualify=lead.status==='Kontaktiert';
+  const save=el('button','btn'+(canQualify?'':' primary'),'Qualifizierung speichern');
+  save.type='submit';
+  actions.append(save);
+  let qualify=null;
+  if(canQualify){
+    qualify=el('button','btn primary','Speichern & qualifizieren');
+    qualify.type='button';actions.append(qualify);
+  }
+  form.append(fields,actions);
+  const persistQualification=async(promote,button)=>{
+    save.disabled=true;
+    if(qualify)qualify.disabled=true;
+    $('leadDetailError').hidden=true;
+    const updates=Object.fromEntries(Object.entries(controls).map(([key,input])=>[key,input.value]));
+    if(promote)updates.status='Qualifiziert';
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify(updates)
+      });
+      await reloadOpenLead(lead.id);
+    }catch(error){showLeadWorkflowError('Qualifizierung konnte nicht gespeichert werden: '+error.message);}
+    finally{
+      save.disabled=false;
+      if(qualify)qualify.disabled=false;
+    }
+  };
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    await persistQualification(false,save);
+  });
+  if(qualify)qualify.addEventListener('click',()=>persistQualification(true,qualify));
+  section.append(form);body.append(section);
+}
+
+function openLeadDetail(record){
+  const lead=(state.records.leads||[]).find(x=>x.id===record.id)||record;
+  $('leadDetail').showModal();
+  renderLeadDetail(lead);
+}
+function renderLeadDetail(lead){
+  $('leadDetailTitle').textContent=lead.company||lead.name||'Lead';
+  $('leadDetailError').hidden=true;
+  const body=$('leadDetailBody'),actions=$('leadDetailActions');
+  body.replaceChildren();actions.replaceChildren();
+  const status=el('div','lead-status');
+  const statusLabel=el('label','lead-status-label','Status');
+  const statusSelect=el('select','lead-status-select');
+  statusSelect.setAttribute('aria-label','Lead-Status ändern');
+  for(const value of statuses.leads){
+    const option=el('option','',value);
+    option.value=value;
+    if(value==='Neu'&&lead.status!=='Neu')option.disabled=true;
+    statusSelect.append(option);
+  }
+  if(lead.status && !statuses.leads.includes(lead.status)){
+    const legacy=el('option','',lead.status+' (bisheriger Status)');
+    legacy.value=lead.status;
+    statusSelect.append(legacy);
+  }
+  statusSelect.value=lead.status||'Neu';
+  statusSelect.addEventListener('change',async()=>{
+    if(statusSelect.value===lead.status)return;
+    const previous=lead.status||'Neu';
+    statusSelect.disabled=true;
+    $('leadDetailError').hidden=true;
+    try{
+      await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+        method:'PATCH',body:JSON.stringify({status:statusSelect.value})
+      });
+      await loadAll();
+      const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
+      if(updated)renderLeadDetail(updated);
+    }catch(err){
+      statusSelect.value=previous;
+      $('leadDetailError').textContent='Status konnte nicht gespeichert werden: '+err.message;
+      $('leadDetailError').hidden=false;
+    }finally{statusSelect.disabled=false;}
+  });
+  statusLabel.append(statusSelect);
+  status.append(statusLabel,el('span','lead-status-hint','Änderungen werden direkt gespeichert.'));
+  body.append(status);
+  detailGroup(body,'Geschäftliche Angaben',[
+    ['Firma',lead.company],['Ansprechpartner',lead.name],
+    ['E-Mail',lead.email],['Geschäftsadresse',
+      [lead.street,[lead.postalCode,lead.city].filter(Boolean).join(' '),lead.country].filter(Boolean).join('\n')]
+  ]);
+  detailGroup(body,'Anliegen',[
+    ['Wunsch',lead.message],['Heutiger Ablauf',lead.currentProcess],
+    ['Eingesetzte Systeme',lead.systems],['Grösstes Problem',lead.mainProblem],
+    ['Häufigkeit',lead.frequency],['Gewünschtes Ergebnis',lead.desiredResult]
+  ]);
+  appendContactSection(body,lead);
+  appendFollowUpSection(body,lead);
+  appendQualificationSection(body,lead);
+  const offers=leadOffers(lead.id);
+  const existingCustomer=leadCustomer(lead);
+  const offer=offers[0];
+  if(offer){
+    detailGroup(body,'Offerte',[
+      ['Nummer',offer.number],['Status',offer.status],
+      ['Bezeichnung',offer.title]
+    ]);
+  }
+  const relatedProject=offer&&(state.records.projekte||[]).find(p=>p.offerId===offer.id);
+  const updateStatus=async status=>{
+    await api('/api/records/leads/'+encodeURIComponent(lead.id),{
+      method:'PATCH',body:JSON.stringify({status})
+    });
+    await loadAll();
+    const updated=(state.records.leads||[]).find(x=>x.id===lead.id);
+    if(updated)renderLeadDetail(updated);
+  };
+  if(lead.status==='Gewonnen'){
+    if(existingCustomer)detailAction(actions,'Kunde öffnen',()=>{
+      $('leadDetail').close();navigateTo('kunden',existingCustomer);
+    });
+    if(relatedProject)detailAction(actions,'Projekt öffnen',()=>{
+      $('leadDetail').close();navigateTo('projekte',relatedProject);
+    },true);
+  }else if(lead.status==='Neu'){
+    detailAction(actions,'Als kontaktiert markieren',()=>updateStatus('Kontaktiert'),true);
+  }else if(lead.status==='Kontaktiert'){
+    detailAction(actions,'Qualifizieren',()=>updateStatus('Qualifiziert'),true);
+  }
+  if(offer && lead.status!=='Gewonnen'){
+    detailAction(actions,'Offerte öffnen',()=>{
+      $('leadDetail').close();navigateTo('offerten',offer);
+    },lead.status==='Qualifiziert');
+  }
+  if(lead.status==='Qualifiziert'&&!offer){
+    detailAction(actions,'Offerte anlegen',()=>updateStatus('Qualifiziert'),true);
+  }
+  detailAction(actions,'Bearbeiten',()=>{
+    $('leadDetail').close();
+    navigateTo('leads');
+    openEditor(lead);
+  });
 }
 function makeField(key,label,type,value) {
   const wrap=el('label','field'+(type==='textarea'?' wide':'')),caption=el('span','',label);wrap.append(caption);
@@ -180,9 +1504,15 @@ function makeField(key,label,type,value) {
   if(type==='textarea')control=el('textarea');
   else if(type==='status'||order.includes(type)){
     control=el('select');
-    const items=type==='status'?statuses[state.tab].map(s=>({value:s,label:s})):[
+    const items=type==='status'?statuses[state.tab]
+      .filter(s=>(state.tab!=='leads'||s!=='Neu'||!state.editing||state.editing.status==='Neu')&&
+        (state.tab!=='offerten'||['Entwurf','Bereit'].includes(s)||s===state.offerEditing?.status))
+      .map(s=>({value:s,label:s})):[
       {value:'',label:'Nicht zugeordnet'},
-      ...(state.records[type]||[]).map(r=>({value:r.id,label:titleOf(type,r)}))
+      ...(state.records[type]||[])
+        .filter(r=>(type!=='leads'||state.tab!=='offerten'||['Qualifiziert','Gewonnen'].includes(r.status)||r.id===value)
+          &&(type!=='offerten'||state.tab!=='projekte'||r.status==='Angenommen'||r.id===value))
+        .map(r=>({value:r.id,label:titleOf(type,r)}))
     ];
     for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
   } else {control=el('input');control.type=type==='date'?'date':type==='number'?'number':type==='email'?'email':'text';
@@ -190,8 +1520,8 @@ function makeField(key,label,type,value) {
   }
   control.name=key;
   control.value=value==null?(key==='country'?'Schweiz':''):String(value);
-  if(['company','name','email','title','description'].includes(key)){
-    if((state.tab==='leads' && ['name','company','email'].includes(key))||
+  if(['company','name','email','street','postalCode','city','country','title','description'].includes(key)){
+    if((state.tab==='leads' && ['name','company','email','street','postalCode','city','country'].includes(key))||
        (state.tab==='kunden' && key==='company')||
        (state.tab==='offerten' && key==='title')||
        (state.tab==='rechnungen' && key==='description')||
@@ -199,12 +1529,890 @@ function makeField(key,label,type,value) {
   }
   wrap.append(control);return wrap;
 }
-function openEditor(record=null) {
+
+function quoteCHF(value){
+  return new Intl.NumberFormat('de-CH',{
+    style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2
+  }).format(value||0);
+}
+function quotePreviousItems(offer){
+  if(Array.isArray(offer?.items))return offer.items;
+  const lines=[];
+  if(Number(offer?.oneTimeCHF)>0)lines.push({
+    title:'Einmalige Umsetzung',qty:1,unitPriceCHF:Number(offer.oneTimeCHF),mode:'einmalig'
+  });
+  if(Number(offer?.monthlyCHF)>0)lines.push({
+    title:'Monatliche Betreuung',qty:1,unitPriceCHF:Number(offer.monthlyCHF),mode:'monatlich'
+  });
+  return lines;
+}
+function markQuoteUnsaved(){
+  if(state.offerLocked)return;
+  $('offerPrint').disabled=true;
+  $('offerWorkflow').hidden=true;
+  $('offerContractWorkflow').hidden=true;
+  $('offerHint').textContent='Ungespeicherte Änderungen. Bitte zuerst speichern, danach die Druckansicht öffnen.';
+}
+function updateQuoteTotals(){
+  let onceCents=0,monthlyCents=0;
+  for(const row of $('offerLines').children){
+    const fields=row._quoteFields;
+    if(!fields)continue;
+    const qty=Number(fields.qty.value)||0;
+    const cents=Math.round((Number(fields.unitPriceCHF.value)||0)*100);
+    const value=Math.round(qty*cents);
+    fields.total.textContent=quoteCHF(value/100);
+    if(fields.mode.value==='monatlich')monthlyCents+=value;
+    else onceCents+=value;
+  }
+  $('offerOnce').textContent=quoteCHF(onceCents/100);
+  $('offerMonthly').textContent=quoteCHF(monthlyCents/100)+' / Monat';
+}
+function quoteInput(type,name,value){
+  const control=el(type==='select'?'select':'input');
+  // Item inputs are read via row._quoteFields, not FormData. A position's
+  // "title" must NOT share the header input name "title": doing so makes
+  // form.elements.namedItem('title') return a RadioNodeList with an empty value.
+  control.name='position-'+name;
+  if(type!=='select'){
+    control.type=type==='number'?'number':'text';
+    if(type==='number'){control.min='0';control.step=name==='qty'?'0.001':'0.01';}
+  }
+  control.value=value==null?'':String(value);
+  return control;
+}
+function addQuoteLine(data={}){
+  if(state.offerLocked && !state.offerOpening)return;
+  const row=el('div','offer-line');
+  const fields={};
+  const values={
+    title:data.title??'',qty:data.qty??1,
+    unitPriceCHF:data.unitPriceCHF??0,mode:data.mode??'einmalig'
+  };
+  const make=(name,label,type)=>{
+    const wrap=el('label');
+    wrap.append(el('span','',label));
+    const control=quoteInput(type,name,values[name]);
+    if(name==='title'){control.required=true;control.maxLength=180;control.placeholder='Leistung beschreiben';}
+    if(name==='qty'){control.required=true;control.min='0.001';}
+    if(name==='unitPriceCHF'){control.required=true;}
+    wrap.append(control);
+    fields[name]=control;
+    control.addEventListener('input',()=>{updateQuoteTotals();markQuoteUnsaved();});
+    control.addEventListener('change',()=>{updateQuoteTotals();markQuoteUnsaved();});
+    return wrap;
+  };
+  row.append(make('title','Leistung','text'));
+  row.append(make('qty','Menge','number'));
+  row.append(make('unitPriceCHF','Preis pro Einheit (CHF)','number'));
+  const mode=make('mode','Art','select');
+  const select=fields.mode;
+  for(const [value,label] of [['einmalig','Einmalig'],['monatlich','Monatlich']]){
+    const option=el('option','',label);option.value=value;select.append(option);
+  }
+  select.value=values.mode;
+  row.append(mode);
+  const total=el('div','offer-line-total');
+  total.append(el('small','','Positionsbetrag'));
+  fields.total=el('strong','','CHF 0.00');
+  total.append(fields.total);row.append(total);
+  const remove=el('button','offer-line-remove','×');
+  remove.type='button';remove.setAttribute('aria-label','Position entfernen');
+  remove.addEventListener('click',()=>{
+    row.remove();
+    updateQuoteTotals();markQuoteUnsaved();
+  });
+  row.append(remove);row._quoteFields=fields;
+  $('offerLines').append(row);
+  updateQuoteTotals();
+}
+function quoteItemsFromForm(){
+  const items=[];
+  for(const row of $('offerLines').children){
+    const f=row._quoteFields;
+    if(!f)continue;
+    items.push({
+      title:f.title.value.trim(),qty:Number(f.qty.value),
+      unitPriceCHF:Number(f.unitPriceCHF.value),mode:f.mode.value
+    });
+  }
+  return items;
+}
+function isOfferLocked(offer){
+  if(!offer)return false;
+  return ['Angenommen','Versendet'].includes(offer.status) ||
+    !!((state.records.leads||[]).find(lead=>lead.id===offer.leadId && lead.status==='Gewonnen'));
+}
+
+function dueOfferFollowUps(offers,day=localDateKey()){
+  return (offers||[]).filter(offer=>offer.status==='Versendet'&&!offer.onlineAcceptance&&
+    typeof offer.followUpDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(offer.followUpDate)&&
+    offer.followUpDate<=day)
+    .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
+}
+function offerRecipient(offer){
+  const lead=(state.records.leads||[]).find(x=>x.id===offer.leadId);
+  const customer=(state.records.kunden||[]).find(x=>x.id===offer.customerId);
+  return (lead?.email||customer?.email||'').trim();
+}
+function offerEmailDraft(offer){
+  const to=offerRecipient(offer);
+  const subject='LSZH Automations – Offerte Nr. '+(offer.number||'');
+  const body='Sehr geehrte Damen und Herren,\n\n'+
+    'Vielen Dank für Ihr Interesse an LSZH Automations.\n\n'+
+    'Im Anhang erhalten Sie unsere Offerte Nr. '+(offer.number||'')+
+    ' für '+(offer.title||'die besprochenen Leistungen')+'.\n'+
+    (offer.validUntil?'Die Offerte ist gültig bis '+offer.validUntil+'.\n':'')+
+    '\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n'+
+    'Freundliche Grüsse\nLSZH Automations\nLSZH Invest GmbH';
+  return 'An: '+to+'\nBetreff: '+subject+'\n\n'+body;
+}
+function suggestedOfferFollowUp(){
+  const date=new Date();
+  date.setDate(date.getDate()+7);
+  return localDateKey(date);
+}
+async function reopenSavedOffer(id){
+  $('offerEditor').close();
+  await loadAll();
+  const updated=(state.records.offerten||[]).find(x=>x.id===id);
+  if(updated)openOfferEditor(updated);
+}
+
+async function renderContractWorkflow(offer){
+  const area=$('offerContractWorkflow');area.replaceChildren();area.hidden=!offer||!state.contractActionsEnabled;
+  area.dataset.offerId=offer?.id||'';
+  if(area.hidden)return;
+  area.append(el('h3','','Online-Kundenannahme'),el('p','','Vertragsunterlagen und Freigaben werden vor jeder Aktion geprüft.'));
+  try{
+    const base='/api/records/offerten/'+encodeURIComponent(offer.id)+'/contract';
+    const value=await api(base);
+    if(area.hidden||area.dataset.offerId!==offer.id)return;
+    const labels={missing_package:'Noch kein freigegebenes Vertragspaket zugeordnet.',prepared:'Vertragspaket vorbereitet.',delivery_review:'Versand unklar – Postfach prüfen. Kein erneuter Versand.',sent:'Vollständiger Paketversand nachgewiesen.',customer_response_recorded:'Kundenannahme eingegangen – interne Prüfung erforderlich.',awaiting_lszh_confirmation:'Interne Prüfung abgeschlossen. Schriftliche LSZH-Bestätigung noch nachweisen.',confirmed:'Schriftliche LSZH-Bestätigung nachgewiesen.'};
+    area.append(el('p','',labels[value.state]||'Online-Annahme noch nicht freigeschaltet.'));
+    const message=el('p','offer-workflow-error','');message.hidden=true;area.append(message);
+    function action(caption,name,warning,withMessage=false){
+      let messageInput;if(withMessage){const label=el('label','','Nachrichten-ID aus dem geschäftlichen Gmail-Postfach');messageInput=el('input','','');messageInput.type='text';messageInput.placeholder='Gmail-Nachrichten-ID';label.append(messageInput);area.append(label);}
+      const button=el('button','btn',caption);button.type='button';
+      button.addEventListener('click',async()=>{
+        if(!window.confirm(warning))return;
+        let payload={};if(withMessage){const id=messageInput.value.trim();if(!/^[A-Za-z0-9_-]{4,200}$/.test(id)){message.textContent='Bitte zuerst die Gmail-Nachrichten-ID eintragen.';message.hidden=false;return;}payload.messageId=id;}
+        button.disabled=true;message.hidden=true;
+        try{const result=await api(base+'/'+name,{method:'POST',body:JSON.stringify(payload)});
+          if(name==='issue-link'){
+            const link=el('a','', 'Privaten Kundenlink öffnen');link.href=result.url;link.target='_blank';link.rel='noopener noreferrer';
+            area.append(el('p','','Befristeter Link: nur an die freigegebene Kontaktperson weitergeben.'),link);
+          }else await reopenSavedOffer(offer.id);
+        }catch{message.textContent='Die Aktion wurde nicht freigegeben oder konnte nicht bestätigt werden. Bitte Paket, Archiv und Versandnachweis prüfen. Keinen Versand wiederholen.';message.hidden=false;}
+        finally{button.disabled=false;}
+      });area.append(button);
+    }
+    if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action});return;}
+    if(value.mayCreateDraft){
+      const classification=el('select','','');
+      for(const [val,text] of [['review','AVV-Einstufung wählen'],['no','Keine Verarbeitung fremder Personendaten im Auftrag'],['yes','AVV erforderlich – ausgefüllte Anlagen A, B und C nötig']]){const option=el('option','',text);option.value=val;classification.append(option);}
+      const classificationLabel=el('label','','Verarbeitet LSZH im Auftrag Personendaten?');classificationLabel.append(classification);area.append(classificationLabel);
+      function check(text){const label=el('label','',text),input=el('input','','');input.type='checkbox';label.append(input);area.append(label);return input;}
+      const documents=check('Gespeicherte Offerte, Kontaktadresse und Projektbedingungen v1.0 geprüft. Schriftliche LSZH-Bestätigung bleibt erforderlich.');
+      const retention=check('Dauerhafte private Aufbewahrung der Dokumente und Annahmenachweise im CRM und Archiv für diese Offerte freigeben.');
+      area.append(el('p','','Die Freigabe gilt höchstens 48 Stunden und endet spätestens mit der Offertengültigkeit. Ein erforderlicher AVV muss zuvor mit kundenspezifischen Anlagen geprüft und zugeordnet sein.'));
+      const create=el('button','btn','Dokumentpaket erstellen');create.type='button';
+      create.addEventListener('click',async()=>{
+        if(classification.value==='review'||!documents.checked||!retention.checked){message.textContent='Bitte AVV einstufen und beide Prüfungen bestätigen.';message.hidden=false;return;}
+        create.disabled=true;
+        try{await api(base+'/draft',{method:'POST',body:JSON.stringify({avvRequired:classification.value,documentsReviewed:true,retentionApproved:true})});await reopenSavedOffer(offer.id);}
+        catch{message.textContent='Paket konnte nicht vollständig vorbereitet werden. Bei erforderlichem AVV müssen die ausgefüllten Anlagen zuvor geprüft zugeordnet sein. Bei unklarem Archivierungsstand nicht erneut auslösen.';message.hidden=false;}
+        finally{create.disabled=false;}
+      });area.append(create);
+    }
+    if(value.mayPrepare)action('Vertragspaket prüfen und vorbereiten','prepare','Gespeicherte Offerte und zugeordnete Vertragsversionen prüfen und festhalten? Es wird noch nichts versendet.');
+    if(value.state==='prepared')action('Vollständiges Paket einmalig versenden','dispatch','Das vollständige Vertragspaket jetzt genau einmal an die freigegebene Kundenadresse senden?');
+    if(value.state==='delivery_review')action('Versand im Postfach nachweisen','reconcile','Die tatsächliche Paketnachricht im geschäftlichen Postfach anhand ihrer Nachrichten-ID prüfen? Es wird nichts erneut versendet.',true);
+    if(value.state==='sent')action('Befristeten Kundenlink erstellen','issue-link','Einen privaten Annahmelink für die bereits freigegebene Kontaktperson erstellen? Es wird keine zusätzliche E-Mail gesendet.');
+    if(value.reviewEnabled&&value.state==='customer_response_recorded'&&value.archiveState==='complete')action('Interne Prüfung bestätigen','review','Identität, Vertretungsberechtigung, Dokumente und Annahmenachweis geprüft und freigeben? Es wird noch keine Auftragsbestätigung gesendet.');
+    if(value.reviewEnabled&&value.state==='awaiting_lszh_confirmation')action('Schriftliche Bestätigung nachweisen','confirmation','Die bereits separat versendete schriftliche LSZH-Auftragsbestätigung unabhängig im Postfach prüfen?',true);
+  }catch{if(area.dataset.offerId===offer.id)area.append(el('p','','Online-Annahme ist noch nicht betriebsbereit. Bestehender CRM-Ablauf bleibt verfügbar.'));}
+}
+
+
+async function renderSimpleContractSend({area,offer,value,base,message,action}){
+  if(value.state==='delivery_review'){
+    area.append(el('p','','Der Versand wird nicht wiederholt. Erst den tatsächlichen Versand prüfen.'));
+    if(value.hasSendReceipt)action('Versandstatus prüfen','check','Den bestehenden Versand prüfen und bei Erfolg den persönlichen Annahmelink einmalig zustellen? Es werden keine PDFs erneut versendet.');
+    else action('Versandnachweis zuordnen','reconcile','Den vorhandenen Versandnachweis prüfen und bei Erfolg den persönlichen Annahmelink einmalig zustellen?',true);
+    return;
+  }
+  if(value.state==='sent'){
+    if(value.invitationState==='sent')area.append(el('p','','Die Unterlagen und der persönliche Annahmelink wurden zugestellt. Wir warten auf die Rückmeldung des Kunden.'));
+    else if(value.invitationState)area.append(el('p','','Die Zustellung der Einladung konnte nicht sicher bestätigt werden. Bitte intern prüfen; keine erneute Einladung auslösen.'));
+    else action('Persönlichen Annahmelink zustellen','invite','Den persönlichen Annahmelink jetzt genau einmal an die gespeicherte Kundenadresse senden?');
+    return;
+  }
+  if(value.state==='customer_response_recorded'){
+    area.append(el('p','',value.archiveState==='complete'?'Die Kundenannahme ist im privaten Archiv gesichert.':'Die Kundenannahme ist gespeichert. Der Archivnachweis wird noch vervollständigt.'));
+    if(value.reviewEnabled&&value.archiveState==='complete')action('Kundenannahme prüfen und freigeben','review','Identität, Vertretungsberechtigung, Dokumente und Annahmenachweis geprüft? Die schriftliche LSZH-Bestätigung folgt separat.');
+    return;
+  }
+  if(value.state==='awaiting_lszh_confirmation'){
+    area.append(el('p','','Die interne Prüfung ist abgeschlossen. Die schriftliche Auftragsbestätigung erfolgt separat.'));
+    if(value.reviewEnabled)action('Schriftliche Bestätigung zuordnen','confirmation','Die bereits versendete schriftliche LSZH-Bestätigung unabhängig nachweisen?',true);
+    return;
+  }
+  if(value.state==='confirmed')return;
+  if(!value.mayCreateDraft&&!value.mayPrepare&&value.state!=='prepared'){area.append(el('p','','Online-Annahme ist für gültige, versandbereite Offerten verfügbar.'));return;}
+  const preview=await api(base+'/preview');
+  if(area.dataset.offerId!==offer.id)return;
+  area.append(el('h4','','Versandvorschau'),el('p','','Empfänger: '+preview.recipient),el('p','','Offerte '+preview.offerNumber+' – '+(preview.title||'')));
+  for(const name of preview.documents)area.append(el('p','','PDF: '+name));
+  const print=el('button','btn','Offerte in der PDF-Ansicht prüfen');print.type='button';print.addEventListener('click',()=>openCloudPrint('offerte',offer.id));area.append(print);
+  function documentButton(caption,kind){const button=el('button','btn',caption);button.type='button';button.addEventListener('click',async()=>{const tab=window.open('about:blank','_blank');if(!tab){message.textContent='Bitte Pop-ups für die Dokumentansicht erlauben.';message.hidden=false;return;}tab.opener=null;try{const doc=await api(base+'/preview-'+kind),binary=Uint8Array.from(atob(doc.data),c=>c.charCodeAt(0)),uri=URL.createObjectURL(new Blob([binary],{type:'application/pdf'}));tab.location.replace(uri);setTimeout(()=>URL.revokeObjectURL(uri),300000);}catch{tab.close();message.textContent='Das Dokument konnte nicht geprüft geöffnet werden. Bitte noch nicht versenden.';message.hidden=false;}});area.append(button);}
+  documentButton('Projektbedingungen prüfen','terms');if(preview.avvReady)documentButton('Kundenspezifische AVV prüfen','avv');
+  const classification=el('select','','');
+  for(const [val,text] of [['review','Bitte auswählen'],['no','Nein – keine Verarbeitung fremder Personendaten im Auftrag'],['yes','Ja – kundenspezifische AVV erforderlich']]){const option=el('option','',text);option.value=val;classification.append(option);}
+  classification.value='review';
+  const label=el('label','','Verarbeiten wir im Auftrag des Kunden Personendaten?');label.append(classification);area.append(label);
+  if(preview.avvReady)area.append(el('p','','Bei AVV-Pflicht zusätzlich: '+preview.avvFilename));
+  function check(text){const label=el('label','',text),input=el('input','','');input.type='checkbox';label.append(input);area.append(label);return input;}
+  const documents=check('Kundenadresse, gespeicherte Offerte und zugehörige Vertragsunterlagen geprüft. Die schriftliche LSZH-Auftragsbestätigung bleibt erforderlich.');
+  const retention=check('Dokumente und Annahmenachweise für diese Offerte dauerhaft im privaten CRM und Archiv aufbewahren.');
+  area.append(el('p','','Nach deiner Freigabe erhält der Kunde die PDFs und danach eine separate Nachricht mit seinem persönlichen Annahmelink. Der Link gilt höchstens 48 Stunden und endet spätestens mit der Offertengültigkeit.'));
+  const send=el('button','btn primary','Prüfen und senden');send.type='button';
+  send.addEventListener('click',async()=>{
+    if(!['yes','no'].includes(classification.value)||!documents.checked||!retention.checked){message.textContent='Bitte die Frage zu Personendaten beantworten und beide Prüfungen bestätigen.';message.hidden=false;return;}
+    if(classification.value==='yes'&&!preview.avvReady){message.textContent='Bitte zuerst die kundenspezifische AVV mit den ausgefüllten Anlagen prüfen und zuordnen lassen.';message.hidden=false;return;}
+    send.disabled=true;send.textContent='Unterlagen werden geprüft und versendet …';message.hidden=true;
+    try{await api(base+'/send',{method:'POST',body:JSON.stringify({avvRequired:classification.value,documentsReviewed:true,retentionApproved:true,offerSnapshotSha256:preview.offerSnapshotSha256})});await reopenSavedOffer(offer.id);}
+    catch{message.textContent='Der Vorgang wurde nicht vollständig bestätigt. Bitte die Offerte neu öffnen und den angezeigten Status prüfen. Keinen zweiten Versand auslösen.';message.hidden=false;}
+    finally{send.disabled=false;send.textContent='Prüfen und senden';}
+  });area.append(send);
+}
+
+function renderOfferWorkflow(offer){
+  renderContractWorkflow(offer);
+  const area=$('offerWorkflow');
+  area.replaceChildren();
+  area.hidden=!offer;
+  if(!offer)return;
+  const title=el('h3','','Versand und Nachverfolgung');
+  const message=el('p','','');
+  const error=el('p','offer-workflow-error','');error.hidden=true;
+  area.append(title,message,error);
+  if(offer.onlineAcceptance){
+    const acceptance=offer.onlineAcceptance;
+    message.textContent='Kundenannahme erfasst – interne Prüfung erforderlich. Die schriftliche LSZH-Bestätigung erfolgt separat.';
+    area.append(el('p','','Nachweis: '+acceptance.responseId),el('p','',acceptance.archiveState==='complete'?'Annahmenachweis im Geschäftsarchiv gespeichert.':'Archivablage ausstehend – Annahmenachweis dauerhaft im CRM gespeichert.'));
+    return;
+  }
+  const notify=err=>{error.textContent=err.message||String(err);error.hidden=false;};
+  const button=(caption,handler,primary=false)=>{
+    const elButton=el('button','btn'+(primary?' primary':''),caption);
+    elButton.type='button';
+    elButton.addEventListener('click',async()=>{
+      if(elButton.disabled)return;
+      elButton.disabled=true;error.hidden=true;
+      try{await handler();}catch(e){notify(e);}finally{elButton.disabled=false;}
+    });
+    return elButton;
+  };
+  // Never allow a second click to resend an unresolved request.
+  if(offer.offerDispatchState==='sending'&&
+     Date.now()-Date.parse(offer.offerDispatchRequestedAt||'')<5*60*1000){
+    message.textContent='Automatischer Versand läuft. Die Offerte ist bis zum Ergebnis vorübergehend gesperrt.';
+    return;
+  }
+  if(offer.offerDispatchState==='manual_review'||offer.offerDispatchState==='sending'){
+    message.textContent='Versandbestätigung unklar. Bitte zuerst unter «Gesendet» im LSZH-Geschäftspostfach prüfen. Keinen zweiten Versand auslösen.';
+    const actions=el('div','offer-workflow-row');
+    actions.append(button('Versand im Postfach bestätigt',async()=>{
+      if(!window.confirm('Hast du die versendete Offerte im geschäftlichen Postfach nachgewiesen?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send/resolve',{
+        method:'POST',body:JSON.stringify({resolution:'confirmed'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    actions.append(button('Sicher nicht versendet',async()=>{
+      if(!window.confirm('Hast du überprüft, dass weder Gmail noch Make diese Offerte verschickt hat?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send/resolve',{
+        method:'POST',body:JSON.stringify({resolution:'not_sent'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    area.append(actions);
+    return;
+  }
+  const status=offer.status||'Entwurf';
+  if(status==='Entwurf'){
+    message.textContent='Positionen und Gültigkeitsdatum ergänzen, speichern und den Status auf «Bereit» stellen. Danach stehen die Versandaktionen zur Verfügung.';
+    return;
+  }
+  if(status==='Bereit'){
+    message.textContent='1. Gespeicherte Druckansicht als PDF exportieren. 2. E-Mail-Text kopieren und PDF selbst als Anhang senden. 3. Erst nach tatsächlichem Versand diesen im CRM dokumentieren.';
+    const row=el('div','offer-workflow-row');
+    row.append(button('E-Mail-Text kopieren',async()=>{
+      if(!offerRecipient(offer))throw new Error('Zuerst eine gültige Empfänger-E-Mail beim Lead oder Kunden erfassen.');
+      if(!navigator.clipboard?.writeText)throw new Error('Zwischenablage nicht verfügbar. Bitte eine sichere HTTPS-Verbindung verwenden.');
+      await navigator.clipboard.writeText(offerEmailDraft(offer));
+      message.textContent='E-Mail-Text kopiert. PDF bitte separat anhängen und E-Mail selbst versenden.';
+    }));
+    const dateField=el('label','','Nächstes Nachfassen');
+    const dateInput=el('input');dateInput.type='date';dateInput.value=suggestedOfferFollowUp();dateInput.required=true;
+    dateField.append(dateInput);row.append(dateField);
+    const testOnly=state.offerMailMode==='test_only';
+    const allowedAutoSend=state.offerMailEnabled&&(!testOnly||(
+      String(offer.title||'').startsWith('TEST_ONLY')&&
+      String(offerRecipient(offer)||'').trim().toLowerCase()===state.offerMailTestTo
+    ));
+    if(allowedAutoSend){
+      row.append(button(testOnly?'TEST_ONLY: PDF ans Testpostfach senden':'Automatisch mit PDF versenden',async()=>{
+        if(!window.confirm('Soll Offerte Nr. '+(offer.number||'')+
+          ' jetzt mit dem PDF-Anhang an '+offerRecipient(offer)+' versendet werden?'))return;
+        try{
+          await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/send',{
+            method:'POST',body:JSON.stringify({followUpDate:dateInput.value})
+          });
+          await reopenSavedOffer(offer.id);
+        }catch(error){
+          await reopenSavedOffer(offer.id);
+          window.alert('Versandstatus bitte prüfen: '+error.message);
+        }
+      },true));
+    }else{
+      area.append(el('p','',testOnly?
+        'Testmodus: Automatischer Versand nur fuer TEST_ONLY-Offerten an das freigegebene Testpostfach. Echte Kundenofferten sind gesperrt.':
+        'Automatischer PDF-Versand ist vorbereitet, aber noch nicht freigeschaltet. Der manuelle Versand bleibt verfuegbar.'));
+    }
+    row.append(button('Versand dokumentieren',async()=>{
+      if(!window.confirm('Wurde die Offerte tatsächlich an den Kunden versendet? Dieser Klick sendet selbst keine E-Mail.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/dispatch',{
+        method:'POST',body:JSON.stringify({followUpDate:dateInput.value})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    area.append(row);
+    return;
+  }
+  if(status==='Versendet'){
+    const meta=el('div','offer-workflow-meta');
+    meta.append(
+      el('span','','Empfänger: '+(offer.sentTo||'bisher nicht protokolliert')),
+      el('span','','Versand erfasst: '+(offer.sentAt?leadDate(offer.sentAt):'ältere Offerte')),
+      el('strong','','Nächste Wiedervorlage: '+(offer.followUpDate||'Noch nicht festgelegt'))
+    );
+    area.append(meta);
+    message.textContent='Wiedervorlagen werden im Dashboard sichtbar, aber nicht automatisch an Kunden verschickt.';
+    const row=el('div','offer-workflow-row');
+    const dateLabel=el('label','','Nächstes Nachfassen'),date=el('input');
+    date.type='date';date.value=offer.followUpDate||suggestedOfferFollowUp();
+    dateLabel.append(date);
+    const noteLabel=el('label','','Nachfassnotiz (optional)'),note=el('input');
+    note.type='text';note.maxLength=500;note.placeholder='z. B. telefonisch nachgefragt';
+    noteLabel.append(note);
+    row.append(dateLabel,noteLabel);
+    row.append(button('Nachfassen protokollieren',async()=>{
+      if(!window.confirm('Wurde tatsächlich beim Kunden nachgefasst?'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/followup',{
+        method:'POST',body:JSON.stringify({followUpDate:date.value,note:note.value})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    area.append(row);
+    const decisions=el('div','offer-workflow-row');
+    decisions.append(button('Als angenommen markieren',async()=>{
+      if(!window.confirm('Hat der Kunde die Offerte verbindlich angenommen? Dadurch werden Kunde und Projekt angelegt.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id),{
+        method:'PATCH',body:JSON.stringify({status:'Angenommen'})
+      });
+      await reopenSavedOffer(offer.id);
+    },true));
+    decisions.append(button('Als abgelehnt markieren',async()=>{
+      if(!window.confirm('Hat der Kunde die Offerte abgelehnt? Der verknüpfte Lead wird als verloren markiert.'))return;
+      await api('/api/records/offerten/'+encodeURIComponent(offer.id),{
+        method:'PATCH',body:JSON.stringify({status:'Abgelehnt'})
+      });
+      await reopenSavedOffer(offer.id);
+    }));
+    area.append(decisions);
+    const history=Array.isArray(offer.followUpHistory)?offer.followUpHistory:[];
+    if(history.length){
+      const log=el('div','offer-workflow-history');
+      log.append(el('strong','','Nachfassverlauf ('+history.length+')'));
+      for(const entry of [...history].reverse().slice(0,10)){
+        log.append(el('span','',leadDate(entry.at)+' · '+(entry.by||'')+(entry.note?' · '+entry.note:'')));
+      }
+      area.append(log);
+    }
+    return;
+  }
+  message.textContent=status==='Angenommen'
+    ?'Offerte angenommen. Kunde und Projekt wurden über die bestehende CRM-Logik angelegt. Die Offerte bleibt schreibgeschützt.'
+    :'Offerte abgelehnt. Es findet kein automatischer weiterer Versand statt.';
+}
+
+function openOfferEditor(record=null,draft=null){
+  state.offerEditing=record;
+  state.offerLocked=isOfferLocked(record);
+  state.offerOpening=true;
+  $('offerEditor').classList.toggle('is-locked',state.offerLocked);
+  $('offerLockedNotice').hidden=!state.offerLocked;
+  if(state.offerLocked){
+    const sent=record?.status==='Versendet';
+    $('offerLockedNotice').querySelector('strong').textContent=sent?'Offerte als versendet dokumentiert':'Offerte angenommen – schreibgeschützt';
+    $('offerLockedNotice').querySelector('span').textContent=sent
+      ?'Die versendete Offerte ist für Änderungen gesperrt. Nachfassen oder Kundenentscheidung unten dokumentieren.'
+      :'Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.';
+  }
+  $('offerEditorTitle').textContent=record
+    ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – Angenommen':' bearbeiten')
+    :'Neue Offerte';
+  $('offerFields').replaceChildren();
+  $('offerLines').replaceChildren();
+  const fields=['leadId','customerId','title','description','validUntil','status'];
+  for(const [key,label,type] of definitions.offerten.fields){
+    if(!fields.includes(key))continue;
+    const field=makeField(key,label,type,record?.[key] ?? draft?.[key]);
+    field.addEventListener('input',markQuoteUnsaved);
+    field.addEventListener('change',markQuoteUnsaved);
+    if(state.offerLocked){
+      const control=field.querySelector('input,select,textarea');
+      if(control)control.disabled=true;
+    }
+    $('offerFields').append(field);
+  }
+  for(const line of quotePreviousItems(record||draft))addQuoteLine(line);
+  state.offerOpening=false;
+  if(state.offerLocked){
+    for(const row of $('offerLines').children){
+      const fields=row._quoteFields;
+      for(const key of ['title','qty','unitPriceCHF','mode'])fields[key].disabled=true;
+      const remove=row.querySelector('.offer-line-remove');
+      if(remove)remove.disabled=true;
+    }
+  }
+  updateQuoteTotals();
+  $('offerAddLine').hidden=state.offerLocked;
+  $('offerSave').hidden=state.offerLocked;
+  $('offerPrint').disabled=!record;
+  $('offerHint').textContent=state.offerLocked
+    ?'Die gespeicherte Offerte ist unveränderbar. Die PDF-Ansicht bleibt verfügbar.'
+    :'PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
+  renderOfferWorkflow(record);
+  $('offerEditor').showModal();
+}
+
+
+function renderProjectProgress(){
+  const rows=$('projectTasks').children;
+  let completed=0;
+  for(const row of rows)if(row._taskFields?.done.checked)completed++;
+  $('projectProgress').textContent=completed+' von '+rows.length+' erledigt';
+}
+function addProjectTask(task={},focusInput=true){
+  if($('projectTasks').children.length>=30){
+    $('projectError').textContent='Maximal 30 Aufgaben je Projekt möglich.';
+    $('projectError').hidden=false;
+    return;
+  }
+  $('projectError').hidden=true;
+  const row=el('div','project-task');
+  const done=el('input','project-task-check');
+  done.type='checkbox';
+  done.checked=task.done===true;
+  done.setAttribute('aria-label','Aufgabe erledigt');
+  const title=el('input','project-task-title'+(done.checked?' done':''));
+  title.type='text';title.maxLength=160;title.required=true;
+  title.placeholder='Was muss erledigt werden?';
+  title.value=task.title||'';
+  title.setAttribute('aria-label','Aufgabe');
+  // Unlike quote headers, tasks have no form field named "title".
+  title.name='project-task-text';
+  const remove=el('button','project-task-delete','×');
+  remove.type='button';remove.setAttribute('aria-label','Aufgabe entfernen');
+  done.addEventListener('change',()=>{
+    title.classList.toggle('done',done.checked);
+    renderProjectProgress();
+  });
+  remove.addEventListener('click',()=>{
+    row.remove();
+    renderProjectProgress();
+  });
+  row._taskFields={done,title};
+  row.append(done,title,remove);
+  $('projectTasks').append(row);
+  renderProjectProgress();
+  if(focusInput)title.focus();
+}
+function projectTasksFromForm(){
+  const tasks=[];
+  for(const row of $('projectTasks').children){
+    const fields=row._taskFields;
+    if(!fields)continue;
+    tasks.push({title:fields.title.value.trim(),done:fields.done.checked});
+  }
+  return tasks;
+}
+function openProjectEditor(record=null,draft=null){
+  state.projectEditing=record;
+  $('projectEditorTitle').textContent=record?'Projekt bearbeiten':'Neues Projekt';
+  $('projectFields').replaceChildren();
+  $('projectTasks').replaceChildren();
+  $('projectError').hidden=true;
+  const fields=['customerId','offerId','title','description','dueDate','status'];
+  for(const [key,label,type] of definitions.projekte.fields){
+    if(!fields.includes(key))continue;
+    const value=record?.[key]??draft?.[key];
+    const field=makeField(key,label,type,value);
+    if(record?.offerId && (key==='offerId'||key==='customerId')){
+      const input=field.querySelector('input,select,textarea');
+      if(input)input.disabled=true;
+    }
+    $('projectFields').append(field);
+  }
+  for(const task of Array.isArray(record?.tasks)?record.tasks:[])addProjectTask(task,false);
+  renderProjectProgress();
+  const customer=(state.records.kunden||[]).find(c=>c.id===record?.customerId);
+  const offer=(state.records.offerten||[]).find(o=>o.id===record?.offerId);
+  $('projectCustomerOpen').hidden=!customer;
+  $('projectOfferOpen').hidden=!offer;
+  $('projectCreateInvoice').hidden=!record||!customer;
+  $('projectCreateInvoice').onclick=()=>{
+    $('projectEditor').close();
+    navigateTo('rechnungen');
+    openInvoiceEditor(null,{
+      customerId:record.customerId,projectId:record.id,
+      description:'Leistungen: '+(record.title||'Projekt'),
+      status:'Entwurf'
+    });
+  };
+  $('projectCustomerOpen').onclick=()=>{ $('projectEditor').close();navigateTo('kunden',customer); };
+  $('projectOfferOpen').onclick=()=>{ $('projectEditor').close();navigateTo('offerten',offer); };
+  $('projectEditor').showModal();
+}
+
+
+function legacyInvoiceLines(invoice){
+  if(Array.isArray(invoice?.items))return invoice.items;
+  const amount=Number(invoice?.amountCHF)||0;
+  return amount>0?[{title:invoice.description||'Leistung',qty:1,unitPriceCHF:amount}]:[];
+}
+function invoiceCHF(number){
+  return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2}).format(number||0);
+}
+function markInvoiceUnsaved(){
+  if(state.invoiceLocked)return;
+  $('invoicePrint').disabled=true;
+  $('invoicePdf').disabled=true;
+  $('invoiceSend').disabled=true;
+}
+function refreshInvoiceTotal(){
+  let cents=0;
+  for(const row of $('invoiceLines').children){
+    const f=row._invoiceFields;
+    if(!f)continue;
+    const line=Math.round((Number(f.qty.value)||0)*Math.round((Number(f.unitPriceCHF.value)||0)*100));
+    cents+=line;
+    f.total.textContent=invoiceCHF(line/100);
+  }
+  $('invoiceTotal').textContent=invoiceCHF(cents/100);
+}
+function invoiceItems(){
+  const items=[];
+  for(const row of $('invoiceLines').children){
+    const f=row._invoiceFields;
+    if(!f)continue;
+    items.push({title:f.title.value.trim(),qty:Number(f.qty.value),unitPriceCHF:Number(f.unitPriceCHF.value)});
+  }
+  return items;
+}
+function addInvoiceLine(data={},isLoading=false){
+  if(state.invoiceLocked&&!isLoading)return;
+  if($('invoiceLines').children.length>=60){
+    $('invoiceError').textContent='Maximal 60 Rechnungspositionen.';
+    $('invoiceError').hidden=false;return;
+  }
+  const row=el('div','invoice-line'),controls={};
+  const make=(key,label,type,value)=>{
+    const wrap=el('label'),control=el('input');
+    wrap.append(el('span','',label));
+    control.type=type;
+    control.name='invoice-position-'+key;
+    control.value=value==null?'':String(value);
+    if(key==='title'){control.maxLength=180;control.placeholder='Leistung';control.required=true;}
+    if(type==='number'){
+      control.step=key==='qty'?'0.001':'0.01';
+      control.min=key==='qty'?'0.001':'0';
+      control.required=true;
+    }
+    control.addEventListener('input',()=>{refreshInvoiceTotal();markInvoiceUnsaved()});
+    wrap.append(control);controls[key]=control;return wrap;
+  };
+  row.append(make('title','Leistung','text',data.title||''));
+  row.append(make('qty','Menge','number',data.qty??1));
+  row.append(make('unitPriceCHF','Einzelpreis (CHF)','number',data.unitPriceCHF??0));
+  const total=el('div','invoice-line-total');
+  total.append(el('small','','Betrag'));
+  controls.total=el('strong','','CHF 0.00');total.append(controls.total);
+  row.append(total);
+  const remove=el('button','invoice-line-remove','×');
+  remove.type='button';remove.setAttribute('aria-label','Position entfernen');
+  remove.addEventListener('click',()=>{row.remove();refreshInvoiceTotal();markInvoiceUnsaved()});
+  row.append(remove);row._invoiceFields=controls;
+  $('invoiceLines').append(row);
+  if(state.invoiceLocked){
+    for(const key of ['title','qty','unitPriceCHF'])controls[key].disabled=true;
+    remove.disabled=true;
+  }
+  refreshInvoiceTotal();
+}
+// Invoice dispatch is always user initiated. Never call a scheduler, background
+// refresh or Make directly from the browser.
+function renderInvoiceReminders(invoice){
+  const panel=$('invoiceReminderPanel'),history=Array.isArray(invoice?.reminderHistory)?invoice.reminderHistory:[];
+  panel.hidden=!invoice;
+  if(!invoice)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  const levels=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+  const due=(Number(invoice.amountCHF||0)-(
+    Array.isArray(invoice.paymentHistory)&&invoice.paymentHistory.length?
+    invoice.paymentHistory.reduce((n,p)=>n+(p.voidedAt?0:Number(p.amountCHF||0)),0):invoice.status==='Bezahlt'?Number(invoice.amountCHF||0):0
+  ));
+  const info=invoiceDueInfo(invoice);
+  const overdue=info.kind==='overdue';
+  const days=Number.isFinite(info.days)?Math.abs(info.days):0;
+  $('invoiceReminderStatus').textContent=info.kind==='overdue'?
+    days+' '+(days===1?'Tag':'Tage')+' überfällig · Rest '+invoiceCHF(info.remaining/100):
+    info.kind==='soon'?
+      (info.days===0?'Heute fällig':'Fällig in '+info.days+' '+(info.days===1?'Tag':'Tagen'))+
+      ' · Rest '+invoiceCHF(info.remaining/100):
+    info.remaining<=0?'Kein offener Rechnungsbetrag.':
+      'Noch nicht überfällig · Rest '+invoiceCHF(info.remaining/100);
+  const last=history[history.length-1];
+  const nextAllowedAt=last?Date.parse(last.at)+7*24*60*60*1000:null;
+  const cooling=Number.isFinite(nextAllowedAt)&&Date.now()<nextAllowedAt;
+  const log=$('invoiceReminderHistory');
+  log.replaceChildren();
+  if(!history.length)log.textContent='Noch keine Zahlungserinnerung dokumentiert.';
+  else {
+    log.append(el('strong','',history.length+' von 3 Mahnstufen dokumentiert (manuell bestätigt).'));
+    for(const h of history){
+      const at=Date.parse(h.at||'');
+      const sentAt=Number.isFinite(at)?new Intl.DateTimeFormat('de-CH',{
+        timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',
+        hour:'2-digit',minute:'2-digit'
+      }).format(new Date(at)):'Zeitpunkt unbekannt';
+      const record=el('div','invoice-reminder-record');
+      const title=el('strong','',h.kind+' · '+sentAt);
+      const rest=Number.isFinite(Number(h.outstandingCHF))?
+        invoiceCHF(Number(h.outstandingCHF)):'unbekannt';
+      const meta=el('span','',
+        'Externen Versand manuell bestätigt · Empfänger: '+(h.recipient||'–')+
+        ' · Bestätigt von: '+(h.by||'–')+' · Restbetrag bei Bestätigung: '+rest);
+      const id=el('span','','Protokoll-ID: '+(h.reminderId||'–'));
+      record.append(title,meta,id);
+      log.append(record);
+    }
+  }
+  const next=levels[history.length];
+  const possible=Boolean(next&&overdue&&!cooling&&invoice.invoiceDispatchState==='confirmed'&&customer?.email);
+  const reason=!overdue?'Keine überfällige offene Forderung.':
+    invoice.invoiceDispatchState!=='confirmed'?'Rechnungsversand nicht bestätigt.':
+    !customer?.email?'Kunden-E-Mail fehlt.':
+    !next?'Mahnfolge abgeschlossen – manuelle Entscheidung erforderlich.':
+    cooling?'Nächste Mahnstufe frühestens '+new Intl.DateTimeFormat('de-CH',{
+      timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit'
+    }).format(new Date(nextAllowedAt))+' (nach letzter dokumentierter Mahnung).':
+    'Nächster Schritt: '+next+'. Der Entwurf wird nicht automatisch verschickt.';
+  $('invoiceReminderNotice').textContent=reason;
+  $('invoiceReminderActions').hidden=!possible;
+  if(!possible){
+    $('invoiceReminderText').value='';
+    $('invoiceLogReminder').dataset.pendingId='';
+    return;
+  }
+  $('invoiceReminderText').value='Betreff: '+next+' – '+invoice.number+' | LSZH Automations\n\n'+
+    'Guten Tag\n\n'+
+    'Zu unserer Rechnung '+invoice.number+' mit Fälligkeit '+invoice.dueDate+
+    ' ist aktuell noch ein Betrag von '+invoiceCHF(Math.max(0,due))+' offen.\n'+
+    'Wir bitten Sie, den ausstehenden Betrag unter Angabe der Rechnungsnummer anhand der bereits zugestellten Rechnung zu begleichen.\n\n'+
+    'Falls Sie die Zahlung bereits veranlasst haben, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n'+
+    'Freundliche Grüsse\nLSZH Automations\nLSZH Invest GmbH';
+  $('invoiceLogReminder').dataset.pendingId='';
+}
+function renderInvoicePayments(invoice){
+  const panel=$('invoicePaymentsPanel'),entry=$('invoicePaymentEntry');
+  panel.hidden=!invoice;
+  if(!invoice)return;
+  const total=Math.round(Number(invoice.amountCHF||0)*100);
+  const entries=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
+  const received=entries.length?entries.reduce((n,p)=>n+(p.voidedAt?0:Math.round(Number(p.amountCHF||0)*100)),0):(invoice.status==='Bezahlt'?total:0);
+  const due=Math.max(0,total-received);
+  const overdue=['Offen','Teilbezahlt'].includes(invoice.status)&&invoice.dueDate&&invoice.dueDate<localDateKey();
+  $('invoicePaymentStatus').textContent=overdue?'Überfällig':invoice.status;
+  $('invoicePaymentTotal').textContent=invoiceCHF(total/100);
+  $('invoicePaymentReceived').textContent=invoiceCHF(received/100);
+  $('invoicePaymentOpen').textContent=invoiceCHF(due/100);
+  const paidPercent=total>0?Math.max(0,Math.min(100,Math.round(received*100/total))):0;
+  $('invoicePaymentPercent').textContent=paidPercent+' % bezahlt';
+  $('invoicePaymentProgress').value=paidPercent;
+  $('invoicePaymentSummary').textContent=invoice.dueDate?
+    'Fällig am '+invoice.dueDate.slice(8,10)+'.'+invoice.dueDate.slice(5,7)+'.'+invoice.dueDate.slice(0,4):
+    'Noch kein Fälligkeitsdatum hinterlegt.';
+  const history=$('invoicePaymentHistory');history.replaceChildren();
+  if(!entries.length)history.append(el('p','invoice-caption',invoice.status==='Bezahlt'?
+    'Alte als bezahlt markierte Rechnung – keine Einzelbuchungen vorhanden.':'Noch keine Zahlungen erfasst.'));
+  for(const p of [...entries].reverse()){
+    const row=el('div');
+    const label=el('span','',p.paidOn+' · '+p.method+(p.reference?' · '+p.reference:'')+
+      (p.voidedAt?' · KORRIGIERT ('+p.voidReason+')':''));
+    const amount=el('strong','',invoiceCHF(p.amountCHF));
+    if(p.voidedAt){amount.style.textDecoration='line-through';amount.style.opacity='.65';}
+    row.append(label,amount);
+    if(!p.voidedAt&&invoice.invoiceDispatchState==='confirmed'&&
+       ['Bezahlt','Teilbezahlt'].includes(invoice.status)){
+      const fix=el('button','btn','Korrigieren');fix.type='button';
+      fix.addEventListener('click',async()=>{
+        const reason=window.prompt('Korrekturgrund (mindestens 8 Zeichen):');
+        if(reason===null)return;
+        if(reason.trim().length<8){window.alert('Bitte den Korrekturgrund genauer dokumentieren.');return;}
+        if(!window.confirm('Buchung '+invoiceCHF(p.amountCHF)+' für '+invoice.number+
+          ' wirklich korrigieren? Die Originalbuchung bleibt im Audit erhalten.'))return;
+        fix.disabled=true;
+        try{
+          const reversalId=fix.dataset.reversalId||(window.crypto?.randomUUID?.()||'');
+          fix.dataset.reversalId=reversalId;
+          await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/payments/reverse',{
+            method:'POST',body:JSON.stringify({paymentId:p.paymentId,reversalId,reason:reason.trim()})
+          });
+          await reopenSavedInvoice(invoice.id);
+        }catch(error){
+          window.alert('Korrektur unklar: '+error.message+
+            '\nBitte Buchungshistorie kontrollieren, bevor du erneut korrigierst.');
+        }finally{fix.disabled=false;}
+      });row.append(fix);
+    }
+    history.append(row);
+  }
+  entry.hidden=!(invoice.invoiceDispatchState==='confirmed'&&['Offen','Teilbezahlt'].includes(invoice.status)&&due>0);
+  if(!entry.hidden){
+    $('invoicePaymentAmount').value=(due/100).toFixed(2);
+    $('invoicePaymentDate').value=localDateKey();
+    $('invoiceRecordPayment').dataset.pendingId='';
+  }
+}
+function renderInvoiceDispatch(invoice){
+  const notice=$('invoiceDispatchNotice'),review=$('invoiceDispatchReview');
+  review.replaceChildren();review.hidden=true;
+  renderInvoicePayments(invoice);
+  renderInvoiceReminders(invoice);
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice?.customerId);
+  const to=String(customer?.email||'').trim();
+  const isSynthetic=String(invoice?.description||'').startsWith('TEST_ONLY')||
+    /^TEST_ONLY\b/i.test(String(customer?.company||''))||
+    String(customer?.company||'').trim().toLowerCase()==='lszh invest gmbh';
+  const allowedTest=state.invoiceMailMode==='test_only'&&
+    isSynthetic&&to.toLowerCase()===state.invoiceMailTestTo;
+  $('invoiceSend').disabled=!state.invoiceMailEnabled||!invoice||
+    invoice.status!=='Offen'||Boolean(invoice.invoiceSentAt)||
+    ['sending','manual_review','confirmed'].includes(invoice.invoiceDispatchState)||
+    !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)||
+    (state.invoiceMailMode==='test_only'&&!allowedTest);
+  if(!invoice){notice.textContent='Rechnung zuerst speichern. Kein Versand ohne ausdrückliche Bestätigung.';return;}
+  const status=invoice.invoiceDispatchState;
+  if(status==='confirmed'){
+    notice.textContent='Per Gmail versendet an '+(invoice.invoiceSentTo||'–')+
+      ' am '+new Date(invoice.invoiceSentAt).toLocaleString('de-CH')+
+      '. Die versendete Rechnung ist gegen Inhaltsänderungen gesperrt.';
+  }else if(['sending','manual_review'].includes(status)){
+    notice.textContent='Versandbestätigung unklar. Zuerst das LSZH-Gmail-Postfach «Gesendet» prüfen. Kein automatischer Zweitversand.';
+    review.hidden=false;
+    for(const [caption,resolution,question] of [
+      ['Im Postfach bestätigt','confirmed','Wurde diese Rechnung tatsächlich in Gmail Gesendet gefunden?'],
+      ['Sicher nicht versendet','not_sent','Hast du bestätigt, dass weder Make noch Gmail die Rechnung versendet hat?']
+    ]){
+      let messageInput;if(withMessage){const label=el('label','','Nachrichten-ID aus dem geschäftlichen Gmail-Postfach');messageInput=el('input','','');messageInput.type='text';messageInput.placeholder='Gmail-Nachrichten-ID';label.append(messageInput);area.append(label);}
+      const button=el('button','btn',caption);button.type='button';
+      button.addEventListener('click',async()=>{
+        if(!window.confirm(question))return;
+        button.disabled=true;
+        try{
+          await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/send/resolve',{
+            method:'POST',body:JSON.stringify({resolution})
+          });
+          await reopenSavedInvoice(invoice.id);
+        }catch(err){window.alert('Prüfung fehlgeschlagen: '+err.message);}
+        finally{button.disabled=false;}
+      });
+      review.append(button);
+    }
+  }else if(!state.invoiceMailEnabled){
+    notice.textContent='Rechnungsversand noch nicht aktiviert. Swiss-QR-PDF kann weiterhin manuell heruntergeladen werden.';
+  }else{
+    notice.textContent='Manueller Rechnungsversand mit Swiss-QR-PDF. Empfänger: '+(to||'E-Mail fehlt')+
+      '. Vor Versand PDF und Empfänger prüfen; Versand nur nach Bestätigung.';
+  }
+}
+async function reopenSavedInvoice(id){
+  $('invoiceEditor').close();
+  await loadAll();
+  const record=(state.records.rechnungen||[]).find(x=>x.id===id);
+  if(record)openInvoiceEditor(record);
+}
+
+function openInvoiceEditor(record=null,draft=null){
+  state.invoiceEditing=record;
+  state.invoiceLocked=record?.status==='Bezahlt'||record?.status==='Storniert'||record?.status==='Teilbezahlt'||
+    ['sending','manual_review','confirmed'].includes(record?.invoiceDispatchState);
+  $('invoiceEditor').classList.toggle('is-locked',state.invoiceLocked);
+  $('invoiceLocked').hidden=!state.invoiceLocked;
+  $('invoiceEditorTitle').textContent=record?'Rechnung '+(record.number||'–'):'Neue Rechnung';
+  $('invoiceFields').replaceChildren();
+  $('invoiceLines').replaceChildren();
+  $('invoiceError').hidden=true;
+  const data=record||draft||{};
+  const fields=['customerId','projectId','description','invoiceDate','dueDate','status'];
+  const controls={};
+  for(const [key,label,type] of definitions.rechnungen.fields){
+    if(!fields.includes(key))continue;
+    const today=new Date();
+    const iso=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+    const initial=data[key]??(key==='invoiceDate'?iso:undefined);
+    const element=makeField(key,label,type,initial);
+    element.addEventListener('input',markInvoiceUnsaved);
+    element.addEventListener('change',markInvoiceUnsaved);
+    const control=element.querySelector('input,select,textarea');
+    controls[key]=control;
+    if(state.invoiceLocked&&control)control.disabled=true;
+    $('invoiceFields').append(element);
+  }
+  if(controls.projectId&&!state.invoiceLocked){
+    controls.projectId.addEventListener('change',()=>{
+      const project=(state.records.projekte||[]).find(p=>p.id===controls.projectId.value);
+      if(project?.customerId && controls.customerId){
+        controls.customerId.value=project.customerId;
+        markInvoiceUnsaved();
+      }
+    });
+  }
+  for(const line of legacyInvoiceLines(data))addInvoiceLine(line,true);
+  refreshInvoiceTotal();
+  $('invoiceAddLine').hidden=state.invoiceLocked;
+  $('invoiceSave').hidden=state.invoiceLocked;
+  $('invoicePrint').disabled=!record;
+  $('invoicePdf').disabled=!record||record.status!=='Offen';
+  renderInvoiceDispatch(record);
+  $('invoiceEditor').showModal();
+}
+
+function openEditor(record=null,draft=null) {
+  if(state.tab==='offerten'){openOfferEditor(record,draft);return;}
+  if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
+  if(state.tab==='rechnungen'){openInvoiceEditor(record,draft);return;}
   state.editing=record;
   $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
   const form=$('editorForm');
   form.replaceChildren();
-  for(const [key,label,type] of definitions[state.tab].fields)form.append(makeField(key,label,type,record?.[key]));
+  for(const [key,label,type] of definitions[state.tab].fields)
+    form.append(makeField(key,label,type,record?.[key] ?? draft?.[key]));
   const actions=el('div','form-actions');
   const cancel=el('button','btn','Abbrechen');cancel.type='button';cancel.addEventListener('click',()=>$('editor').close());
   const save=el('button','btn primary','Speichern');save.type='submit';save.id='save';
@@ -212,36 +2420,363 @@ function openEditor(record=null) {
   $('editor').showModal();
 }
 async function loadAll(){
-  const results=await Promise.all(order.map(x=>api('/api/records/'+x)));
-  order.forEach((x,i)=>state.records[x]=results[i].records);
+  const results=await Promise.all(order.map(x=>api('/api/records/'+x+'?pageSize=50')));
+  order.forEach((x,i)=>{
+    state.records[x]=results[i].records||[];
+    state.pageInfo[x]={nextCursor:results[i].nextCursor,hasMore:results[i].hasMore,loading:false};
+  });
+  try{state.summary=(await api('/api/cockpit/summary')).summary;}
+  catch(err){state.summary=null;$('syncStatus').textContent='Gesamtkennzahlen nicht verfügbar – bitte aktualisieren';}
+  const reminders=await api('/api/reminders').catch(()=>({reminders:[]}));
+  state.reminders=reminders.reminders||[];
   render();
+}
+// Only update new website leads in the background. Never replace open editors or
+// overwrite form inputs while someone is preparing an offer/invoice/project.
+async function refreshLeads(){
+  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending)return;
+  const loginToken=state.token;
+  leadsRefreshPending=true;
+  $('refreshLeads').disabled=true;
+  try{
+    const result=await api('/api/records/leads?pageSize=50');
+    if(state.token!==loginToken)return; // Late response after logout or re-login.
+    const incoming=Array.isArray(result.records)?result.records:[];
+    if(JSON.stringify(incoming)!==JSON.stringify((state.records.leads||[]).slice(0,50))){
+      state.records.leads=[...incoming,...(state.records.leads||[]).filter(x=>!incoming.some(y=>y.id===x.id))];
+      try{state.summary=(await api('/api/cockpit/summary')).summary;}catch{state.summary=null;}
+      render();
+    }
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    if(state.token!==loginToken)return;
+    if(err.status===401){
+      state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
+      $('error').textContent='Deine Google-Anmeldung ist abgelaufen. Bitte erneut anmelden.';
+      window.google?.accounts?.id?.prompt();
+    }else $('syncStatus').textContent='Aktualisierung fehlgeschlagen – bitte erneut versuchen';
+  }finally{
+    leadsRefreshPending=false;
+    $('refreshLeads').disabled=false;
+  }
 }
 async function signedIn(token){
   state.token=token;
   try {
     const me=await api('/api/me');
     $('who').textContent=me.email;
+    // Refresh the private TEST_ONLY recipient only after Google authentication.
+    const privateConfig=await api('/api/config');
+    state.contractActionsEnabled=privateConfig.contractActionsEnabled===true;
+    state.invoiceMailTestTo=String(privateConfig.invoiceMailTestTo||'').toLowerCase();
     await loadAll();
     $('signin').hidden=true;$('workspace').hidden=false;$('error').textContent='';
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
   }catch(err){state.token='';$('error').textContent='Anmeldung fehlgeschlagen: '+err.message;}
 }
 async function initialise(){
   try{
     const config=await api('/api/config');
+    state.contractActionsEnabled=config.contractActionsEnabled===true;
+    state.offerMailEnabled=config.offerMailEnabled===true;
+    state.offerMailMode=config.offerMailMode||'disabled';
+    state.offerMailTestTo=String(config.offerMailTestTo||'').toLowerCase();
+    state.invoiceMailEnabled=config.invoiceMailEnabled===true;
+    state.invoiceMailMode=config.invoiceMailMode||'disabled';
+    state.invoiceMailTestTo=String(config.invoiceMailTestTo||'').toLowerCase();
     for(let i=0;i<40 && !window.google?.accounts?.id;i++)await new Promise(r=>setTimeout(r,100));
     if(!window.google?.accounts?.id)throw new Error('Google-Anmeldung konnte nicht geladen werden.');
-    google.accounts.id.initialize({client_id:config.clientId,callback:res=>signedIn(res.credential)});
+    // Let Google renew our login after page reload without persisting ID tokens
+    // in localStorage or cookies controlled by browser JavaScript.
+    // The browser may still require One Tap confirmation (FedCM / multiple accounts).
+    google.accounts.id.initialize({
+      client_id:config.clientId,
+      callback:res=>signedIn(res.credential),
+      auto_select:true,
+      button_auto_select:true
+    });
     google.accounts.id.renderButton($('googleButton'),{theme:'filled_black',size:'large',text:'signin_with',width:290});
+    // Returning users may be signed in automatically; if that is not allowed,
+    // Google offers One Tap and the regular sign-in button stays available.
+    google.accounts.id.prompt();
   }catch(err){$('error').textContent='CRM noch nicht eingerichtet: '+err.message;}
 }
 $('nav').addEventListener('click',event=>{
   const tab=event.target.closest('[data-tab]')?.dataset.tab;
-  if(!tab||!definitions[tab])return;
-  state.tab=tab;$('search').value='';render();
+  if(!tab||(tab!=='dashboard'&&!definitions[tab]))return;
+  navigateTo(tab);
 });
-$('search').addEventListener('input',render);
+$('search').addEventListener('input',()=>{
+  clearTimeout(searchDebounce);
+  state.searchNonce++; // invalidate any in-flight older query immediately
+  searchDebounce=setTimeout(loadFilteredRows,350);
+});
+$('statusFilter').addEventListener('change',()=>{
+  state.filterStatus=$('statusFilter').value;
+  clearTimeout(searchDebounce);loadFilteredRows();
+});
+$('invoiceDueFilter').addEventListener('change',()=>{
+  state.invoiceDueFilter=$('invoiceDueFilter').value;
+  clearTimeout(searchDebounce);loadFilteredRows();
+});
+$('refreshLeads').addEventListener('click',async()=>{
+  if(!state.token||document.querySelector('dialog[open]'))return;
+  $('refreshLeads').disabled=true;
+  try{
+    await loadAll();
+    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    $('syncStatus').textContent='Aktualisierung fehlgeschlagen: '+err.message;
+  }finally{$('refreshLeads').disabled=false;}
+});
+// Refresh only while the signed-in CRM is visible; no expensive background polling.
+setInterval(refreshLeads,LEAD_REFRESH_INTERVAL_MS);
+setInterval(refreshLeadAges,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLeads();});
+window.addEventListener('focus',refreshLeads);
 $('add').addEventListener('click',()=>openEditor());
 $('close').addEventListener('click',()=>$('editor').close());
+$('leadDetailClose').addEventListener('click',()=>$('leadDetail').close());
+$('invoiceClose').addEventListener('click',()=>$('invoiceEditor').close());
+$('invoiceCancel').addEventListener('click',()=>$('invoiceEditor').close());
+$('invoiceAddLine').addEventListener('click',()=>{addInvoiceLine();markInvoiceUnsaved();});
+$('invoicePrint').addEventListener('click',()=>{
+  if(!state.invoiceEditing||$('invoicePrint').disabled)return;
+  openCloudPrint('rechnung',state.invoiceEditing.id);
+});
+$('invoicePdf').addEventListener('click',async()=>{
+  if(!state.invoiceEditing||$('invoicePdf').disabled)return;
+  const button=$('invoicePdf');button.disabled=true;
+  try{
+    const r=await fetch('/api/pdf/rechnung/'+encodeURIComponent(state.invoiceEditing.id),{
+      headers:{'Authorization':'Bearer '+state.token}
+    });
+    if(!r.ok){const error=await r.json().catch(()=>({}));throw new Error(error.error||'HTTP '+r.status);}
+    const blob=await r.blob(),url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    a.download='LSZH_Rechnung_'+state.invoiceEditing.number+'.pdf';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),300000);
+  }catch(error){window.alert('Swiss-QR-PDF nicht verfügbar: '+error.message);}
+  finally{button.disabled=false;}
+});
+$('invoiceSend').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceSend');
+  if(!invoice||button.disabled)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  if(!customer?.email){window.alert('Bitte zuerst die E-Mail des Rechnungskunden erfassen.');return;}
+  const text='RECHNUNG WIRKLICH SENDEN?\n'+
+    invoice.number+' · CHF '+Number(invoice.amountCHF).toFixed(2)+'\n'+
+    'Empfänger: '+customer.email+'\n'+
+    'Swiss-QR-PDF als Anhang. Versand erfolgt über LSZH Gmail und ist nicht rückgängig zu machen.';
+  if(!window.confirm(text))return;
+  button.disabled=true;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/send',{
+      method:'POST',body:JSON.stringify({})
+    });
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    $('invoiceError').textContent='Rechnungsversand: '+error.message;
+    $('invoiceError').hidden=false;
+    await loadAll();
+    const refreshed=(state.records.rechnungen||[]).find(x=>x.id===invoice.id);
+    if(refreshed){state.invoiceEditing=refreshed;renderInvoiceDispatch(refreshed);}
+  }finally{button.disabled=false;}
+});
+$('invoiceCopyReminder').addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText($('invoiceReminderText').value);
+    window.alert('Entwurf kopiert. Bitte Empfänger und Inhalt vor dem manuellen Versand prüfen.');
+  }catch(error){window.alert('Kopieren nicht möglich: '+error.message);}
+});
+$('invoiceLogReminder').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceLogReminder');
+  if(!invoice||button.disabled)return;
+  const levels=['Zahlungserinnerung','1. Mahnung','2. Mahnung'];
+  const next=levels[(invoice.reminderHistory||[]).length];
+  if(!next)return;
+  const customer=(state.records.kunden||[]).find(c=>c.id===invoice.customerId);
+  if(!window.confirm('Hast du '+next+' für '+invoice.number+
+    ' wirklich manuell an '+customer?.email+' versendet?\n'+
+    'Dies protokolliert nur den bereits erfolgten Versand; das CRM sendet keine E-Mail.'))return;
+  const payload={reminderId:button.dataset.pendingId||(window.crypto?.randomUUID?.()||''),kind:next};
+  button.dataset.pendingId=payload.reminderId;button.disabled=true;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/reminders',{
+      method:'POST',body:JSON.stringify(payload)
+    });
+    button.dataset.pendingId='';
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    window.alert('Mahnprotokoll: '+error.message+'\nVor erneutem Versuch die Mahnhistorie prüfen.');
+    await loadAll().catch(()=>{});
+  }finally{button.disabled=false;}
+});
+$('invoiceRecordPayment').addEventListener('click',async()=>{
+  const invoice=state.invoiceEditing,button=$('invoiceRecordPayment');
+  if(!invoice||button.disabled||!['Offen','Teilbezahlt'].includes(invoice.status)||
+     invoice.invoiceDispatchState!=='confirmed')return;
+  const payload={
+    paymentId:button.dataset.pendingId||(window.crypto?.randomUUID?.()||''),
+    amountCHF:$('invoicePaymentAmount').value,
+    paidOn:$('invoicePaymentDate').value,
+    method:$('invoicePaymentMethod').value,
+    reference:$('invoicePaymentReference').value.trim()
+  };
+  if(!Number.isFinite(Number(payload.amountCHF))||Number(payload.amountCHF)<=0||!payload.paidOn){
+    window.alert('Bitte einen gültigen Zahlungseingang mit Datum angeben.');return;
+  }
+  if(!window.confirm('Zahlung auf dem Kontoauszug / Beleg tatsächlich geprüft?\n'+
+    invoice.number+' · '+invoiceCHF(Number(payload.amountCHF))+' · '+payload.paidOn+' · '+payload.method+
+    '\nDie Buchung wird protokolliert und kann nicht einfach gelöscht werden.'))return;
+  button.disabled=true;button.dataset.pendingId=payload.paymentId;
+  try{
+    await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/payments',{
+      method:'POST',body:JSON.stringify(payload)
+    });
+    button.dataset.pendingId='';
+    await reopenSavedInvoice(invoice.id);
+  }catch(error){
+    window.alert('Buchung unklar oder abgelehnt: '+error.message+
+      '\nBitte vor einem erneuten Versuch die Zahlungshistorie kontrollieren. Bei gleicher Eingabe bleibt die Buchungs-ID identisch.');
+    await loadAll().catch(()=>{});
+  }finally{button.disabled=false;}
+});
+$('invoiceForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(state.invoiceLocked)return;
+  const form=$('invoiceForm'),values={};
+  for(const key of ['customerId','projectId','description','invoiceDate','dueDate','status']){
+    const control=form.elements.namedItem(key);
+    values[key]=control?.value??'';
+  }
+  values.items=invoiceItems();
+  const error=$('invoiceError');
+  error.hidden=true;
+  if(!values.description.trim()||values.items.some(x=>!x.title)){
+    error.textContent='Bitte Beschreibung und alle Rechnungspositionen ausfüllen.';
+    error.hidden=false;return;
+  }
+  const button=$('invoiceSave');button.disabled=true;button.textContent='Speichere …';
+  try{
+    const current=state.invoiceEditing;
+    const result=await api('/api/records/rechnungen'+(current?'/'+encodeURIComponent(current.id):''),{
+      method:current?'PATCH':'POST',body:JSON.stringify(values)
+    });
+    $('invoiceEditor').close();
+    await loadAll();
+    const updated=(state.records.rechnungen||[]).find(x=>x.id===result.record.id);
+    if(updated)openInvoiceEditor(updated);
+  }catch(err){
+    error.textContent='Rechnung konnte nicht gespeichert werden: '+err.message;
+    error.hidden=false;
+  }finally{button.disabled=false;button.textContent='Speichern';}
+});
+$('projectClose').addEventListener('click',()=>$('projectEditor').close());
+$('projectCancel').addEventListener('click',()=>$('projectEditor').close());
+$('projectAddTask').addEventListener('click',()=>addProjectTask());
+$('projectForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=$('projectForm');
+  const data={};
+  for(const key of ['customerId','offerId','title','description','dueDate','status']){
+    const field=form.elements.namedItem(key);
+    data[key]=field?.value??'';
+  }
+  if(state.projectEditing?.offerId){
+    // Preserves the accepted-offer/customer linkage on the existing project.
+    data.offerId=state.projectEditing.offerId;
+    data.customerId=state.projectEditing.customerId||'';
+  }
+  data.tasks=projectTasksFromForm();
+  const error=$('projectError');
+  error.hidden=true;
+  if(!data.title.trim()||data.tasks.some(x=>!x.title)){
+    error.textContent='Bitte den Projektnamen und alle Aufgabenbezeichnungen ausfüllen.';
+    error.hidden=false;return;
+  }
+  const button=$('projectSave');
+  button.disabled=true;button.textContent='Speichere …';
+  try{
+    const current=state.projectEditing;
+    const result=await api('/api/records/projekte'+(current?'/'+encodeURIComponent(current.id):''),{
+      method:current?'PATCH':'POST',body:JSON.stringify(data)
+    });
+    $('projectEditor').close();
+    await loadAll();
+    const updated=(state.records.projekte||[]).find(x=>x.id===result.record.id);
+    if(updated)openProjectEditor(updated);
+  }catch(err){
+    error.textContent='Projekt konnte nicht gespeichert werden: '+err.message;
+    error.hidden=false;
+  }finally{button.disabled=false;button.textContent='Speichern';}
+});
+$('offerClose').addEventListener('click',()=>$('offerEditor').close());
+$('offerCancel').addEventListener('click',()=>$('offerEditor').close());
+$('offerAddLine').addEventListener('click',()=>{
+  if(state.offerLocked)return;
+  addQuoteLine();
+  markQuoteUnsaved();
+});
+async function openCloudPrint(type,id){
+  // A private PDF must never be available by an unauthenticated GET link.
+  // Open a blank tab during the actual click to avoid popup blockers, then
+  // load the authenticated response through the CRM bearer token.
+  const tab=window.open('about:blank','_blank');
+  if(!tab){window.alert('Bitte Pop-ups für das CRM erlauben.');return;}
+  tab.opener=null;
+  try{
+    const r=await fetch('/api/print/'+type+'/'+encodeURIComponent(id),{
+      headers:{'Authorization':'Bearer '+state.token}
+    });
+    if(!r.ok){
+      const data=await r.json().catch(()=>({}));
+      throw new Error(data.error||'HTTP '+r.status);
+    }
+    const html=await r.text();
+    const uri=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+    tab.location.replace(uri);
+    setTimeout(()=>URL.revokeObjectURL(uri),300000);
+  }catch(err){
+    tab.close();
+    window.alert('Druckvorschau nicht verfügbar: '+err.message);
+  }
+}
+$('offerPrint').addEventListener('click',()=>{
+  if(!state.offerEditing||$('offerPrint').disabled)return;
+  openCloudPrint('offerte',state.offerEditing.id);
+});
+$('offerForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(state.offerLocked)return;
+  const form=$('offerForm');
+  const data={};
+  for(const key of ['leadId','customerId','title','description','validUntil','status']){
+    const field=form.elements.namedItem(key);
+    data[key]=field?.value??'';
+  }
+  if(!data.title.trim()){
+    window.alert('Bitte einen Offertentitel eingeben.');
+    return;
+  }
+  data.items=quoteItemsFromForm();
+  const current=state.offerEditing;
+  const save=$('offerSave');
+  save.disabled=true;save.textContent='Speichere …';
+  try {
+    const endpoint='/api/records/offerten'+(current?'/'+encodeURIComponent(current.id):'');
+    const result=await api(endpoint,{
+      method:current?'PATCH':'POST',body:JSON.stringify(data)
+    });
+    $('offerEditor').close();
+    await loadAll();
+    const found=(state.records.offerten||[]).find(x=>x.id===result.record.id);
+    if(found)openOfferEditor(found);
+  }catch(err){
+    window.alert('Offerte konnte nicht gespeichert werden: '+err.message);
+  }finally{save.disabled=false;save.textContent='Speichern';}
+});
 $('editorForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=$('editorForm'),data=Object.fromEntries(new FormData(form).entries());
@@ -255,6 +2790,7 @@ $('editorForm').addEventListener('submit',async event=>{
 });
 $('logout').addEventListener('click',()=>{
   state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
+  $('syncStatus').textContent='';
   google.accounts.id.disableAutoSelect();$('error').textContent='';
 });
 initialise();

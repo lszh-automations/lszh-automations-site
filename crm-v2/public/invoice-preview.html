@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>LSZH Rechnung {{NUMBER}} – Testvorschau</title>
+<style>
+@page{size:A4;margin:18mm}
+*{box-sizing:border-box}body{margin:0;background:#eaf0f5;font:12px/1.55 Arial,Helvetica,sans-serif;color:#21354e}
+.sheet{max-width:210mm;min-height:297mm;background:#fff;padding:18mm;margin:24px auto;box-shadow:0 12px 35px #20344822}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:24px;border-bottom:3px solid #214d78}
+.logo{font-size:24px;font-weight:850;letter-spacing:.07em;color:#173d64}.logo small{font-size:10px;color:#4389bd;letter-spacing:.12em}
+.muted{font-size:11px;color:#73859b}.warning{margin:23px 0;background:#fff0d4;color:#684316;border:1px solid #dbb477;padding:13px;font-weight:700}
+h1{font-size:30px;margin:20px 0 3px;color:#153858}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin:29px 0}
+.meta strong{display:block;color:#47627d;font-size:11px;margin-bottom:7px}
+h2{font-size:15px;margin:25px 0 10px}
+table{width:100%;border-collapse:collapse;margin:17px 0;font-size:11px}
+th{text-align:left;border-bottom:1px solid #bacddd;background:#eef4f9;padding:11px 8px;color:#47627d}
+td{padding:10px 8px;border-bottom:1px solid #dfebf2;vertical-align:top}
+.right{text-align:right;white-space:nowrap}
+.total{border-top:2px solid #204b70;margin:25px 0 0 auto;padding-top:15px;display:flex;justify-content:space-between;max-width:310px;font-size:17px;font-weight:700}
+.footer{border-top:1px solid #d2e0eb;margin-top:45px;padding-top:12px;font-size:10px;color:#8293a5}
+.print{position:fixed;top:22px;right:25px;background:#1d527b;color:#fff;border:0;padding:13px 18px;border-radius:9px;font-weight:bold;cursor:pointer}
+@media print{body{background:#fff}.sheet{box-shadow:none;max-width:none;min-height:0;padding:0;margin:0}.print{display:none}.warning,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid}}
+@media(max-width:650px){.sheet{min-height:0;margin:0;padding:20px}.meta{grid-template-columns:1fr}.top{flex-wrap:wrap}.right{white-space:normal}.print{position:sticky;top:0;float:right}}
+</style></head>
+<body><button class="print" type="button" onclick="window.print()">Drucken / als PDF speichern</button>
+<div class="sheet">
+<div class="top"><div><div class="logo">LSZH <small>AUTOMATIONS</small></div><div class="muted">Ein Geschäftsbereich der LSZH Invest GmbH</div></div><div class="muted">Wohlen AG · Schweiz<br>INTERNE CRM-TESTVORSCHAU</div></div>
+<div class="warning">INTERNE TESTVORSCHAU – KEINE GÜLTIGE ZAHLUNGSANWEISUNG – NICHT AN KUNDEN VERSENDEN</div>
+<h1>Rechnung</h1><div class="muted">Rechnungs-Nr. {{NUMBER}} · Status: {{STATUS}}</div>
+<div class="meta"><div><strong>RECHNUNGSEMPFÄNGER</strong>{{RECIPIENT}}</div>
+<div><strong>RECHNUNGSDATEN</strong>Datum: {{ISSUED}}<br>Fällig: {{DUE}}<br>Projekt: {{PROJECT}}</div></div>
+<h2>{{SUBJECT}}</h2>
+{{POSITIONS}}
+<div class="total"><span>Gesamtbetrag</span><span>{{TOTAL}}</span></div>
+<p class="muted" style="margin-top:32px">Die LSZH Invest GmbH ist nicht MWST-registriert. Es wird keine MWST ausgewiesen. Der separate Swiss-QR-PDF-Download ist erst nach Zahlungsdaten- und Betriebsfreigabe verfügbar. Keine automatische Zahlungsverbuchung oder Zustellung.</p>
+<div class="footer">LSZH Automations · LSZH Invest GmbH · Interne Testrechnung · Kein Versand · Keine Zahlungsaufforderung</div>
+</div></body></html>

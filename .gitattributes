@@ -1,0 +1,6 @@
+# Preserve the exact bytes recovered from deployed Cloud Run source archives.
+crm-v2/** -text whitespace=cr-at-eol
+customer-portal/** -text whitespace=cr-at-eol
+docs/** text eol=lf
+releases/** text eol=lf
+*.pdf binary

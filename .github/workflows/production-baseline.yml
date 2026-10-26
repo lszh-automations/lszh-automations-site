@@ -1,0 +1,33 @@
+name: Production baseline verification
+on:
+  push:
+    branches: [release/production-baseline-20261026]
+  pull_request:
+    paths: ['crm-v2/**', 'customer-portal/**', 'releases/**', 'scripts/verify-production-baseline.cjs', 'scripts/test-production-portal.cjs', '.github/workflows/production-baseline.yml']
+permissions:
+  contents: read
+jobs:
+  offline-and-emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: crm-v2/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - run: node scripts/verify-production-baseline.cjs
+      - run: npm test --prefix crm-v2
+      - run: node scripts/test-production-portal.cjs
+      - name: Demo-only Firestore transaction tests
+        env:
+          GCLOUD_PROJECT: demo-lszha-c2-20261025
+          GOOGLE_CLOUD_PROJECT: demo-lszha-c2-20261025
+          FIREBASE_PROJECT_ID: demo-lszha-c2-20261025
+        run: npx --yes firebase-tools@15.1.0 emulators:exec --only firestore --project demo-lszha-c2-20261025 "node --test crm-v2/emulator-tests/*.test.js"

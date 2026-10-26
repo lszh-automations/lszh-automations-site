@@ -1,3 +1,5 @@
+> Historischer Entwicklungsplan vom 22.10.2026. Für den heutigen Produktivstatus gilt [Produktionsrelease 26.10.2026](LSZH_PRODUCTION_RELEASE_20261026.md).
+
 # LSZH Automations CRM V2 – verbindlicher schlanker Aufbau
 
 Status: **Entwicklungsgrundlage**, noch kein Produktivbetrieb. Stand: 22.10.2026.

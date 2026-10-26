@@ -1,0 +1,228 @@
+name: CRM V2 read-only search tests
+on:
+  push:
+    branches:
+      - feature/crm-v2-server-search-20261024
+      - feature/crm-v2-read-performance-20261024
+      - feature/crm-v2-offer-contract-package-staging-20261025
+      - feature/crm-v2-contract-package-mail-staging-20261025
+      - feature/crm-v2-contract-release-ledger-staging-20261025
+      - feature/crm-v2-contract-firestore-emulator-20261025
+      - feature/crm-v2-contract-gmail-staging-20261025
+      - feature/crm-v2-contract-gmail-transport-staging-20261025
+      - feature/crm-v2-contract-c33-safety-preflight-20261025
+      - feature/crm-v2-contract-c34-gmail-readback-staging-20261025
+      - feature/crm-v2-contract-c35-gmail-readonly-adapter-20261025
+      - feature/crm-v2-contract-c36-oauth-callback-20261025
+      - feature/crm-v2-contract-c37-gmail-backend-staging-20261025
+    paths:
+      - "crm-v2/**"
+      - "firebase.json"
+      - "scripts/test-crm-contract-c3-2-make-blocked.ps1"
+      - "scripts/test-crm-contract-firestore-emulator.ps1"
+      - "scripts/check-crm-c37-oauth-infrastructure.ps1"
+      - "scripts/test-crm-c37-oauth-infra-offline.ps1"
+      - "scripts/prepare-crm-c372-private-source.ps1"
+      - "scripts/prepare-crm-c372-profile-job-source.ps1"
+      - "scripts/*crm-search*.ps1"
+      - "scripts/*crm-read-performance*.ps1"
+      - "scripts/measure-crm-read-performance.ps1"
+      - ".github/workflows/crm-v2-search-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crm-search:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: crm-v2/package-lock.json
+      - name: Install dependencies without running project scripts
+        run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Run all CRM regression tests
+        run: npm test --prefix crm-v2
+      - name: Parse server and UI JavaScript
+        run: |
+          node --check crm-v2/cloud-records.js
+          node --check crm-v2/server.js
+          node --check crm-v2/read-singleflight.js
+          node --check crm-v2/test/read-singleflight.test.js
+          node --check crm-v2/test/crm-search.test.js
+          node --check crm-v2/offer-contract-package.js
+          node --check crm-v2/test/offer-contract-package.test.js
+          node --check crm-v2/offer-contract-package-preview.js
+          node --check crm-v2/test/offer-contract-package-preview.test.js
+          node --check crm-v2/offer-contract-package-make-mock.js
+          node --check crm-v2/test/offer-contract-package-make-mock.test.js
+          node --check crm-v2/scripts/generate-contract-make-learn-sample.cjs
+          node --check crm-v2/test/offer-contract-make-learn-sample.test.js
+          node --check crm-v2/contract-dispatch-release-staging.js
+          node --check crm-v2/contract-dispatch-ledger-staging.js
+          node --check crm-v2/test/contract-dispatch-phase-c.test.js
+          node --check crm-v2/contract-gmail-draft-staging.js
+          node --check crm-v2/contract-gmail-evidence-staging.js
+          node --check crm-v2/test/contract-gmail-phase-c3.test.js
+          node --check crm-v2/contract-gmail-make-transport-staging.js
+          node --check crm-v2/contract-gmail-api-readonly-staging.js
+          node --check crm-v2/contract-dispatch-preflight-staging.js
+          node --check crm-v2/test/contract-dispatch-c33-preflight.test.js
+          node --check crm-v2/contract-gmail-c34-readback-staging.js
+          node --check crm-v2/test/contract-gmail-c34-readback.test.js
+          node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
+          node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
+          node --check crm-v2/contract-gmail-c36-local-oauth.js
+          node --check crm-v2/scripts/c36-local-oauth-probe.cjs
+          node --check crm-v2/test/contract-gmail-c36-local-oauth.test.js
+          node --check crm-v2/contract-gmail-c37-backend-staging.js
+          node --check crm-v2/test/contract-gmail-c37-backend-staging.test.js
+          node --check crm-v2/test/contract-gmail-c371-infrastructure.test.js
+          node --check crm-v2/contract-gmail-c371-offline-consent.js
+          node --check crm-v2/contract-gmail-c371-secret-writer.js
+          node --check crm-v2/contract-gmail-c371-local-callback.js
+          node --check crm-v2/scripts/c371-offline-oauth-to-secret.cjs
+          node --check crm-v2/test/contract-gmail-c371-offline-consent.test.js
+          node --check crm-v2/test/contract-gmail-c371-windows-transport.test.js
+          node --check crm-v2/c372-readonly-server.js
+          node --check crm-v2/test/contract-gmail-c372-private-server.test.js
+          node --check crm-v2/c372-profile-job.js
+          node --check crm-v2/test/contract-gmail-c372-profile-job.test.js
+          node --check crm-v2/contract-gmail-c35-readonly-api-staging.js
+          node --check crm-v2/test/contract-gmail-c35-readonly-api.test.js
+          node --check crm-v2/test/contract-gmail-phase-c3-2.test.js
+          node --check crm-v2/scripts/generate-contract-c3-2-blocked-make-sample.cjs
+          node --check crm-v2/test/contract-gmail-phase-c3-2-generator.test.js
+          node --check crm-v2/emulator-tests/contract-dispatch-firestore.test.js
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const html=fs.readFileSync('crm-v2/public/index.html','utf8');
+          const inline=html.match(/<script>\s*('use strict';[\s\S]*?)<\/script>/);
+          if(!inline)throw new Error('CRM inline script missing');
+          new Function(inline[1]);
+          console.log('CRM UI JavaScript parse PASS');
+          NODE
+
+  powershell-parse:
+    name: Validate search staging script syntax without execution
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Windows PowerShell parser (no deployment)
+        shell: powershell
+        run: |
+          $paths=@('scripts/prepare-crm-search-zero-traffic.ps1','scripts/activate-crm-search-live.ps1','scripts/prepare-crm-read-performance-zero-traffic.ps1','scripts/activate-crm-read-performance-live.ps1','scripts/measure-crm-read-performance.ps1','scripts/test-crm-contract-firestore-emulator.ps1','scripts/test-crm-contract-c3-2-make-blocked.ps1','scripts/check-crm-c37-oauth-infrastructure.ps1','scripts/test-crm-c37-oauth-infra-offline.ps1','scripts/prepare-crm-c372-private-source.ps1','scripts/prepare-crm-c372-profile-job-source.ps1')
+          foreach($path in $paths) {
+            $tokens=$null
+            $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path).Path,[ref]$tokens,[ref]$errors) | Out-Null
+            if($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+            }
+            Write-Host "CRM SEARCH POWERSHELL PARSER PASS: $path"
+          }
+      - name: Test C3.7.1 IAM and empty-secret preflight with synthetic gcloud only
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts/test-crm-c37-oauth-infra-offline.ps1"
+      - name: Install Node for offline C3.7.1 Windows stdin transport test
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install only CRM Node dependencies on Windows
+        shell: powershell
+        run: npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Prove C3.7.1 synthetic secret bytes through mock gcloud.cmd stdin
+        shell: powershell
+        run: node --test crm-v2/test/contract-gmail-c371-windows-transport.test.js
+      - name: Verify C3.7.2 source allowlist without deploying
+        shell: powershell
+        run: |
+          $output=@(& '.\scripts\prepare-crm-c372-private-source.ps1')
+          if ($output.Count -ne 1) { throw 'C3.7.2 source staging failed' }
+          $folder=$output[0]
+          try {
+            if (-not (Test-Path (Join-Path $folder 'package.json'))) { throw 'Missing isolated manifest' }
+            if (Test-Path (Join-Path $folder 'server.js')) { throw 'Production CRM present in staging context' }
+            if (Test-Path (Join-Path $folder 'offer-send.js')) { throw 'Production mail module in staging context' }
+            $json=Get-Content (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
+            if ($json.scripts.start -cne 'node c372-readonly-server.js') { throw 'Incorrect private entry point' }
+            Write-Host 'C3.7.2 PRIVATE SOURCE ALLOWLIST PASS - NO DEPLOYMENT'
+          } finally {
+            Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Check C3.7.2 minimal Cloud Run job source without deploying
+        shell: powershell
+        run: |
+          $output=@(& '.\scripts\prepare-crm-c372-profile-job-source.ps1')
+          if ($output.Count -ne 1) { throw 'C3.7.2 job source staging failed' }
+          $folder=$output[0]
+          try {
+            if (-not (Test-Path -LiteralPath $folder -PathType Container)) { throw 'No job source dir' }
+            $files=@(Get-ChildItem -LiteralPath $folder -File)
+            if ($files.Count -ne 11) { throw 'Wrong C3.7.2 job source file count' }
+            if (Test-Path (Join-Path $folder 'server.js')) { throw 'Live CRM server copied' }
+            if (Test-Path (Join-Path $folder 'c372-readonly-server.js')) { throw 'HTTP server copied into one-off job' }
+            if (Test-Path (Join-Path $folder 'offer-send.js')) { throw 'Mail sender copied' }
+            $manifest=Get-Content (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
+            if ($manifest.scripts.start -cne 'node c372-profile-job.js') { throw 'Incorrect job entrypoint' }
+            Write-Host 'C3.7.2 PROFILE JOB SOURCE PASS - ZERO CLOUD CALLS'
+          } finally {
+            Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Verify PowerShell 5.1 Cloud Logging nested JSON parsing (offline fixture)
+        shell: powershell
+        run: |
+          $source=[IO.File]::ReadAllText((Resolve-Path 'scripts/measure-crm-read-performance.ps1').Path)
+          $start=$source.IndexOf('function AddLogEntries(')
+          $end=$source.IndexOf('function ReadRevisionLog(', $start)
+          if($start -lt 0 -or $end -le $start) { throw 'Telemetry JSON flattener missing' }
+          . ([scriptblock]::Create($source.Substring($start,$end-$start)))
+          $fixture='[{"httpRequest":{"status":200,"requestUrl":"https://test.invalid/api/cockpit/summary","latency":"0.1s"}},{"httpRequest":{"status":401,"requestUrl":"https://test.invalid/api/records/leads","latency":"0.2s"}}]'
+          $decoded=ConvertFrom-Json -InputObject $fixture
+          $boxed=New-Object 'System.Object[]' 1
+          $boxed[0]=$decoded
+          $doubleBox=New-Object 'System.Object[]' 1
+          $doubleBox[0]=$boxed
+          $entries=New-Object 'System.Collections.Generic.List[object]'
+          AddLogEntries $doubleBox $entries
+          if($entries.Count -ne 2) { throw 'Wrong number of flattened request entries' }
+          if([int]$entries[0].httpRequest.status -ne 200 -or [int]$entries[1].httpRequest.status -ne 401) {
+            throw 'HTTP statuses were grouped rather than decoded per request'
+          }
+          Write-Host 'CRM TELEMETRY WINDOWS JSON FLATTEN PASS'
+
+  contract-firestore-emulator:
+    name: Contract dispatch ledger / local Firestore emulator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: crm-v2/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install CRM dependencies only
+        run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+      - name: Verify demo-only emulator config and test script
+        run: |
+          node --check crm-v2/emulator-tests/contract-dispatch-firestore.test.js
+          node -e "const f=require('./firebase.json');if(f.emulators.firestore.host!=='127.0.0.1'||f.emulators.firestore.port!==8788)process.exit(1)"
+      - name: Run actual Firestore emulator transaction tests (no cloud credentials)
+        env:
+          GCLOUD_PROJECT: demo-lszha-c2-20261025
+          GOOGLE_CLOUD_PROJECT: demo-lszha-c2-20261025
+          FIREBASE_PROJECT_ID: demo-lszha-c2-20261025
+        run: |
+          npx --yes firebase-tools@15.1.0 emulators:exec --only firestore --project demo-lszha-c2-20261025 "node --test crm-v2/emulator-tests/contract-dispatch-firestore.test.js"

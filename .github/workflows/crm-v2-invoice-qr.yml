@@ -1,0 +1,127 @@
+name: CRM V2 Swiss QR invoice test
+on:
+  push:
+    branches:
+      - feature/crm-v2-cloud-staging-20261023
+      - feature/crm-v2-invoice-settlement-20261024
+    paths:
+      - "crm-v2/**"
+      - "scripts/*crm-invoice*.ps1"
+      - ".github/workflows/crm-v2-invoice-qr.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "crm-v2/**"
+      - "scripts/*crm-invoice*.ps1"
+      - ".github/workflows/crm-v2-invoice-qr.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  swiss-qr-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install CRM dependencies
+        run: npm install --prefix crm-v2 --no-audit --no-fund
+      - name: Run all CRM tests (no external sends)
+        run: npm test --prefix crm-v2
+      - name: Create synthetic A4 PDF with Swiss QR
+        run: node crm-v2/scripts/invoice-qr-smoke.js
+      - name: Inspect A4 page geometry and texts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          pdfinfo crm-v2/out/TEST_ONLY_LSZH_Swiss_QR.pdf | tee /tmp/crm-qr-pdfinfo.txt
+          grep -Eq '^Pages:[[:space:]]+1$' /tmp/crm-qr-pdfinfo.txt
+          grep -Eq '^Page size:[[:space:]]+595' /tmp/crm-qr-pdfinfo.txt
+          pdftotext crm-v2/out/TEST_ONLY_LSZH_Swiss_QR.pdf /tmp/crm-qr-text.txt
+          grep -q 'Keine MWST' /tmp/crm-qr-text.txt
+      - name: Decode QR from the actual rendered PDF
+        run: |
+          python -m pip install --quiet opencv-python-headless
+          pdftoppm -f 1 -l 1 -r 240 -singlefile -png             crm-v2/out/TEST_ONLY_LSZH_Swiss_QR.pdf /tmp/crm-qr-rendered
+          python - <<'PY'
+          import cv2
+          image=cv2.imread('/tmp/crm-qr-rendered.png')
+          assert image is not None
+          data,points,_=cv2.QRCodeDetector().detectAndDecode(image)
+          assert points is not None and data, "QR was not machine-readable in rendered PDF"
+          parts=data.splitlines()
+          assert len(parts)==31,parts
+          assert parts[:4]==['SPC','0200','1','CH9300762011623852957']
+          assert parts[18]=='499.90' and parts[19]=='CHF'
+          assert parts[27:]==['NON','','Rechnung RE-1000','EPD']
+          print('SWISS QR PDF SCAN PASS',len(parts),'fields')
+          PY
+      - name: Preserve only the synthetic QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lszh-crm-v2-synthetic-invoice-qr
+          path: crm-v2/out/TEST_ONLY_LSZH_Swiss_QR.pdf
+          if-no-files-found: ignore
+          retention-days: 5
+
+  powershell-parse:
+    name: Validate Windows PowerShell 5.1 release scripts (syntax only)
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse invoice release and synthetic gateway scripts without execution
+        shell: powershell
+        run: |
+          $paths = @(
+            "scripts/deploy-crm-invoice-mail-zero-traffic.ps1",
+            "scripts/test-crm-invoice-mail-gateway-once.ps1",
+            "scripts/prepare-crm-invoice-settlement-live-test.ps1",
+            "scripts/activate-crm-invoice-settlement-live.ps1",
+            "scripts/prepare-crm-invoice-mail-testonly-live.ps1",
+            "scripts/activate-crm-invoice-mail-testonly-live.ps1",
+            "scripts/prepare-crm-invoice-mail-production-live.ps1",
+            "scripts/activate-crm-invoice-mail-production-live.ps1",
+            "scripts/prepare-crm-invoice-manual-all-zero-traffic.ps1",
+            "scripts/activate-crm-invoice-manual-all-live.ps1",
+            "scripts/prepare-crm-invoice-balance-live.ps1",
+            "scripts/activate-crm-invoice-balance-live.ps1",
+            "scripts/prepare-crm-invoice-dunning-live.ps1",
+            "scripts/activate-crm-invoice-dunning-live.ps1",
+            "scripts/prepare-crm-invoice-dunning-audit-live.ps1",
+            "scripts/activate-crm-invoice-dunning-audit-live.ps1",
+            "scripts/prepare-crm-cockpit-live.ps1",
+            "scripts/activate-crm-cockpit-live.ps1",
+            "scripts/prepare-crm-pagination-live.ps1",
+            "scripts/activate-crm-pagination-live.ps1"
+          )
+          foreach ($path in $paths) {
+            $fullPath = Join-Path (Get-Location).Path $path
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $fullPath, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.ToString() }
+              throw ("PowerShell 5.1 syntax failed: " + $path)
+            }
+            Write-Host ("PowerShell 5.1 parser PASS: " + $path)
+          }
+      - name: Run all CRM regression tests with Windows CRLF invoice HTML
+        shell: powershell
+        run: |
+          $invoiceHtml = Join-Path (Get-Location).Path 'crm-v2/public/index.html'
+          $html = [System.IO.File]::ReadAllText($invoiceHtml)
+          $html = [System.Text.RegularExpressions.Regex]::Replace($html, "\r\n|\r|\n", "`r`n")
+          [System.IO.File]::WriteAllText($invoiceHtml, $html, (New-Object System.Text.UTF8Encoding($false)))
+          npm.cmd ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd test --prefix crm-v2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

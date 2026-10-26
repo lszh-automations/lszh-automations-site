@@ -11,10 +11,10 @@ const sample=()=>({
   systems:'Excel und Outlook',main_problem:'Hoher Zeitaufwand',
   frequency:'Täglich',desired_result:'Schnellere Bearbeitung'
 });
-function fakeDb(){
+function fakeDb(collectionName='lszh_crm_v2_leads'){
   const documents=new Map();
   const db={collection(name){
-    assert.equal(name,'lszh_crm_v2_leads');
+    assert.equal(name,collectionName);
     return {doc(id){
       return {
         async create(value){
@@ -74,4 +74,35 @@ test('rejects changed data with reused submission id',async()=>{
 test('propagates storage failures and never confirms them',async()=>{
   const db={collection(){return {doc(){return {async create(){throw new Error('database unavailable');}};}};}};
   await assert.rejects(saveWebsiteLead(db,sample()),/database unavailable/);
+});
+
+test('staging website lead goes only into the staging collection, not the live one',async()=>{
+  const {db,documents}=fakeDb('lszh_crm_v2_staging_leads');
+  const created=await saveWebsiteLead(db,sample(),'2026-10-23T12:00:00Z','lszh_crm_v2_staging_leads');
+  assert.equal(created.created,true);
+  assert.equal(created.id,'web_123456781234423492341234567890ab');
+  assert.equal(documents.size,1);
+  const repeat=await saveWebsiteLead(db,sample(),'2026-10-23T12:01:00Z','lszh_crm_v2_staging_leads');
+  assert.equal(repeat.created,false);
+  assert.equal(repeat.id,created.id);
+  assert.equal(documents.size,1);
+  assert.equal(documents.get(created.id).createdAt,'2026-10-23T12:00:00Z');
+  assert.equal(documents.get(created.id).status,'Neu');
+  assert.equal(documents.get(created.id).postalCode,'5610');
+});
+test('a changed retry in staging returns HTTP 409 and leaves original untouched',async()=>{
+  const {db,documents}=fakeDb('lszh_crm_v2_staging_leads');
+  await saveWebsiteLead(db,sample(),undefined,'lszh_crm_v2_staging_leads');
+  const changed={...sample(),main_problem:'Nicht identisch'};
+  await assert.rejects(saveWebsiteLead(db,changed,undefined,'lszh_crm_v2_staging_leads'),
+    {status:409});
+  assert.equal(documents.size,1);
+  assert.equal([...documents.values()][0].mainProblem,'Hoher Zeitaufwand');
+});
+test('only live and isolated staging collections are permitted',async()=>{
+  const {db}=fakeDb();
+  for(const untrusted of ['other_collection','lszh_crm_v2_staging_kunden','lszh_crm_v2_offerten','']){
+    await assert.rejects(saveWebsiteLead(db,sample(),undefined,untrusted),
+      /unapproved_intake_collection/);
+  }
 });

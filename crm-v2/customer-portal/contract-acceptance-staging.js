@@ -2,6 +2,7 @@
 // Backend-only acceptance boundary. No mail, live CRM import or implicit win().
 const {randomBytes,createHmac,timingSafeEqual}=require('node:crypto');
 const {digest,verifyOfferPackage,verifyDocumentBytes}=require('./offer-contract-package');
+const {makeRequirements}=require('./make-requirements');
 const TEXT_VERSION='TEST_ONLY_ACCEPTANCE_v1_20261025';
 const DECLARATIONS=Object.freeze({
   terms:'Ich habe die Offerte und die Projektbedingungen gelesen und stimme diesen Dokumentversionen zu.',
@@ -76,8 +77,8 @@ function createContractAcceptance({store,readArchivedPdf,verifySentPackage,
   }
   async function preview(token,context){
     const r=await authorised(token,context),pkg=r.record.package;
-    await validateArchive(pkg);
-    return {testOnly,packageId:pkg.packageId,offerNumber:pkg.offerNumber,revision:pkg.revision,
+    verifyOfferPackage(pkg);await validateArchive(pkg);
+    return {testOnly,...(pkg.makeRequirementsVersion?{makeRequirements:makeRequirements(pkg.makeRequirementsVersion)}:{}),packageId:pkg.packageId,offerNumber:pkg.offerNumber,revision:pkg.revision,
       packageSha256:pkg.packageSha256,recipient:r.principal.email,avvRequired:pkg.avvRequired==='yes',
       expiresAt:new Date(r.invitation.expiresAt).toISOString(),csrf:r.csrf,
       declarations:DECLARATIONS,textVersion,
@@ -97,6 +98,7 @@ function createContractAcceptance({store,readArchivedPdf,verifySentPackage,
     const r=await authorised(token,context),pkg=r.record.package;
     if(typeof csrfHeader!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(csrfHeader)||
        !timingSafeEqual(Buffer.from(csrfHeader),Buffer.from(r.csrf)))throw fault('CSRF_REJECTED',403);
+    verifyOfferPackage(pkg);
     if(body.packageSha256!==pkg.packageSha256||body.revision!==pkg.revision)
       throw fault('DOCUMENT_VERSION_CHANGED',409);
     if(body.termsConsent!==true||body.representativeDeclaration!==true||
@@ -115,6 +117,7 @@ function createContractAcceptance({store,readArchivedPdf,verifySentPackage,
         terms:DECLARATIONS.terms,representative:DECLARATIONS.representative,
         ...(pkg.avvRequired==='yes'?{avv:DECLARATIONS.avv}:{})},
       documentHashes:Object.fromEntries(pkg.documents.map(d=>[d.kind,d.sha256])),
+      ...(pkg.makeRequirementsVersion?{makeRequirements:makeRequirements(pkg.makeRequirementsVersion)}:{}),
       documents:structuredClone(pkg.documents),sentProof:structuredClone(r.record.sentProof),
       acceptedAt:new Date(time).toISOString(),state:'customer_response_recorded',
       nextAction:'internal_review',writtenLszhConfirmationRequired:true};

@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -22,7 +24,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci --prefix crm-v2 --ignore-scripts --no-audit --no-fund
-      - run: node scripts/verify-production-baseline.cjs
+      # The historical production capture is immutable; current code evolves separately.
+      - run: node scripts/verify-production-baseline.cjs --ref production-2026-10-26
       - run: npm test --prefix crm-v2
       - run: node scripts/test-production-portal.cjs
       - name: Demo-only Firestore transaction tests

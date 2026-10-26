@@ -5,6 +5,7 @@ const {draftKey}=require('../contract-crm-actions');
 const {releaseKey,createLivePublicationPolicy}=require('../contract-live-package-bridge');
 const {digest}=require('../offer-contract-package');
 const catalog=require('../contract-document-catalog.json');
+const {MAKE_REQUIREMENTS_VERSION,makeRequirements}=require('../make-requirements');
 const terms=Buffer.from('%PDF-1.4 SYNTHETIC terms only %%EOF');
 catalog.terms={kind:'terms',version:'v1',archiveFileId:'synthetic_terms_12345',filename:'Terms.pdf',bytes:terms.length,sha256:digest(terms)};
 function fixture(){
@@ -23,6 +24,26 @@ test('preparation binds generated archived PDF, stored customer and release with
  const policy=createLivePublicationPolicy(f);assert.equal(await policy.verifyRelease({package:draft.package,recipient:'first@example.com'}),true);assert.equal(await policy.verifyRelease({package:draft.package,recipient:'other@example.com'}),false);
  assert.equal(Date.parse(f.rows.get(releaseKey(draft.package.packageId)).expiresAt)-f.now(),48*3600000);
  await assert.rejects(f.run(),{code:'PACKAGE_ALREADY_PREPARED'});assert.equal(f.uploads(),1);
+});
+
+test('new package notice is in the archived PDF, preview and publisher snapshot before any send',async()=>{
+ const f=fixture(),page=await f.preparation.preview(f.id);
+ assert.deepEqual(page.makeRequirements,makeRequirements(MAKE_REQUIREMENTS_VERSION));
+ await f.run();const draft=f.rows.get(draftKey(f.id));
+ assert.equal(draft.package.makeRequirementsVersion,MAKE_REQUIREMENTS_VERSION);
+ assert.match(f.files.get('synthetic_offer_12345').toString('latin1'),/IHR MAKE-KONTO/);
+ const publisher=require('../contract-package-publisher').createContractPackagePublisher({transaction:f.transaction,
+  authorizeOperator:f.authorizeOperator,readArchivedPdf:async id=>f.files.get(id),verifyRelease:async()=>true,
+  sendOnce:async()=>{throw Error('No send allowed in this test');},verifySentPackage:async()=>null,issueAcceptance:async()=>null,
+  enabled:true,now:f.now});
+ const prepared=await publisher.prepare(draft.package,'first@example.com',f.user);
+ assert.equal(prepared.state,'prepared');assert.equal(f.uploads(),1);
+});
+
+test('already prepared legacy package retains a preview without newly introduced requirements',async()=>{
+ const f=fixture();f.rows.set(draftKey(f.id),{package:{documents:[],makeRequirementsVersion:undefined}});
+ const page=await f.preparation.preview(f.id);assert.equal(page.makeRequirements,null);
+ await assert.rejects(f.run(),{code:'PACKAGE_ALREADY_PREPARED'});assert.equal(f.uploads(),0);
 });
 test('staff authorisation, explicit reviews and completed AVV are required before upload',async()=>{
  for(const patch of [{avvRequired:'review'},{documentsReviewed:false},{retentionApproved:false},{avvRequired:'yes'}]){const f=fixture();Object.assign(f.input,patch);await assert.rejects(f.run());assert.equal(f.uploads(),0);}

@@ -1763,6 +1763,7 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
   const preview=await api(base+'/preview');
   if(area.dataset.offerId!==offer.id)return;
   area.append(el('h4','','Versandvorschau'),el('p','','Empfänger: '+preview.recipient),el('p','','Offerte '+preview.offerNumber+' – '+(preview.title||'')));
+  if(preview.makeRequirements){const block=el('section','offer-workflow-meta');block.append(el('strong','',preview.makeRequirements.title));for(const paragraph of preview.makeRequirements.paragraphs)block.append(el('p','',paragraph));area.append(block);}
   for(const name of preview.documents)area.append(el('p','','PDF: '+name));
   const print=el('button','btn','Offerte in der PDF-Ansicht prüfen');print.type='button';print.addEventListener('click',()=>openCloudPrint('offerte',offer.id));area.append(print);
   function documentButton(caption,kind){const button=el('button','btn',caption);button.type='button';button.addEventListener('click',async()=>{const tab=window.open('about:blank','_blank');if(!tab){message.textContent='Bitte Pop-ups für die Dokumentansicht erlauben.';message.hidden=false;return;}tab.opener=null;try{const doc=await api(base+'/preview-'+kind),binary=Uint8Array.from(atob(doc.data),c=>c.charCodeAt(0)),uri=URL.createObjectURL(new Blob([binary],{type:'application/pdf'}));tab.location.replace(uri);setTimeout(()=>URL.revokeObjectURL(uri),300000);}catch{tab.close();message.textContent='Das Dokument konnte nicht geprüft geöffnet werden. Bitte noch nicht versenden.';message.hidden=false;}});area.append(button);}

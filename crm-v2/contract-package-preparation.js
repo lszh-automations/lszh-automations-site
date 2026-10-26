@@ -1,5 +1,6 @@
 'use strict';
 const {prepareOfferPackage,digest,verifyDocumentBytes}=require('./offer-contract-package');
+const {MAKE_REQUIREMENTS_VERSION,makeRequirements,makeRequirementsMetadata}=require('./make-requirements');
 const {makePdf}=require('./offer-pdf');
 const {captureOfferSnapshot}=require('./offer-dispatch-snapshot');
 const {verifyCustomerDocumentSelection}=require('./contract-document-selection');
@@ -26,11 +27,14 @@ function createCustomerPackagePreparation({transaction,authorizeOperator,archive
   const customer=offer.customerId?await tx.get('crmCustomer:'+offer.customerId):null;
   const person=lead?.email?lead:customer,recipient=String(person?.email||'').trim().toLowerCase();
   if(!/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(recipient))throw fault('CRM_BINDING_INVALID',409);
-  const to={...person,email:recipient},saved={...offer,id},pdf=makePdf(saved,to);
-  const snapshot=captureOfferSnapshot({id,offer:saved,recipient:to,to:recipient,attemptId:'package_preparation'},pdf);
+  // A prepared legacy package retains its original PDF and snapshot semantics.
+  const existing=await tx.get(draftKey(id));
+  const makeRequirementsVersion=existing?existing.package.makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION;
+  const to={...person,email:recipient},saved={...offer,id},pdf=makePdf(saved,to,{makeRequirementsVersion});
+  const snapshot=captureOfferSnapshot({id,offer:saved,recipient:to,to:recipient,attemptId:'package_preparation',makeRequirementsVersion},pdf);
   const validUntil=zurichDeadline(offer.validUntil);
   if(!Number.isFinite(validUntil)||validUntil<=now())throw fault('OFFER_EXPIRED',409);
-  return {offer:saved,recipient,pdf,snapshot,validUntil};
+  return {offer:saved,recipient,pdf,snapshot,validUntil,makeRequirementsVersion};
  }
  async function prepare(id,input,user){
   const operator=await authorizeOperator(user);
@@ -59,7 +63,7 @@ function createCustomerPackagePreparation({transaction,authorizeOperator,archive
   const fileId=await archivePdf({offerId:id,filename,bytes:initial.pdf,sha256:digest(initial.pdf)});
   const offerDoc={kind:'offer',version:'r1',archiveFileId:fileId,filename,bytes:initial.pdf.length,sha256:digest(initial.pdf)};
   verifyDocumentBytes(offerDoc,Buffer.from(await readArchivedPdf(fileId,offerDoc)));
-  const pkg=prepareOfferPackage({offerId:id,offerNumber:String(initial.offer.number),revision:1,offerSnapshotSha256:initial.snapshot.offerSnapshotSha256,avvRequired:input.avvRequired,avvAnnexesConfirmed:input.avvRequired==='yes',documents:[offerDoc,terms,...(initial.avv?[initial.avv.document]:[])]});
+  const pkg=prepareOfferPackage({offerId:id,offerNumber:String(initial.offer.number),revision:1,offerSnapshotSha256:initial.snapshot.offerSnapshotSha256,avvRequired:input.avvRequired,avvAnnexesConfirmed:input.avvRequired==='yes',...makeRequirementsMetadata(initial.makeRequirementsVersion),documents:[offerDoc,terms,...(initial.avv?[initial.avv.document]:[])]});
   const at=new Date(now()).toISOString(),approval={pilotApproved:true,legalTextsApproved:true,retentionApproved:true,offerId:id,recipient:initial.recipient,representativeEmail:initial.recipient,packageSha256:pkg.packageSha256,confirmationPolicy:'explicit_offer_reservation',approvedBy:operator.email,approvedAt:at,expiresAt:new Date(Math.min(initial.validUntil,now()+48*3600000)).toISOString(),...(initial.avv?{customerAvv:initial.avv}: {})};
   verifyCustomerDocumentSelection(pkg,initial.recipient,approval);
   await transaction(async tx=>{const c=await binding(tx,id),draft=await tx.get(draftKey(id)),claim=await tx.get(claimKey);
@@ -69,7 +73,7 @@ function createCustomerPackagePreparation({transaction,authorizeOperator,archive
   });
   return {state:'draft',packageId:pkg.packageId,documentCount:pkg.documents.length,recipient:initial.recipient};
  }
- async function preview(id){return transaction(async tx=>{const b=await binding(tx,id),avv=await tx.get('customerAvv_'+digest(Buffer.from(id)));return {recipient:b.recipient,offerNumber:String(b.offer.number),title:b.offer.title,offerSnapshotSha256:b.snapshot.offerSnapshotSha256,documents:['Offerte_'+b.offer.number+'.pdf',catalog.terms.filename],avvReady:Boolean(avv&&avv.offerId===id&&avv.recipient===b.recipient&&avv.document),avvFilename:avv?.document?.filename||null};});}
+ async function preview(id){return transaction(async tx=>{const b=await binding(tx,id),avv=await tx.get('customerAvv_'+digest(Buffer.from(id)));return {recipient:b.recipient,offerNumber:String(b.offer.number),title:b.offer.title,offerSnapshotSha256:b.snapshot.offerSnapshotSha256,makeRequirements:makeRequirements(b.makeRequirementsVersion),documents:['Offerte_'+b.offer.number+'.pdf',catalog.terms.filename],avvReady:Boolean(avv&&avv.offerId===id&&avv.recipient===b.recipient&&avv.document),avvFilename:avv?.document?.filename||null};});}
  async function previewDocument(id,kind){
   const selected=await transaction(async tx=>{const b=await binding(tx,id);if(kind==='terms')return catalog.terms;const avv=await tx.get('customerAvv_'+digest(Buffer.from(id)));if(kind!=='avv'||avv?.offerId!==id||avv.recipient!==b.recipient||!avv.document)throw fault('CUSTOMER_AVV_ANNEXES_REQUIRED',409);return avv.document;});
   const bytes=Buffer.from(await readArchivedPdf(selected.archiveFileId,selected));verifyDocumentBytes(selected,bytes);return {filename:selected.filename,data:bytes.toString('base64')};

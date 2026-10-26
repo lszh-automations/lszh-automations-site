@@ -35,6 +35,24 @@ test('CRM edited after package publication prevents partial acceptance records',
   assert.equal((await offer.get()).data().onlineAcceptance,undefined);
   assert.equal((await f.service.preview(link.token,{})).packageId,page.packageId);
 });
+
+test('versioned Make prerequisites survive backend replacement in the actual persisted acceptance evidence',async()=>{
+ const {db,p}=persistence(),id='test_make_'+randomUUID().replace(/-/g,'');
+ const f=fixture({store:p.store,offerId:id}),old=f.pkg;
+ const {MAKE_REQUIREMENTS_VERSION,makeRequirements,makeRequirementsMetadata}=require('../make-requirements');
+ const {prepareOfferPackage}=require('../offer-contract-package');
+ const {key}=require('../contract-acceptance-store-staging');
+ const pkg={...prepareOfferPackage({offerId:id,offerNumber:old.offerNumber,revision:old.revision,
+  offerSnapshotSha256:old.offerSnapshotSha256,avvRequired:old.avvRequired,avvAnnexesConfirmed:old.avvAnnexesConfirmed,
+  documents:old.documents,...makeRequirementsMetadata(MAKE_REQUIREMENTS_VERSION)}),status:'sent'};
+ await db.collection(prefix+'offerten').doc(id).set({title:'TEST_ONLY Make prerequisites',status:'Versendet'});
+ const link=await f.issue(pkg),page=await f.service.preview(link.token,{});
+ assert.deepEqual(page.makeRequirements,makeRequirements(MAKE_REQUIREMENTS_VERSION));
+ await f.service.accept(link.token,f.body(page),{},page.csrf);
+ const fresh=persistence().p,evidence=await fresh.transaction(tx=>tx.get(key('response',pkg.packageId)));
+ assert.equal(evidence.packageSha256,pkg.packageSha256);
+ assert.deepEqual(evidence.makeRequirements,makeRequirements(MAKE_REQUIREMENTS_VERSION));
+});
 test('customer mode rejects simulated identity',async()=>{
   const {f}=await setup();const customer=createContractAcceptance({...f.config,mode:'customer'});
   await assert.rejects(customer.issue(f.pkg,f.recipient),{code:'PACKAGE_NOT_ELIGIBLE'});

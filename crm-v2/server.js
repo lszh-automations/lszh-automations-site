@@ -238,7 +238,11 @@ async function handler(req,res){
       if(!offer)return reply(res,404,{error:'record_not_found'});
       const lead=offer.leadId?await store.get('leads',offer.leadId):null;
       const customer=offer.customerId?await store.get('kunden',offer.customerId):null;
-      return reply(res,200,renderOfferPreview(offer,lead,customer),'text/html; charset=utf-8');
+      const options={};
+      if(CONTRACT_ACTIONS_ENABLED&&(offer.status==='Bereit'||offer.contractPackageId)){
+        options.makeRequirementsVersion=(await getContractActions().status(id)).makeRequirementsVersion;
+      }
+      return reply(res,200,renderOfferPreview(offer,lead,customer,options),'text/html; charset=utf-8');
     }
     const invoice=await store.get('rechnungen',id);
     if(!invoice)return reply(res,404,{error:'record_not_found'});

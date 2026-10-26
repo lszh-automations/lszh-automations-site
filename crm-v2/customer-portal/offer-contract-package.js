@@ -3,6 +3,7 @@
 // Hashes, archive IDs and approval claims MUST be verified independently by
 // trusted services before this model is used in a production write/dispatch.
 const {createHash,timingSafeEqual}=require('node:crypto');
+const {makeRequirementsMetadata}=require('./make-requirements');
 const FORMAT_VERSION=1;
 const KINDS=['offer','terms','avv'];
 const STATES=Object.freeze([
@@ -47,7 +48,7 @@ function document(raw){
 function prepareOfferPackage(input){
   exactKeys(input,[
     'offerId','offerNumber','revision','offerSnapshotSha256',
-    'avvRequired','avvAnnexesConfirmed','documents'
+    'avvRequired','avvAnnexesConfirmed','documents','makeRequirementsVersion','makeRequirementsSha256'
   ],'Paket-Eingabe');
   const offerId=text(input.offerId,/^[A-Za-z0-9_-]{1,100}$/,'Offerten-ID');
   const offerNumber=text(input.offerNumber,/^[0-9]{1,10}$/,'Offertennummer');
@@ -71,6 +72,9 @@ function prepareOfferPackage(input){
      new Set(docs.map(d=>d.sha256)).size!==docs.length)
     throw invalid('Dokument-IDs und SHA-256 muessen eindeutig sein');
   const ordered=Object.freeze(required.map(kind=>docs.find(doc=>doc.kind===kind)));
+  let requirements;
+  try{requirements=makeRequirementsMetadata(input.makeRequirementsVersion);}catch{throw invalid('Make-Hinweisversion');}
+  if(input.makeRequirementsSha256!==requirements.makeRequirementsSha256)throw invalid('Make-Hinweispruefsumme');
   const metadata={
     schemaVersion:FORMAT_VERSION,
     packageId:'pkg_'+offerId+'_r'+revision,
@@ -78,7 +82,7 @@ function prepareOfferPackage(input){
     offerId,offerNumber,revision,offerSnapshotSha256,
     avvRequired:input.avvRequired,
     avvAnnexesConfirmed:input.avvAnnexesConfirmed,
-    documents:ordered
+    documents:ordered,...requirements
   };
   const packageSha256=digest(Buffer.from(JSON.stringify(metadata),'utf8'));
   return Object.freeze({...metadata,packageSha256,status:'prepared'});
@@ -87,14 +91,15 @@ function verifyOfferPackage(pkg){
   exactKeys(pkg,[
     'schemaVersion','packageId','sendEventId','offerId','offerNumber','revision',
     'offerSnapshotSha256','avvRequired','avvAnnexesConfirmed',
-    'documents','packageSha256','status'
+    'documents','packageSha256','status','makeRequirementsVersion','makeRequirementsSha256'
   ],'Paket');
   if(pkg.schemaVersion!==FORMAT_VERSION)throw invalid('Schema-Version');
   if(!STATES.includes(pkg.status))throw invalid('Paketstatus');
   const expected=prepareOfferPackage({
     offerId:pkg.offerId,offerNumber:pkg.offerNumber,revision:pkg.revision,
     offerSnapshotSha256:pkg.offerSnapshotSha256,avvRequired:pkg.avvRequired,
-    avvAnnexesConfirmed:pkg.avvAnnexesConfirmed,documents:pkg.documents
+    avvAnnexesConfirmed:pkg.avvAnnexesConfirmed,documents:pkg.documents,
+    makeRequirementsVersion:pkg.makeRequirementsVersion,makeRequirementsSha256:pkg.makeRequirementsSha256
   });
   if(pkg.packageId!==expected.packageId||pkg.sendEventId!==expected.sendEventId||
      pkg.packageSha256!==expected.packageSha256)

@@ -1,6 +1,7 @@
 'use strict';
 const {pubKey}=require('./contract-package-publisher');const {digest}=require('./offer-contract-package');const {fault}=require('./contract-acceptance-staging');
 const {invitationKey}=require('./simple-customer-send');
+const {MAKE_REQUIREMENTS_VERSION}=require('./make-requirements');
 const draftKey=id=>'draftPackage_'+digest(Buffer.from(id));
 function createCrmContractActions({transaction,publisher,review,portalOrigin,pilot,reviewEnabled=false,preparation,invitations}={}){
  if(pilot&&(!/^[A-Za-z0-9_-]{1,100}$/.test(pilot.offerId||'')||pilot.recipient!=='lars.schulthess@outlook.com'))throw fault('PILOT_CONFIG_INVALID',503);
@@ -16,6 +17,7 @@ function createCrmContractActions({transaction,publisher,review,portalOrigin,pil
  }
  async function status(id){const r=await load(id),invitation=r.packageId?await transaction(tx=>tx.get(invitationKey(r.packageId))):null;return {enabled:true,simpleSendEnabled:Boolean(preparation&&invitations),invitationState:invitation?.state||null,hasSendReceipt:Boolean(r.publication?.providerReceipt),reviewEnabled,mayCreateDraft:Boolean(preparation&&!r.draft&&!r.publication&&r.offer.status==='Bereit'&&!r.offer.onlineAcceptance),state:r.offer.onlineAcceptance?.state||r.publication?.state||'missing_package',packageId:r.packageId||null,
   documentCount:r.draft?.package?.documents?.length||r.publication?.package?.documents?.length||0,
+  makeRequirementsVersion:r.draft||r.publication?(r.draft?.package||r.publication?.package)?.makeRequirementsVersion||null:MAKE_REQUIREMENTS_VERSION,
   archiveState:r.offer.onlineAcceptance?.archiveState||null,hasDraft:Boolean(r.draft),mayPrepare:Boolean(r.draft&&!r.publication&&r.offer.status==='Bereit')};}
  async function act(id,action,input,user){
   const r=await load(id);

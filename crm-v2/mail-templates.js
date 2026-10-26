@@ -1,4 +1,5 @@
 'use strict';
+const {wordmarkHtml}=require('./brand');
 
 // Transactional e-mails for the internal CRM. No mail is sent by this module.
 // All text originates from Firestore, never from client-provided e-mail content.
@@ -33,14 +34,8 @@ function internalShell(content,preheader){
     '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
     '<tr><td bgcolor="#06101d" style="background-color:#06101d;padding:29px 32px;">'+
       '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
-      '<td width="53" valign="middle" style="width:53px;">'+
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
-        '<td width="43" height="43" align="center" valign="middle" bgcolor="#5b8cff" style="width:43px;height:43px;border-radius:12px;background-color:#5b8cff;color:#ffffff;font-size:27px;font-weight:800;line-height:43px;">L</td>'+
-        '</tr></table>'+
-      '</td>'+
-      '<td valign="middle" style="padding-left:10px;">'+
-        '<div style="color:#ffffff;font-size:18px;font-weight:700;line-height:23px;letter-spacing:-0.3px;">LSZH Automations</div>'+
-        '<div style="color:#b2bfd3;font-size:9px;font-weight:700;line-height:16px;letter-spacing:1.6px;">INTERNES CRM</div>'+
+    '<td valign="middle">'+wordmarkHtml()+
+    '<div style="font-size:9px;color:#b2bfd3;font-weight:700;line-height:16px;letter-spacing:1.2px;margin-top:6px;">INTERNES CRM</div>'+
       '</td></tr></table>'+
     '</td></tr>'+
     '<tr><td style="padding:0;">'+
@@ -114,14 +109,8 @@ function customerShell(content){
     '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
     '<tr><td bgcolor="#06101d" style="background-color:#06101d;padding:29px 32px;">'+
       '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
-      '<td width="53" valign="middle" style="width:53px;">'+
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'+
-        '<td width="43" height="43" align="center" valign="middle" bgcolor="#5b8cff" style="width:43px;height:43px;border-radius:12px;background-color:#5b8cff;color:#ffffff;font-size:27px;font-weight:800;line-height:43px;">L</td>'+
-        '</tr></table>'+
-      '</td>'+
-      '<td valign="middle" style="padding-left:10px;">'+
-        '<div style="font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:18px;font-weight:700;line-height:23px;letter-spacing:-0.3px;">LSZH Automations</div>'+
-        '<div style="color:#b2bfd3;font-size:9px;font-weight:700;line-height:16px;letter-spacing:1.6px;">AUTOMATION FÜR SCHWEIZER KMU</div>'+
+    '<td valign="middle">'+wordmarkHtml()+
+    '<div style="font-size:9px;color:#b2bfd3;font-weight:700;line-height:16px;letter-spacing:1.2px;margin-top:6px;">AUTOMATION FÜR SCHWEIZER KMU</div>'+
       '</td></tr></table>'+
     '</td></tr>'+
     '<tr><td style="padding:0;">'+

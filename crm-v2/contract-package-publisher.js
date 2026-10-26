@@ -28,7 +28,7 @@ function createContractPackagePublisher({transaction,readArchivedPdf,authorizeOp
     const email=String(person?.email||'').trim().toLowerCase();
     if(!person||email!==recipient)throw fault('CRM_BINDING_INVALID',409);
     const to={...person,email};
-    const pdf=makePdf({...offer,id:pkg.offerId},to,{makeRequirementsVersion:pkg.makeRequirementsVersion});
+    const pdf=makePdf({...offer,id:pkg.offerId},to,{makeRequirementsVersion:pkg.makeRequirementsVersion,legacyWordmark:pkg.documents.find(d=>d.kind==='offer')?.version==='r1'});
     verifyDocumentBytes(pkg.documents.find(d=>d.kind==='offer'),pdf);
     const snapshot=captureOfferSnapshot({id:pkg.offerId,offer:{...offer,id:pkg.offerId},recipient:to,to:email,attemptId:pkg.sendEventId,makeRequirementsVersion:pkg.makeRequirementsVersion},pdf);
     if(snapshot.offerSnapshotSha256!==pkg.offerSnapshotSha256)throw fault('CRM_BINDING_INVALID',409);

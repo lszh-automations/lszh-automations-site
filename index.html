@@ -32,10 +32,10 @@ header{
 }
 .nav{height:82px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
 .brand{display:inline-flex;align-items:center;gap:12px;width:max-content}
-.logo{width:42px;height:42px;filter:drop-shadow(0 10px 20px rgba(91,140,255,.25))}
+
 .brand-copy{display:grid;line-height:1.05}
-.brand-copy strong{color:#fff;font-family:Manrope,sans-serif;font-size:16px}
-.brand-copy span{color:rgba(255,255,255,.46);font-size:9px;letter-spacing:.18em;margin-top:4px}
+
+.brand-tagline{color:rgba(255,255,255,.46);font-size:9px;letter-spacing:.12em;margin-top:5px}
 .desktop-nav{display:flex;gap:32px;color:rgba(255,255,255,.76);font-size:13px;font-weight:600}
 .desktop-nav a:hover{color:#fff}
 .nav-cta{
@@ -428,20 +428,7 @@ select option{color:#111;background:#fff}
 <header>
   <div class="container nav">
     <a class="brand" href="#top">
-      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-        <defs>
-          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#74d8ff"/>
-            <stop offset="55%" stop-color="#5b8cff"/>
-            <stop offset="100%" stop-color="#8e72ff"/>
-          </linearGradient>
-        </defs>
-        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g)"/>
-        <path d="M18 18h9v21h19v8H18V18z" fill="white"/>
-        <circle cx="45" cy="20" r="4" fill="white" opacity=".95"/>
-        <path d="M41 20H31" stroke="white" stroke-width="3" stroke-linecap="round" opacity=".75"/>
-      </svg>
-      <span class="brand-copy"><strong>LSZH Automations</strong><span>AUTOMATION FÜR SCHWEIZER KMU</span></span>
+      <span class="brand-copy"><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small class="brand-tagline">AUTOMATION FÜR SCHWEIZER KMU</small></span>
     </a>
     <nav class="desktop-nav">
       <a href="#leistungen">Leistungen</a><a href="#ki-live">KI live</a>
@@ -909,11 +896,7 @@ select option{color:#111;background:#fff}
   <div class="container footer-grid">
     <div>
       <a class="brand" href="#top">
-        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-          <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#74d8ff"/><stop offset="55%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#8e72ff"/></linearGradient></defs>
-          <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g2)"/><path d="M18 18h9v21h19v8H18V18z" fill="white"/><circle cx="45" cy="20" r="4" fill="white" opacity=".95"/><path d="M41 20H31" stroke="white" stroke-width="3" stroke-linecap="round" opacity=".75"/>
-        </svg>
-        <span class="brand-copy"><strong>LSZH Automations</strong><span>AUTOMATION FÜR SCHWEIZER KMU</span></span>
+        <span class="brand-copy"><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small class="brand-tagline">AUTOMATION FÜR SCHWEIZER KMU</small></span>
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>

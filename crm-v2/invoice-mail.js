@@ -1,4 +1,5 @@
 'use strict';
+const {wordmarkHtml}=require('./brand');
 const {invoiceTotals,invoiceLegacyItems}=require('./invoice-pricing');
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({
@@ -32,11 +33,8 @@ function renderInvoiceEmail(invoice,customer){
     '<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background:#fff;border:1px solid #dfe7f2;border-radius:16px;overflow:hidden;">'+
     '<tr><td bgcolor="#06101d" style="background:#06101d;padding:29px 32px;">'+
     '<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>'+
-    '<td width="53" valign="middle"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>'+
-    '<td width="43" height="43" align="center" bgcolor="#5b8cff" style="background:#5b8cff;color:#fff;font-size:27px;font-weight:800;line-height:43px;border-radius:12px;">L</td>'+
-    '</tr></table></td><td valign="middle" style="padding-left:10px;">'+
-    '<div style="font-size:18px;color:#fff;font-weight:700;line-height:23px;">LSZH Automations</div>'+
-    '<div style="font-size:9px;color:#b2bfd3;font-weight:700;letter-spacing:1.6px;">AUTOMATION FÜR SCHWEIZER KMU</div>'+
+    '<td valign="middle">'+wordmarkHtml()+
+    '<div style="font-size:9px;color:#b2bfd3;font-weight:700;line-height:16px;letter-spacing:1.2px;margin-top:6px;">AUTOMATION FÜR SCHWEIZER KMU</div>'+
     '</td></tr></table></td></tr>'+
     '<tr><td><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'+
     '<td width="34%" height="4" bgcolor="#74d8ff" style="background:#74d8ff;font-size:0;">&nbsp;</td>'+

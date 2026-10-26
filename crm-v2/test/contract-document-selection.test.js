@@ -19,3 +19,10 @@ test('customer AVV requires all three matching annex approvals',()=>{
  const f=fixture('yes');assert.equal(verifyCustomerDocumentSelection(f.pkg,f.recipient,f.approval),true);
  for(const a of [{...f.approval.customerAvv,recipient:'other@example.com'},{...f.approval.customerAvv,completedAnnexes:['A','B']},{...f.approval.customerAvv,sha256:'b'.repeat(64)}])assert.throws(()=>verifyCustomerDocumentSelection(f.pkg,f.recipient,{...f.approval,customerAvv:a}),{code:'CUSTOMER_AVV_ANNEXES_REQUIRED'});
 });
+
+
+test('an existing released package retains its approved original terms after a branding change',()=>{
+ const f=fixture(),old=catalog.previousTerms[0];
+ const pkg=prepareOfferPackage({offerId:f.pkg.offerId,offerNumber:f.pkg.offerNumber,revision:f.pkg.revision,offerSnapshotSha256:f.pkg.offerSnapshotSha256,avvRequired:'no',avvAnnexesConfirmed:false,documents:[f.pkg.documents.find(d=>d.kind==='offer'),old]});
+ assert.equal(verifyCustomerDocumentSelection(pkg,f.recipient,{...f.approval,packageSha256:pkg.packageSha256}),true);
+});

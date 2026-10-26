@@ -13,7 +13,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .layout{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
 aside{background:#0d1520;border-right:1px solid var(--border);padding:28px 17px;display:flex;flex-direction:column;gap:34px}
 .brand{display:flex;align-items:center;gap:12px;padding:0 9px}
-.mark{background:linear-gradient(135deg,#66d2e5,#7791f5);color:#08121c;width:37px;height:37px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:20px}
+
 .brand strong{display:block;font-size:17px;letter-spacing:.025em}.brand small{color:var(--muted);letter-spacing:.12em;font-size:10px}
 .nav-caption{padding:0 13px;color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
 nav{display:grid;gap:5px}nav button{width:100%;display:flex;align-items:center;gap:12px;background:transparent;color:#b5c4d5;border:1px solid transparent;border-radius:11px;text-align:left;padding:11px 13px}
@@ -339,7 +339,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 </div>
 <div id="workspace" class="layout" hidden>
   <aside>
-    <div class="brand"><div class="mark">L</div><div><strong>LSZH</strong><small>AUTOMATIONS CRM</small></div></div>
+    <div class="brand"><div><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small>INTERNES CRM</small></div></div>
     <div><div class="nav-caption">Arbeitsbereich</div><nav id="nav" aria-label="CRM Navigation">
       <button data-tab="dashboard" class="active"><span class="nav-icon">▦</span>Dashboard</button>
       <button data-tab="leads"><span class="nav-icon">◈</span>Website Leads</button>

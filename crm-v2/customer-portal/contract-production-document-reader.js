@@ -10,11 +10,11 @@ function createProductionDocumentReader({auth=new GoogleAuth({scopes:['https://w
  return Object.freeze({readArchivedPdf:async(id,doc)=>{
   if(!doc||doc.archiveFileId!==id)throw fault('DOCUMENT_INTEGRITY_FAILED',409);
   if(doc.kind==='terms'){
-   if(['archiveFileId','version','bytes','sha256'].some(k=>doc[k]!==catalog.terms[k]))throw fault('TERMS_VERSION_NOT_APPROVED',409);
+   if(![catalog.terms,...(catalog.previousTerms||[])].some(t=>['archiveFileId','version','bytes','sha256'].every(k=>doc[k]===t[k])))throw fault('TERMS_VERSION_NOT_APPROVED',409);
    return terms.readArchivedPdf(id,doc);
   }
   if(!['offer','avv'].includes(doc.kind))throw fault('DOCUMENT_NOT_FOUND',404);
-  if(doc.kind==='avv'&&(id===catalog.avvTemplate.archiveFileId||doc.sha256===catalog.avvTemplate.sha256))throw fault('CUSTOMER_AVV_ANNEXES_REQUIRED',409);
+  if(doc.kind==='avv'&&[catalog.avvTemplate,...(catalog.previousAvvTemplates||[])].some(t=>id===t.archiveFileId||doc.sha256===t.sha256))throw fault('CUSTOMER_AVV_ANNEXES_REQUIRED',409);
   return originals.readArchivedPdf(id,doc);
  }});
 }

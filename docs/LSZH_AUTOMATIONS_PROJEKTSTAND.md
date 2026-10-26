@@ -1,3 +1,15 @@
+# Aktiver Live-Stand – Make-Hinweis vor Annahme, 26.10.2026
+
+**Live übernommen:** CRM `lszh-crm-v2-00081-yaf` und Kundenportal `lszh-customer-acceptance-pilot-00007-lig`, jeweils 100 % regulärer Verkehr. Neue Offerten und Pakete informieren vor der Annahme über eigenes Make-Konto/-Organisation, Einladung von LSZH nach schriftlicher Auftragsbestätigung und separate Make-Kosten. Vorbereitete und versendete Altpakete bleiben unverändert.
+
+[Umsetzung und Live-Nachweise](LSZH_MAKE_REQUIREMENTS_BEFORE_ACCEPTANCE.md) · [Aktuelles Live-Manifest](../releases/make-requirements-live-20261026.json).
+
+Alle 103 deployten Laufzeitdateien anhand zurückgeladener Cloud-Quellarchive bestätigt. Konfigurationen und Dienstkonten unverändert. Kein Kundenversand, kein Annahmeklick und keine Datenmigration durch diese Bereitstellung. Die vollständige Online-Annahme und C3.7.2 bleiben erfolgreich abgeschlossen.
+
+---
+
+## Vorherige Produktionsaufnahme und historische Dokumentation
+
 # Aktueller Produktionsstand – 26.10.2026
 
 **Die vollständige Online-Vertragsannahme funktioniert. C3.7.2 ist erfolgreich abgeschlossen.** CRM und Kundenportal sind produktiv; ältere offene Punkte unten sind historisch.

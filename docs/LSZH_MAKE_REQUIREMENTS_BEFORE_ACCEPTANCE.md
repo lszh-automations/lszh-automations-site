@@ -1,6 +1,18 @@
 # Make-Voraussetzungen vor der Offertenannahme
 
-Stand: 26.10.2026. Implementiert und synthetisch geprüft, noch nicht produktiv bereitgestellt. Keine bestehenden Angebote, Pakete, Freigaben oder Kundenannahmen migriert.
+Stand: 26.10.2026. **Live aktiviert** nach ausdrücklicher Benutzerfreigabe. CRM `lszh-crm-v2-00081-yaf` und Portal `lszh-customer-acceptance-pilot-00007-lig` erhalten jeweils 100 % regulären Verkehr. Keine bestehenden Angebote, Pakete, Freigaben oder Kundenannahmen migriert.
+
+## Live-Nachweis
+
+Zuerst wurde das abwärtskompatible Portal bereitgestellt und umgeschaltet, danach das CRM. Beide zunächst mit 0 % regulärem Verkehr; anschliessend lesend geprüft. Die tatsächlichen Cloud-Quellarchive wurden zurückgeladen und alle 103 vorbereiteten Laufzeitdateien anhand SHA-256 abgeglichen. Images, Build-IDs, Archivorte und Verkehrszuordnung stehen im [Live-Manifest](../releases/make-requirements-live-20261026.json). Quellcommit: `0acd51f60868b78328899c7bdf4b1ace7958c85b`.
+
+Die Prüfsummen der gesamten Umgebungsvariablen/-referenzen sowie die Dienstkonten sind gegenüber dem Zustand vor der Bereitstellung unverändert. Insbesondere bleiben CRM-Vertragskonfiguration Version 4 und Portalkonfiguration Version 3 erhalten. Bestehende Anmeldeschlüssel, Claims, Make-Szenarien, Archive und Kundendaten wurden nicht geändert.
+
+Portalgesundheit bestätigt `ok=true, mode=customer`. Die feste Portal-Origin liefert die neuen HTML-/JS-Dateien; ohne Annahmelink bleibt die Annahme-API mit HTTP 404 gesperrt. Auf der separaten Portal-Testadresse verweigert der bestehende feste Hostschutz wie vorgesehen den Zugriff auf HTML/API mit HTTP 403; der Healthcheck ist dort erfolgreich. Dieser Schutz wurde nicht abgeschwächt. Das CRM liefert die neue Oberfläche und verweigert anonyme Vertragsabfragen mit HTTP 401. Zum Abschluss keine neuen Error-Level-Logs der beiden Revisionen.
+
+Kein E-Mail-Code, Kundenversand oder Annahmeklick wurde zum Live-Test ausgelöst. Die vollständigen Funktions-/Speichertests erfolgten vorher ausschliesslich synthetisch und im Demo-Emulator. Die Live-Prüfung ist lesend und ersetzt keinen neuen realen Vertragsabschluss.
+
+Rückfallversionen: Portal `00005-rab`, CRM `00078-fox`. Bei einer Rückschaltung muss ein inzwischen neu erzeugtes Paket mit Make-Hinweis vom kompatiblen Portal weiterhin unterstützt werden; deshalb das Portal nicht blind auf die alte Version zurückstellen, sobald neue Pakete existieren. Versand-/Einladungsclaims niemals löschen oder alte Ausführungen wiederholen.
 
 ## Kundeninformation
 
@@ -17,7 +29,7 @@ Dieselbe Information steht in der Offertenvorschau, im Offerten-PDF, in der inte
 - Das Portal liefert den Hinweis nur aus dem geprüften Paket. Der Annahmenachweis speichert Version, Text und Textprüfsumme zusammen mit dem bestehenden Pakethash. Browserangaben können diese Werte nicht vorgeben.
 - Der historische Produktionsstand bleibt im Tag production-2026-10-26 nachweisbar. Seine Prüfung erfolgt nun mit `node scripts/verify-production-baseline.cjs --ref production-2026-10-26`; die aktuelle Entwicklung wird durch ihre eigenen Tests geprüft.
 
-## Bereitstellung nach gesonderter Freigabe
+## Verfahren für spätere Bereitstellungen
 
 1. Zuerst das abwärtskompatible **Kundenportal** mit den neuen Paketfeldern bereitstellen. Es akzeptiert weiterhin unveränderte Legacy-Pakete.
 2. Anschliessend das **CRM** bereitstellen, das neue Pakete mit dem Make-Hinweis erzeugt. Keinesfalls zuerst neue Pakete erzeugen, während das Portal noch nur das alte Schema kennt.

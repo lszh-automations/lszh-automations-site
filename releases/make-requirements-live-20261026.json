@@ -1,0 +1,588 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "featureCommit": "0acd51f60868b78328899c7bdf4b1ace7958c85b",
+  "project": "lszh-automations",
+  "region": "europe-west6",
+  "policyVersion": "MAKE_CUSTOMER_ORGANISATION_v1_20261026",
+  "status": "live",
+  "services": [
+    {
+      "name": "lszh-crm-v2",
+      "revision": "lszh-crm-v2-00081-yaf",
+      "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:9ca00eeab753853495e97be90f2f7243ae919f1bf61774d1a608d933937c9f70",
+      "buildId": {
+        "lszh-crm-v2-1": "1f917c94-4691-4ac2-8940-61e2289ed3a4"
+      },
+      "sourceArchive": {
+        "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793007274.135242-310bac51f67e4c959d1e4bc387c6ba26.zip#1793007275219960"
+      },
+      "traffic": [
+        {
+          "revisionName": "lszh-crm-v2-00069-mos",
+          "percent": null,
+          "tag": "pilot-1002"
+        },
+        {
+          "revisionName": "lszh-crm-v2-00075-bef",
+          "percent": null,
+          "tag": "customer-release"
+        },
+        {
+          "revisionName": "lszh-crm-v2-00078-fox",
+          "percent": null,
+          "tag": "customer-simple"
+        },
+        {
+          "revisionName": "lszh-crm-v2-00081-yaf",
+          "percent": 100,
+          "tag": "make-v1"
+        }
+      ],
+      "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+      "files": [
+        {
+          "path": ".gcloudignore",
+          "sha256": "968e24b87d9d5eaca930843c8dd8653551613585132a33be2453883a294e39a5",
+          "bytes": 55
+        },
+        {
+          "path": "c372-profile-job.js",
+          "sha256": "2ea5191174392d8d49954883a54bd510f03e70879894d5deae7e74d1cc778923",
+          "bytes": 3849
+        },
+        {
+          "path": "c372-readonly-server.js",
+          "sha256": "f1d752a009317c60ded2ebd9968d7a51ef9385197597d3a8da2b8c459afe11d9",
+          "bytes": 3425
+        },
+        {
+          "path": "c373-sent-readback-expected.json",
+          "sha256": "7dd277ce87be5e593712c9a884d53e47e69cfa39bc744a395f2482ac5cc49f5d",
+          "bytes": 1008
+        },
+        {
+          "path": "c373-sent-readback-job.js",
+          "sha256": "4d1cc6db2618aa56111896b8b7dc4289b01ac239aeadf734837834d72c2bb8e8",
+          "bytes": 4134
+        },
+        {
+          "path": "cloud-records.js",
+          "sha256": "9f89b7d75d4193e55e123a64190a82ef1a453658ca034af4104f033af4b7f581",
+          "bytes": 50325
+        },
+        {
+          "path": "cockpit-summary.js",
+          "sha256": "61dd317a5588859922343985678e8f9d47dc0db09a44002b887c9fc5e791309f",
+          "bytes": 4904
+        },
+        {
+          "path": "contract-acceptance-drive.js",
+          "sha256": "3c38034172adc67bf0fd49352dba6d31538bbfebbb698b978c82209373ad3594",
+          "bytes": 4462
+        },
+        {
+          "path": "contract-acceptance-durable.js",
+          "sha256": "0bdbf3fc7928094a3bdfd349579b4a8513b07256336da18c0bf60bbc8d75a6b9",
+          "bytes": 5663
+        },
+        {
+          "path": "contract-acceptance-http-staging.js",
+          "sha256": "bdd62892ad0af832a44c2dcdf2b1138ebffd59f0d9a3e7d3a4becdf507cf9510",
+          "bytes": 5696
+        },
+        {
+          "path": "contract-acceptance-live-readiness.js",
+          "sha256": "3c2bb838a80164f51bb93d624032d94cb5e46d63133830a00f2e7a84202e2247",
+          "bytes": 2271
+        },
+        {
+          "path": "contract-acceptance-review.js",
+          "sha256": "ed54febdf12bc8286d8fa9edb497d947f17aa385d95454a57afe96cb87e60302",
+          "bytes": 5100
+        },
+        {
+          "path": "contract-acceptance-staging.js",
+          "sha256": "5aa57d6f3dd38fea8509480cf3b8f801670d39617ba98b32a9a3d75b1bef04c9",
+          "bytes": 9118
+        },
+        {
+          "path": "contract-acceptance-store-staging.js",
+          "sha256": "d27a3ff9d1a01527f4b414c3dc5125fbf44f2a08dbb52cc857971ff8633eacb0",
+          "bytes": 5505
+        },
+        {
+          "path": "contract-archive-metadata.js",
+          "sha256": "1dcfd9cb22e8bfc3fbc36ddc87e3e3ff674f24144bcf066681adfe96b655e5d5",
+          "bytes": 1327
+        },
+        {
+          "path": "contract-crm-actions.js",
+          "sha256": "c7c0f2cb0ebb3e3f0e77794ef97bd15326e6612159846c01ae12b63ce3144f48",
+          "bytes": 7497
+        },
+        {
+          "path": "contract-crm-runtime.js",
+          "sha256": "f8ad1c23f939f0b12f654c924941f535cf44cddcab70c7ec17904bb050426d1f",
+          "bytes": 5496
+        },
+        {
+          "path": "contract-dispatch-ledger-staging.js",
+          "sha256": "7ef3b1e7950ec97dd3d3705fe820b6610e8281c9db7b27ac407b7e8cfee68007",
+          "bytes": 9390
+        },
+        {
+          "path": "contract-dispatch-preflight-staging.js",
+          "sha256": "6f7bc5a8adfc56eddcb27135a324504cab5d64ed638267e45a2f92869515d745",
+          "bytes": 3626
+        },
+        {
+          "path": "contract-dispatch-release-staging.js",
+          "sha256": "e0a7c85b3dd0316541214fe66f94b69d61c6d30355a67202b7027e8b2fdd545e",
+          "bytes": 8775
+        },
+        {
+          "path": "contract-document-catalog.json",
+          "sha256": "ab372f5b1f08bcef980ae64cf7f92f2ad70c0e8ae9af456368d5c83048f77a6c",
+          "bytes": 917
+        },
+        {
+          "path": "contract-document-selection.js",
+          "sha256": "99776fe44c2d7ba4a47cababb4f63f41c4ac8cae30f02a198f092cc5b365d318",
+          "bytes": 1436
+        },
+        {
+          "path": "contract-gmail-api-readonly-staging.js",
+          "sha256": "f51db89ba522afc2cd9027f32dc46d4fa67ebb7880638bb75445f76b6dc57a6e",
+          "bytes": 5491
+        },
+        {
+          "path": "contract-gmail-c34-readback-staging.js",
+          "sha256": "e82b32a9ae4ad2725d98496bffa97462c6023bad6f4ded8b721726687225c12e",
+          "bytes": 4413
+        },
+        {
+          "path": "contract-gmail-c35-readonly-api-staging.js",
+          "sha256": "8f2841f7b6b10aaaaa36eb9cf283a0c61920543bbfa8160783c99cdd9b36a017",
+          "bytes": 4654
+        },
+        {
+          "path": "contract-gmail-c36-local-oauth.js",
+          "sha256": "e41b9444c3c90417081c923d4d1b99534f02029f1800c7e6c1de6c9c659cbff2",
+          "bytes": 9468
+        },
+        {
+          "path": "contract-gmail-c37-backend-staging.js",
+          "sha256": "037f7c9d6dc6fb9007817d1726c80d6fae700fe8d0784d33bea82029b41af204",
+          "bytes": 8373
+        },
+        {
+          "path": "contract-gmail-c371-local-callback.js",
+          "sha256": "615791cc66e850cb059f7e87d672ae2e6d7213d874e37246d362a13fc7e5c96d",
+          "bytes": 2737
+        },
+        {
+          "path": "contract-gmail-c371-offline-consent.js",
+          "sha256": "2451a5be58111af22c3929bccc69d4d551562e352cc61e1f02c16f0b69bc9717",
+          "bytes": 5147
+        },
+        {
+          "path": "contract-gmail-c371-secret-writer.js",
+          "sha256": "e02e20777902b026af85ec75d1df95a69ee378a32f0531fe4cf44f7d8359d088",
+          "bytes": 2686
+        },
+        {
+          "path": "contract-gmail-draft-staging.js",
+          "sha256": "9ea25d777f5a8f4005d3cadc7d8d33c9a81799afd31b550860eb2eced54ab47a",
+          "bytes": 6521
+        },
+        {
+          "path": "contract-gmail-evidence-staging.js",
+          "sha256": "13c516b90bf66562aeeac7aae09824235d01be297788f7d2b6b40f427314831e",
+          "bytes": 3635
+        },
+        {
+          "path": "contract-gmail-live-verifier.js",
+          "sha256": "a12aec134e24720fe498655880955a930569462a6b9587496d4dae726a7b7ed3",
+          "bytes": 3614
+        },
+        {
+          "path": "contract-gmail-make-transport-staging.js",
+          "sha256": "bd4331b9602976731485f4acd6e3c69f59a7e3fd2d5cf48e0a032d5a88717270",
+          "bytes": 5456
+        },
+        {
+          "path": "contract-live-package-bridge.js",
+          "sha256": "b9b61a8af43a3498a9cafc568ed0dda33d8488ef5d6d7de580e912c53dce5cb9",
+          "bytes": 3153
+        },
+        {
+          "path": "contract-package-make-transport.js",
+          "sha256": "f645ffc006afd09f49452cd1d63df64b4462c5dadb401b92d271adcc52981913",
+          "bytes": 2310
+        },
+        {
+          "path": "contract-package-preparation.js",
+          "sha256": "f0cac0148d9c006e02838e7f6043f86bf19915efefa4b2a56ccdf19709e77797",
+          "bytes": 8876
+        },
+        {
+          "path": "contract-package-publisher.js",
+          "sha256": "c61f87e11996faba879aa9f2777b30793992edc902a00c99f24ad0830456759d",
+          "bytes": 8969
+        },
+        {
+          "path": "contract-production-document-reader.js",
+          "sha256": "065e572af6c015c90d515003d2d08a4aaa37a4d910015f4bc676d49c610e3c03",
+          "bytes": 1394
+        },
+        {
+          "path": "contract-test-dispatch-staging.js",
+          "sha256": "fb372995e6beab5ac6ca2aa279e755989717ccf679b2d48199025069870176f8",
+          "bytes": 3990
+        },
+        {
+          "path": "customer-acceptance-application.js",
+          "sha256": "120d1eb81661550ce746f9c2bacfc40b8c190f22cde80ed118d309644131d34f",
+          "bytes": 2109
+        },
+        {
+          "path": "customer-login.js",
+          "sha256": "d5317e836fb29f9e00dcc7e1120b01c438f800dba3d8ee2fb924b080cc88a7e5",
+          "bytes": 3768
+        },
+        {
+          "path": "customer-portal-gateways.js",
+          "sha256": "6a7027731be9330b952b6b375c707a36b31511b5150744c22b748b1f43a1d101",
+          "bytes": 2575
+        },
+        {
+          "path": "customer-portal-live-runtime.cjs",
+          "sha256": "0b79ab50c89bd6bade254a7c278543a4db602572a1512edb0b95e2ef4e076706",
+          "bytes": 5915
+        },
+        {
+          "path": "customer-portal-runtime.cjs",
+          "sha256": "d522e5914da5edbb720fd4dd0857ee5cb41a8c4b8e31dd6ab15039c7478e1784",
+          "bytes": 6068
+        },
+        {
+          "path": "invoice-accounting.js",
+          "sha256": "819e76b75a08d536315fa8647157a4ed75c13c1e1b885d93a09b802978fff044",
+          "bytes": 3095
+        },
+        {
+          "path": "invoice-mail.js",
+          "sha256": "6d78f780997f4641b65d40afc438448b4d0256e5974083a1e4e99d7508604781",
+          "bytes": 6467
+        },
+        {
+          "path": "invoice-pdf.js",
+          "sha256": "0ff3289baedb86ef5ba1dacbcba52e8a8bfc2cbaea34d76e100a15f6af6de900",
+          "bytes": 9942
+        },
+        {
+          "path": "invoice-preview.js",
+          "sha256": "82eff02082c85e29acb813b379daf0e29d59aac44670e35781b4e0387e565d6d",
+          "bytes": 2386
+        },
+        {
+          "path": "invoice-pricing.js",
+          "sha256": "448d79b86f67a5d62781ed08d24d1a7904132cd93babe24f50b5d89bd79cbe60",
+          "bytes": 2113
+        },
+        {
+          "path": "invoice-send.js",
+          "sha256": "ee813577b4ca032ff2e7dcfc4b085b40958a262ea61b3fb21ec6c7e5b4601ee9",
+          "bytes": 4354
+        },
+        {
+          "path": "lead-contact.js",
+          "sha256": "927715c753fb95d7d38414db6123289550014b1be0f9a0c49001ff3419f7b525",
+          "bytes": 2400
+        },
+        {
+          "path": "lead-ingest.js",
+          "sha256": "c14bd03869355f1a78663556004bd94ce0c03231fb3c8d6d190d58d5708b63c5",
+          "bytes": 3483
+        },
+        {
+          "path": "lead-lifecycle.js",
+          "sha256": "2a18a80f5e3fe735fe57c8fb4d9d4d767de110c4f709816bb984e3146da1b133",
+          "bytes": 5437
+        },
+        {
+          "path": "mail-dispatcher.js",
+          "sha256": "e4db9e330d497c104ea23ce519cb96d21a668c2aa9711f1edc00e1f11dcdb101",
+          "bytes": 4175
+        },
+        {
+          "path": "mail-templates.js",
+          "sha256": "5a2df160acd94c70359a1e33b4a994de54ce6fbaf768eeca4fd3e96c28cdaeeb",
+          "bytes": 15177
+        },
+        {
+          "path": "offer-contract-package-make-mock.js",
+          "sha256": "434b4b332b703a3408492015555bb6dbd0cd24d93d1cced271f632b23c91a384",
+          "bytes": 6116
+        },
+        {
+          "path": "offer-contract-package-preview.js",
+          "sha256": "0e8ba3c8540c61fe96dd5712cc328dae88a38c291b34a943799801153041047e",
+          "bytes": 6729
+        },
+        {
+          "path": "offer-contract-package.js",
+          "sha256": "d90dcb343dc7accbaf39b50d3865fcb60b0c3c41c7630bc778af609ff73d4a72",
+          "bytes": 10207
+        },
+        {
+          "path": "offer-dispatch-snapshot.js",
+          "sha256": "d6496c6bb4b8c17ef75954cd2620d37e0c14fb601fd5d254d6e03d99251601ac",
+          "bytes": 1293
+        },
+        {
+          "path": "offer-mail.js",
+          "sha256": "5df8e6b28eec5ed6ef7ce0727aec56b35cf8d7e3fe1a3f3eca81926cdfb7a82a",
+          "bytes": 6613
+        },
+        {
+          "path": "offer-pdf.js",
+          "sha256": "a9fe8425727d8ef8cc31ea78e605e72dc690d921086f172fb290293314f07a9e",
+          "bytes": 7387
+        },
+        {
+          "path": "offer-preview.js",
+          "sha256": "f17cac0b5bc63310c4e8e1a2c2d1c0284fb3f4dc76e35422c99ccead8373819f",
+          "bytes": 3639
+        },
+        {
+          "path": "offer-pricing.js",
+          "sha256": "5521462e2149a9fec9b3460289c9412743459555135cf1ec62e4f54943ef3853",
+          "bytes": 2579
+        },
+        {
+          "path": "offer-send.js",
+          "sha256": "e94439d638f299d141bf9b1072d5eeb0a2259b9abbdaac23da45d764970c1ea1",
+          "bytes": 5358
+        },
+        {
+          "path": "offer-tracking.js",
+          "sha256": "7cc496b5e27f8a2e3cd233e38caaca863aab56eb1a2a63ff81942ed4b55071c8",
+          "bytes": 2624
+        },
+        {
+          "path": "package-lock.json",
+          "sha256": "32ac4e12b4e57f933c4a7912fdc78ee96694b08466952ce4554e699b6f8ab5c9",
+          "bytes": 55942
+        },
+        {
+          "path": "package.json",
+          "sha256": "d664cc4a89ef24ef6394615e5ca983a5267a236defa2cf97bcbec6fc35751ed2",
+          "bytes": 510
+        },
+        {
+          "path": "project-tasks.js",
+          "sha256": "2fb758b344eda6bd0a0eb6395c5fba815bab1c5fe7c30998eae6cf7cf275951d",
+          "bytes": 1523
+        },
+        {
+          "path": "public/index.html",
+          "sha256": "036bae7cb56d2024d8b78522d5e3a890ec70d3c49fb363ac1144284abdc7e4f5",
+          "bytes": 172046
+        },
+        {
+          "path": "public/invoice-preview.html",
+          "sha256": "8ea8695af6682b139d6400ad12ff4151990c766cafd7b9be90b5f8393bf2471c",
+          "bytes": 3618
+        },
+        {
+          "path": "public/offer-preview.html",
+          "sha256": "6ae75dd879ca67a6de307ad753fa36fba2fe8e6d96aa5820328199846d0b87ed",
+          "bytes": 4125
+        },
+        {
+          "path": "read-singleflight.js",
+          "sha256": "73f96bb73286a235b46439afadd0f5387f3ed9ab07d67e06e6dc31363efccdd2",
+          "bytes": 811
+        },
+        {
+          "path": "server.js",
+          "sha256": "e5a51f2c5cfc6d2cdc6123d12465a5b010e7622ad8f5e9e24bfdc1f25478ecb8",
+          "bytes": 21250
+        },
+        {
+          "path": "simple-customer-send.js",
+          "sha256": "67aa2b342af65cf3d25114b0b6134095e80ae19bc20786f1e0bfeae80cd2482b",
+          "bytes": 5626
+        },
+        {
+          "path": "swiss-qr.js",
+          "sha256": "fa97dce444bffbe21c1fc7cefd7300acc8621f13c6532d68e1a2f2fcaf6cb956",
+          "bytes": 4356
+        },
+        {
+          "path": "make-requirements.js",
+          "sha256": "41bad415b2e5c2c8e0158e939aaf2143638b79b61fa98d4c3da28601ff970a97",
+          "bytes": 1483
+        }
+      ]
+    },
+    {
+      "name": "lszh-customer-acceptance-pilot",
+      "revision": "lszh-customer-acceptance-pilot-00007-lig",
+      "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-customer-acceptance-pilot@sha256:99edb3bda307991d46320289b7a319340f5313b26b8281261f919cc8647089a1",
+      "buildId": {
+        "lszh-customer-acceptance-pilot-1": "4e4d173e-16b0-4fc1-ab3b-47c5fa8bc269"
+      },
+      "sourceArchive": {
+        "lszh-customer-acceptance-pilot-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-customer-acceptance-pilot/1793007108.88751-54c1814f093f43adaf4a47a33f04d3c7.zip#1793007109936706"
+      },
+      "traffic": [
+        {
+          "revisionName": "lszh-customer-acceptance-pilot-00005-rab",
+          "percent": null,
+          "tag": "customer-release"
+        },
+        {
+          "revisionName": "lszh-customer-acceptance-pilot-00007-lig",
+          "percent": 100,
+          "tag": "make-v1"
+        }
+      ],
+      "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+      "files": [
+        {
+          "path": "acceptance-public/contract-acceptance.css",
+          "sha256": "73a13f2a2df1fb29120c4fbfa4a3157879ee6094d83b58aad7f054b7b0136753",
+          "bytes": 4798
+        },
+        {
+          "path": "acceptance-public/contract-acceptance.html",
+          "sha256": "83df5bb8a79a900c5b7499e9ca7ea1497306904c1b52b642a3cdfb7cde88a0c9",
+          "bytes": 4161
+        },
+        {
+          "path": "acceptance-public/contract-acceptance.js",
+          "sha256": "f9ae3cca8862df2d7a6a3a2cfc4b7cbae4f94cca1c9accdc25ed149759db1da7",
+          "bytes": 7198
+        },
+        {
+          "path": "contract-acceptance-drive.js",
+          "sha256": "3c38034172adc67bf0fd49352dba6d31538bbfebbb698b978c82209373ad3594",
+          "bytes": 4462
+        },
+        {
+          "path": "contract-acceptance-durable.js",
+          "sha256": "0bdbf3fc7928094a3bdfd349579b4a8513b07256336da18c0bf60bbc8d75a6b9",
+          "bytes": 5663
+        },
+        {
+          "path": "contract-acceptance-http-staging.js",
+          "sha256": "bdd62892ad0af832a44c2dcdf2b1138ebffd59f0d9a3e7d3a4becdf507cf9510",
+          "bytes": 5696
+        },
+        {
+          "path": "contract-acceptance-staging.js",
+          "sha256": "5aa57d6f3dd38fea8509480cf3b8f801670d39617ba98b32a9a3d75b1bef04c9",
+          "bytes": 9118
+        },
+        {
+          "path": "contract-acceptance-store-staging.js",
+          "sha256": "d27a3ff9d1a01527f4b414c3dc5125fbf44f2a08dbb52cc857971ff8633eacb0",
+          "bytes": 5505
+        },
+        {
+          "path": "contract-archive-metadata.js",
+          "sha256": "1dcfd9cb22e8bfc3fbc36ddc87e3e3ff674f24144bcf066681adfe96b655e5d5",
+          "bytes": 1327
+        },
+        {
+          "path": "contract-document-catalog.json",
+          "sha256": "ab372f5b1f08bcef980ae64cf7f92f2ad70c0e8ae9af456368d5c83048f77a6c",
+          "bytes": 917
+        },
+        {
+          "path": "contract-document-selection.js",
+          "sha256": "99776fe44c2d7ba4a47cababb4f63f41c4ac8cae30f02a198f092cc5b365d318",
+          "bytes": 1436
+        },
+        {
+          "path": "contract-live-package-bridge.js",
+          "sha256": "b9b61a8af43a3498a9cafc568ed0dda33d8488ef5d6d7de580e912c53dce5cb9",
+          "bytes": 3153
+        },
+        {
+          "path": "contract-package-publisher.js",
+          "sha256": "275b4140e2ce2ddcd9f8360a83dd84277d086f526cb14a76c697ea2e03799cfb",
+          "bytes": 8742
+        },
+        {
+          "path": "contract-production-document-reader.js",
+          "sha256": "065e572af6c015c90d515003d2d08a4aaa37a4d910015f4bc676d49c610e3c03",
+          "bytes": 1394
+        },
+        {
+          "path": "customer-acceptance-application.js",
+          "sha256": "120d1eb81661550ce746f9c2bacfc40b8c190f22cde80ed118d309644131d34f",
+          "bytes": 2109
+        },
+        {
+          "path": "customer-login.js",
+          "sha256": "d5317e836fb29f9e00dcc7e1120b01c438f800dba3d8ee2fb924b080cc88a7e5",
+          "bytes": 3768
+        },
+        {
+          "path": "customer-portal-gateways.js",
+          "sha256": "6a7027731be9330b952b6b375c707a36b31511b5150744c22b748b1f43a1d101",
+          "bytes": 2575
+        },
+        {
+          "path": "customer-portal-live-runtime.cjs",
+          "sha256": "0b79ab50c89bd6bade254a7c278543a4db602572a1512edb0b95e2ef4e076706",
+          "bytes": 5915
+        },
+        {
+          "path": "offer-contract-package.js",
+          "sha256": "d90dcb343dc7accbaf39b50d3865fcb60b0c3c41c7630bc778af609ff73d4a72",
+          "bytes": 10207
+        },
+        {
+          "path": "offer-dispatch-snapshot.js",
+          "sha256": "d6496c6bb4b8c17ef75954cd2620d37e0c14fb601fd5d254d6e03d99251601ac",
+          "bytes": 1293
+        },
+        {
+          "path": "offer-mail.js",
+          "sha256": "5df8e6b28eec5ed6ef7ce0727aec56b35cf8d7e3fe1a3f3eca81926cdfb7a82a",
+          "bytes": 6613
+        },
+        {
+          "path": "offer-pdf.js",
+          "sha256": "a9fe8425727d8ef8cc31ea78e605e72dc690d921086f172fb290293314f07a9e",
+          "bytes": 7387
+        },
+        {
+          "path": "offer-pricing.js",
+          "sha256": "5521462e2149a9fec9b3460289c9412743459555135cf1ec62e4f54943ef3853",
+          "bytes": 2579
+        },
+        {
+          "path": "package-lock.json",
+          "sha256": "32ac4e12b4e57f933c4a7912fdc78ee96694b08466952ce4554e699b6f8ab5c9",
+          "bytes": 55942
+        },
+        {
+          "path": "package.json",
+          "sha256": "b82e2422e2f7f4953576bae59a898ecc9b2eed08bc8460d4c0885cc507357b3d",
+          "bytes": 533
+        },
+        {
+          "path": "make-requirements.js",
+          "sha256": "41bad415b2e5c2c8e0158e939aaf2143638b79b61fa98d4c3da28601ff970a97",
+          "bytes": 1483
+        }
+      ]
+    }
+  ]
+}

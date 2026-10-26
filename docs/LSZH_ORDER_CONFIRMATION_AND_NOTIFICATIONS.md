@@ -1,6 +1,6 @@
 # AuftragsbestÃ¤tigung und Annahmebenachrichtigung
 
-Stand: 26.10.2026. **Live aktiviert:** CRM `lszh-crm-v2-00083-xap` und Kundenportal `lszh-customer-acceptance-pilot-00009-rob`, jeweils 100 % regulärer Verkehr. Umsetzung auf Basis des bereits produktiven Make-Hinweises. Die vollstÃ¤ndige Kundenannahme und C3.7.2 waren bereits funktionsfÃ¤hig.
+Stand: 26.10.2026. **Live aktiviert:** CRM `lszh-crm-v2-00085-tep` und Kundenportal `lszh-customer-acceptance-pilot-00009-rob`, jeweils 100 % regulärer Verkehr. Umsetzung auf Basis des bereits produktiven Make-Hinweises. Die vollstÃ¤ndige Kundenannahme und C3.7.2 waren bereits funktionsfÃ¤hig.
 
 ## Fachlicher Ablauf
 
@@ -45,3 +45,14 @@ Archivierung und Benachrichtigung erfolgen Ã¼ber die bestehenden ZeitplÃ¤ne. Es 
 Desktop und Mobilansicht wurden mit abgefangenen Netzwerkanfragen und rein synthetischen Daten geprÃ¼ft. Das neue A4-PDF wurde gerendert und visuell kontrolliert. Kein echter Kundenversand, keine Testannahme, kein Codeversand und keine Ã„nderung bestehender Kundendaten durch die Abnahme. Der erste echte Versand des neuen BestÃ¤tigungspfads erfolgt erst durch einen bewussten Benutzerklick; ein realer Ende-zu-Ende-Mailversand wurde deshalb nicht vorweggenommen.
 
 Live-Revisionen und QuellprÃ¼fsummen werden nach erfolgreicher Ãœbernahme im zugehÃ¶rigen Release-Manifest festgehalten.
+
+
+## Korrektur des fehlenden Übernahmeschritts
+
+Nach einem erfolgreichen echten Bestätigungsversand für Offerte 1006 war der Vertrag bereits `confirmed`, während die Offerte wie vorgesehen noch `Versendet` war. Der bisherige Annahmebutton wurde bei Online-Annahmen durch einen frühen Rücksprung ausgeblendet; die neue Bestätigungsansicht hatte nur einen Hinweis statt einer ausführbaren Auftragsübernahme.
+
+Die CRM-Version `lszh-crm-v2-00085-tep` (100 % Verkehr) ergänzt deshalb nach nachgewiesenem Bestätigungsversand **Auftrag übernehmen und Projekt anlegen**. Ein bewusster Klick samt Bestätigung ruft die vorhandene geschützte PATCH-Statusänderung auf. Der bestehende Ablauf setzt die Offerte auf Angenommen, ordnet Kunde/Projekt zu und setzt den Lead auf Gewonnen. Bereits angenommene Offerten zeigen keinen weiteren Übernahmebutton. Unbestätigte Annahmen bleiben gesperrt. Kein erneuter Bestätigungsversand und keine automatische Auftragsanlage beim Anzeigen.
+
+455 CRM-Tests bestanden, einschliesslich fehlendem Button, Abbruch, Doppelklick, bereits angenommener Offerte und Backend-Freigabesicherheit. Desktop-/Mobilbrowser mit gesperrtem Netz geprüft. Alle 79 tatsächlichen CRM-Laufzeitdateien entsprechen den vorbereiteten Quellen; unveränderte Konfiguration und Dienstkonto, anonyme API HTTP 401, neue Oberfläche live HTTP 200. Portal und Make wurden bei dieser Korrektur nicht verändert. Offerte 1006 wurde nur lesend geprüft; ihre Übernahme bleibt dem Benutzerklick vorbehalten.
+
+[Korrektur-Manifest](../releases/acceptance-button-fix-live-20261026.json), Quellcommit `6477e6348dec8732d50313677368ccc3f9dc7577`. Rückfallversion CRM `00083-xap`.

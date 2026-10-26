@@ -1,3 +1,11 @@
+# Aktive Korrektur – Auftragsübernahme nach Online-Bestätigung, 26.10.2026
+
+CRM **`lszh-crm-v2-00085-tep`** erhält 100 % Verkehr. Nach erfolgreichem Bestätigungsversand zeigt das CRM jetzt **Auftrag übernehmen und Projekt anlegen**. Damit kann die bestätigte Online-Offerte bewusst auf Angenommen wechseln. Der bisherige Button war im Online-Ablauf ausgeblendet worden. 455 CRM-Tests und lokale Desktop-/Mobilprüfung erfolgreich; 79 gebaute Laufzeitdateien exakt bestätigt. Portal `00009-rob` und Make unverändert. Offerte 1006 wurde nur lesend geprüft; keine erneute Mail und keine Auftragsanlage durch die Fehlerbehebung.
+
+[Bedienung und Korrektur](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#korrektur-des-fehlenden-übernahmeschritts) · [Live-Nachweis](../releases/acceptance-button-fix-live-20261026.json).
+
+---
+
 # Aktiver Live-Stand â€“ AuftragsbestÃ¤tigung und Annahmemeldung, 26.10.2026
 
 **Live Ã¼bernommen:** CRM `lszh-crm-v2-00083-xap` und Kundenportal `lszh-customer-acceptance-pilot-00009-rob`, jeweils 100 % regulÃ¤rer Verkehr. Nach interner PrÃ¼fung: Vorschau und **AuftragsbestÃ¤tigung senden** direkt im CRM, Gmail-ID automatisch Ã¼bernehmen und Versand unabhÃ¤ngig prÃ¼fen. Nach erfolgreicher Archivierung einer neuen Kundenannahme: einmalige interne E-Mail an lars@lszh-automations.ch. Keine nachtrÃ¤glichen Mails oder automatische BestÃ¤tigung fÃ¼r Offerte 1006.

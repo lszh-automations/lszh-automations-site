@@ -45,4 +45,5 @@ function dueOfferFollowUps(offers,today){
     validDate(offer.followUpDate)&&offer.followUpDate<=today)
     .sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate));
 }
-module.exports={validDate,validateNextDate,checkReadyForDispatch,normalizeDispatchInput,normalizeFollowUpInput,dueOfferFollowUps};
+function offerDisplayStatus(offer){return offer?.status==='Versendet'&&['customer_response_recorded','awaiting_lszh_confirmation','confirmed'].includes(offer.onlineAcceptance?.state)?'Angenommen':offer?.status||'';}
+module.exports={offerDisplayStatus,validDate,validateNextDate,checkReadyForDispatch,normalizeDispatchInput,normalizeFollowUpInput,dueOfferFollowUps};

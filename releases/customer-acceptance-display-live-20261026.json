@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "a867b3e25299ab7cda657fcd8073bd804940e227",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00101-caf",
+  "anonymousOfferStatus": 401,
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:2b09da4489b38efb12c200232b233d57a7222dead4982d84ee99b78c294c8f46",
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793037904.676061-3434c352c3cc4cf88cb23eae8d4423c3.zip#1793037906060577"
+  },
+  "buildId": {
+    "lszh-crm-v2-1": "5ef10f20-f46d-49f5-98f0-0a6b78365306"
+  },
+  "rollback": "lszh-crm-v2-00099-pok",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "configurationUnchanged": true,
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 478,
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success",
+  "browserVariantsChecked": 2,
+  "parentRelease": "project-invoice-review-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "0fcd354706da1c7248fdf701ec1862288946b49403cdfac345ea07b2c5107358",
+      "bytes": 58537
+    },
+    {
+      "path": "offer-tracking.js",
+      "sha256": "ce8acf2f77e50f276236203aacb8ab9882ebd0a44e59415627b074381415234a",
+      "bytes": 2860
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "4733ec6c60bd37f9ae2296315da0f2fa409b773fe992ba82669cfc291aae1e3e",
+      "bytes": 191739
+    }
+  ],
+  "customerAcceptanceDisplayedImmediately": true,
+  "acceptedStatusFilterIncludesCustomerResponses": true,
+  "inlineConfirmationBodyRemoved": true,
+  "confirmationPdfAndMailUnchanged": true,
+  "internalWinRulesUnchanged": true,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "invoiceGenerated": false,
+  "portalAndMakeUnchanged": true
+}

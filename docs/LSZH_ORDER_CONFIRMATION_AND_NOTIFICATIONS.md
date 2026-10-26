@@ -102,3 +102,18 @@ Der Link ist sowohl in HTML als auch im PDF als exakte URL hinterlegt und anklic
 [PR 22](https://github.com/lszh-automations/lszh-automations-site/pull/22). Der technische Live-Nachweis wird im zugehörigen Release-Manifest festgehalten.
 
 Live: `lszh-crm-v2-00095-hix`, 100 % Verkehr, [Release-Manifest](../releases/confirmation-partner-live-20261026.json). Alle 79 Laufzeitdateien bestätigt; nur `order-confirmation.js` gegenüber dem vorigen Release geändert. GitHub-Staging- und Baselineprüfung erfolgreich. Konfiguration und Dienstkonto unverändert; Live-Oberfläche HTTP 200, anonyme Bestätigungsvorschau HTTP 401, keine Fehler der neuen Revision im kontrollierten Zeitfenster. Rückfallrevision: `lszh-crm-v2-00093-yik`.
+
+
+## Kundenannahme sofort als Angenommen anzeigen
+
+Auf Wunsch des Betreibers zeigt die Offertenliste nach der gespeicherten Online-Kundenannahme sofort **Angenommen** an, auch solange der Archivnachweis noch vervollständigt wird und vor einer separaten Auftragsbestätigung. Fenstertitel und gesperrtes Statusfeld verwenden dieselbe Anzeige. Ein Zusatz unterscheidet die Kundenannahme von der noch ausstehenden internen Abwicklung.
+
+Der Filter **Angenommen** findet sowohl intern übernommene als auch vom Kunden online angenommene Offerten. **Versendet** zeigt diese Kundenannahmen nicht mehr an. Für den Annahmefilter werden die vorhandenen Offerten lesend durchlaufen; es ist kein neuer zusammengesetzter Index nötig, der Leseaufwand wächst jedoch mit dem Register.
+
+Der gespeicherte interne Status und die bisherigen Prüf-, Versand- und Auftragsübernahmeschritte bleiben unverändert. Die Anzeige erzeugt keine Auftragsbestätigung, kein Projekt, keine Rechnung und keinen Zahlungseingang. Finanzkennzahlen behalten ihre bisherige interne Grundlage. Bereits gespeicherte Kundenannahmen wie Offerte 1007 profitieren ohne Datenmigration von der Anzeige.
+
+Die Auftragsbestätigung zeigt im CRM nur noch Empfänger, Betreff, den Button **Auftragsbestätigung als PDF prüfen**, die Prüfbestätigung und den Versandbutton. Der komplette Bestätigungstext wird nicht mehr inline angezeigt. Mailinhalt und PDF werden dadurch nicht verändert.
+
+Prüfung: 478 CRM-Tests erfolgreich, einschliesslich Statusfilter direkt nach Kundenannahme mit ausstehendem Archiv, ohne Datenänderung oder vorgezogene Auftragsübernahme. Desktop und Mobil: Liste, Titel, gesperrtes Statusfeld und kompakte Bestätigung ohne langen Text und ohne Überlauf geprüft. Keine echten Netzwerkzugriffe oder Schreibaktionen im Browsertest. [PR 25](https://github.com/lszh-automations/lszh-automations-site/pull/25).
+
+Live seit 26.10.2026: `lszh-crm-v2-00101-caf`, 100 % Verkehr. [Release-Manifest](../releases/customer-acceptance-display-live-20261026.json). Alle 79 tatsächlichen Laufzeitdateien bestätigt; nur `cloud-records.js`, `offer-tracking.js` und `public/index.html` gegenüber dem vorigen Release geändert. Beide GitHub-Prüfungen inklusive Firestore-Emulatortests erfolgreich; Konfiguration/Dienstkonto unverändert, Oberfläche HTTP 200 und Offerten anonym HTTP 401. Keine Fehler der neuen Revision im kontrollierten Zeitfenster. Keine Kundendatenänderung, keine Mail, kein Projekt-/Rechnungsnachtrag. Portal und Make unverändert. Rückfall: `lszh-crm-v2-00099-pok`.

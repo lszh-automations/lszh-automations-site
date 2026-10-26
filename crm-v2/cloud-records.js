@@ -10,7 +10,7 @@ const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding}=require('./pr
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields}=require('./lead-contact');
-const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch}=require('./offer-tracking');
+const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch,offerDisplayStatus}=require('./offer-tracking');
 
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
 const STATUS={
@@ -315,7 +315,7 @@ function buildStore(db,prefix){
       }
     }
     const matches=row=>{
-      if(status&&row.status!==status)return false;
+      if(status&&(table==='offerten'?offerDisplayStatus(row):row.status)!==status)return false;
       if(due){
         if(!['Offen','Teilbezahlt'].includes(row.status)||outstandingCents(row)<=0)return false;
         if(due!=='open'&&invoiceKind(row,day)!==due)return false;
@@ -331,7 +331,7 @@ function buildStore(db,prefix){
       // Equality / IN use Firestore's automatic single-field status index.
       // Do NOT orderBy(createdAt) here: that would require a new composite
       // index. Keep only the best (pageSize + 1) sorted rows in memory.
-      const source=status?col(table).where('status','==',status):
+      const source=table==='offerten'&&status==='Angenommen'?col(table):status?col(table).where('status','==',status):
         col(table).where('status','in',['Offen','Teilbezahlt']);
       const cursorSnap=cursor?await col(table).doc(cursor).get():null;
       if(cursor&&(!cursorSnap.exists||!cursorSnap.data()?.createdAt))

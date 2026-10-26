@@ -47,18 +47,58 @@ async function confirmationPdf(lines,date){
  const pdf=await PDFDocument.create();pdf.setCreationDate(new Date(date));pdf.setModificationDate(new Date(date));
  pdf.setTitle('LSZH Automations – Auftragsbestätigung');
  const font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
- let page,y;function next(){page=pdf.addPage([595.28,841.89]);y=687;page.drawRectangle({x:0,y:735,width:596,height:107,color:rgb(.024,.063,.114)});page.drawText('LSZH AUTOMATIONS',{x:46,y:785,size:21,font:bold,color:rgb(1,1,1)});page.drawText('Ein Geschäftsbereich der LSZH Invest GmbH',{x:46,y:760,size:9,font,color:rgb(.72,.81,.9)});page.drawText('LSZH Invest GmbH · Rummelmatt 8 · 5610 Wohlen AG',{x:46,y:40,size:8,font});page.drawText('info@lszh-automations.ch · CHE-369.474.125',{x:46,y:27,size:8,font});}
- next();
- for(let i=0;i<lines.length;i++){
-  const size=i===0?18:i>=lines.length-2?8:10,f=i===0?bold:font;let line='';
-  const draw=()=>{if(y<80)next();page.drawText(line,{x:46,y,size,font:f});y-=size+5;line='';};
-  // Break long unspaced references as well as ordinary text.
-  for(const word of lines[i].split(/\s+/)){
-   if(line&&f.widthOfTextAtSize(line+' '+word,size)>499)draw();
-   if(f.widthOfTextAtSize(word,size)<=499){line+=(line?' ':'')+word;continue;}
-   for(const char of word){if(f.widthOfTextAtSize(line+char,size)>499)draw();line+=char;}
-  }if(line)draw();y-=12;
+ const W=595.28,H=841.89,left=46,width=W-92,bottom=95;
+ const navy=rgb(.024,.063,.114),blue=rgb(.357,.549,1),cyan=rgb(.455,.847,1),purple=rgb(.557,.447,1),ink=rgb(.12,.17,.23),muted=rgb(.33,.39,.47),pale=rgb(.957,.969,.984),white=rgb(1,1,1);
+ let page,y;
+ function text(value,x,yy,size=10,strong=false,color=ink){page.drawText(value,{x,y:yy,size,font:strong?bold:font,color});}
+ function next(){
+  page=pdf.addPage([W,H]);
+  page.drawRectangle({x:0,y:H-106,width:W,height:106,color:navy});
+  page.drawRectangle({x:left,y:H-70,width:36,height:36,color:blue});text('L',left+10,H-59,25,true,white);
+  text('LSZH Automations',left+51,H-48,19,true,white);text('AUTOMATION FÜR SCHWEIZER KMU',left+51,H-66,8,false,rgb(.70,.75,.83));
+  for(const [i,color] of [cyan,blue,purple].entries())page.drawRectangle({x:i*W/3,y:H-109,width:W/3,height:3,color});
+  page.drawRectangle({x:0,y:0,width:W,height:65,color:navy});text('LSZH Automations',left,46,9,true,white);
+  text('Ein Geschäftsbereich der LSZH Invest GmbH',left,32,7,false,rgb(.70,.75,.83));
+  text('Rummelmatt 8 · 5610 Wohlen AG · Schweiz · CHE-369.474.125',left,19,7,false,rgb(.70,.75,.83));
+  text('info@lszh-automations.ch',W-186,46,8,false,cyan);y=H-145;
  }
+ function ensure(height){if(y-height<bottom)next();}
+ function wrap(value,size,strong=false,limit=width){
+  const f=strong?bold:font,result=[];let line='';
+  for(const word of String(value).split(/\s+/).filter(Boolean)){
+   if(line&&f.widthOfTextAtSize(line+' '+word,size)>limit){result.push(line);line='';}
+   if(f.widthOfTextAtSize(word,size)<=limit){line+=(line?' ':'')+word;continue;}
+   for(const char of word){if(line&&f.widthOfTextAtSize(line+char,size)>limit){result.push(line);line='';}line+=char;}
+  }
+  if(line)result.push(line);return result;
+ }
+ function paragraph(value,{size=10,strong=false,color=ink,gap=10}={}){
+  const rows=wrap(value,size,strong),height=rows.length*(size+5)+gap;
+  ensure(height<=H-145-bottom?height:3*(size+5));
+  for(const row of rows){ensure(size+5);text(row,left,y,size,strong,color);y-=size+5;}y-=gap;
+ }
+ function box(entries){
+  const rows=entries.flatMap(entry=>wrap(entry.text,entry.size||10,Boolean(entry.strong),width-32).map(value=>({...entry,text:value,size:entry.size||10})));
+  while(rows.length){
+   ensure(65);let height=28,count=0;
+   while(count<rows.length&&height+rows[count].size+5<=y-bottom){height+=rows[count].size+5;count++;}
+   if(!count){next();continue;}
+   page.drawRectangle({x:left,y:y-height,width,height,color:pale,borderColor:rgb(.875,.906,.949),borderWidth:.6});
+   let baseline=y-14;
+   for(const row of rows.splice(0,count)){baseline-=row.size;text(row.text,left+16,baseline,row.size,row.strong,row.color||ink);baseline-=5;}
+   y-=height+17;if(rows.length)next();
+  }
+ }
+ next();paragraph('IHRE AUFTRAGSBESTÄTIGUNG',{size:8,strong:true,color:blue,gap:13});
+ paragraph('Ihr Auftrag ist bestätigt',{size:23,strong:true,color:navy,gap:14});
+ box([{text:lines[1],size:14,strong:true,color:navy},{text:lines[2],size:9,color:muted}]);
+ for(const value of lines.slice(3)){
+  if(value==='Angenommene Unterlagen:'){ensure(40);paragraph(value,{size:10,strong:true,color:navy,gap:3});}
+  else if(value.startsWith('Für die Einrichtung verwenden Sie Ihre eigene Make-Organisation.'))box([{text:'Ihr Make-Konto und die Einrichtung',size:10,strong:true,color:navy},{text:value,size:9,color:muted}]);
+  else if(value.startsWith('Paketreferenz: ')||value.startsWith('SHA-256: '))paragraph(value,{size:7,color:muted,gap:5});
+  else paragraph(value,{size:10,gap:10});
+ }
+ const pages=pdf.getPages();pages.forEach((p,index)=>p.drawText('Seite '+(index+1)+' / '+pages.length,{x:W-95,y:19,size:7,font,color:rgb(.70,.75,.83)}));
  return Buffer.from(await pdf.save({useObjectStreams:false}));
 }
 function createOrderConfirmation({transaction,authorizeOperator,review,archivePdf,readArchivedPdf,sendOnce,enabled=false,now=Date.now}={}){
@@ -91,7 +131,7 @@ function createOrderConfirmation({transaction,authorizeOperator,review,archivePd
   try{
    const bytes=Buffer.from(p.data,'base64'),fileId=await archivePdf({offerId:id,filename:p.filename,bytes,sha256:p.sha256});
    // Correspondence uses the existing archived offer-PDF document schema, outside the accepted package.
-   const document={kind:'offer',version:'confirmation-v1',archiveFileId:fileId,filename:p.filename,bytes:bytes.length,sha256:p.sha256};verifyDocumentBytes(document,Buffer.from(await readArchivedPdf(fileId,document)));
+   const document={kind:'offer',version:'confirmation-v2',archiveFileId:fileId,filename:p.filename,bytes:bytes.length,sha256:p.sha256};verifyDocumentBytes(document,Buffer.from(await readArchivedPdf(fileId,document)));
    await transaction(async tx=>{await binding(tx,id);const row=await tx.get(claim),old=await tx.get(docId);if(row?.state!=='preparing'||old)throw fault('CONFIRMATION_NOT_READY',409);
     tx.create(docId,{packageSha256:b.pkg.packageSha256,recipient:b.recipient,approvedBy:operator,document});tx.set(claim,{...row,state:'sending',document});
    });

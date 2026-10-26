@@ -89,3 +89,17 @@ test('mail renderer escapes inserted content and retains version-bound Make inst
  const legacy=renderConfirmationEmail({text:confirmationText(x.pkg,x.f.recipient,'2026-10-26T10:00:00Z').join('\n\n'),recipient:x.f.recipient,filename:'test.pdf'});
  assert.doesNotMatch(legacy,/eigene Make-Organisation|Ihr Make-Konto und die Einrichtung/);
 });
+
+test('redesigned confirmation PDF is deterministic A4 and preserves long multipage content',async()=>{
+ const {confirmationPdf,confirmationText}=require('../order-confirmation'),{PDFDocument}=require('pdf-lib'),x=setup(),lines=confirmationText(x.pkg,x.f.recipient,'2026-10-26T10:00:00Z'),date='2026-10-26T10:30:00Z';
+ const a=await confirmationPdf(lines,date),b=await confirmationPdf(lines,date);assert.deepEqual(a,b);
+ const doc=await PDFDocument.load(a);assert.equal(doc.getPageCount(),1);assert.equal(doc.getPage(0).getWidth(),595.28);assert.equal(doc.getPage(0).getHeight(),841.89);
+ const long=await PDFDocument.load(await confirmationPdf([...lines.slice(0,3),('TEST_ONLY extended paragraph ').repeat(600),...lines.slice(3)],date));assert.ok(long.getPageCount()>1);assert.equal(long.getForm().getFields().length,0);
+});
+test('existing v1 confirmation proof is still checked without regeneration or another send',async()=>{
+ const x=setup(),bytes=Buffer.from('%PDF-1.4\nTEST_ONLY previous confirmation\n%%EOF'),document={kind:'offer',version:'confirmation-v1',archiveFileId:'synthetic_previous_archive',filename:'Auftragsbestaetigung_1101.pdf',bytes:bytes.length,sha256:digest(bytes)};
+ x.rows.set('confirmationDocument_'+digest(Buffer.from(x.pkg.packageId)),{packageSha256:x.pkg.packageSha256,recipient:x.f.recipient,approvedBy:x.user.email,document});
+ const receipt=await x.options.sendOnce({to:[x.f.recipient],subject:'Ihre Auftragsbestätigung',eventId:'confirmation_'+x.pkg.packageId,packageSha256:x.pkg.packageSha256,attachments:[{filename:document.filename,data:bytes.toString('base64')}]});
+ x.rows.set(confirmationKey(x.pkg.packageId),{messageId:receipt.messageId,packageSha256:x.pkg.packageSha256,responseId:x.rows.get('crmOffer:'+x.id).onlineAcceptance.responseId,state:'verification_pending'});
+ assert.equal((await x.service.check(x.id,x.user)).state,'confirmed');assert.deepEqual(x.counts(),{sends:1,archives:0});assert.equal(x.rows.get('confirmationDocument_'+digest(Buffer.from(x.pkg.packageId))).document.version,'confirmation-v1');
+});

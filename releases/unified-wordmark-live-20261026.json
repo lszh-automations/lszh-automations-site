@@ -1,0 +1,587 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "377ddc7f9c417aeb4120f7326a65336f80514d10",
+  "parentRelease": "lead-colours-live-20261026.json",
+  "services": [
+    {
+      "buildId": {
+        "lszh-crm-v2-1": "de65c1e0-e6cc-4282-8cd4-117bdaa8c4ea"
+      },
+      "revision": "lszh-crm-v2-00105-poy",
+      "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+      "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+      "rollback": "lszh-crm-v2-00103-joy",
+      "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:3dd74b52172e79197b68c9f879ce34df3d674678f47d7607091eeefe9ae4bd51",
+      "configurationUnchanged": true,
+      "sourceArchive": {
+        "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793040595.633439-715cfe9bfc114a738285b526ed744930.zip#1793040597031805"
+      },
+      "service": "lszh-crm-v2",
+      "kind": "crm",
+      "trafficPercent": 100,
+      "recentErrorLogCount": 0,
+      "runtimeFilesVerified": 80,
+      "changedRuntimeFiles": [
+        {
+          "path": "contract-document-catalog.json",
+          "sha256": "0a795a6b6fb173224341676c90086ba7e6e1b38c362cb1bc3071f378c3dc11b8",
+          "bytes": 1726
+        },
+        {
+          "path": "contract-document-selection.js",
+          "sha256": "cde3603fad886224d337cd20698445fbd3fa16d2b85a154f3cdcea1fafacc02c",
+          "bytes": 1515
+        },
+        {
+          "path": "contract-package-preparation.js",
+          "sha256": "98b9651d7bbb372f42113e79c3968ac6206fb09f0b7cce14f1810367d3ed2eb3",
+          "bytes": 8981
+        },
+        {
+          "path": "contract-package-publisher.js",
+          "sha256": "7618b388b4f7ce5efcedc77fe8d3f5e426b9bb6726501a0472e64c21c1ca05c0",
+          "bytes": 9040
+        },
+        {
+          "path": "contract-production-document-reader.js",
+          "sha256": "364abe62a66b610873e03d4d299b5d4ce42a53b4fff550ddd9f3dd2f4447b845",
+          "bytes": 1471
+        },
+        {
+          "path": "invoice-mail.js",
+          "sha256": "81978d2009d6fa058eb074965962645d09dbdf8ebbb1a92df69b14ec96e5f778",
+          "bytes": 6112
+        },
+        {
+          "path": "invoice-pdf.js",
+          "sha256": "94c87e3eb32b7732058d2396204496182c669dfa48ffb3a3d20a1ee8a3e7daec",
+          "bytes": 9977
+        },
+        {
+          "path": "mail-templates.js",
+          "sha256": "f8e3576ac2d1c4ee6908490b5ecb0d24fb1a7ed5eb29d8bbcbc7acbd072fefdb",
+          "bytes": 14060
+        },
+        {
+          "path": "offer-mail.js",
+          "sha256": "d2c7da7fbea89dadcf38a1dadb8f7b0cc253feb3814543be3da7cfe7b31d5f3f",
+          "bytes": 6229
+        },
+        {
+          "path": "offer-pdf.js",
+          "sha256": "fc9bd67001761c1348c0c8d775ceff121fc84268823854fd8dee3d4b871a74a6",
+          "bytes": 7422
+        },
+        {
+          "path": "public/index.html",
+          "sha256": "740b6fccfb81cd849abf464f9a744c71a3aa428ac618dff9eab77a3eb2c36828",
+          "bytes": 192800
+        },
+        {
+          "path": "public/invoice-preview.html",
+          "sha256": "b48ffbacbe2f971022a6294314b97c247dcdae437d78c98a62ed0267fcad472c",
+          "bytes": 3811
+        },
+        {
+          "path": "public/offer-preview.html",
+          "sha256": "1d91f591363d34119f60e90e25c3108fab01f4c55283d80794c9f05f88791f81",
+          "bytes": 4361
+        },
+        {
+          "path": "brand.js",
+          "sha256": "ae7fa1981ef7eab4fa7352b4cfee1933064134a696b69c0664e173d313d23c1e",
+          "bytes": 636
+        },
+        {
+          "path": "order-confirmation.js",
+          "sha256": "ed0bbcb931f99636e531f28a55c0b17b9cd7116eada1cb2c5827934a3b469e11",
+          "bytes": 22214
+        }
+      ]
+    },
+    {
+      "buildId": {
+        "lszh-customer-acceptance-pilot-1": "216c7992-6d22-41e9-b0a3-b9e01f18da19"
+      },
+      "revision": "lszh-customer-acceptance-pilot-00011-tox",
+      "configurationSha256": "50c4c0ed43ef870b09c0ae981aa1a55437140fcf0dc5c12a2d59171e85e377f4",
+      "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+      "rollback": "lszh-customer-acceptance-pilot-00009-rob",
+      "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-customer-acceptance-pilot@sha256:4a15867ed86553b5f73b47b7b7568d97b3b5a62c41dd4522bc5caf6b4aa13043",
+      "configurationUnchanged": true,
+      "sourceArchive": {
+        "lszh-customer-acceptance-pilot-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-customer-acceptance-pilot/1793040595.276249-9da3fc3eb1454c9d9f09d8ac323b7edd.zip#1793040596638506"
+      },
+      "service": "lszh-customer-acceptance-pilot",
+      "kind": "portal",
+      "trafficPercent": 100,
+      "recentErrorLogCount": 0,
+      "runtimeFilesVerified": 27,
+      "changedRuntimeFiles": [
+        {
+          "path": "acceptance-public/contract-acceptance.css",
+          "sha256": "d14a4e23f39ff3037be73ae94adaaea0aa0542b51addf6367134378fac23262b",
+          "bytes": 4895
+        },
+        {
+          "path": "contract-document-catalog.json",
+          "sha256": "0a795a6b6fb173224341676c90086ba7e6e1b38c362cb1bc3071f378c3dc11b8",
+          "bytes": 1726
+        },
+        {
+          "path": "contract-document-selection.js",
+          "sha256": "cde3603fad886224d337cd20698445fbd3fa16d2b85a154f3cdcea1fafacc02c",
+          "bytes": 1515
+        },
+        {
+          "path": "contract-package-publisher.js",
+          "sha256": "7618b388b4f7ce5efcedc77fe8d3f5e426b9bb6726501a0472e64c21c1ca05c0",
+          "bytes": 9040
+        },
+        {
+          "path": "contract-production-document-reader.js",
+          "sha256": "364abe62a66b610873e03d4d299b5d4ce42a53b4fff550ddd9f3dd2f4447b845",
+          "bytes": 1471
+        },
+        {
+          "path": "offer-mail.js",
+          "sha256": "d2c7da7fbea89dadcf38a1dadb8f7b0cc253feb3814543be3da7cfe7b31d5f3f",
+          "bytes": 6229
+        },
+        {
+          "path": "offer-pdf.js",
+          "sha256": "fc9bd67001761c1348c0c8d775ceff121fc84268823854fd8dee3d4b871a74a6",
+          "bytes": 7422
+        },
+        {
+          "path": "brand.js",
+          "sha256": "ae7fa1981ef7eab4fa7352b4cfee1933064134a696b69c0664e173d313d23c1e",
+          "bytes": 636
+        }
+      ]
+    }
+  ],
+  "website": {
+    "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/27",
+    "commit": "9720b93ef6b8230e1ee00d50664a3ccceeda52b7",
+    "deploy": "dep-dbfq1g7f3r2c73athv60",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      },
+      {
+        "path": "/make-start/",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      },
+      {
+        "path": "/onboarding/",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      },
+      {
+        "path": "/secure/",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      },
+      {
+        "path": "/secure-admin/",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      }
+    ]
+  },
+  "documents": {
+    "terms": {
+      "kind": "terms",
+      "version": "v1.0_20261019_wordmark_20261026",
+      "archiveFileId": "1TTFj7ljCep8cUh1rtiO87ZZEV7xeh0KL",
+      "filename": "LSZH_Projektbedingungen_v1_0_Wortmarke_20261026.pdf",
+      "bytes": 559268,
+      "sha256": "1ed839d923f29e2d3fdac28351e993febe123806629c6406a09e84e96ec835bb"
+    },
+    "avvTemplate": {
+      "archiveFileId": "1tFZk34NyfUTUd-BvJzxgrQ7asYK4kgEh",
+      "version": "v1.0_20261019_wordmark_20261026",
+      "bytes": 485524,
+      "sha256": "120cfb3ed02ec223cb4ea41c4c879590f0da2e02041854b0f659b8a6083abc71",
+      "readyForCustomerUse": false,
+      "requiresCustomerAnnexes": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    "previousTerms": [
+      {
+        "kind": "terms",
+        "version": "v1.0_20261019",
+        "archiveFileId": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
+        "filename": "LSZH_Projektbedingungen_v1_0_GESCHAEFTLICH_FREIGEGEBEN_20261019.pdf",
+        "bytes": 95511,
+        "sha256": "b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa"
+      }
+    ],
+    "previousAvvTemplates": [
+      {
+        "archiveFileId": "1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x",
+        "version": "v1.0_20261019",
+        "bytes": 89954,
+        "sha256": "bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1",
+        "readyForCustomerUse": false,
+        "requiresCustomerAnnexes": [
+          "A",
+          "B",
+          "C"
+        ]
+      }
+    ],
+    "originalTextUnchanged": true,
+    "archivedCustomerDocumentsReplaced": false,
+    "legacyOfferVersion": "r1",
+    "newOfferVersion": "r1_wordmark_20261026"
+  },
+  "make": {
+    "scenarioId": 8176339,
+    "status": "active",
+    "lastEdit": "2026-10-26T18:41:23.891Z",
+    "change": "Two exact PDF file-ID allowlist arms added; existing five arms unchanged",
+    "filter": {
+      "name": "Nur freigegebene Vertragsdateien und markierte Nachweise",
+      "conditions": [
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "16pL3HgbJ66F4tpTW3IsIzokaci-Rypoh",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "pilot1002",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/json",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{contains(2.body.parents; \"1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "contract_v1",
+            "o": "text:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "contract_v1",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/json",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "1TTFj7ljCep8cUh1rtiO87ZZEV7xeh0KL",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "1tFZk34NyfUTUd-BvJzxgrQ7asYK4kgEh",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ]
+      ]
+    },
+    "previousFilter": {
+      "name": "Nur freigegebene Vertragsdateien und markierte Nachweise",
+      "conditions": [
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "16pL3HgbJ66F4tpTW3IsIzokaci-Rypoh",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.id}}",
+            "b": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "pilot1002",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/json",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{contains(2.body.parents; \"1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/pdf",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "contract_v1",
+            "o": "text:equal"
+          }
+        ],
+        [
+          {
+            "a": "{{2.body.appProperties.lszhAcceptanceScope}}",
+            "b": "contract_v1",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{contains(2.body.parents; \"10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN\")}}",
+            "b": true,
+            "o": "boolean:equal"
+          },
+          {
+            "a": "{{2.body.mimeType}}",
+            "b": "application/json",
+            "o": "text:equal"
+          },
+          {
+            "a": "{{2.body.trashed}}",
+            "b": false,
+            "o": "boolean:equal"
+          }
+        ]
+      ]
+    },
+    "connectionId": 11904271,
+    "connectionStatus": "ok",
+    "newTermsAndAvvAndOldTermsMetadataVerified": true
+  },
+  "validation": {
+    "crmTests": 483,
+    "portalTests": 32,
+    "githubChecks": "success",
+    "firestoreEmulatorChecks": "success",
+    "browserCases": 24,
+    "pdfPagesVisuallyChecked": 14,
+    "originalContractTextComparedPerPage": true,
+    "historicalProductionBaselineExactFiles": 101,
+    "canary": [
+      {
+        "kind": "crm",
+        "surface": "index",
+        "status": 200,
+        "wordmark": true,
+        "appIcon": false
+      },
+      {
+        "kind": "crm",
+        "surface": "anonymous-leads",
+        "status": 401
+      },
+      {
+        "kind": "crm",
+        "surface": "config",
+        "status": 200
+      },
+      {
+        "kind": "portal",
+        "surface": "health",
+        "status": 200,
+        "mode": "customer"
+      }
+    ],
+    "crmLive": {
+      "url": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+      "indexStatus": 200,
+      "compactWordmark": true,
+      "appIcon": false,
+      "anonymousLeadStatus": 401
+    },
+    "portalLive": {
+      "url": "https://lszh-customer-acceptance-pilot-470613067122.europe-west6.run.app",
+      "healthStatus": 200,
+      "cssStatus": 200,
+      "compactWordmark": true
+    }
+  },
+  "customerDataChanged": false,
+  "migrationPerformed": false,
+  "emailSent": false
+}

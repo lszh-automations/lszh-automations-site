@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Einheitliche kompakte Wortmarke, 26.10.2026
+
+CRM **`lszh-crm-v2-00105-poy`** und Kundenportal **`lszh-customer-acceptance-pilot-00011-tox`** erhalten jeweils 100 % Verkehr. Die Website verwendet ebenfalls die neue Wortmarke. LSZH und AUTOMATIONS stehen eng zusammen; das separate App-Symbol entfällt auf allen aktiven Markenflächen.
+
+Einheitlich angepasst: Website und Hilfeseiten, CRM, Kundenportal, Mails, Offerten, Rechnungen, Auftragsbestätigungen mit Make-Anleitung sowie Projektbedingungen und AVV-Vorlage. Der bisherige Vertragstext bleibt unverändert. Archivierte Unterlagen und bereits veröffentlichte Pakete behalten ihre bisherigen Dateien und Hashes; frühere Dokumentversionen bleiben exakt zugelassen. Eine leere AVV bleibt für Kundeneinsatz gesperrt.
+
+483 CRM-Tests, 32 Portaltests, beide GitHub-Prüfungen inklusive Firestore-Emulatortests, 24 Desktop-/Mobilansichten und 14 PDF-Seiten geprüft. Alle 80 CRM- und 27 Portal-Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Make-Metadatenfilter nur um zwei konkrete neue Vorlagendateien ergänzt. Keine Kundendatenmigration und kein Mailversand.
+
+[Wortmarke und Bestandsschutz](LSZH_WORDMARK.md) - [Live-Manifest](../releases/unified-wordmark-live-20261026.json) - [Website PR 27](https://github.com/lszh-automations/lszh-automations-site/pull/27) - [CRM PR 28](https://github.com/lszh-automations/lszh-automations-site/pull/28).
+
+---
+
 # Aktiver Live-Stand - Lead-Farben bleiben nach Bearbeitung stehen, 26.10.2026
 
 CRM **`lszh-crm-v2-00103-joy`** erhält 100 % Verkehr. Die Eingangsampel läuft nur noch im Status Neu weiter. Beim ersten Wechsel aus Neu wird der Farbbezug serverseitig gespeichert; Kontaktiert, Qualifiziert, Gewonnen und Verloren behalten die erreichte Farbe auch nach späteren Änderungen und erneutem Laden. Der Alterstext zählt weiterhin die Zeit seit Eingang.

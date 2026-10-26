@@ -10,13 +10,13 @@ const {fixture}=require('./helpers/acceptance-fixture');
 const offer={id:'test_make_1000',number:'1000',title:'TEST_ONLY Automatisierung',status:'Bereit',createdAt:'2026-10-26T08:00:00Z',validUntil:'2026-11-26',items:[{title:'Einrichtung',qty:1,unitPriceCHF:500,mode:'einmalig'}]};
 const person={email:'synthetic@example.com',company:'TEST_ONLY Beispiel AG',name:'Testperson'};
 test('only explicitly versioned PDFs add the Make prerequisite; legacy PDF bytes stay deterministic',()=>{
- const old=makePdf(offer,person),current=makePdf(offer,person,{makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION});
+ const old=makePdf(offer,person,{legacyWordmark:true}),current=makePdf(offer,person,{makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION});
  // Captured from production-2026-10-26 for this exact synthetic offer and recipient.
  assert.equal(digest(old),'3ab7bf25d8e4e8aced5e946725f8c7d06e89f0a679e92c1ad600c843230ef47a');
  assert.notEqual(digest(old),digest(current));
  assert.doesNotMatch(old.toString('latin1'),/IHR MAKE-KONTO/);
  for(const text of ['IHR MAKE-KONTO','Make-Organisation','Make-Abonnements','Offertenpreis','Auftragsbest','Make-Hinweis - Version 1 vom 26.10.2026'])assert.ok(current.toString('latin1').includes(text),text);
- assert.deepEqual(makePdf(offer,person,{makeRequirementsVersion:undefined}),old);
+ assert.deepEqual(makePdf(offer,person,{makeRequirementsVersion:undefined,legacyWordmark:true}),old);
  assert.throws(()=>makePdf(offer,person,{makeRequirementsVersion:'unknown'}));
 });
 test('preview shows prerequisites before acceptance and does not add them to sent or legacy prepared offers',()=>{

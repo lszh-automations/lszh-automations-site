@@ -1,25 +1,53 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-10-25",
+  "verifiedAt": "2026-10-26",
   "businessAccount": "lars@lszh-automations.ch",
   "sourceFolderId": "10VD4xYIxfQBJ9Q5wpGq3iflK4MNJ1PHN",
   "sentOriginalsFolderId": "1DaUcSCHdBxF42aunDgqqCmdzbdMBFxYe",
   "terms": {
     "kind": "terms",
-    "version": "v1.0_20261019",
-    "archiveFileId": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
-    "filename": "LSZH_Projektbedingungen_v1_0_GESCHAEFTLICH_FREIGEGEBEN_20261019.pdf",
-    "bytes": 95511,
-    "sha256": "b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa"
+    "version": "v1.0_20261019_wordmark_20261026",
+    "archiveFileId": "1TTFj7ljCep8cUh1rtiO87ZZEV7xeh0KL",
+    "filename": "LSZH_Projektbedingungen_v1_0_Wortmarke_20261026.pdf",
+    "bytes": 559268,
+    "sha256": "1ed839d923f29e2d3fdac28351e993febe123806629c6406a09e84e96ec835bb"
   },
   "avvTemplate": {
-    "archiveFileId": "1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x",
-    "version": "v1.0_20261019",
-    "bytes": 89954,
-    "sha256": "bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1",
+    "archiveFileId": "1tFZk34NyfUTUd-BvJzxgrQ7asYK4kgEh",
+    "version": "v1.0_20261019_wordmark_20261026",
+    "bytes": 485524,
+    "sha256": "120cfb3ed02ec223cb4ea41c4c879590f0da2e02041854b0f659b8a6083abc71",
     "readyForCustomerUse": false,
-    "requiresCustomerAnnexes": ["A", "B", "C"]
+    "requiresCustomerAnnexes": [
+      "A",
+      "B",
+      "C"
+    ]
   },
   "customerSendingEnabled": false,
-  "independentLegalReviewClaimed": false
+  "independentLegalReviewClaimed": false,
+  "previousTerms": [
+    {
+      "kind": "terms",
+      "version": "v1.0_20261019",
+      "archiveFileId": "1d-EEo4AjsZBWvlYPlZLxxXuXJDBz7hWX",
+      "filename": "LSZH_Projektbedingungen_v1_0_GESCHAEFTLICH_FREIGEGEBEN_20261019.pdf",
+      "bytes": 95511,
+      "sha256": "b5421778dd88bdac6697cb4f258319fba6577a9b26cba75509ef4e55df4fc2aa"
+    }
+  ],
+  "previousAvvTemplates": [
+    {
+      "archiveFileId": "1MhQvRxB_OsiBhLXSkGeVL-jGutO3vM8x",
+      "version": "v1.0_20261019",
+      "bytes": 89954,
+      "sha256": "bde130a9cacd693265521df144fa236e43077ad8ed55388fae079cc7fd97ecc1",
+      "readyForCustomerUse": false,
+      "requiresCustomerAnnexes": [
+        "A",
+        "B",
+        "C"
+      ]
+    }
+  ]
 }

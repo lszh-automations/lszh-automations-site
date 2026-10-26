@@ -28,7 +28,7 @@ function createContractPackagePublisher({transaction,readArchivedPdf,authorizeOp
     const email=String(person?.email||'').trim().toLowerCase();
     if(!person||email!==recipient)throw fault('CRM_BINDING_INVALID',409);
     const to={...person,email};
-    const pdf=makePdf({...offer,id:pkg.offerId},to,{makeRequirementsVersion:pkg.makeRequirementsVersion});
+    const pdf=makePdf({...offer,id:pkg.offerId},to,{makeRequirementsVersion:pkg.makeRequirementsVersion,legacyWordmark:pkg.documents.find(d=>d.kind==='offer')?.version==='r1'});
     verifyDocumentBytes(pkg.documents.find(d=>d.kind==='offer'),pdf);
     const snapshot=captureOfferSnapshot({id:pkg.offerId,offer:{...offer,id:pkg.offerId},recipient:to,to:email,attemptId:pkg.sendEventId,makeRequirementsVersion:pkg.makeRequirementsVersion},pdf);
     if(snapshot.offerSnapshotSha256!==pkg.offerSnapshotSha256)throw fault('CRM_BINDING_INVALID',409);
@@ -96,6 +96,7 @@ function createContractPackagePublisher({transaction,readArchivedPdf,authorizeOp
       const receipt=await sendOnce({kind:'contract_package_send',sendMode:mode,from:'info@lszh-automations.ch',to:[row.recipient],cc:[],bcc:[],
         eventId:row.package.sendEventId,packageSha256:row.package.packageSha256,
         subject:(mode==='test'?'[TEST_ONLY] ':'')+mail.subject,html:mail.html,attachments});
+      await transaction(async tx=>{const current=await tx.get(pubKey(packageId));if(current?.state!=='delivery_review')throw fault('PUBLICATION_CONFLICT',409);tx.set(pubKey(packageId),{...current,providerReceipt:receipt});});
       return await recordProof(packageId,receipt,context);
     }catch{return {packageId,state:'delivery_review',mayAutoRetry:false,linkStillToIssue:false};}
   }

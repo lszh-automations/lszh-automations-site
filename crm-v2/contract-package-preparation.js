@@ -30,7 +30,7 @@ function createCustomerPackagePreparation({transaction,authorizeOperator,archive
   // A prepared legacy package retains its original PDF and snapshot semantics.
   const existing=await tx.get(draftKey(id));
   const makeRequirementsVersion=existing?existing.package.makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION;
-  const to={...person,email:recipient},saved={...offer,id},pdf=makePdf(saved,to,{makeRequirementsVersion});
+  const to={...person,email:recipient},saved={...offer,id},pdf=makePdf(saved,to,{makeRequirementsVersion,legacyWordmark:existing?.package?.documents?.find(d=>d.kind==='offer')?.version==='r1'});
   const snapshot=captureOfferSnapshot({id,offer:saved,recipient:to,to:recipient,attemptId:'package_preparation',makeRequirementsVersion},pdf);
   const validUntil=zurichDeadline(offer.validUntil);
   if(!Number.isFinite(validUntil)||validUntil<=now())throw fault('OFFER_EXPIRED',409);
@@ -61,7 +61,7 @@ function createCustomerPackagePreparation({transaction,authorizeOperator,archive
   });
   const filename='Offerte_'+initial.offer.number+'.pdf';
   const fileId=await archivePdf({offerId:id,filename,bytes:initial.pdf,sha256:digest(initial.pdf)});
-  const offerDoc={kind:'offer',version:'r1',archiveFileId:fileId,filename,bytes:initial.pdf.length,sha256:digest(initial.pdf)};
+  const offerDoc={kind:'offer',version:'r1_wordmark_20261026',archiveFileId:fileId,filename,bytes:initial.pdf.length,sha256:digest(initial.pdf)};
   verifyDocumentBytes(offerDoc,Buffer.from(await readArchivedPdf(fileId,offerDoc)));
   const pkg=prepareOfferPackage({offerId:id,offerNumber:String(initial.offer.number),revision:1,offerSnapshotSha256:initial.snapshot.offerSnapshotSha256,avvRequired:input.avvRequired,avvAnnexesConfirmed:input.avvRequired==='yes',...makeRequirementsMetadata(initial.makeRequirementsVersion),documents:[offerDoc,terms,...(initial.avv?[initial.avv.document]:[])]});
   const at=new Date(now()).toISOString(),approval={pilotApproved:true,legalTextsApproved:true,retentionApproved:true,offerId:id,recipient:initial.recipient,representativeEmail:initial.recipient,packageSha256:pkg.packageSha256,confirmationPolicy:'explicit_offer_reservation',approvedBy:operator.email,approvedAt:at,expiresAt:new Date(Math.min(initial.validUntil,now()+48*3600000)).toISOString(),...(initial.avv?{customerAvv:initial.avv}: {})};

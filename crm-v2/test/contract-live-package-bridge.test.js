@@ -34,3 +34,12 @@ test('invitation lifetime is capped at the independently stored package release'
  row.expiresAt='2026-10-25T21:00:30Z';await assert.rejects(policy.issueOptions(pkg,'c@example.com'),{code:'LINK_EXPIRED'});
  row.expiresAt='2026-11-01T21:00:00Z';assert.equal((await policy.issueOptions(pkg,'c@example.com')).expiresInMs,48*3600000);
 });
+
+
+test('wordmark release keeps previously approved terms readable and still rejects every blank AVV template',async()=>{
+ const calls=[],reader=createProductionDocumentReader({archiveForFolder:folder=>({readArchivedPdf:async(id)=>{calls.push(id);return Buffer.from('synthetic');}})});
+ for(const terms of [catalog.terms,...catalog.previousTerms])await reader.readArchivedPdf(terms.archiveFileId,terms);
+ assert.equal(calls.length,2);
+ const old=catalog.previousTerms[0];await assert.rejects(reader.readArchivedPdf(old.archiveFileId,{...old,sha256:'f'.repeat(64)}),{code:'TERMS_VERSION_NOT_APPROVED'});
+ for(const t of [catalog.avvTemplate,...catalog.previousAvvTemplates])await assert.rejects(reader.readArchivedPdf(t.archiveFileId,{kind:'avv',...t}),{code:'CUSTOMER_AVV_ANNEXES_REQUIRED'});
+});

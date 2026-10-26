@@ -129,7 +129,7 @@ async function makeInvoicePdf(invoice,customer,project,config){
     page.drawRectangle({x:0,y:H-103,width:W,height:103,color:NAVY});
     page.drawRectangle({x:46,y:H-106,width:155,height:3,color:BLUE});
     text(page,bold,'LSZH',46,H-51,24,WHITE);
-    text(page,bold,'AUTOMATIONS',138,H-51,11,rgb(.455,.847,1));
+    text(page,bold,'AUTOMATIONS',46+bold.widthOfTextAtSize('LSZH',24)+4,H-51,11,rgb(.455,.847,1));
     text(page,regular,'Ein Geschäftsbereich der LSZH Invest GmbH',46,H-75,9,WHITE);
     text(page,bold,'RECHNUNG',W-126,H-51,11,WHITE);
     // Footer intentionally omitted: the 105mm Swiss payment section occupies the bottom of the final A4 page.

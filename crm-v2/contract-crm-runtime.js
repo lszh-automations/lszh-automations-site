@@ -12,6 +12,7 @@ const {createAcceptanceReview}=require('./contract-acceptance-review');
 const {createCrmContractActions}=require('./contract-crm-actions');
 const {createCustomerPackagePreparation,createPackageArchiveGateway}=require('./contract-package-preparation');
 const {createInvitationDelivery,createInvitationTransport,createInvitationSentVerifier}=require('./simple-customer-send');
+const {createOrderConfirmation,createConfirmationTransport}=require('./order-confirmation');
 const {digest}=require('./offer-contract-package');
 function createContractCrmRuntime({db,prefix,allowedEmails,env=process.env}={}){
  if(env.CRM_CONTRACT_ACTIONS_ENABLED!=='true')throw fault('CONTRACT_ACTIONS_DISABLED',503);
@@ -51,6 +52,7 @@ function createContractCrmRuntime({db,prefix,allowedEmails,env=process.env}={}){
   }});
  const preparation=general?createCustomerPackagePreparation({transaction:persistence.transaction,authorizeOperator,readArchivedPdf:reader.readArchivedPdf,archivePdf:createPackageArchiveGateway({webhookUrl:c.packageArchiveHook})}):undefined;
  const invitations=general&&c.invitationWebhookUrl?createInvitationDelivery({transaction:persistence.transaction,publisher,portalOrigin:c.portalOrigin,sendOnce:createInvitationTransport({webhookUrl:c.invitationWebhookUrl,portalOrigin:c.portalOrigin}),verifySent:createInvitationSentVerifier({read})}):undefined;
- return createCrmContractActions({preparation,invitations,transaction:persistence.transaction,publisher,review,portalOrigin:c.portalOrigin,pilot:general?undefined:c.pilot,reviewEnabled:env.CRM_CONTRACT_REVIEW_ENABLED==='true'});
+ const confirmation=general&&c.packageWebhookUrl?createOrderConfirmation({transaction:persistence.transaction,authorizeOperator,review,archivePdf:createPackageArchiveGateway({webhookUrl:c.packageArchiveHook}),readArchivedPdf:reader.readArchivedPdf,sendOnce:createConfirmationTransport({webhookUrl:c.packageWebhookUrl}),enabled:env.CRM_CONTRACT_REVIEW_ENABLED==='true'}):undefined;
+ return createCrmContractActions({confirmation,preparation,invitations,transaction:persistence.transaction,publisher,review,portalOrigin:c.portalOrigin,pilot:general?undefined:c.pilot,reviewEnabled:env.CRM_CONTRACT_REVIEW_ENABLED==='true'});
 }
 module.exports={createContractCrmRuntime};

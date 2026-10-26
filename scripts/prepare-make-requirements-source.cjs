@@ -8,7 +8,7 @@ function prepareSource(service,output){
  const entry=manifest.services[service==='crm'?0:1],base=path.resolve(root,entry.sourceDirectory),out=path.resolve(output);
  if(out===root||out.startsWith(base+path.sep)||fs.existsSync(out))throw Error('Output must be a new directory outside the source');
  fs.mkdirSync(out);
- const files=[...entry.files.map(f=>f.path),'make-requirements.js'];
+ const files=[...entry.files.map(f=>f.path),'make-requirements.js',...(service==='crm'?['order-confirmation.js','acceptance-notification.js']:[])];
  const hashes=[];
  for(const name of files){
   const src=path.resolve(base,name),dest=path.resolve(out,name);

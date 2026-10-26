@@ -47,6 +47,8 @@ const mailDispatcher=makeDispatcher(db,PREFIX,{
   activeFrom:process.env.CRM_MAIL_ACTIVE_FROM,
   webhookUrl:process.env.CRM_MAIL_WEBHOOK_URL
 });
+let acceptanceNotifier;
+function getAcceptanceNotifier(){if(!acceptanceNotifier)acceptanceNotifier=require('./acceptance-notification').createAcceptanceNotifier({db,prefix:PREFIX,enabled:process.env.CRM_MAIL_ENABLED==='true',webhookUrl:process.env.CRM_MAIL_WEBHOOK_URL});return acceptanceNotifier;}
 const offerSender=createOfferSender(store,{
   enabled:process.env.CRM_OFFER_MAIL_ENABLED==='true',
   webhookUrl:process.env.CRM_OFFER_MAIL_WEBHOOK_URL,
@@ -185,7 +187,7 @@ async function handler(req,res){
     }catch{return reply(res,401,{error:'unauthorized'});}
     if(!claims?.email_verified||String(claims.email||'').toLowerCase()!==MAIL_SCHEDULER_EMAIL)
       return reply(res,403,{error:'forbidden'});
-    return reply(res,200,await mailDispatcher.tick());
+    return reply(res,200,{...(await mailDispatcher.tick()),acceptanceNotifications:await getAcceptanceNotifier().tick()});
   }
   if(!pathname.startsWith('/api/'))return reply(res,404,{error:'not_found'});
   if(!configured())return reply(res,503,{error:'not_configured'});

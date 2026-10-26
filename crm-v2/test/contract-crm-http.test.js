@@ -91,3 +91,16 @@ test('simplified preview and send remain authenticated, same-origin and reject e
   const before=calls.length;assert.equal((await fetch(base+'/send',{method:'POST',headers,body:JSON.stringify({avvRequired:'no',documentsReviewed:true,retentionApproved:true,offerSnapshotSha256:'b'.repeat(64)})})).status,200);assert.equal(calls.length,before+1);assert.equal(calls.at(-1).action,'send');
  },true);
 });
+
+test('confirmation endpoints require login and same-origin explicit document approval; reject injected recipient or Gmail ID',async()=>{
+ await withApp(async({origin,calls})=>{
+  const base=origin+'/api/records/offerten/off-1/contract',auth={Authorization:'Bearer test-token'},headers={...auth,Origin:origin,'Content-Type':'application/json'};
+  assert.equal((await fetch(base+'/confirmation-preview')).status,401);
+  assert.equal((await fetch(base+'/confirmation-preview',{headers:auth})).status,200);
+  assert.equal((await fetch(base+'/confirmation-send',{method:'POST',headers:auth,body:'{}'})).status,403);
+  for(const extra of [{recipient:'other@example.com'},{messageId:'synthetic_spoofed'},{verified:true}])assert.equal((await fetch(base+'/confirmation-send',{method:'POST',headers,body:JSON.stringify({documentReviewed:true,sha256:'a'.repeat(64),...extra})})).status,400);
+  assert.equal((await fetch(base+'/confirmation-send',{method:'POST',headers,body:JSON.stringify({documentReviewed:true,sha256:'a'.repeat(64)})})).status,200);
+  assert.equal(calls.at(-1).action,'confirmation-send');
+  assert.equal((await fetch(base+'/confirmation-check',{method:'POST',headers,body:'{}'})).status,200);assert.equal(calls.at(-1).action,'confirmation-check');
+ },true);
+});

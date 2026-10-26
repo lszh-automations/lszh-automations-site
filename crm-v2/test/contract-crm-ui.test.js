@@ -5,7 +5,7 @@ const source=html.slice(html.indexOf('async function renderContractWorkflow('),h
 function setup(value,enabled=true){
  const calls=[],area={children:[],dataset:{},hidden:true,replaceChildren(){this.children=[];},append(...items){this.children.push(...items);}};
  const state={contractActionsEnabled:enabled};let confirm=true;
- const context={state,$:()=>area,el:(tag,css,text)=>({tag,textContent:text,value:'',children:[],append(...items){this.children.push(...items);},addEventListener(name,fn){this[name]=fn;}}),
+ const context={state,$:()=>area,el:(tag,css,text)=>({tag,textContent:text,value:'',style:{},children:[],append(...items){this.children.push(...items);},addEventListener(name,fn){this[name]=fn;}}),
   api:async(url,options)=>{calls.push({url,options});return options?{state:'sent',url:'https://portal.example/#private_token'}:value;},
   window:{confirm:()=>confirm,prompt:()=> 'synthetic_message_123'},reopenSavedOffer:async()=>{}};
  vm.createContext(context);vm.runInContext(source,context);
@@ -58,4 +58,23 @@ test('uncertain invitation never exposes a resend control',async()=>{
 });
 test('known send receipt offers readonly status checking without a message-ID field',async()=>{
  const f=setup({state:'delivery_review',simpleSendEnabled:true,hasSendReceipt:true});await f.render();const button=f.area.children.find(x=>x.tag==='button');assert.equal(button.textContent,'Versandstatus prüfen');assert.equal(f.area.children.some(x=>x.tag==='label'),false);await button.click();assert.ok(f.calls[1].url.endsWith('/check'));
+});
+
+test('confirmation requires preview review and deliberate click; no Gmail-ID input',async()=>{
+ const value={state:'awaiting_lszh_confirmation',simpleSendEnabled:true,reviewEnabled:true,confirmationEnabled:true},f=setup(value);
+ f.context.api=async(url,options)=>{f.calls.push({url,options});return url.endsWith('/confirmation-preview')?{recipient:'client@example.com',subject:'Ihre Auftragsbestätigung',text:'Geprüfte Bestätigung',sha256:'a'.repeat(64),data:'JVBERi0='}:options?{state:'confirmed'}:value;};
+ await f.render();const button=f.area.children.find(x=>x.textContent==='Auftragsbestätigung senden');assert.ok(button);
+ assert.equal(f.area.children.some(x=>/Nachrichten-ID/.test(x.textContent||'')),false);
+ await button.click();assert.equal(f.calls.filter(x=>x.options).length,0);
+ f.area.children.find(x=>x.tag==='label').children[0].checked=true;
+ f.setConfirm(false);await button.click();assert.equal(f.calls.filter(x=>x.options).length,0);
+ f.setConfirm(true);await button.click();const request=f.calls.find(x=>x.options);assert.ok(request.url.endsWith('/confirmation-send'));assert.deepEqual(JSON.parse(request.options.body),{documentReviewed:true,sha256:'a'.repeat(64)});
+});
+test('uncertain confirmation offers only receipt checking and no resend control',async()=>{
+ for(const hasConfirmationReceipt of [true,false]){
+  const f=setup({state:'awaiting_lszh_confirmation',simpleSendEnabled:true,reviewEnabled:true,confirmationEnabled:true,confirmationDeliveryState:'manual_review',hasConfirmationReceipt});await f.render();
+  const buttons=f.area.children.filter(x=>x.tag==='button');assert.equal(buttons.length,hasConfirmationReceipt?1:0);
+  assert.equal(f.area.children.some(x=>x.tag==='input'||x.tag==='label'),false);
+  if(hasConfirmationReceipt){await buttons[0].click();assert.ok(f.calls.at(-1).url.endsWith('/confirmation-check'));}
+ }
 });

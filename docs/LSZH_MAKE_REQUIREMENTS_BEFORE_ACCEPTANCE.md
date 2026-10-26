@@ -1,6 +1,8 @@
 # Make-Voraussetzungen vor der Offertenannahme
 
-Stand: 26.10.2026. **Live aktiviert** nach ausdrücklicher Benutzerfreigabe. CRM `lszh-crm-v2-00081-yaf` und Portal `lszh-customer-acceptance-pilot-00007-lig` erhalten jeweils 100 % regulären Verkehr. Keine bestehenden Angebote, Pakete, Freigaben oder Kundenannahmen migriert.
+Historischer Release-Nachweis vom 26.10.2026; anschliessend durch [Auftragsbest�tigung und Annahmebenachrichtigung](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md) erweitert. Der folgende Abschnitt beschreibt die damalige Erstaktivierung.
+
+Stand der Erstaktivierung: 26.10.2026. **Live aktiviert** nach ausdrücklicher Benutzerfreigabe. CRM `lszh-crm-v2-00081-yaf` und Portal `lszh-customer-acceptance-pilot-00007-lig` erhalten jeweils 100 % regulären Verkehr. Keine bestehenden Angebote, Pakete, Freigaben oder Kundenannahmen migriert.
 
 ## Live-Nachweis
 

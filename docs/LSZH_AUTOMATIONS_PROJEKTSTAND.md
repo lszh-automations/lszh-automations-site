@@ -1,4 +1,14 @@
-# Aktiver Live-Stand – Make-Hinweis vor Annahme, 26.10.2026
+# Aktiver Live-Stand – Auftragsbestätigung und Annahmemeldung, 26.10.2026
+
+**Live übernommen:** CRM `lszh-crm-v2-00083-xap` und Kundenportal `lszh-customer-acceptance-pilot-00009-rob`, jeweils 100 % regulärer Verkehr. Nach interner Prüfung: Vorschau und **Auftragsbestätigung senden** direkt im CRM, Gmail-ID automatisch übernehmen und Versand unabhängig prüfen. Nach erfolgreicher Archivierung einer neuen Kundenannahme: einmalige interne E-Mail an lars@lszh-automations.ch. Keine nachträglichen Mails oder automatische Bestätigung für Offerte 1006.
+
+[Umsetzung, Bedienung und Einschränkungen](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md) · [Aktuelles Live-Manifest](../releases/order-confirmation-live-20261026.json) · [PR 17](https://github.com/lszh-automations/lszh-automations-site/pull/17).
+
+452 CRM-Tests, 32 Portaltests und 33 echte lokale Datenbanktests bestanden. Desktop/Mobil und A4-PDF visuell geprüft. Alle 105 deployten Laufzeitdateien durch tatsächliche Cloud-Quellarchive bestätigt. Konfigurationen und Dienstkonten unverändert. Kein echter Kundenversand oder Annahmeklick zur Prüfung; bestehende Kundendaten unverändert. Der Status Angenommen und die Anlage von Kunde/Projekt bleiben ein bewusster CRM-Schritt nach bestätigtem Versand. Die vollständige Online-Annahme und C3.7.2 bleiben erfolgreich abgeschlossen.
+
+---
+
+# Vorheriger Live-Stand – Make-Hinweis vor Annahme, 26.10.2026
 
 **Live übernommen:** CRM `lszh-crm-v2-00081-yaf` und Kundenportal `lszh-customer-acceptance-pilot-00007-lig`, jeweils 100 % regulärer Verkehr. Neue Offerten und Pakete informieren vor der Annahme über eigenes Make-Konto/-Organisation, Einladung von LSZH nach schriftlicher Auftragsbestätigung und separate Make-Kosten. Vorbereitete und versendete Altpakete bleiben unverändert.
 

@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Projekt-Onboarding, 26.10.2026
+
+CRM **`lszh-crm-v2-00097-yun`** erhält 100 % Verkehr. Projekte zeigen den Onboarding-Stand und die nächste Aufgabe: Make-Bedarf klären, Make-Einladung ausstehend, Zugänge prüfen, bereit zur Einrichtung. Einladung und Zugangsprüfung werden bewusst manuell bestätigt. Ohne Make entfällt der Einladungsschritt. Notizen und Voraussetzungen werden serverseitig geprüft; der Projektstatus bleibt separat.
+
+Neue Projekte starten neutral. Bestehende Projekte wurden nicht migriert oder verändert; der Bediener speichert den Stand bewusst im Projekteditor. Keine Mail, Einladung oder Make-Berechtigung geändert. Rechnungsentwürfe und Kunden-/Offertenzuordnung bleiben erhalten.
+
+472 CRM-Tests, GitHub-Stagingprüfung und echte Firestore-Emulatortests erfolgreich. Desktop und Mobil mit Übergängen, Korrekturen und je zwei Speichern-/Wiederöffnen-Zyklen geprüft. Alle 79 Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_PROJECT_ONBOARDING.md) - [Live-Manifest](../releases/project-onboarding-live-20261026.json) - [PR 23](https://github.com/lszh-automations/lszh-automations-site/pull/23).
+
+---
+
 # Aktiver Live-Stand - Make-Partnerlink und Startvorteil, 26.10.2026
 
 CRM **`lszh-crm-v2-00095-hix`** erhält 100 % Verkehr. Neue Bestätigungs-Mails und PDFs enthalten in der Make-Anleitung den anklickbaren Partnerlink mit 10'000 Gratis-Credits im ersten Monat gemäss Make-Aktionsbedingungen sowie den transparenten Provisionshinweis. Aktionsvorteil vom Betreiber bestätigt; Aktivierung für den individuellen Link öffentlich nicht unabhängig geprüft. Bestehende Make-Konten werden weiterverwendet.

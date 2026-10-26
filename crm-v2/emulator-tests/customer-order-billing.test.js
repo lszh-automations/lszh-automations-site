@@ -28,3 +28,21 @@ test('the exact REST repair path backfills a legacy accepted order and customer 
  assert.equal(first.invoice.id,second.invoice.id);assert.equal(first.invoice.amountCHF,180.15);assert.equal(first.invoice.customerId,customerId);assert.equal(first.invoice.projectId,projectDocId);
  assert.match((await store.get('kunden',customerId)).customerNumber,/^KD-\d+$/);assert.equal((await store.get('offerten',id)).status,'Angenommen');
 });
+
+
+test('accepted project onboarding persists independently and rejected premature readiness cannot alter it',async()=>{
+ const a=setup(),customer=await a.store.create('kunden',{company:'TEST_ONLY '+randomUUID()},user);
+ const offer=await a.store.create('offerten',{customerId:customer.id,title:'TEST_ONLY onboarding',items:[{title:'Setup',qty:1,unitPriceCHF:100,mode:'einmalig'}]},user);
+ await a.store.update('offerten',offer.id,{status:'Angenommen'},user);
+ const rows=await a.db.collection(prefix+'projekte').where('offerId','==',offer.id).get(),id=rows.docs[0].id;
+ const before=await a.store.get('projekte',id),invoiceBefore=await a.store.get('offerten',offer.id);
+ assert.equal(before.onboarding.makeRequired,null);
+ const o={makeRequired:true,invitationConfirmed:false,accessConfirmed:false,notes:'TEST_ONLY Einladung fehlt'};
+ await a.store.update('projekte',id,{onboarding:o},user);
+ await assert.rejects(()=>a.store.update('projekte',id,{onboarding:{...o,accessConfirmed:true}},user),/Zuerst/);
+ assert.deepEqual((await a.store.get('projekte',id)).onboarding,o);
+ await a.store.update('projekte',id,{onboarding:{...o,invitationConfirmed:true,accessConfirmed:true}},user);
+ const saved=await a.store.get('projekte',id);assert.equal(saved.onboarding.accessConfirmed,true);assert.equal(saved.status,'Geplant');
+ assert.equal(saved.customerId,customer.id);assert.equal(saved.offerId,offer.id);
+ assert.deepEqual(await a.store.get('offerten',offer.id),invoiceBefore);
+});

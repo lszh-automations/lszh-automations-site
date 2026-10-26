@@ -6,7 +6,7 @@
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
-const {cleanProjectTasks}=require('./project-tasks');
+const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields}=require('./lead-contact');
@@ -25,7 +25,7 @@ const FIELDS={
   kunden:['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten:['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen:['customerId','projectId','description','invoiceDate','items','amountCHF','dueDate','status'],
-  projekte:['customerId','offerId','title','description','dueDate','tasks','status']
+  projekte:['customerId','offerId','title','description','dueDate','tasks','onboarding','status']
 };
 const REQUIRED={
   leads:['name','company','email','street','postalCode','city','country'],
@@ -47,6 +47,7 @@ function clean(table,input){
       else throw err('Ungültige Positionen');
       continue;
     }
+    if(field==='onboarding'){out.onboarding=cleanProjectOnboarding(value);continue;}
     if(field==='tasks'){
       if(table!=='projekte')throw err('Ungültige Aufgaben');
       out.tasks=cleanProjectTasks(value);continue;
@@ -237,7 +238,7 @@ function buildStore(db,prefix){
       const fields={
         customerId:finalCustomer.id,offerId:offerRef.id,
         title:offer.title||'Gewonnenes Projekt',description:offer.description||'',
-        dueDate:'',tasks:[],status:'Geplant'
+        dueDate:'',tasks:[],onboarding:defaultOnboarding(),status:'Geplant'
       };
       tx.create(finalProject,newRecord(fields,user,date));
     }
@@ -451,7 +452,7 @@ function buildStore(db,prefix){
         await acceptedOffer(tx,input.offerId);
         if(input.offerId&&await queryOne(tx,'projekte','offerId',input.offerId))
           throw err('Diese Offerte ist bereits einem Projekt zugeordnet');
-        tx.create(ref,newRecord({...input,tasks:input.tasks||[]},user,date));
+        tx.create(ref,newRecord({...input,tasks:input.tasks||[],onboarding:input.onboarding||defaultOnboarding()},user,date));
       }
       if(table==='rechnungen'){
         await assertCustomer(tx,input.customerId);

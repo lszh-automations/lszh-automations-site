@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "fe076ca954a8e2160f969b1cf47861ca09bd105a",
+  "service": "lszh-crm-v2",
+  "configurationUnchanged": true,
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:597b4c5db56630f7a71546778acafca154324dd6a66c96b042d1178b710813bc",
+  "rollback": "lszh-crm-v2-00095-hix",
+  "buildId": {
+    "lszh-crm-v2-1": "8dafbb63-2f47-4905-8a55-695d3aa9b83a"
+  },
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793033486.407917-d0b4d5e2a0ab43988120d1b8cc8f3246.zip#1793033487767172"
+  },
+  "revision": "lszh-crm-v2-00097-yun",
+  "anonymousProjectStatus": 401,
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 472,
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success, including onboarding persistence and invalid readiness rejection",
+  "browserVariantsChecked": 2,
+  "parentRelease": "confirmation-partner-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "367be197568e30754d50d97e0bf457cdc4330b37bda3771ee92d030f59a6afce",
+      "bytes": 57180
+    },
+    {
+      "path": "project-tasks.js",
+      "sha256": "eeee127a0e9be1e1bb4722065c3fbe42f9632b9d4c1fc0bc8ecaa270c4143b3f",
+      "bytes": 3305
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "cdcd582f6642226fcf088ac6f5ba1328a266d198e15c532d3a34689831d9d807",
+      "bytes": 183036
+    }
+  ],
+  "states": [
+    "Make-Bedarf klären",
+    "Make-Einladung ausstehend",
+    "Zugänge prüfen",
+    "Bereit zur Einrichtung"
+  ],
+  "manualConfirmation": true,
+  "legacyMigration": false,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "existingPdfReplaced": false,
+  "portalAndMakeUnchanged": true
+}

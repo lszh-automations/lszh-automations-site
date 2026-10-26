@@ -69,6 +69,8 @@ function createDurableAcceptance({db,projectId,databaseId='(default)',prefix,now
       const row=await tx.get(id),offer=await tx.get('crmOffer:'+entry.offerId);
       if(!row||row.archiveFileId!==entry.archiveFileId||offer?.onlineAcceptance?.responseId!==responseId)
         throw fault('CRM_BINDING_INVALID',409);
+      const noticeId='acceptanceNotification_'+digest(Buffer.from(responseId)),notice=await tx.get(noticeId);
+      if(row.state!=='complete'&&!notice)tx.create(noticeId,{state:'notification_pending',responseId,offerId:entry.offerId,offerNumber:String(offer.number||''),packageSha256:offer.onlineAcceptance.packageSha256,createdAt:new Date(now()).toISOString()});
       tx.set(id,{...row,state:'complete',archivedAt:new Date(now()).toISOString()});
       tx.set('crmOffer:'+entry.offerId,{...offer,onlineAcceptance:{...offer.onlineAcceptance,
         archiveState:'complete',archiveFileId:entry.archiveFileId}});

@@ -1688,7 +1688,7 @@ async function renderContractWorkflow(offer){
     const base='/api/records/offerten/'+encodeURIComponent(offer.id)+'/contract';
     const value=await api(base);
     if(area.hidden||area.dataset.offerId!==offer.id)return;
-    const labels={missing_package:'Noch kein freigegebenes Vertragspaket zugeordnet.',prepared:'Vertragspaket vorbereitet.',delivery_review:'Versand unklar – Postfach prüfen. Kein erneuter Versand.',sent:'Vollständiger Paketversand nachgewiesen.',customer_response_recorded:'Kundenannahme eingegangen – interne Prüfung erforderlich.',awaiting_lszh_confirmation:'Interne Prüfung abgeschlossen. Schriftliche LSZH-Bestätigung noch nachweisen.',confirmed:'Schriftliche LSZH-Bestätigung nachgewiesen.'};
+    const labels={missing_package:'Noch kein freigegebenes Vertragspaket zugeordnet.',prepared:'Vertragspaket vorbereitet.',delivery_review:'Versand unklar – Postfach prüfen. Kein erneuter Versand.',sent:'Vollständiger Paketversand nachgewiesen.',customer_response_recorded:'Kundenannahme eingegangen – interne Prüfung erforderlich.',awaiting_lszh_confirmation:'Kunde hat angenommen – Auftragsbestätigung ausstehend.',confirmed:'Schriftliche LSZH-Bestätigung nachgewiesen.'};
     area.append(el('p','',labels[value.state]||'Online-Annahme noch nicht freigeschaltet.'));
     const message=el('p','offer-workflow-error','');message.hidden=true;area.append(message);
     function action(caption,name,warning,withMessage=false){
@@ -1706,6 +1706,21 @@ async function renderContractWorkflow(offer){
         }catch{message.textContent='Die Aktion wurde nicht freigegeben oder konnte nicht bestätigt werden. Bitte Paket, Archiv und Versandnachweis prüfen. Keinen Versand wiederholen.';message.hidden=false;}
         finally{button.disabled=false;}
       });area.append(button);
+    }
+    if(value.state==='confirmed'){
+      const legacy=$('offerWorkflow');if(legacy&&legacy!==area)legacy.hidden=true;
+      if(offer.status==='Angenommen'){area.append(el('p','','Auftrag übernommen. Kunde und Projekt sind zugeordnet.'));return;}
+      area.append(el('p','','Die Auftragsbestätigung ist versendet und geprüft. Übernimm jetzt den Auftrag, damit die Offerte auf Angenommen wechselt und Kunde und Projekt zugeordnet werden.'));
+      if(offer.status==='Versendet'){
+        const accept=el('button','btn primary','Auftrag übernehmen und Projekt anlegen');accept.type='button';
+        accept.addEventListener('click',async()=>{
+          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Die Offerte wechselt auf Angenommen; Kunde und Projekt werden angelegt oder zugeordnet.'))return;
+          accept.disabled=true;message.hidden=true;
+          try{await api('/api/records/offerten/'+encodeURIComponent(offer.id),{method:'PATCH',body:JSON.stringify({status:'Angenommen'})});await reopenSavedOffer(offer.id);}
+          catch(error){message.textContent=error.message||'Auftrag konnte nicht übernommen werden. Bitte Offerte neu öffnen und den Status prüfen.';message.hidden=false;accept.disabled=false;}
+        });area.append(accept);
+      }
+      return;
     }
     if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action});return;}
     if(value.mayCreateDraft){
@@ -1754,11 +1769,29 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
     return;
   }
   if(value.state==='awaiting_lszh_confirmation'){
-    area.append(el('p','','Die interne Prüfung ist abgeschlossen. Die schriftliche Auftragsbestätigung erfolgt separat.'));
-    if(value.reviewEnabled)action('Schriftliche Bestätigung zuordnen','confirmation','Die bereits versendete schriftliche LSZH-Bestätigung unabhängig nachweisen?',true);
+    area.append(el('p','','Die Kundenannahme ist geprüft. Du kannst die Auftragsbestätigung hier prüfen und versenden.'));
+    if(value.reviewEnabled&&value.confirmationEnabled){
+      if(value.confirmationDeliveryState){
+        area.append(el('p','','Ein Versand wurde bereits ausgelöst. Er wird nicht wiederholt.'));
+        if(value.hasConfirmationReceipt)action('Bestätigungsversand prüfen','confirmation-check','Den bestehenden Versand im Gesendet-Ordner prüfen? Es wird nichts erneut gesendet.');
+        else area.append(el('p','','Der Versandbeleg fehlt. Bitte den Versand intern prüfen lassen.'));
+      }else{
+        const preview=await api(base+'/confirmation-preview');if(area.dataset.offerId!==offer.id)return;
+        area.append(el('h4','','Auftragsbestätigung'),el('p','','Empfänger: '+preview.recipient),el('p','',preview.subject));
+        const text=el('pre','',preview.text);text.style.whiteSpace='pre-wrap';text.style.overflowWrap='anywhere';area.append(text);
+        const pdf=el('button','btn','Auftragsbestätigung als PDF prüfen');pdf.type='button';pdf.addEventListener('click',()=>{const uri=URL.createObjectURL(new Blob([Uint8Array.from(atob(preview.data),c=>c.charCodeAt(0))],{type:'application/pdf'}));window.open(uri,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(uri),300000);});area.append(pdf);
+        const label=el('label','','Empfänger und Auftragsbestätigung geprüft.'),checked=el('input','','');checked.type='checkbox';label.append(checked);area.append(label);
+        const send=el('button','btn primary','Auftragsbestätigung senden');send.type='button';
+        send.addEventListener('click',async()=>{if(!checked.checked){message.textContent='Bitte zuerst die Auftragsbestätigung prüfen.';message.hidden=false;return;}if(!window.confirm('Diese Auftragsbestätigung jetzt verbindlich an den Kunden senden?'))return;send.disabled=true;
+          try{await api(base+'/confirmation-send',{method:'POST',body:JSON.stringify({documentReviewed:true,sha256:preview.sha256})});await reopenSavedOffer(offer.id);}
+          catch{message.textContent='Versand noch nicht bestätigt. Bitte Offerte neu öffnen und Versandstatus prüfen; nicht erneut versenden.';message.hidden=false;}
+          finally{send.disabled=false;}
+        });area.append(send);
+      }
+    }else area.append(el('p','','Der Bestätigungsversand ist noch nicht freigeschaltet.'));
     return;
   }
-  if(value.state==='confirmed')return;
+  if(value.state==='confirmed'){area.append(el('p','','Auftragsbestätigung versendet und geprüft. Du kannst die Offerte jetzt auf Angenommen setzen und damit Kunde und Projekt anlegen.'));return;}
   if(!value.mayCreateDraft&&!value.mayPrepare&&value.state!=='prepared'){area.append(el('p','','Online-Annahme ist für gültige, versandbereite Offerten verfügbar.'));return;}
   const preview=await api(base+'/preview');
   if(area.dataset.offerId!==offer.id)return;

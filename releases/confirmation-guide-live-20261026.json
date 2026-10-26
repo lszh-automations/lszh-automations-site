@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "741cbead24fac3dbd34652c8da5ab72f3ff1cecd",
+  "service": "lszh-crm-v2",
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:ce95cfb447516994522f4a7b7fa96fbdd85d049779af896cf0764045e7a785ba",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "buildId": {
+    "lszh-crm-v2-1": "101f0105-196f-45ab-9b29-ff08f731f49b"
+  },
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793031766.204917-cdae79c328294c5296a4dcc3e1f7ff6b.zip#1793031767549014"
+  },
+  "anonymousPreviewStatus": 401,
+  "rollback": "lszh-crm-v2-00091-xor",
+  "configurationUnchanged": true,
+  "revision": "lszh-crm-v2-00093-yik",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 469,
+  "sourceCommitGithubChecks": "success",
+  "pdfVariantsChecked": 2,
+  "browserVariantsChecked": 4,
+  "parentRelease": "confirmation-pdf-design-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "order-confirmation.js",
+      "sha256": "c3051caaf6473d522e7415f9308436f167ae700285b25c87af083dea8af48e8b",
+      "bytes": 21659
+    }
+  ],
+  "newConfirmationDocumentVersion": "confirmation-v3",
+  "existingV1V2ProofSupported": true,
+  "visiblePackageReferenceRemoved": true,
+  "visibleSha256Removed": true,
+  "makeGuide": "Email and second page of single PDF; only previously agreed Make requirements",
+  "customerDataChanged": false,
+  "emailSent": false,
+  "existingPdfReplaced": false,
+  "portalAndMakeUnchanged": true
+}

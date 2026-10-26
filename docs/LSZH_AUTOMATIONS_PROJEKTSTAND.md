@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Make-Anleitung und bereinigte Bestätigung, 26.10.2026
+
+CRM **`lszh-crm-v2-00093-yik`** erhält 100 % Verkehr. Neue Auftragsbestätigungen zeigen weder Paketreferenz noch SHA-256. Für bereits vereinbarte Make-Voraussetzungen steht die Einrichtungshilfe in der Mail und auf Seite 2 desselben PDF-Anhangs, einschliesslich Einladung an lars@lszh-automations.ch. Interne Nachweise bleiben erhalten, frühere PDFs unverändert; keine erneute Mail und keine Kundendatenänderung.
+
+469 CRM-Tests, erfolgreiche GitHub-Prüfungen, zwei synthetische PDF-Varianten und vier Desktop-/Mobilprüfungen. Alle 79 tatsächlichen Laufzeitdateien bestätigt. Konfiguration, Dienstkonto, Portal und Make unverändert. Kundennummern und automatische Rechnungsentwürfe bleiben aktiv.
+
+[Bedienung und Nachweis](LSZH_ORDER_CONFIRMATION_AND_NOTIFICATIONS.md#technische-angaben-ausgeblendet-und-make-anleitung-integriert) - [Live-Manifest](../releases/confirmation-guide-live-20261026.json).
+
+---
+
 # Aktiver Live-Stand – Mail und PDF im aktuellen LSZH-Design, 26.10.2026
 
 CRM **`lszh-crm-v2-00091-xor`** erhält 100 % Verkehr. Jetzt passen auch die künftigen Auftragsbestätigungs-PDFs zum bereits übernommenen Maildesign: dunkler Kopf mit Logo, Farbakzente, Infokarte, Make-Abschnitt und Firmenfuss mit Seitenzahlen. Neue Archivdokumente verwenden `confirmation-v2`; bestehende PDFs und Nachweise bleiben erhalten und weiterhin prüfbar. Keine erneute Kundenmail und keine Kundendatenänderung.

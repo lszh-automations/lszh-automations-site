@@ -74,3 +74,18 @@ Auf ausdr�cklichen Benutzerwunsch wurde danach auch das PDF angeglichen. Live: C
 467 CRM-Tests erfolgreich, einschliesslich deterministischer A4-PDFs, mehrseitigem Text und vorhandener v1-Versandnachweise ohne erneute Archivierung/Versand. Drei rein synthetische Varianten (mit Make-Hinweis, Altpaket ohne Hinweis, mehrseitiger Langtext) gerendert und alle Seiten visuell gepr�ft. PDF-Textextraktion best�tigt den vollst�ndigen Vertrags-/Referenztext und Seitenzahlen. Keine reale Best�tigung zur Abnahme gesendet, keine Kundendaten ge�ndert und keine bestehende Archivdatei ersetzt.
 
 [Live-Nachweis](../releases/confirmation-pdf-design-live-20261026.json), [PR 20](https://github.com/lszh-automations/lszh-automations-site/pull/20), Quellcommit `08f9c390b22cd01d551376ef54b6ba9d02f61089`. Alle 79 tats�chlichen Laufzeitdateien best�tigt; nur `order-confirmation.js` gegen�ber dem Maildesign-Release ver�ndert. Konfiguration und Dienstkonto unver�ndert. Oberfl�che HTTP 200, anonyme Best�tigungsvorschau HTTP 401, keine Error-Level-Logs bei Abschluss. GitHub-Pr�fungen des Quellcommits erfolgreich; Portal und Make unver�ndert. R�ckfallversion: CRM `00089-mar`. Vorhandene Dokument-/Versandclaims dabei nie l�schen oder regenerieren.
+
+
+## Technische Angaben ausgeblendet und Make-Anleitung integriert
+
+Live seit 26.10.2026: `lszh-crm-v2-00093-yik`, 100 % Verkehr. Neue Bestätigungs-Mails und PDFs zeigen keine Paketreferenz oder SHA-256 mehr. Interne Prüfsummen, Archivzuordnung und unabhängiger Gmail-Versandnachweis bleiben für die zuverlässige Zuordnung erhalten.
+
+Für Pakete mit bereits vereinbarten Make-Voraussetzungen enthält die Mail die Einrichtungsschritte; dieselbe Anleitung steht auf einer zweiten Seite des einzigen PDF-Anhangs. Legacy-Pakete ohne diese Voraussetzung erhalten keine neuen Make-Pflichten. Die Anleitung ergänzt keine Vertragsbedingungen. Neue Dokumente verwenden `confirmation-v3`; bestehende v1/v2-Dokumente und Versandnachweise bleiben gültig und werden nicht überschrieben.
+
+Der Kunde erstellt bzw. verwendet sein eigenes Make-Konto und seine eigene Organisation und lädt LSZH Automations unter **lars@lszh-automations.ch** ein. Die Adresse stammt aus der zentralen Projektprüfung `LSZH_RC1_KLAUSELPRUEFUNG_UND_SYNTHETISCHER_ANNAHMETEST_20261014.md`. Die Anleitung beschreibt Organisationsmitglied und – soweit der Tarif dies unterstützt – Teammitglied im Projektteam. Weitere Rechte werden nur bei Bedarf vereinbart, der Kunde bleibt Eigentümer. Keine Passwortweitergabe, kein automatischer Tarifwechsel. Vor einer Organisationsneuanlage ist die später unveränderliche Datenregion abzustimmen.
+
+Menüs und Rollen am 26.10.2026 anhand der offiziellen [Organisationshilfe](https://help.make.com/organizations) und [Teamhilfe](https://help.make.com/teams) geprüft; Anzeige und Rechte hängen vom Make-Tarif ab.
+
+Nachweis: 469 CRM-Tests erfolgreich, zusätzlich GitHub-Stagingprüfung und Baselineprüfung erfolgreich. Zwei synthetische PDF-Varianten vollständig extrahiert, beide Seiten der Make-Variante visuell geprüft; vier Desktop-/Mobilvarianten ohne Überlauf. Tatsächlich gebauten Quellstand mit allen 79 Laufzeitdateien verglichen; nur `order-confirmation.js` gegenüber dem vorigen Release geändert. Kandidat und Live-Oberfläche HTTP 200, anonyme Bestätigungsvorschau HTTP 401; keine Fehler der neuen Revision im kontrollierten Zeitfenster. Konfiguration und Dienstkonto unverändert. Keine Kunden-/Rechnungsdaten geändert, keine Mail versendet, Portal und Make-Szenarien unverändert.
+
+Release: [Live-Manifest](../releases/confirmation-guide-live-20261026.json), [PR 21](https://github.com/lszh-automations/lszh-automations-site/pull/21). Rückfallrevision: `lszh-crm-v2-00091-xor`.

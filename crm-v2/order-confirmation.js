@@ -8,6 +8,18 @@ const confirmationKey=id=>'confirmationDelivery_'+digest(Buffer.from(id));
 const documentKey=id=>'confirmationDocument_'+digest(Buffer.from(id));
 const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
 const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function makeSetupGuide(){
+ return ['MAKE-ANLEITUNG','Make einrichten und LSZH einladen',
+  'Einrichtungshilfe nach Ihrer Auftragsbestätigung. Diese Anleitung ergänzt keine Vertragsbedingungen. Stand: 26.10.2026.',
+  '1. Eigenes Konto: Öffnen Sie https://www.make.com und registrieren Sie sich mit Ihrer geschäftlichen E-Mail-Adresse. Haben Sie bereits ein Firmenkonto, verwenden Sie dieses.',
+  '2. Eigene Organisation: Verwenden Sie die Organisation Ihres Unternehmens. Falls noch keine besteht: Profil > Organizations > Create organization. Den Namen wählen Sie passend zu Ihrer Firma. Die Datenregion stimmen Sie vor dem Erstellen mit LSZH ab; sie lässt sich danach nicht ändern.',
+  '3. Einladung: Öffnen Sie in Ihrer Organisation Org > Org Users (je nach Ansicht Users) > Invite user. Tragen Sie lars@lszh-automations.ch und als Namen LSZH Automations ein. Wählen Sie das für Ihr Projekt vorgesehene Team.',
+  '4. Rechte: Wählen Sie auf Organisationsebene Member. Für die Einrichtung der Szenarien ist im Projektteam Team Member vorgesehen, soweit Ihr Tarif diese Rollenwahl anbietet. Weitergehende Rechte stimmen wir bei konkretem Bedarf mit Ihnen ab. Sie bleiben Owner Ihrer Organisation.',
+  '5. Einladung senden: Klicken Sie auf Save. Make schickt die Einladung direkt an LSZH. Melden Sie uns danach kurz, dass die Einladung versendet wurde. Falls eine Option in Ihrem Tarif fehlt, helfen wir Ihnen; ändern Sie den kostenpflichtigen Tarif erst nach Absprache.',
+  '6. Zugang prüfen: Nach Annahme der Einladung prüfen wir die benötigten Zugänge gemeinsam. Verbindungen zu Ihren weiteren Systemen richten wir kontrolliert ein. Senden Sie keine Passwörter oder Zugangsdaten per E-Mail. Die technische Einrichtung beginnt nach der Zugangsprüfung.',
+  'Ihr Make-Konto und die Organisation bleiben bei Ihnen. Make-Abonnement und Nutzungskosten laufen direkt zwischen Ihnen und Make gemäss den bereits vereinbarten Bedingungen.',
+  'Offizielle Make-Hilfe: https://help.make.com/organizations und https://help.make.com/teams'];
+}
 function confirmationText(pkg,recipient,acceptedAt){
  return ['AUFTRAGSBESTÄTIGUNG','Zur Offerte Nr. '+pkg.offerNumber,'Empfänger: '+recipient,
   'Wir bestätigen Ihren Auftrag gemäss der von Ihnen am '+new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',dateStyle:'medium'}).format(new Date(acceptedAt))+' angenommenen Offerte und den zugehörigen Vertragsunterlagen.',
@@ -15,17 +27,22 @@ function confirmationText(pkg,recipient,acceptedAt){
   'Angenommene Unterlagen:',...pkg.documents.map(d=>d.filename+' (Version '+d.version+')'),
   ...(pkg.makeRequirementsVersion?['Für die Einrichtung verwenden Sie Ihre eigene Make-Organisation. Bitte laden Sie LSZH Automations nach dieser Bestätigung mit den benötigten Berechtigungen ein. Die Einrichtung beginnt nach Prüfung der Zugänge.']:[]),
   'Bei Fragen erreichen Sie uns unter info@lszh-automations.ch.',
-  'Paketreferenz: '+pkg.packageId,'SHA-256: '+pkg.packageSha256];
+  ...(pkg.makeRequirementsVersion?makeSetupGuide():[])];
 }
 function renderConfirmationEmail(preview){
  // Same inline/table design as the live offer and customer acknowledgement.
  // Contractual text still originates solely from the accepted package/PDF.
  const lines=preview.text.split('\n\n'),paragraph=content=>'<p style="margin:0 0 18px;color:#344259;font-size:15px;line-height:25px;overflow-wrap:anywhere;word-break:break-word;">'+escape(content)+'</p>';
- const body=lines.slice(3).filter(line=>!line.startsWith('Paketreferenz: ')&&!line.startsWith('SHA-256: ')).map(line=>{
+ const guideIndex=lines.indexOf('MAKE-ANLEITUNG');
+ const body=lines.slice(3,guideIndex<0?undefined:guideIndex).filter(line=>!line.startsWith('Paketreferenz: ')&&!line.startsWith('SHA-256: ')).map(line=>{
   if(line==='Angenommene Unterlagen:')return '<p style="margin:26px 0 12px;color:#06101d;font-size:13px;font-weight:700;line-height:21px;">'+escape(line)+'</p>';
   if(line.startsWith('Für die Einrichtung verwenden Sie Ihre eigene Make-Organisation.'))return '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;"><tr><td style="padding:19px 20px;"><p style="margin:0 0 8px;color:#06101d;font-size:13px;font-weight:700;line-height:21px;">Ihr Make-Konto und die Einrichtung</p><p style="margin:0;color:#344259;font-size:14px;line-height:23px;">'+escape(line)+'</p></td></tr></table>';
   return paragraph(line);
  }).join('');
+ const guide=guideIndex<0?'':'<h2 style="margin:30px 0 14px;color:#06101d;font-size:20px;line-height:28px;">'+escape(lines[guideIndex+1])+'</h2>'+
+  '<p style="margin:0 0 16px;color:#526278;font-size:13px;line-height:21px;">Die Anleitung finden Sie auch auf der nächsten Seite des beigefügten PDFs.</p>'+
+  lines.slice(guideIndex+2).filter(line=>!line.startsWith('Offizielle Make-Hilfe:')).map(line=>'<p style="margin:0 0 14px;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">'+escape(line)+'</p>').join('')+
+  '<p style="margin:0 0 18px;font-size:12px;line-height:20px;"><a href="https://help.make.com/organizations" style="color:#356bde;">Make-Hilfe: Organisation und Einladung</a> · <a href="https://help.make.com/teams" style="color:#356bde;">Teams und Rollen</a></p>';
  return '<!doctype html><html lang="de-CH"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LSZH Automations – Auftragsbestätigung</title></head>'+
   '<body style="margin:0;padding:0;background-color:#f4f7fb;color:#0f1726;font-family:Arial,Helvetica,sans-serif;">'+
   '<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Ihre Auftragsbestätigung von LSZH Automations als PDF im Anhang.</div>'+
@@ -38,7 +55,7 @@ function renderConfirmationEmail(preview){
   '<tr><td style="padding:37px 28px 36px;"><p style="margin:0 0 12px;color:#5b8cff;font-size:11px;font-weight:700;line-height:18px;letter-spacing:1.4px;">IHRE AUFTRAGSBESTÄTIGUNG</p>'+
   '<h1 style="margin:0 0 24px;color:#06101d;font-size:27px;line-height:36px;">Ihr Auftrag ist bestätigt</h1>'+paragraph('Guten Tag')+paragraph('Vielen Dank für Ihr Vertrauen in LSZH Automations.')+
   '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 25px;background-color:#f4f7fb;border:1px solid #dfe7f2;border-radius:10px;"><tr><td style="padding:19px 20px;">'+
-  '<p style="margin:0 0 8px;color:#06101d;font-size:16px;font-weight:700;line-height:25px;">'+escape(lines[1])+'</p><p style="margin:0 0 12px;color:#526278;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">Empfänger: '+escape(preview.recipient)+'</p><p style="margin:0;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">PDF im Anhang: <strong>'+escape(preview.filename)+'</strong></p></td></tr></table>'+body+
+  '<p style="margin:0 0 8px;color:#06101d;font-size:16px;font-weight:700;line-height:25px;">'+escape(lines[1])+'</p><p style="margin:0 0 12px;color:#526278;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">Empfänger: '+escape(preview.recipient)+'</p><p style="margin:0;color:#344259;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">PDF im Anhang: <strong>'+escape(preview.filename)+'</strong></p></td></tr></table>'+body+guide+
   '<p style="margin:24px 0 0;color:#344259;font-size:14px;line-height:23px;">Freundliche Grüsse<br><strong style="color:#06101d;">Ihr Team von LSZH Automations</strong></p></td></tr>'+
   '<tr><td bgcolor="#0a1728" style="background-color:#0a1728;padding:25px 28px 27px;"><p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;line-height:21px;">LSZH Automations</p><p style="margin:0 0 11px;color:#b2bfd3;font-size:11px;line-height:19px;">Ein Geschäftsbereich der LSZH Invest GmbH<br>Rummelmatt 8 · 5610 Wohlen AG · Schweiz<br>UID: CHE-369.474.125</p>'+
   '<p style="margin:0;color:#74d8ff;font-size:11px;line-height:19px;"><a href="mailto:info@lszh-automations.ch" style="color:#74d8ff;text-decoration:none;">info@lszh-automations.ch</a> · <a href="https://lszh-automations.ch/" style="color:#74d8ff;text-decoration:none;">lszh-automations.ch</a></p></td></tr></table></td></tr></table></body></html>';
@@ -92,10 +109,12 @@ async function confirmationPdf(lines,date){
  next();paragraph('IHRE AUFTRAGSBESTÄTIGUNG',{size:8,strong:true,color:blue,gap:13});
  paragraph('Ihr Auftrag ist bestätigt',{size:23,strong:true,color:navy,gap:14});
  box([{text:lines[1],size:14,strong:true,color:navy},{text:lines[2],size:9,color:muted}]);
- for(const value of lines.slice(3)){
+ let inGuide=false;
+ for(const value of lines.slice(3).filter(line=>!line.startsWith('Paketreferenz: ')&&!line.startsWith('SHA-256: '))){
+  if(value==='MAKE-ANLEITUNG'){next();inGuide=true;paragraph('IHRE MAKE-EINRICHTUNG',{size:8,strong:true,color:blue,gap:13});continue;}
+  if(inGuide){paragraph(value,{size:value==='Make einrichten und LSZH einladen'?21:9,strong:value==='Make einrichten und LSZH einladen',color:ink,gap:9});continue;}
   if(value==='Angenommene Unterlagen:'){ensure(40);paragraph(value,{size:10,strong:true,color:navy,gap:3});}
   else if(value.startsWith('Für die Einrichtung verwenden Sie Ihre eigene Make-Organisation.'))box([{text:'Ihr Make-Konto und die Einrichtung',size:10,strong:true,color:navy},{text:value,size:9,color:muted}]);
-  else if(value.startsWith('Paketreferenz: ')||value.startsWith('SHA-256: '))paragraph(value,{size:7,color:muted,gap:5});
   else paragraph(value,{size:10,gap:10});
  }
  const pages=pdf.getPages();pages.forEach((p,index)=>p.drawText('Seite '+(index+1)+' / '+pages.length,{x:W-95,y:19,size:7,font,color:rgb(.70,.75,.83)}));
@@ -131,7 +150,7 @@ function createOrderConfirmation({transaction,authorizeOperator,review,archivePd
   try{
    const bytes=Buffer.from(p.data,'base64'),fileId=await archivePdf({offerId:id,filename:p.filename,bytes,sha256:p.sha256});
    // Correspondence uses the existing archived offer-PDF document schema, outside the accepted package.
-   const document={kind:'offer',version:'confirmation-v2',archiveFileId:fileId,filename:p.filename,bytes:bytes.length,sha256:p.sha256};verifyDocumentBytes(document,Buffer.from(await readArchivedPdf(fileId,document)));
+   const document={kind:'offer',version:'confirmation-v3',archiveFileId:fileId,filename:p.filename,bytes:bytes.length,sha256:p.sha256};verifyDocumentBytes(document,Buffer.from(await readArchivedPdf(fileId,document)));
    await transaction(async tx=>{await binding(tx,id);const row=await tx.get(claim),old=await tx.get(docId);if(row?.state!=='preparing'||old)throw fault('CONFIRMATION_NOT_READY',409);
     tx.create(docId,{packageSha256:b.pkg.packageSha256,recipient:b.recipient,approvedBy:operator,document});tx.set(claim,{...row,state:'sending',document});
    });
@@ -153,4 +172,4 @@ function createConfirmationTransport({webhookUrl,fetchImpl=fetch}={}){
   const r=await fetchImpl(webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(30000)});const receipt=await r.json().catch(()=>null);if(!r.ok)throw fault('CONFIRMATION_UNCONFIRMED',409);return receipt;
  };
 }
-module.exports={createOrderConfirmation,createConfirmationTransport,confirmationKey,confirmationPdf,confirmationText,renderConfirmationEmail};
+module.exports={createOrderConfirmation,createConfirmationTransport,confirmationKey,confirmationPdf,confirmationText,renderConfirmationEmail,makeSetupGuide};

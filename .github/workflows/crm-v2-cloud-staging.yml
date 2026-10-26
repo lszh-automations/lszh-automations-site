@@ -51,4 +51,5 @@ jobs:
       - name: Install CRM dependencies
         run: npm install --no-audit --no-fund
       - name: Run all CRM regression tests
-        run: node --test
+        # Emulator tests require the separately started demo Firestore in production-baseline.yml.
+        run: npm test

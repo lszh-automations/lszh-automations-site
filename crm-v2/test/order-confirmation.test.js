@@ -79,7 +79,7 @@ test('confirmation mail uses the existing customer brand and preserves the agree
  assert.equal(outbound.html,html);assert.equal(outbound.subject,p.subject);assert.equal(outbound.to[0],p.recipient);assert.equal(outbound.attachments.length,1);assert.equal(outbound.attachments[0].data,p.data);
  for(const color of ['#06101d','#5b8cff','#74d8ff','#8e72ff','#0a1728'])assert.ok(html.includes(color));
  assert.match(html,/Ihr Auftrag ist bestätigt/);assert.match(html,/Auftragsbestaetigung_1101.pdf/);assert.match(html,/CHE-369.474.125/);assert.match(html,/Diese Bestätigung ändert die vereinbarten Unterlagen nicht/);
- assert.doesNotMatch(html,/<(?:script|iframe|img|link)\b|\son\w+=|url\(/i);assert.doesNotMatch(html,/Paketreferenz:|SHA-256:/);assert.match(p.text,/Paketreferenz:/);
+ assert.doesNotMatch(html,/<(?:script|iframe|img|link)\b|\son\w+=|url\(/i);assert.doesNotMatch(html,/Paketreferenz:|SHA-256:/);assert.doesNotMatch(p.text,/Paketreferenz:|SHA-256:/);
 });
 test('mail renderer escapes inserted content and retains version-bound Make instructions',()=>{
  const {renderConfirmationEmail,confirmationText}=require('../order-confirmation'),{MAKE_REQUIREMENTS_VERSION}=require('../make-requirements'),x=setup();
@@ -102,4 +102,21 @@ test('existing v1 confirmation proof is still checked without regeneration or an
  const receipt=await x.options.sendOnce({to:[x.f.recipient],subject:'Ihre Auftragsbestätigung',eventId:'confirmation_'+x.pkg.packageId,packageSha256:x.pkg.packageSha256,attachments:[{filename:document.filename,data:bytes.toString('base64')}]});
  x.rows.set(confirmationKey(x.pkg.packageId),{messageId:receipt.messageId,packageSha256:x.pkg.packageSha256,responseId:x.rows.get('crmOffer:'+x.id).onlineAcceptance.responseId,state:'verification_pending'});
  assert.equal((await x.service.check(x.id,x.user)).state,'confirmed');assert.deepEqual(x.counts(),{sends:1,archives:0});assert.equal(x.rows.get('confirmationDocument_'+digest(Buffer.from(x.pkg.packageId))).document.version,'confirmation-v1');
+});
+
+test('customer confirmation omits all technical references and appends the guide only to applicable packages',async()=>{
+ const {confirmationText,confirmationPdf,renderConfirmationEmail}=require('../order-confirmation'),{MAKE_REQUIREMENTS_VERSION}=require('../make-requirements'),{PDFDocument}=require('pdf-lib'),x=setup();
+ const lines=confirmationText({...x.pkg,makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION},x.f.recipient,'2026-10-26T10:00:00Z'),text=lines.join('\n\n'),html=renderConfirmationEmail({text,recipient:x.f.recipient,filename:'Auftragsbestaetigung_1101.pdf'});
+ for(const output of [text,html]){assert.doesNotMatch(output,/Paketreferenz|SHA-256|[a-f0-9]{64}/);assert.ok(output.includes('lars@lszh-automations.ch'));assert.ok(output.includes('Member'));assert.ok(output.includes('keine Passwörter'));}
+ assert.match(html,/https:\/\/help.make.com\/organizations/);assert.match(html,/Make einrichten und LSZH einladen/);
+ const doc=await PDFDocument.load(await confirmationPdf(lines,'2026-10-26T10:30:00Z'));assert.equal(doc.getPageCount(),2);
+ const legacy=confirmationText(x.pkg,x.f.recipient,'2026-10-26T10:00:00Z').join('\n\n');assert.doesNotMatch(legacy,/MAKE-ANLEITUNG|Paketreferenz|SHA-256/);
+});
+test('rendering a guide leaves a single archived and independently verified PDF attachment',async()=>{
+ const {MAKE_REQUIREMENTS_VERSION,makeRequirementsMetadata}=require('../make-requirements'),{prepareOfferPackage}=require('../offer-contract-package'),{key}=require('../contract-acceptance-store-staging'),x=setup();
+ const input={offerId:x.pkg.offerId,offerNumber:x.pkg.offerNumber,revision:x.pkg.revision,offerSnapshotSha256:x.pkg.offerSnapshotSha256,avvRequired:x.pkg.avvRequired,avvAnnexesConfirmed:false,documents:x.pkg.documents,...makeRequirementsMetadata(MAKE_REQUIREMENTS_VERSION)};
+ const pkg={...prepareOfferPackage(input),status:'awaiting_lszh_confirmation'},offer=x.rows.get('crmOffer:'+x.id),evidence=x.rows.get(key('response',x.pkg.packageId));
+ offer.onlineAcceptance.packageSha256=pkg.packageSha256;x.rows.get(key('package',x.pkg.packageId)).package=pkg;evidence.packageSha256=pkg.packageSha256;x.rows.get('archive_'+evidence.responseId).evidenceSha256=digest(Buffer.from(canonical(evidence)));
+ let outbound;const service=createOrderConfirmation({...x.options,sendOnce:async body=>{outbound=body;return x.options.sendOnce(body);}}),p=await service.preview(x.id,x.user);
+ assert.equal((await service.send(x.id,{documentReviewed:true,sha256:p.sha256},x.user)).state,'confirmed');assert.equal(outbound.attachments.length,1);assert.match(outbound.html,/Make einrichten und LSZH einladen/);assert.equal(x.rows.get('confirmationDocument_'+digest(Buffer.from(pkg.packageId))).document.version,'confirmation-v3');
 });

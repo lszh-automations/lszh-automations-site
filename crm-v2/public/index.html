@@ -139,6 +139,15 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .project-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:22px 24px}
 .project-fields .wide{grid-column:1/-1}
 .project-fields select{width:100%;border:1px solid #344255;background:#0b141e;border-radius:9px;color:var(--text);padding:11px;min-height:44px}
+.project-onboarding{margin:0 24px 20px;padding:18px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.project-onboarding h3{margin:0 0 12px;font-size:16px}
+.project-onboarding p{font-size:13px;line-height:1.6}
+.project-onboarding>label{display:block;margin:14px 0 8px;font-size:13px}
+.project-onboarding select,.project-onboarding textarea{box-sizing:border-box;width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.project-onboarding .onboarding-check{display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+.onboarding-check input{flex:0 0 auto;margin-top:4px}
+.project-onboarding .onboarding-hint{color:var(--muted);font-size:12px}
+@media(max-width:650px){.project-onboarding{margin-left:16px;margin-right:16px;padding:14px}}
 .project-tasks-head{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid var(--border);padding:18px 24px 12px}
 .project-tasks-head strong{font-size:15px}
 .project-tasks-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
@@ -472,6 +481,18 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
   <div class="modal-head"><div><span class="eyebrow">LSZH / PROJEKTE</span><h2 id="projectEditorTitle">Projekt</h2></div><button class="btn" type="button" id="projectClose" aria-label="Schliessen">✕</button></div>
   <form id="projectForm">
     <div id="projectFields" class="project-fields"></div>
+    <section class="project-onboarding" aria-labelledby="projectOnboardingTitle">
+      <h3 id="projectOnboardingTitle">Onboarding und Zugänge</h3>
+      <p><span id="projectOnboardingStatus" class="badge"></span></p>
+      <p id="projectOnboardingNext" aria-live="polite"></p>
+      <label for="projectMakeRequired">Wird Make für diesen Auftrag benötigt?</label>
+      <select id="projectMakeRequired"><option value="unknown">Noch zu klären</option><option value="yes">Ja – eigene Make-Organisation</option><option value="no">Nein – Make nicht benötigt</option></select>
+      <label class="onboarding-check"><input id="projectInvitationConfirmed" type="checkbox">Kunde hat LSZH in seine Make-Organisation eingeladen – manuell geprüft</label>
+      <label class="onboarding-check"><input id="projectAccessConfirmed" type="checkbox">Benötigte Zugänge und Berechtigungen geprüft – Einrichtung kann starten</label>
+      <label for="projectOnboardingNotes">Notizen zur Zugangsprüfung</label>
+      <textarea id="projectOnboardingNotes" maxlength="2000" rows="3" placeholder="Was fehlt noch? Keine Passwörter oder Zugangsschlüssel eintragen."></textarea>
+      <p class="onboarding-hint">Bestätigungen werden erst mit «Speichern» übernommen. Der Projektstatus bleibt separat. Das CRM prüft keine Make-Einladung automatisch.</p>
+    </section>
     <div class="project-tasks-head">
       <div><strong>Aufgaben</strong><p id="projectProgress">0 von 0 erledigt</p></div>
       <button class="btn" type="button" id="projectAddTask">+ Aufgabe</button>
@@ -514,7 +535,7 @@ const definitions={
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
-  ],columns:[['title','Projekt'],['customerId','Kunde'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
+  ],columns:[['title','Projekt'],['customerId','Kunde'],['onboarding','Onboarding / nächste Aufgabe'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
@@ -1141,6 +1162,11 @@ function render(){
         const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),overdue?'Überfällig':(rec.status||'–'));
         if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
         td.append(tag);
+      }
+      else if(key==='onboarding'){
+        const stage=projectOnboardingState(rec);
+        td.append(el('span','badge'+(stage.status==='Bereit zur Einrichtung'?' success':''),stage.status));
+        const next=el('div','',stage.next);next.style.cssText='max-width:290px;margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted)';td.append(next);
       }
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
       else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
@@ -2045,6 +2071,26 @@ function openOfferEditor(record=null,draft=null){
 }
 
 
+function projectOnboardingState(project){
+  const o=project?.onboarding;
+  if(typeof o?.makeRequired!=='boolean')return {status:'Make-Bedarf klären',next:'Klären, ob für diesen Auftrag eine eigene Make-Organisation benötigt wird.'};
+  if(o.makeRequired&&!o.invitationConfirmed)return {status:'Make-Einladung ausstehend',next:'Kunden an die Einladung von lars@lszh-automations.ch in seine Make-Organisation erinnern.'};
+  if(!o.accessConfirmed)return {status:'Zugänge prüfen',next:'Benötigte Einladungen annehmen, Berechtigungen und Systemverbindungen gemeinsam prüfen.'};
+  return {status:'Bereit zur Einrichtung',next:'Projektstart mit dem Kunden abstimmen und die Einrichtung planen.'};
+}
+function projectOnboardingFromForm(){
+  const choice=$('projectMakeRequired').value;
+  return {makeRequired:choice==='unknown'?null:choice==='yes',invitationConfirmed:$('projectInvitationConfirmed').checked,accessConfirmed:$('projectAccessConfirmed').checked,notes:$('projectOnboardingNotes').value.trim()};
+}
+function renderProjectOnboarding(){
+  const required=$('projectMakeRequired').value;
+  $('projectInvitationConfirmed').disabled=required!=='yes';
+  $('projectAccessConfirmed').disabled=required==='unknown'||(required==='yes'&&!$('projectInvitationConfirmed').checked);
+  const stage=projectOnboardingState({onboarding:projectOnboardingFromForm()});
+  $('projectOnboardingStatus').textContent=stage.status;
+  $('projectOnboardingStatus').className='badge'+(stage.status==='Bereit zur Einrichtung'?' success':'');
+  $('projectOnboardingNext').textContent=stage.next;
+}
 function renderProjectProgress(){
   const rows=$('projectTasks').children;
   let completed=0;
@@ -2101,6 +2147,12 @@ function openProjectEditor(record=null,draft=null){
   $('projectFields').replaceChildren();
   $('projectTasks').replaceChildren();
   $('projectError').hidden=true;
+  const onboarding=record?.onboarding||draft?.onboarding||{};
+  $('projectMakeRequired').value=onboarding.makeRequired===true?'yes':onboarding.makeRequired===false?'no':'unknown';
+  $('projectInvitationConfirmed').checked=onboarding.invitationConfirmed===true;
+  $('projectAccessConfirmed').checked=onboarding.accessConfirmed===true;
+  $('projectOnboardingNotes').value=onboarding.notes||'';
+  renderProjectOnboarding();
   const fields=['customerId','offerId','title','description','dueDate','status'];
   for(const [key,label,type] of definitions.projekte.fields){
     if(!fields.includes(key))continue;
@@ -2721,6 +2773,14 @@ $('invoiceForm').addEventListener('submit',async event=>{
 $('projectClose').addEventListener('click',()=>$('projectEditor').close());
 $('projectCancel').addEventListener('click',()=>$('projectEditor').close());
 $('projectAddTask').addEventListener('click',()=>addProjectTask());
+$('projectMakeRequired').addEventListener('change',()=>{
+  $('projectInvitationConfirmed').checked=false;$('projectAccessConfirmed').checked=false;renderProjectOnboarding();
+});
+$('projectInvitationConfirmed').addEventListener('change',()=>{
+  if(!$('projectInvitationConfirmed').checked)$('projectAccessConfirmed').checked=false;
+  renderProjectOnboarding();
+});
+$('projectAccessConfirmed').addEventListener('change',renderProjectOnboarding);
 $('projectForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=$('projectForm');
@@ -2735,6 +2795,7 @@ $('projectForm').addEventListener('submit',async event=>{
     data.customerId=state.projectEditing.customerId||'';
   }
   data.tasks=projectTasksFromForm();
+  data.onboarding=projectOnboardingFromForm();
   const error=$('projectError');
   error.hidden=true;
   if(!data.title.trim()||data.tasks.some(x=>!x.title)){

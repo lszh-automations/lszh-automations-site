@@ -842,3 +842,40 @@ test('customer backfill preserves foreign keys and allocates only missing number
  const row=await store.ensureCustomerNumber('existing',admin);assert.equal(row.id,'existing');assert.equal(row.company,'Old customer');assert.equal(row.customerNumber,'KD-1000');
  await store.ensureCustomerNumber('existing',admin);assert.equal(db.storage.get('lszh_crm_v2_staging__meta/customer_sequence').next,1001);
 });
+
+
+test('project onboarding persists explicit readiness and leaves commercial records untouched',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const customer=await store.create('kunden',{company:'Onboarding Test'},admin);
+ const project=await store.create('projekte',{title:'Onboarding Test',customerId:customer.id,status:'Geplant'},admin);
+ assert.deepEqual(project.onboarding,{makeRequired:null,invitationConfirmed:false,accessConfirmed:false,notes:''});
+ const unchanged=[...db.storage].filter(([k])=>!k.includes('_projekte/'));
+ const o={makeRequired:true,invitationConfirmed:false,accessConfirmed:false,notes:' Einladung fehlt '};
+ let saved=await store.update('projekte',project.id,{onboarding:o},admin);
+ assert.equal(saved.onboarding.notes,'Einladung fehlt');
+ await assert.rejects(()=>store.update('projekte',project.id,{onboarding:{...o,accessConfirmed:true}},admin),/Zuerst/);
+ assert.equal((await store.get('projekte',project.id)).onboarding.accessConfirmed,false);
+ saved=await store.update('projekte',project.id,{onboarding:{...o,invitationConfirmed:true,accessConfirmed:true}},admin);
+ assert.equal(saved.onboarding.accessConfirmed,true);assert.equal(saved.status,'Geplant');
+ assert.deepEqual([...db.storage].filter(([k])=>!k.includes('_projekte/')),unchanged);
+ await store.update('projekte',project.id,{tasks:[{title:'Umsetzung planen',done:false}]},admin);
+ assert.deepEqual((await store.get('projekte',project.id)).onboarding,saved.onboarding);
+});
+test('legacy project onboarding is read-only until explicitly saved and unrelated edits preserve it',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ db.storage.set('lszh_crm_v2_staging_projekte/legacy',{title:'Bestand',status:'In Arbeit',tasks:[]});
+ const before=JSON.stringify([...db.storage]);
+ assert.equal((await store.get('projekte','legacy')).onboarding,undefined);
+ assert.equal(JSON.stringify([...db.storage]),before);
+ const saved=await store.update('projekte','legacy',{description:'Neue Notiz'},admin);
+ assert.equal(saved.onboarding,undefined);assert.equal(saved.status,'In Arbeit');
+});
+test('onboarding rejects malformed, oversized and contradictory confirmations',()=>{
+ const {cleanProjectOnboarding,defaultOnboarding,projectOnboardingState}=require('../project-tasks');
+ for(const input of [null,[],{}, {...defaultOnboarding(),makeRequired:'yes'},{...defaultOnboarding(),invitationConfirmed:true},{...defaultOnboarding(),accessConfirmed:true},{...defaultOnboarding(),notes:'x'.repeat(2001)}])assert.throws(()=>cleanProjectOnboarding(input));
+ assert.equal(projectOnboardingState({}).status,'Make-Bedarf klären');
+ assert.equal(projectOnboardingState({onboarding:{...defaultOnboarding(),makeRequired:true}}).status,'Make-Einladung ausstehend');
+ assert.equal(projectOnboardingState({onboarding:{...defaultOnboarding(),makeRequired:true,invitationConfirmed:true}}).status,'Zugänge prüfen');
+ const noMake=cleanProjectOnboarding({...defaultOnboarding(),makeRequired:false,accessConfirmed:true});
+ assert.equal(projectOnboardingState({onboarding:noMake}).status,'Bereit zur Einrichtung');
+});

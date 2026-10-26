@@ -173,7 +173,7 @@ test('business Gmail gateway receipt is necessary; repeated ticks do not resend'
   const db=fakeDB(), sent=[];
   const dispatcher=makeDispatcher(db,'lszh_crm_v2_',{
     enabled:true,activeFrom:new Date(T0).toISOString(),
-    webhookUrl:'https://hook.eu1.make.com/abcdefghijklmnopqrstuvwxyz',
+    webhookUrl:'https://hook.eu1.make.com/FAKEWebhookTokenForTests',
     now:()=>T0+5000,
     fetchImpl:async(url,opts)=>{
       sent.push({url,payload:JSON.parse(opts.body)});
@@ -194,7 +194,7 @@ test('24h follow-up is queued exactly once if still Neu, not if contacted',async
   const db=fakeDB(),sent=[];
   const dispatcher=makeDispatcher(db,'lszh_crm_v2_',{
     enabled:true,activeFrom:new Date(T0).toISOString(),
-    webhookUrl:'https://hook.eu1.make.com/abcdefghijklmnopqrstuvwxyz',
+    webhookUrl:'https://hook.eu1.make.com/FAKEWebhookTokenForTests',
     now:()=>current,
     fetchImpl:async(url,opts)=>{
       sent.push(JSON.parse(opts.body).kind);
@@ -214,7 +214,7 @@ test('gateway 200 Accepted is NOT treated as sent; ambiguous results are never r
   const db=fakeDB(),sent=[];
   const dispatcher=makeDispatcher(db,'lszh_crm_v2_',{
     enabled:true,activeFrom:new Date(T0).toISOString(),
-    webhookUrl:'https://hook.eu1.make.com/abcdefghijklmnopqrstuvwxyz',
+    webhookUrl:'https://hook.eu1.make.com/FAKEWebhookTokenForTests',
     now:()=>T0+1000,
     fetchImpl:async()=>{sent.push(1);return{ok:true,status:200,json:async()=>({message:'Accepted'})};}
   });

@@ -40,3 +40,12 @@ Der freigegebene Nachtrag umfasst genau diesen bestehenden Kunden und die einmal
 - Die vorhandene StatusÃ¤nderung auf Angenommen ruft den automatischen Entwurf direkt innerhalb der Ãœbernahmetransaktion auf.
 
 463 CRM-Tests bestanden. 36 echte lokale Firestore-Tests bestanden, darunter parallele Kundennummern mit unabhÃ¤ngigen Clients, Rechnungsanlage/Mehrfachaufruf und der exakte REST-Nachtragsweg an synthetischen AltauftrÃ¤gen. Desktop-/MobilprÃ¼fung mit gesperrtem echtem Netzwerk erfolgreich. Keine Ã„nderungen am Kundenportal, an Make, an Gmail-Berechtigungen oder an versendeten Vertragsunterlagen.
+
+
+## Ausgeführter Live-Nachtrag und Nachweis
+
+Der vorhandene Kunde von Offerte 1006 trägt jetzt **KD-1000**. Sein bestehender Datensatz und seine technische ID wurden weiterverwendet. **RE-1003** wurde als Entwurf über **CHF 1'500** angelegt und mit derselben Offerte, demselben Projekt und demselben Kunden verknüpft. Monatliche CHF 200 sind ausgeschlossen. Status Angenommen bleibt erhalten. Der Nachtrag wurde nach Benutzerwahl einmalig durch die getestete Transaktionsroutine ausgeführt und anschliessend unabhängig lesend geprüft. Keine neue Kundendublette, kein Versand, kein Zahlungseingang und keine gesetzte Fälligkeit.
+
+[Live-Manifest](../releases/customer-billing-live-20261026.json), Quellcommit `d443b3895c53798f8c1a266ad26c21d819069fe3`, [PR 18](https://github.com/lszh-automations/lszh-automations-site/pull/18). Alle 79 tatsächlich gebauten Laufzeitdateien entsprechen dem vorbereiteten Stand. Vollständige Umgebungsvariablen/-referenzen und Dienstkonto unverändert. Neue Oberfläche HTTP 200; anonymer Zugriff auf die Entwurfserstellung HTTP 401. Keine Error-Level-Logs bei der Abschlussprüfung. GitHub-Prüfungen des Quellcommits erfolgreich.
+
+Rückfallversion des CRM: `lszh-crm-v2-00085-tep`. Kundennummern, Nummernreservierungen, Rechnungsnummern und angelegte Entwürfe werden bei einer Code-Rückschaltung nicht entfernt oder zurückgesetzt. Die alte Version erzeugt keine weiteren automatischen Entwürfe. Bestehende Rechnungen bleiben normale CRM-Entwürfe. Kundenportal und Make bleiben unverändert.

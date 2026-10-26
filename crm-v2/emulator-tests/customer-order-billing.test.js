@@ -46,3 +46,17 @@ test('accepted project onboarding persists independently and rejected premature 
  assert.equal(saved.customerId,customer.id);assert.equal(saved.offerId,offer.id);
  assert.deepEqual(await a.store.get('offerten',offer.id),invoiceBefore);
 });
+
+
+test('project invoice review reads the actual accepted-order draft without changing commercial records',async()=>{
+ const a=setup(),customer=await a.store.create('kunden',{company:'TEST_ONLY '+randomUUID(),email:'synthetic@example.invalid',street:'Testweg 1',postalCode:'5610',city:'Wohlen'},user);
+ const offer=await a.store.create('offerten',{customerId:customer.id,title:'TEST_ONLY invoice review',items:[{title:'Setup',qty:1,unitPriceCHF:100,mode:'einmalig'}]},user);
+ await a.store.update('offerten',offer.id,{status:'Angenommen'},user);
+ const accepted=await a.store.get('offerten',offer.id),invoice=await a.store.get('rechnungen',accepted.initialInvoiceId),before=JSON.stringify(invoice);
+ const billing=await a.store.projectBilling(invoice.projectId),review=await a.store.invoiceReview(invoice.id);
+ assert.deepEqual(billing.records.map(x=>x.id),[invoice.id]);assert.ok(review.readiness.missing.includes('Gültige Fälligkeit'));assert.equal(review.readiness.canSend,false);
+ assert.equal(JSON.stringify(await a.store.get('rechnungen',invoice.id)),before);
+ await a.store.update('rechnungen',invoice.id,{dueDate:'2026-11-10',status:'Offen'},user);
+ assert.equal((await a.store.invoiceReview(invoice.id)).readiness.canSend,true);
+ assert.deepEqual(await a.store.get('offerten',offer.id),accepted);
+});

@@ -4,7 +4,7 @@
 // Firestore access; all multi-record state transitions use transactions.
 // Staging uses its own prefix and never reads or changes website live leads.
 const {quoteTotals,existingLines}=require('./offer-pricing');
-const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
+const {invoiceTotals,isInvoiceLocked,invoiceReadiness}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
 const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
@@ -390,6 +390,20 @@ function buildStore(db,prefix){
     const doc=await col(table).doc(id).get();
     return doc.exists?(await withCustomerNumbers(table,[toObject(doc)]))[0]:null;
   }
+  async function invoiceReview(id){
+    const record=await get('rechnungen',id);
+    if(!record)throw err('Rechnung nicht gefunden',404);
+    const [customer,project]=await Promise.all([record.customerId?get('kunden',record.customerId):null,record.projectId?get('projekte',record.projectId):null]);
+    return {record,customer,readiness:invoiceReadiness(record,customer,project)};
+  }
+  async function projectBilling(id){
+    const project=await get('projekte',id);
+    if(!project)throw err('Projekt nicht gefunden',404);
+    const snap=await col('rechnungen').where('projectId','==',id).limit(101).get();
+    const rows=snap.docs.slice(0,100).map(toObject),customers=new Map();
+    for(const row of rows)if(row.customerId&&!customers.has(row.customerId))customers.set(row.customerId,await get('kunden',row.customerId));
+    return {records:rows.map(row=>({...row,readiness:invoiceReadiness(row,customers.get(row.customerId)||null,project)})),hasMore:snap.docs.length>100};
+  }
   async function reminders(){
     const snap=await col('leads').where('status','==','Neu').limit(200).get();
     const cutoff=Date.now()-24*60*60*1000;
@@ -754,6 +768,8 @@ function buildStore(db,prefix){
       const projectSnap=invoice.projectId?
         await tx.get(col('projekte').doc(invoice.projectId)):null;
       if(invoice.projectId&&!projectSnap?.exists)throw err('Projekt der Rechnung fehlt',409);
+      const readiness=invoiceReadiness(invoice,customer,projectSnap?.exists?projectSnap.data():null);
+      if(!readiness.dataReady)throw err('Rechnungsprüfung: '+readiness.missing.join(', '),409);
       const attemptId=randomUUID();
       tx.update(ref,audit({
         invoiceDispatchState:'sending',invoiceDispatchAttemptId:attemptId,
@@ -990,6 +1006,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

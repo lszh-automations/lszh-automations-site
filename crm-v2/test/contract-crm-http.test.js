@@ -9,6 +9,8 @@ async function withApp(callback,enabled){
   const calls=[];
   const store={
     TABLES:['leads','kunden','offerten','rechnungen','projekte'],
+    async invoiceReview(id){calls.push({kind:'invoice-review',id});return {record:{id},readiness:{missing:[]}};},
+    async projectBilling(id){calls.push({kind:'project-billing',id});return {records:[{id:'invoice-linked',projectId:id}],hasMore:false};},
     async ensureCustomerNumber(id,user){calls.push({kind:'customer-number',id,user});return {id,customerNumber:'KD-1000'};},
     async ensureInitialInvoice(id,user){calls.push({kind:'initial-invoice',id,user});return {offer:{id},invoice:{id:'synthetic_invoice',status:'Entwurf'}};},
     async resolveOfferSend(id,resolution,user){
@@ -119,4 +121,19 @@ test('customer numbering and invoice backfill require login, exact origin and em
    const count=calls.length;assert.equal((await fetch(url,{method:'POST',headers,body:'{}'})).status,200);assert.equal(calls.length,count+1);
   }
  },true);
+});
+
+
+test('invoice review and project billing are authenticated read-only endpoints',async()=>{
+ await withApp(async({origin,calls})=>{
+  for(const path of ['rechnungen/invoice-1/readiness','projekte/project-1/billing']){
+   const url=origin+'/api/records/'+path;
+   assert.equal((await fetch(url)).status,401);assert.equal(calls.length,0);
+  }
+  const auth={Authorization:'Bearer test-token'};
+  let response=await fetch(origin+'/api/records/rechnungen/invoice-1/readiness',{headers:auth});assert.equal(response.status,200);assert.equal((await response.json()).record.id,'invoice-1');
+  response=await fetch(origin+'/api/records/projekte/project-1/billing',{headers:auth});assert.equal(response.status,200);assert.equal((await response.json()).records[0].projectId,'project-1');
+  for(const path of ['rechnungen/invoice-1/readiness','projekte/project-1/billing'])assert.equal((await fetch(origin+'/api/records/'+path,{method:'POST',headers:{...auth,Origin:origin}})).status,405);
+  assert.deepEqual(calls.map(x=>x.kind),['invoice-review','project-billing']);
+ },false);
 });

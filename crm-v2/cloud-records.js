@@ -9,7 +9,7 @@ const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./in
 const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
-const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields}=require('./lead-contact');
+const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,freezeLeadUrgency}=require('./lead-contact');
 const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch,offerDisplayStatus}=require('./offer-tracking');
 
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
@@ -244,7 +244,7 @@ function buildStore(db,prefix){
     }
     createInitialInvoice(tx,invoicePlan,user,date);
     tx.update(offerRef,audit({status:'Angenommen',customerId:finalCustomer.id,initialInvoiceId:invoicePlan.invoiceId,initialInvoiceState:invoicePlan.state},user,date));
-    if(leadRef)tx.update(leadRef,audit({...leadUpdate,status:'Gewonnen'},user,date));
+    if(leadRef)tx.update(leadRef,audit({...freezeLeadUrgency(lead,'Gewonnen',date),...leadUpdate,status:'Gewonnen'},user,date));
     return {customerId:finalCustomer.id,projectId:finalProject.id};
   }
 
@@ -437,7 +437,7 @@ function buildStore(db,prefix){
       if(table==='leads'){
         let counter=null;
         if(input.status==='Qualifiziert')counter=await nextSequence(tx,'offer');
-        tx.create(ref,newRecord(input,user,date));
+        tx.create(ref,newRecord({...input,...freezeLeadUrgency({status:'Neu'},input.status,date)},user,date));
         if(counter){
           const offerRef=col('offerten').doc(keyId('lead-',ref.id));
           const offer=newRecord({
@@ -506,6 +506,7 @@ function buildStore(db,prefix){
         tx.update(ref,audit(input,user,date));return;
       }
       if(table==='leads'){
+        Object.assign(input,freezeLeadUrgency(before,input.status||before.status,date));
         // "Neu" is an entry state, never a destination after the lead was processed.
         if(before.status!=='Neu' && input.status==='Neu')
           throw err('Ein bearbeiteter Lead kann nicht auf «Neu» zurückgesetzt werden',409);
@@ -578,7 +579,7 @@ function buildStore(db,prefix){
           return;
         }
         if(merged.status==='Abgelehnt'&&wonLead?.exists)
-          tx.update(wonLead.ref,audit({status:'Verloren'},user,date));
+          tx.update(wonLead.ref,audit({...freezeLeadUrgency(wonLead.data(),'Verloren',date),status:'Verloren'},user,date));
         tx.update(ref,audit(input,user,date));
         return;
       }
@@ -986,6 +987,7 @@ function buildStore(db,prefix){
       const updates={contactHistory:[...history,entry],lastContactAt:date};
       if(before.status==='Neu'&&shouldMarkContacted(details.outcome))
         updates.status='Kontaktiert';
+      Object.assign(updates,freezeLeadUrgency(before,updates.status||before.status,date));
       tx.update(ref,audit(updates,user,date));
     });
     return entry;

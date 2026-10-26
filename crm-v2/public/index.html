@@ -601,6 +601,15 @@ function leadUrgency(createdAt,nowMs=Date.now()){
   if(elapsed<16*60*60*1000)return 'orange';
   return 'red';
 }
+function leadColourTime(lead,nowMs=Date.now()){
+  if(lead?.status==='Neu'||!lead?.status)return nowMs;
+  const saved=Date.parse(lead.urgencyFrozenAt||'');
+  if(Number.isFinite(saved))return saved;
+  const contacts=(lead.contactHistory||[]).filter(c=>['Erreicht','Nachricht gesendet'].includes(c.outcome)&&Number.isFinite(Date.parse(c.createdAt))).map(c=>Date.parse(c.createdAt));
+  const known=contacts.length?Math.min(...contacts):Date.parse(lead.updatedAt||'');
+  const start=Date.parse(lead.createdAt||'');
+  return Number.isFinite(known)?known:Number.isFinite(start)?start:nowMs;
+}
 const LEAD_URGENCY_LABELS={
   green:'Grün: unter 8 Stunden',
   orange:'Orange: 8 bis unter 16 Stunden',
@@ -617,10 +626,11 @@ function refreshLeadAges(){
   const nowMs=Date.now();
   document.querySelectorAll('[data-lead-created-at]').forEach(element=>{
     const age=leadAge(element.dataset.leadCreatedAt,nowMs);
-    const urgency=leadUrgency(element.dataset.leadCreatedAt,nowMs);
+    const frozen=Date.parse(element.dataset.leadColourFrozenAt||'');
+    const urgency=leadUrgency(element.dataset.leadCreatedAt,Number.isFinite(frozen)?frozen:nowMs);
     element.textContent=age;
     element.className='lead-age'+(urgency?' lead-age-'+urgency:'');
-    element.setAttribute('aria-label',urgency?age+' – '+LEAD_URGENCY_LABELS[urgency]:age);
+    element.setAttribute('aria-label',urgency?age+' – '+LEAD_URGENCY_LABELS[urgency]+(Number.isFinite(frozen)?' bei Bearbeitungsbeginn':''):age);
   });
 }
 async function deleteNewLead(lead,button){
@@ -1145,10 +1155,11 @@ function render(){
     for(const [key] of d.columns) {
       const td=el('td');
       if(key==='createdAt'&&state.tab==='leads'){
-        const urgency=leadUrgency(rec.createdAt);
+        const urgency=leadUrgency(rec.createdAt,leadColourTime(rec));
         const age=el('span','lead-age'+(urgency?' lead-age-'+urgency:''),leadAge(rec.createdAt));
         age.dataset.leadCreatedAt=rec.createdAt||'';
-        age.setAttribute('aria-label',urgency?leadAge(rec.createdAt)+' – '+LEAD_URGENCY_LABELS[urgency]:leadAge(rec.createdAt));
+        if(rec.status!=='Neu')age.dataset.leadColourFrozenAt=new Date(leadColourTime(rec)).toISOString();
+        age.setAttribute('aria-label',urgency?leadAge(rec.createdAt)+' – '+LEAD_URGENCY_LABELS[urgency]+(rec.status!=='Neu'?' bei Bearbeitungsbeginn':''):leadAge(rec.createdAt));
         const timestamp=Date.parse(rec.createdAt||'');
         if(Number.isFinite(timestamp))age.title=new Intl.DateTimeFormat('de-CH',{
           day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'

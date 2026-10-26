@@ -912,3 +912,27 @@ test('customer acceptance appears in accepted filter immediately without interna
  assert.equal((await store.get('offerten','accepted')).status,'Versendet');assert.equal(JSON.stringify([...db.storage]),before);
  assert.equal(offerDisplayStatus({status:'Versendet'}),'Versendet');assert.equal(offerDisplayStatus({status:'Abgelehnt',onlineAcceptance:{state:'confirmed'}}),'Abgelehnt');
 });
+
+
+test('leaving new freezes urgency exactly once through manual and successful contact transitions',async()=>{
+ const store=buildStore(fakeFirestore(),'lszh_crm_v2_staging_');
+ const lead=await store.create('leads',newLead('Frozen colour'),admin);
+ await store.addContact(lead.id,{channel:'Telefon',outcome:'Nicht erreicht',note:'TEST_ONLY kein Kontakt'},admin);
+ assert.equal((await store.get('leads',lead.id)).urgencyFrozenAt,undefined);
+ await store.addContact(lead.id,{channel:'Telefon',outcome:'Erreicht',note:'TEST_ONLY Kontakt'},admin);
+ const contacted=await store.get('leads',lead.id);assert.equal(contacted.status,'Kontaktiert');assert.ok(Number.isFinite(Date.parse(contacted.urgencyFrozenAt)));
+ await store.update('leads',lead.id,{status:'Qualifiziert',urgencyFrozenAt:'2000-01-01T00:00:00Z'},admin);
+ assert.equal((await store.get('leads',lead.id)).urgencyFrozenAt,contacted.urgencyFrozenAt);
+ await store.addContact(lead.id,{channel:'E-Mail',outcome:'Nachricht gesendet',note:'TEST_ONLY späterer Kontakt'},admin);
+ assert.equal((await store.get('leads',lead.id)).urgencyFrozenAt,contacted.urgencyFrozenAt);
+ const other=await store.create('leads',newLead('Manual colour'),admin),qualified=await store.update('leads',other.id,{status:'Qualifiziert'},admin);
+ assert.ok(Number.isFinite(Date.parse(qualified.urgencyFrozenAt)));
+ await store.update('leads',other.id,{status:'Verloren'},admin);assert.equal((await store.get('leads',other.id)).urgencyFrozenAt,qualified.urgencyFrozenAt);
+});
+test('legacy freeze uses available historical evidence and later edits do not move it',async()=>{
+ const {leadColourTime,freezeLeadUrgency}=require('../lead-contact');
+ const legacy={status:'Qualifiziert',createdAt:'2026-10-20T08:00:00Z',updatedAt:'2026-10-24T08:00:00Z',contactHistory:[{outcome:'Erreicht',createdAt:'2026-10-20T10:00:00Z'}]};
+ const fixed=freezeLeadUrgency(legacy,'Qualifiziert','2026-10-26T08:00:00Z');assert.equal(fixed.urgencyFrozenAt,'2026-10-20T10:00:00.000Z');
+ assert.equal(leadColourTime({...legacy,...fixed,updatedAt:'2026-11-20T08:00:00Z'}),Date.parse(fixed.urgencyFrozenAt));
+ assert.deepEqual(freezeLeadUrgency({...legacy,...fixed},'Verloren','2026-11-20T08:00:00Z'),{});
+});

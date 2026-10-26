@@ -2,6 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {quoteTotals,existingLines}=require('./offer-pricing');
+const {MAKE_REQUIREMENTS_VERSION,makeRequirements}=require('./make-requirements');
 const TEMPLATE=path.join(__dirname,'public','offer-preview.html');
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,7 +17,7 @@ function dateCH(input){
   return Number.isFinite(date.valueOf())?
     new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(date):'';
 }
-function renderOfferPreview(offer,lead,customer){
+function renderOfferPreview(offer,lead,customer,options={}){
   const recipient=lead||customer||{};
   const company=recipient.company||'Empfänger noch nicht zugeordnet';
   const person=recipient.name||recipient.contactName||'';
@@ -40,7 +41,11 @@ function renderOfferPreview(offer,lead,customer){
   const contact=addresses+(addr.length?'<br>'+addr.map(esc).join('<br>'):'');
   const dates=(created?'Erstellt: '+esc(created)+'<br>':'')+
     (valid?'Gültig bis: '+esc(valid):'Gültigkeit noch nicht festgelegt');
+  const version=Object.hasOwn(options,'makeRequirementsVersion')?options.makeRequirementsVersion:
+    (['Entwurf','Bereit'].includes(offer.status)&&!offer.contractPackageId?MAKE_REQUIREMENTS_VERSION:null);
+  const requirements=makeRequirements(version);
   const substitutions={
+    MAKE_REQUIREMENTS:requirements?'<section class="field"><h2>'+esc(requirements.title)+'</h2>'+requirements.paragraphs.map(p=>'<p>'+esc(p)+'</p>').join('')+'</section>':'',
     NUMBER:esc(offer.number||'–'),
     STATUS:esc(offer.status||'Entwurf'),
     COMPANY:esc(company),

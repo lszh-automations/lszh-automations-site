@@ -2,6 +2,7 @@
 
 // Server-side, dependency-free A4 PDF attachment. Only saved quote data is used.
 const {existingLines,quoteTotals}=require('./offer-pricing');
+const {makeRequirements}=require('./make-requirements');
 const WIDTH=595.28, HEIGHT=841.89, LEFT=46, RIGHT=549;
 function safe(value){
   return String(value??'').replace(/[\u2010-\u2015]/g,'-')
@@ -37,7 +38,7 @@ function dateCH(raw){
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
     ?value.slice(8,10)+'.'+value.slice(5,7)+'.'+value.slice(0,4):'-';
 }
-function makePdf(offer,recipient={}){
+function makePdf(offer,recipient={},options={}){
   if(!offer||typeof offer!=='object')throw Error('offer_required');
   const items=existingLines(offer),totals=quoteTotals(items);
   const pages=[];
@@ -120,6 +121,16 @@ function makePdf(offer,recipient={}){
   line('Diese Offerte ist bis '+dateCH(offer.validUntil)+' gültig.',9,20);
   line('Unverbindlich. Ein Auftrag kommt erst nach unserer ausdrücklichen',9,14);
   line('schriftlichen Auftragsbestätigung zustande.',9,20);
+  const requirements=makeRequirements(options.makeRequirementsVersion);
+  if(requirements){
+    const blockHeight=8+21+17+20+requirements.paragraphs.reduce((n,p)=>n+wrap(p,93).length*13+7,0);
+    check(blockHeight);y-=8;line('IHR MAKE-KONTO UND DIE EINRICHTUNG',10,21,true);
+    for(const paragraph of requirements.paragraphs){
+      for(const part of wrap(paragraph,93))line(part,9,13);
+      y-=7;
+    }
+    line('Make-Hinweis - '+requirements.displayVersion,7,17);
+  }
   line('Fragen? info@lszh-automations.ch',9,20);
   const objects=[null,'<< /Type /Catalog /Pages 2 0 R >>',null,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',

@@ -35,6 +35,12 @@
       $('terms-text').textContent=pkg.declarations.terms;$('avv-text').textContent=pkg.declarations.avv;
       $('representative-text').textContent=pkg.declarations.representative;
       $('avv-row').hidden=!pkg.avvRequired;$('avv').required=pkg.avvRequired;
+      $('make-requirements').hidden=!pkg.makeRequirements;
+      if(pkg.makeRequirements){
+        $('make-requirements-title').textContent=pkg.makeRequirements.title;
+        $('make-requirements-text').replaceChildren();
+        for(const paragraph of pkg.makeRequirements.paragraphs){const p=document.createElement('p');p.textContent=paragraph;$('make-requirements-text').append(p);}
+      }
       $('documents').replaceChildren();
       for(const doc of pkg.documents){
         const row=document.createElement('div');row.className='document';

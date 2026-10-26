@@ -1,5 +1,7 @@
 # LSZH Automations / CRM V2 – Produktionsstand 26.10.2026
 
+> Historische Produktionsaufnahme vor dem Make-Hinweis. Seit der autorisierten Live-Übernahme laufen CRM `00081-yaf` und Portal `00007-lig`; aktueller Nachweis: [Make-Voraussetzungen vor der Annahme](LSZH_MAKE_REQUIREMENTS_BEFORE_ACCEPTANCE.md) und [Live-Manifest](../releases/make-requirements-live-20261026.json). Der ursprüngliche Baseline-Tag und sein Manifest bleiben unverändert erhalten.
+
 Dieser Stand ersetzt ältere Aussagen zur technischen Betriebsbereitschaft. Die vollständige Online-Vertragsannahme funktioniert. C3.7.2 ist erfolgreich abgeschlossen. Frühere offene Punkte in historischen Protokollen sind keine aktuellen Fehlerberichte.
 
 ## Verifizierte Zuordnung

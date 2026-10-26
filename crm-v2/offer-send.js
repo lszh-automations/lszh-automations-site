@@ -1,4 +1,5 @@
 'use strict';
+const {MAKE_REQUIREMENTS_VERSION}=require('./make-requirements');
 const {makePdf}=require('./offer-pdf');
 const {renderOfferEmail}=require('./offer-mail');
 function error(message,status=400){return Object.assign(new Error(message),{status});}
@@ -49,14 +50,14 @@ function createOfferSender(store,config={}){
     }
     let attachment,mail;
     try{
-      attachment=makePdf(claim.offer,claim.recipient);
+      attachment=makePdf(claim.offer,claim.recipient,{makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION});
       if(!Buffer.isBuffer(attachment)||attachment.length<300||
          attachment.length>700000||!attachment.subarray(0,8).toString().startsWith('%PDF-'))
         throw Error('pdf_attachment_invalid');
       mail=renderOfferEmail(claim.offer,claim.recipient);
       if(testTo)mail.subject='[TEST_ONLY] '+mail.subject;
       if(config.captureDispatchSnapshot===true){
-        const snapshot=require('./offer-dispatch-snapshot').captureOfferSnapshot(claim,attachment);
+        const snapshot=require('./offer-dispatch-snapshot').captureOfferSnapshot({...claim,makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION},attachment);
         await store.recordOfferDispatchSnapshot(id,claim.attemptId,snapshot);
       }
     }catch(e){

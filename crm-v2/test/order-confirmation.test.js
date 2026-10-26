@@ -72,3 +72,20 @@ test('transport rejects extra recipients, BCC, wrong events and malformed PDF wi
  assert.equal(calls,0);await send(body);assert.equal(calls,1);
 });
 module.exports={setup};
+
+test('confirmation mail uses the existing customer brand and preserves the agreed content and PDF',async()=>{
+ const {renderConfirmationEmail}=require('../order-confirmation'),x=setup(),p=await x.service.preview(x.id,x.user),html=renderConfirmationEmail(p);let outbound;
+ await createOrderConfirmation({...x.options,sendOnce:async body=>{outbound=body;return x.options.sendOnce(body);}}).send(x.id,{documentReviewed:true,sha256:p.sha256},x.user);
+ assert.equal(outbound.html,html);assert.equal(outbound.subject,p.subject);assert.equal(outbound.to[0],p.recipient);assert.equal(outbound.attachments.length,1);assert.equal(outbound.attachments[0].data,p.data);
+ for(const color of ['#06101d','#5b8cff','#74d8ff','#8e72ff','#0a1728'])assert.ok(html.includes(color));
+ assert.match(html,/Ihr Auftrag ist bestätigt/);assert.match(html,/Auftragsbestaetigung_1101.pdf/);assert.match(html,/CHE-369.474.125/);assert.match(html,/Diese Bestätigung ändert die vereinbarten Unterlagen nicht/);
+ assert.doesNotMatch(html,/<(?:script|iframe|img|link)\b|\son\w+=|url\(/i);assert.doesNotMatch(html,/Paketreferenz:|SHA-256:/);assert.match(p.text,/Paketreferenz:/);
+});
+test('mail renderer escapes inserted content and retains version-bound Make instructions',()=>{
+ const {renderConfirmationEmail,confirmationText}=require('../order-confirmation'),{MAKE_REQUIREMENTS_VERSION}=require('../make-requirements'),x=setup();
+ const pkg={...x.pkg,makeRequirementsVersion:MAKE_REQUIREMENTS_VERSION},text=confirmationText(pkg,x.f.recipient,'2026-10-26T10:00:00Z').join('\n\n');
+ const html=renderConfirmationEmail({text:text+'\n\n<script>alert(1)</script>',recipient:'<unsafe>&example.com',filename:'<unsafe>.pdf'});
+ assert.match(html,/Ihr Make-Konto und die Einrichtung/);assert.match(html,/eigene Make-Organisation/);assert.match(html,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);assert.match(html,/&lt;unsafe&gt;&amp;example.com/);assert.doesNotMatch(html,/<script>|<unsafe>/);
+ const legacy=renderConfirmationEmail({text:confirmationText(x.pkg,x.f.recipient,'2026-10-26T10:00:00Z').join('\n\n'),recipient:x.f.recipient,filename:'test.pdf'});
+ assert.doesNotMatch(legacy,/eigene Make-Organisation|Ihr Make-Konto und die Einrichtung/);
+});

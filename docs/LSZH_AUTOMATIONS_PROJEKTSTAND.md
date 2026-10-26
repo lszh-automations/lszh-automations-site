@@ -1,3 +1,15 @@
+# Aktiver Live-Stand – Kundennummern und Rechnungsentwürfe, 26.10.2026
+
+CRM **`lszh-crm-v2-00087-los`** erhält 100 % Verkehr. Neue Kunden erhalten sichtbare Nummern ab **KD-1000**. Wiederkehrende Aufträge behalten dieselbe Kunden-ID/-Nummer. Bei Auftragsübernahme entsteht atomar ein Rechnungsentwurf nur für einmalige Positionen; monatliche Kosten und Versand bleiben separat. Kundennummern sind in Registern, Verweisen und Suche verfügbar.
+
+**Offerte 1006 ergänzt:** vorhandener Kunde **KD-1000**, vorhandenes Projekt weiterverwendet, **RE-1003** als Entwurf über **CHF 1'500**. Monatliche CHF 200 ausgeschlossen. Zuordnungen lesend bestätigt; keine Kundendublette, keine Mail, kein Zahlungseingang. Rechnung vor Versand prüfen und Fälligkeit ergänzen.
+
+463 CRM-Tests und 36 echte lokale Datenbanktests erfolgreich, einschliesslich paralleler Nummernvergabe und vollständigem REST-Nachtrag. Desktop/Mobil geprüft; alle 79 tatsächlichen Laufzeitdateien exakt bestätigt. Konfiguration und Dienstkonto unverändert; Portal `00009-rob` und Make unverändert.
+
+[Bedienung, fachlicher Ablauf und Nachweis](LSZH_CUSTOMER_NUMBERS_AND_ORDER_BILLING.md) · [Live-Manifest](../releases/customer-billing-live-20261026.json) · [PR 18](https://github.com/lszh-automations/lszh-automations-site/pull/18).
+
+---
+
 # Aktive Korrektur – Auftragsübernahme nach Online-Bestätigung, 26.10.2026
 
 CRM **`lszh-crm-v2-00085-tep`** erhält 100 % Verkehr. Nach erfolgreichem Bestätigungsversand zeigt das CRM jetzt **Auftrag übernehmen und Projekt anlegen**. Damit kann die bestätigte Online-Offerte bewusst auf Angenommen wechseln. Der bisherige Button war im Online-Ablauf ausgeblendet worden. 455 CRM-Tests und lokale Desktop-/Mobilprüfung erfolgreich; 79 gebaute Laufzeitdateien exakt bestätigt. Portal `00009-rob` und Make unverändert. Offerte 1006 wurde nur lesend geprüft; keine erneute Mail und keine Auftragsanlage durch die Fehlerbehebung.

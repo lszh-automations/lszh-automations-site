@@ -3,13 +3,13 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const source=html.slice(html.indexOf('async function renderContractWorkflow('),html.indexOf('function renderOfferWorkflow('));
 function setup(value,enabled=true){
- const calls=[],area={children:[],dataset:{},hidden:true,replaceChildren(){this.children=[];},append(...items){this.children.push(...items);}};
+ const calls=[],area={children:[],dataset:{},hidden:true,close(){},replaceChildren(){this.children=[];},append(...items){this.children.push(...items);}};
  const state={contractActionsEnabled:enabled};let confirm=true;
  const context={state,$:()=>area,el:(tag,css,text)=>({tag,textContent:text,value:'',style:{},children:[],append(...items){this.children.push(...items);},addEventListener(name,fn){this[name]=fn;}}),
   api:async(url,options)=>{calls.push({url,options});return options?{state:'sent',url:'https://portal.example/#private_token'}:value;},
-  window:{confirm:()=>confirm,prompt:()=> 'synthetic_message_123'},reopenSavedOffer:async()=>{}};
+  resolveRef:()=> 'KD-1000 · Synthetic',window:{confirm:()=>confirm,prompt:()=> 'synthetic_message_123'},reopenSavedOffer:async()=>{}};
  vm.createContext(context);vm.runInContext(source,context);
- return {context,area,calls,setConfirm:v=>{confirm=v;},render:(status='Versendet')=>context.renderContractWorkflow({id:'offer_1101',status})};
+ return {context,area,calls,setConfirm:v=>{confirm=v;},render:(status='Versendet',extra={})=>context.renderContractWorkflow({id:'offer_1101',status,...extra})};
 }
 test('contract controls remain hidden without release and do not request package data',async()=>{
  const f=setup({},false);await f.render();assert.equal(f.area.hidden,true);assert.equal(f.calls.length,0);
@@ -88,8 +88,21 @@ test('verified online confirmation exposes the missing acceptance action and pre
  }
 });
 test('already accepted offer never offers another project creation action',async()=>{
- const f=setup({state:'confirmed',simpleSendEnabled:true});await f.render('Angenommen');assert.equal(f.area.children.some(x=>x.tag==='button'),false);assert.ok(f.area.children.some(x=>/Auftrag übernommen/.test(x.textContent||'')));
+ const f=setup({state:'confirmed',simpleSendEnabled:true});await f.render('Angenommen');assert.equal(f.area.children.some(x=>x.textContent==='Auftrag übernehmen und Projekt anlegen'),false);assert.ok(f.area.children.some(x=>/Auftrag übernommen/.test(x.textContent||'')));
 });
 test('pending confirmation cannot expose acceptance action',async()=>{
  const f=setup({state:'awaiting_lszh_confirmation',simpleSendEnabled:true,reviewEnabled:false});await f.render();assert.equal(f.area.children.some(x=>/Auftrag übernehmen/.test(x.textContent||'')),false);
+});
+
+test('accepted order shows customer number and opens linked invoice without any automatic write',async()=>{
+ const f=setup({state:'confirmed',simpleSendEnabled:true});let navigation;
+ f.context.navigateTo=(table,record)=>{navigation={table,record};};
+ f.context.api=async(url,options)=>{f.calls.push({url,options});return url.includes('/rechnungen/')?{record:{id:'invoice_synthetic'}}:{state:'confirmed',simpleSendEnabled:true};};
+ await f.render('Angenommen',{customerId:'opaque_customer',customerNumber:'KD-1000',customerCompany:'Synthetic',initialInvoiceId:'invoice_synthetic'});
+ assert.ok(f.area.children.some(x=>/KD-1000/.test(x.textContent||'')));assert.equal(f.calls.filter(x=>x.options).length,0);
+ await f.area.children.find(x=>x.textContent==='Rechnung öffnen').click();assert.equal(navigation.table,'rechnungen');assert.equal(navigation.record.id,'invoice_synthetic');assert.equal(f.calls.filter(x=>x.options).length,0);
+});
+test('legacy accepted order creates an invoice draft only on explicit request',async()=>{
+ const f=setup({state:'confirmed',simpleSendEnabled:true});await f.render('Angenommen',{customerNumber:'KD-1000'});const button=f.area.children.find(x=>x.textContent==='Rechnungsentwurf für einmalige Leistungen erstellen');assert.ok(button);assert.equal(f.calls.filter(x=>x.options).length,0);
+ f.setConfirm(false);await button.click();assert.equal(f.calls.filter(x=>x.options).length,0);f.setConfirm(true);await button.click();const request=f.calls.find(x=>x.options);assert.equal(request.url,'/api/records/offerten/offer_1101/initial-invoice');assert.equal(request.options.body,'{}');
 });

@@ -3,12 +3,12 @@
 // Firestore persistence for the authenticated Cloud CRM. No direct browser
 // Firestore access; all multi-record state transitions use transactions.
 // Staging uses its own prefix and never reads or changes website live leads.
-const {quoteTotals}=require('./offer-pricing');
+const {quoteTotals,existingLines}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
 const {cleanProjectTasks}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
-const {randomUUID}=require('node:crypto');
+const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields}=require('./lead-contact');
 const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch}=require('./offer-tracking');
 
@@ -98,6 +98,71 @@ function buildStore(db,prefix){
   };
   const audit=(values,user,date)=>({...values,updatedAt:date,updatedBy:user.email});
   const newRecord=(values,user,date)=>({...values,createdAt:date,updatedAt:date,createdBy:user.email,updatedBy:user.email});
+  // Human-facing number; existing document IDs remain the stable foreign keys.
+  async function customerNumberPlan(tx,id,customer={}){
+    if(customer.customerNumber){
+      if(!/^KD-[1-9][0-9]{3,7}$/.test(customer.customerNumber))throw err('Ungültige bestehende Kundennummer',409);
+      return {number:customer.customerNumber};
+    }
+    const counter=await nextSequence(tx,'customer'),number='KD-'+counter.next;
+    const registry=db.collection(prefix+'_meta').doc('customer_number_'+number);
+    if((await tx.get(registry)).exists)throw err('Kundennummer bereits reserviert – Nummernkreis prüfen',409);
+    return {number,counter,registry,customerId:id};
+  }
+  function reserveCustomerNumber(tx,plan,user,date){
+    if(!plan.counter)return;
+    tx.set(plan.counter.reference,{next:plan.counter.next+1},{merge:true});
+    tx.create(plan.registry,{customerId:plan.customerId,customerNumber:plan.number,assignedAt:date,assignedBy:user.email});
+  }
+  async function ensureCustomerNumber(id,user){
+    const reference=col('kunden').doc(id),date=now();
+    await db.runTransaction(async tx=>{
+      const customer=await tx.get(reference);if(!customer.exists)throw err('Kunde nicht gefunden',404);
+      const plan=await customerNumberPlan(tx,id,customer.data());
+      reserveCustomerNumber(tx,plan,user,date);
+      if(plan.counter)tx.update(reference,audit({customerNumber:plan.number},user,date));
+    });
+    return toObject(await reference.get());
+  }
+  async function initialInvoicePlan(tx,{offerId,offer,customerId,projectId}){
+    const reference=col('rechnungen').doc('order-'+createHash('sha256').update(offerId).digest('hex').slice(0,32));
+    const reserved=await tx.get(reference);
+    const existing=reserved.exists?reserved:await queryOne(tx,'rechnungen','offerId',offerId)||await queryOne(tx,'rechnungen','projectId',projectId);
+    if(existing){
+      if(existing.data().customerId!==customerId||existing.data().projectId!==projectId)throw err('Bestehende Rechnung ist einem anderen Kunden oder Projekt zugeordnet',409);
+      return {invoiceId:existing.id,state:'existing_invoice'};
+    }
+    const items=existingLines(offer).filter(x=>x.mode==='einmalig').map(({title,qty,unitPriceCHF})=>({title,qty,unitPriceCHF}));
+    const totals=invoiceTotals(items);
+    if(!items.length||totals.amountCHF<=0)return {invoiceId:null,state:'no_one_time_charges'};
+    const counter=await nextSequence(tx,'invoice');
+    return {invoiceId:reference.id,state:'draft',reference,counter,values:{...totals,number:'RE-'+counter.next,customerId,projectId,offerId,
+      description:'Einmalige Leistungen gemäss Offerte Nr. '+String(offer.number||'')+(offer.title?' – '+offer.title:''),
+      invoiceDate:localSwissDate(),dueDate:'',status:'Entwurf',source:'offer_acceptance',billingScope:'one_time'}};
+  }
+  function createInitialInvoice(tx,plan,user,date){
+    if(!plan.reference)return;
+    tx.set(plan.counter.reference,{next:plan.counter.next+1},{merge:true});
+    tx.create(plan.reference,newRecord(plan.values,user,date));
+  }
+  async function ensureInitialInvoice(offerId,user){
+    const reference=col('offerten').doc(offerId),date=now();
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(reference),offer=snap.data();
+      if(!snap.exists||offer.status!=='Angenommen')throw err('Rechnungsentwurf benötigt eine angenommene Offerte',409);
+      if(offer.onlineAcceptance&&(offer.onlineAcceptance.state!=='confirmed'||offer.onlineAcceptance.reviewRequired!==false||offer.onlineAcceptance.archiveState!=='complete'))throw err('Bestätigte Online-Annahme erforderlich',409);
+      const customer=await assertCustomer(tx,offer.customerId),project=await queryOne(tx,'projekte','offerId',offerId);
+      if(!customer||!project||project.data().customerId!==offer.customerId)throw err('Kunde und Projekt müssen der Offerte eindeutig zugeordnet sein',409);
+      const numberPlan=await customerNumberPlan(tx,customer.id,customer.data());
+      const plan=await initialInvoicePlan(tx,{offerId,offer,customerId:customer.id,projectId:project.id});
+      reserveCustomerNumber(tx,numberPlan,user,date);
+      if(numberPlan.counter)tx.update(customer.ref,audit({customerNumber:numberPlan.number},user,date));
+      createInitialInvoice(tx,plan,user,date);
+      tx.update(reference,audit({initialInvoiceId:plan.invoiceId,initialInvoiceState:plan.state},user,date));
+    });
+    const offer=toObject(await reference.get());
+    return {offer,invoice:offer.initialInvoiceId?await get('rechnungen',offer.initialInvoiceId):null};
+  }
   const assertCustomer=async(tx,id)=>{
     if(!id)return null;
     const snap=await tx.get(col('kunden').doc(id));
@@ -108,6 +173,12 @@ function buildStore(db,prefix){
     const snap=await tx.get(col('projekte').doc(id));
     if(!snap.exists)throw err('Projekt nicht gefunden');return snap;
   };
+  async function withCustomerNumbers(table,records){
+    if(!['offerten','projekte','rechnungen'].includes(table))return records;
+    const ids=[...new Set(records.map(r=>r.customerId).filter(Boolean))],customers=new Map();
+    await Promise.all(ids.map(async id=>{const row=await col('kunden').doc(id).get();if(row.exists)customers.set(id,row.data());}));
+    return records.map(row=>{const c=customers.get(row.customerId);return c?.customerNumber?{...row,customerNumber:c.customerNumber,customerCompany:c.company||''}:row;});
+  }
   const acceptedOffer=async(tx,id)=>{
     if(!id)return null;
     const snap=await tx.get(col('offerten').doc(id));
@@ -144,8 +215,16 @@ function buildStore(db,prefix){
     ]);
     if(createdCustomer?.exists)customer=createdCustomer;
     const finalCustomer=customer?.ref||customerRef;
+    const numberPlan=await customerNumberPlan(tx,finalCustomer.id,customer?.data()||{});
+    const finalProject=project?.ref||projectRef;
+    const savedProject=project||(createdProject?.exists?createdProject:null);
+    if(savedProject&&(savedProject.data().customerId!==finalCustomer.id||savedProject.data().offerId!==offerRef.id))throw err('Projekt und Offerte müssen denselben Kunden haben',409);
+    const invoicePlan=await initialInvoicePlan(tx,{offerId:offerRef.id,offer,customerId:finalCustomer.id,projectId:finalProject.id});
+    reserveCustomerNumber(tx,numberPlan,user,date);
+    if(customer&&numberPlan.counter)tx.update(finalCustomer,audit({customerNumber:numberPlan.number},user,date));
     if(!customer){
       const fields={
+        customerNumber:numberPlan.number,
         company:lead?.company||'Kunde aus Offerte',
         contactName:lead?.name||'',email:lead?.email||'',
         street:lead?.street||'',postalCode:lead?.postalCode||'',
@@ -154,7 +233,6 @@ function buildStore(db,prefix){
       };
       tx.create(finalCustomer,newRecord(fields,user,date));
     }
-    const finalProject=project?.ref||projectRef;
     if(!project&&!createdProject?.exists){
       const fields={
         customerId:finalCustomer.id,offerId:offerRef.id,
@@ -163,7 +241,8 @@ function buildStore(db,prefix){
       };
       tx.create(finalProject,newRecord(fields,user,date));
     }
-    tx.update(offerRef,audit({status:'Angenommen',customerId:finalCustomer.id},user,date));
+    createInitialInvoice(tx,invoicePlan,user,date);
+    tx.update(offerRef,audit({status:'Angenommen',customerId:finalCustomer.id,initialInvoiceId:invoicePlan.invoiceId,initialInvoiceState:invoicePlan.state},user,date));
     if(leadRef)tx.update(leadRef,audit({...leadUpdate,status:'Gewonnen'},user,date));
     return {customerId:finalCustomer.id,projectId:finalProject.id};
   }
@@ -186,7 +265,7 @@ function buildStore(db,prefix){
     const snap=await query.limit(size+1).get();
     const rows=snap.docs.slice(0,size);
     return {
-      records:rows.map(toObject),
+      records:await withCustomerNumbers(table,rows.map(toObject)),
       nextCursor:snap.docs.length>size&&rows.length?rows[rows.length-1].id:null,
       hasMore:snap.docs.length>size
     };
@@ -216,7 +295,7 @@ function buildStore(db,prefix){
     const needle=fold(q.trim());
     const searchFields={
       leads:['name','company','email','city','postalCode'],
-      kunden:['company','contactName','email','city','postalCode'],
+      kunden:['customerNumber','company','contactName','email','city','postalCode'],
       offerten:['number','title','description'],
       rechnungen:['number','description'],
       projekte:['title','description']
@@ -226,7 +305,7 @@ function buildStore(db,prefix){
     if(needle&&['offerten','rechnungen','projekte'].includes(table)){
       for await(const snap of col('kunden').stream()){
         const row=snap.data();
-        if(contains(row,['company','contactName','email']))customerIds.add(snap.id);
+        if(contains(row,['customerNumber','company','contactName','email']))customerIds.add(snap.id);
       }
     }
     if(needle&&table==='offerten'){
@@ -292,7 +371,7 @@ function buildStore(db,prefix){
     }
     if(!found)throw err('Seitenzeiger veraltet – bitte Suche neu laden',409);
     const hasMore=selected.length>size,records=selected.slice(0,size);
-    return {records,nextCursor:hasMore&&records.length?records[records.length-1].id:null,
+    return {records:await withCustomerNumbers(table,records),nextCursor:hasMore&&records.length?records[records.length-1].id:null,
       hasMore,totalMatches};
   }
   // Read-only full collection scans for complete server metrics. Stream does
@@ -304,11 +383,11 @@ function buildStore(db,prefix){
   }
   async function list(table,limit=200){
     const snap=await col(table).orderBy('createdAt','desc').limit(Math.min(Math.max(Number(limit)||200,1),200)).get();
-    return snap.docs.map(toObject);
+    return withCustomerNumbers(table,snap.docs.map(toObject));
   }
   async function get(table,id){
     const doc=await col(table).doc(id).get();
-    return doc.exists?toObject(doc):null;
+    return doc.exists?(await withCustomerNumbers(table,[toObject(doc)]))[0]:null;
   }
   async function reminders(){
     const snap=await col('leads').where('status','==','Neu').limit(200).get();
@@ -333,8 +412,11 @@ function buildStore(db,prefix){
     if(table==='leads')followUpFields(input);
     const date=now(),ref=col(table).doc();
     if(table==='kunden'){
-      await ref.create(newRecord(input,user,date));
-      return {id:ref.id,...newRecord(input,user,date)};
+      await db.runTransaction(async tx=>{
+        const plan=await customerNumberPlan(tx,ref.id);reserveCustomerNumber(tx,plan,user,date);
+        tx.create(ref,newRecord({...input,customerNumber:plan.number},user,date));
+      });
+      return toObject(await ref.get());
     }
     await db.runTransaction(async tx=>{
       if(table==='leads'){
@@ -498,6 +580,8 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='rechnungen'){
+        if(before.source==='offer_acceptance'&&(merged.customerId!==before.customerId||merged.projectId!==before.projectId))
+          throw err('Kunde und Projekt eines automatischen Auftragsentwurfs dürfen nicht geändert werden',409);
         if(isInvoiceLocked(before)||before.status==='Teilbezahlt'||(before.paymentHistory||[]).length)
           throw err('Rechnung mit Zahlungseingängen ist schreibgeschützt',403);
         if(['sending','manual_review'].includes(before.invoiceDispatchState))
@@ -905,6 +989,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

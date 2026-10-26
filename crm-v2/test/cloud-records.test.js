@@ -29,6 +29,7 @@ function fakeFirestore(){
     limit(n){return new Query(this.name,this.filter,this.order,n,this.cursor);}
     startAfter(doc){return new Query(this.name,this.filter,this.order,this.max,doc);}
     orderBy(field,direction){return new Query(this.name,this.filter,{field,direction},this.max,this.cursor);}
+    async *stream(){for(const doc of (await this.get()).docs)yield doc;}
     async get(){
       let docs=[...storage.keys()].filter(key=>key.startsWith(this.name+'/'))
         .map(key=>{const id=key.slice(this.name.length+1);return snapshot(new Doc({name:this.name},id));});
@@ -800,4 +801,44 @@ test('online acceptance cannot bypass internal review via offer accepted or lead
   db.storage.set(path,{...db.storage.get(path),onlineAcceptance:{state:'confirmed',reviewRequired:false,archiveState:'complete'}});
   await store.update('offerten',offer.id,{status:'Angenommen'},admin);
   assert.equal((await store.list('projekte')).length,1);
+});
+
+test('customer numbers are assigned once, protected from form edits and searchable across related records',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const first=await store.create('kunden',{company:'First',customerNumber:'KD-9999'},admin),second=await store.create('kunden',{company:'Second'},admin);
+ assert.equal(first.customerNumber,'KD-1000');assert.equal(second.customerNumber,'KD-1001');
+ assert.equal((await store.ensureCustomerNumber(first.id,admin)).customerNumber,'KD-1000');
+ await store.update('kunden',first.id,{company:'Updated',customerNumber:'KD-9999'},admin);assert.equal((await store.get('kunden',first.id)).customerNumber,'KD-1000');
+ const offer=await store.create('offerten',{title:'Repeat project',customerId:first.id,items:[]},admin);
+ const found=await store.searchPage('offerten',{q:'KD-1000'});assert.ok(found.records.some(x=>x.id===offer.id));assert.equal(found.records[0].customerNumber,'KD-1000');
+ const result=await store.searchPage('kunden',{q:'KD-1000'});assert.equal(result.totalMatches,1);
+});
+async function acceptedBillingFixture(modes=['einmalig','monatlich']){
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_'),customer=await store.create('kunden',{company:'Existing GmbH'},admin);
+ const offer=await store.create('offerten',{customerId:customer.id,title:'Synthetic order',items:modes.map(mode=>({title:mode==='einmalig'?'Setup':'Monthly',qty:2,unitPriceCHF:mode==='einmalig'?99.95:25,mode})),status:'Entwurf'},admin);
+ await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+ return {db,store,offer:await store.get('offerten',offer.id),customer};
+}
+test('acceptance creates exactly one numbered one-time draft linked to the existing customer and project',async()=>{
+ const x=await acceptedBillingFixture(),invoices=await x.store.list('rechnungen');assert.equal(invoices.length,1);
+ const invoice=invoices[0];assert.equal(invoice.status,'Entwurf');assert.equal(invoice.number,'RE-1000');assert.equal(invoice.amountCHF,199.9);assert.equal(invoice.items.length,1);assert.equal(invoice.customerId,x.customer.id);assert.equal(invoice.offerId,x.offer.id);assert.equal(invoice.dueDate,'');assert.equal(invoice.invoiceDispatchState,undefined);assert.equal(invoice.customerNumber,'KD-1000');
+ assert.equal((await x.store.list('kunden')).length,1);assert.equal((await x.store.list('projekte')).length,1);assert.equal(x.offer.initialInvoiceId,invoice.id);
+ await assert.rejects(x.store.update('rechnungen',invoice.id,{projectId:''},admin),{status:409});
+ await assert.rejects(x.store.update('rechnungen',invoice.id,{customerId:'other'},admin),{status:409});
+ await x.store.ensureInitialInvoice(x.offer.id,admin);await x.store.ensureInitialInvoice(x.offer.id,admin);assert.equal((await x.store.list('rechnungen')).length,1);assert.equal(x.db.storage.get('lszh_crm_v2_staging__meta/invoice_sequence').next,1001);
+});
+test('monthly-only or free offers create no premature or zero-amount invoice',async()=>{
+ for(const modes of [['monatlich'],[]]){const x=await acceptedBillingFixture(modes);assert.equal((await x.store.list('rechnungen')).length,0);assert.equal(x.offer.initialInvoiceState,'no_one_time_charges');await x.store.ensureInitialInvoice(x.offer.id,admin);assert.equal((await x.store.list('rechnungen')).length,0);}
+});
+test('backfill is explicit, idempotent and reuses a manual invoice instead of creating a duplicate',async()=>{
+ const x=await acceptedBillingFixture(),path='lszh_crm_v2_staging_offerten/'+x.offer.id,invoice=(await x.store.list('rechnungen'))[0];
+ const row=x.db.storage.get(path);delete row.initialInvoiceId;delete row.initialInvoiceState;
+ const before=JSON.stringify(x.db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id));
+ const result=await x.store.ensureInitialInvoice(x.offer.id,admin);assert.equal(result.invoice.id,invoice.id);assert.equal(JSON.stringify(x.db.storage.get('lszh_crm_v2_staging_rechnungen/'+invoice.id)),before);
+ x.db.storage.get(path).status='Versendet';await assert.rejects(x.store.ensureInitialInvoice(x.offer.id,admin),{status:409});
+});
+test('customer backfill preserves foreign keys and allocates only missing numbers',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');db.storage.set('lszh_crm_v2_staging_kunden/existing',{company:'Old customer',status:'Aktiv'});
+ const row=await store.ensureCustomerNumber('existing',admin);assert.equal(row.id,'existing');assert.equal(row.company,'Old customer');assert.equal(row.customerNumber,'KD-1000');
+ await store.ensureCustomerNumber('existing',admin);assert.equal(db.storage.get('lszh_crm_v2_staging__meta/customer_sequence').next,1001);
 });

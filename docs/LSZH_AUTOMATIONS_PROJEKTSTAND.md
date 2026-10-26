@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Rechnungsprüfung und Projektabrechnung, 26.10.2026
+
+CRM **`lszh-crm-v2-00099-pok`** erhält 100 % Verkehr. Das Rechnungsfenster zeigt fehlende Angaben und die nächste Aufgabe. Versandfreigabe im CRM nach vollständigen Daten, erfolgreichem Laden des gespeicherten Swiss-QR-PDFs und bewusster Prüfbestätigung. Änderungen setzen diese zurück. Der Server prüft die Daten vor der Versandreservierung erneut. Die Bedienerbestätigung ist kein automatischer Lesebeweis.
+
+Im Projekt stehen die direkt zugeordneten Rechnungen mit Versand, Buchungsstatus, Restbetrag, Fälligkeit und nächster Aufgabe; unabhängig von der ersten Registerseite. Maximal 100 mit ausdrücklichem Hinweis auf weitere Treffer. Unklarer oder bestätigter Versand bleibt gesperrt. Fälligkeit, Versand, Zahlung und monatliche Abrechnung bleiben bewusst gesteuerte Schritte.
+
+477 CRM-Tests und beide GitHub-Prüfungen inklusive echter Firestore-Emulatortests erfolgreich. Desktop/Mobil mit PDF-Prüfung, Rücksetzung, simuliertem Versand, Wiederholungssperre und Projektlinks geprüft. Alle 79 gebauten Laufzeitdateien bestätigt; Konfiguration und Dienstkonto unverändert. Keine Kunden-/Rechnungsdaten geändert, keine Mail, keine Zahlung. Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_PROJECT_INVOICE_REVIEW.md) - [Live-Manifest](../releases/project-invoice-review-live-20261026.json) - [PR 24](https://github.com/lszh-automations/lszh-automations-site/pull/24).
+
+---
+
 # Aktiver Live-Stand - Projekt-Onboarding, 26.10.2026
 
 CRM **`lszh-crm-v2-00097-yun`** erhält 100 % Verkehr. Projekte zeigen den Onboarding-Stand und die nächste Aufgabe: Make-Bedarf klären, Make-Einladung ausstehend, Zugänge prüfen, bereit zur Einrichtung. Einladung und Zugangsprüfung werden bewusst manuell bestätigt. Ohne Make entfällt der Einladungsschritt. Notizen und Voraussetzungen werden serverseitig geprüft; der Projektstatus bleibt separat.

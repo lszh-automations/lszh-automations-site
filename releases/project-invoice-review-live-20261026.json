@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "1a482658a3195b310f6e6e880dfee5007f59e75d",
+  "service": "lszh-crm-v2",
+  "anonymousInvoiceReviewStatus": 401,
+  "buildId": {
+    "lszh-crm-v2-1": "f83ca10d-36cb-4a6b-971d-92013adea31b"
+  },
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793036419.295338-bcbb55538bb0431c91d422ba8536aaef.zip#1793036420673254"
+  },
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "anonymousProjectBillingStatus": 401,
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:07539ec3deb7c3fcd72ba89c12e692dacb8583840f58311869b4caba2cdc7ac8",
+  "rollback": "lszh-crm-v2-00097-yun",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "revision": "lszh-crm-v2-00099-pok",
+  "configurationUnchanged": true,
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 477,
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success including read-only accepted-order invoice review",
+  "browserVariantsChecked": 2,
+  "parentRelease": "project-onboarding-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "a18f8a0319b7734fdd644815efcf0b7b23de95a92c189257ef15ec6360ebcabc",
+      "bytes": 58420
+    },
+    {
+      "path": "invoice-pricing.js",
+      "sha256": "b890fde9855425ca48e5f1747e2babd1359c29bc278ea33eb926bc792017dd62",
+      "bytes": 5518
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "4f801574ec92dea5e6388444c514ae47654ab898eded8820edea2838d1d1566d",
+      "bytes": 190932
+    },
+    {
+      "path": "server.js",
+      "sha256": "d51f55d071760fc82aaa95f81a84502f6414f550dfa09bcd2ff805152ef59e69",
+      "bytes": 23144
+    }
+  ],
+  "newReadOnlyEndpoints": [
+    "/api/records/rechnungen/:id/readiness",
+    "/api/records/projekte/:id/billing"
+  ],
+  "projectInvoiceLimit": 100,
+  "pdfReview": "UI confirmation after successful PDF retrieval, reset on edits; not a server-side proof of reading",
+  "readinessRecheckedBeforeSendClaim": true,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "invoiceGenerated": false,
+  "paymentRecorded": false,
+  "portalAndMakeUnchanged": true
+}

@@ -89,3 +89,16 @@ Menüs und Rollen am 26.10.2026 anhand der offiziellen [Organisationshilfe](http
 Nachweis: 469 CRM-Tests erfolgreich, zusätzlich GitHub-Stagingprüfung und Baselineprüfung erfolgreich. Zwei synthetische PDF-Varianten vollständig extrahiert, beide Seiten der Make-Variante visuell geprüft; vier Desktop-/Mobilvarianten ohne Überlauf. Tatsächlich gebauten Quellstand mit allen 79 Laufzeitdateien verglichen; nur `order-confirmation.js` gegenüber dem vorigen Release geändert. Kandidat und Live-Oberfläche HTTP 200, anonyme Bestätigungsvorschau HTTP 401; keine Fehler der neuen Revision im kontrollierten Zeitfenster. Konfiguration und Dienstkonto unverändert. Keine Kunden-/Rechnungsdaten geändert, keine Mail versendet, Portal und Make-Szenarien unverändert.
 
 Release: [Live-Manifest](../releases/confirmation-guide-live-20261026.json), [PR 21](https://github.com/lszh-automations/lszh-automations-site/pull/21). Rückfallrevision: `lszh-crm-v2-00091-xor`.
+
+
+## Make-Partnerlink und transparenter Startvorteil
+
+Die Make-Anleitung verwendet für neue Konten den Partnerlink https://www.make.com/en/register?pc=lszhautomations. Mail und PDF nennen 10’000 Credits gratis im ersten Monat gemäss Make-Aktionsbedingungen und legen offen, dass LSZH Automations bei einem späteren kostenpflichtigen Abonnement eine Provision von Make erhält. Bestehende Firmenkonten werden weiterverwendet. Keine Kontoanlage, Einladung oder Tarifänderung durch diesen Release.
+
+Die [Make-Affiliate-Hilfe](https://help.make.com/affiliate-program) bestätigt Provisionen aus kostenpflichtigen Abonnements. Der konkrete Startvorteil wurde am 26.10.2026 vom Betreiber bestätigt; seine Aktivierung für diesen individuellen Partnerlink war öffentlich nicht unabhängig prüfbar. Der Hinweis ist keine Änderung der angenommenen Vertragsbedingungen. Legacy-Pakete ohne vereinbarte Make-Voraussetzung erhalten weiterhin keine neue Anleitung oder Pflicht.
+
+Der Link ist sowohl in HTML als auch im PDF als exakte URL hinterlegt und anklickbar. 469 CRM-Tests erfolgreich; synthetisches Make-PDF bleibt zweitseitig, Seiten vollständig gerendert und visuell geprüft, URI-Ziel aus dem PDF kontrolliert. Vier Desktop-/Mobilvarianten ohne Überlauf und ohne externe Anfragen geprüft. Interne Archiv-/Versandnachweise und bestehende Dokumente bleiben erhalten. Keine Kundenmail und keine Kundendatenänderung.
+
+[PR 22](https://github.com/lszh-automations/lszh-automations-site/pull/22). Der technische Live-Nachweis wird im zugehörigen Release-Manifest festgehalten.
+
+Live: `lszh-crm-v2-00095-hix`, 100 % Verkehr, [Release-Manifest](../releases/confirmation-partner-live-20261026.json). Alle 79 Laufzeitdateien bestätigt; nur `order-confirmation.js` gegenüber dem vorigen Release geändert. GitHub-Staging- und Baselineprüfung erfolgreich. Konfiguration und Dienstkonto unverändert; Live-Oberfläche HTTP 200, anonyme Bestätigungsvorschau HTTP 401, keine Fehler der neuen Revision im kontrollierten Zeitfenster. Rückfallrevision: `lszh-crm-v2-00093-yik`.

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-26",
+  "status": "live",
+  "featureCommit": "751060dfcf89d132aecd312dc44545948967e638",
+  "service": "lszh-crm-v2",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793032231.247042-5796f9dd3d4a42edb2055e7d0692a615.zip#1793032232552068"
+  },
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "anonymousPreviewStatus": 401,
+  "configurationUnchanged": true,
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:59abfea18ac5effb047715cbaca824306b599ac574ba977ba6178fe7f846abd0",
+  "buildId": {
+    "lszh-crm-v2-1": "74cd465c-1cdf-4777-96fc-baa4e1b213a8"
+  },
+  "revision": "lszh-crm-v2-00095-hix",
+  "rollback": "lszh-crm-v2-00093-yik",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 79,
+  "crmTests": 469,
+  "sourceCommitGithubChecks": "success",
+  "pdfVariantsChecked": 2,
+  "browserVariantsChecked": 4,
+  "parentRelease": "confirmation-guide-live-20261026.json",
+  "changedRuntimeFiles": [
+    {
+      "path": "order-confirmation.js",
+      "sha256": "8c6ce8edc9e3ba4c8d2474051ed44b9251bf49cf51af1b07f8ecd7faa26f6f21",
+      "bytes": 22597
+    }
+  ],
+  "newConfirmationDocumentVersion": "confirmation-v3",
+  "partnerRegistrationUrl": "https://www.make.com/en/register?pc=lszhautomations",
+  "promotion": "10000 free credits in first month, subject to Make promotion conditions",
+  "promotionEvidence": "Operator confirmed 2026-10-26; activation for this specific code could not be independently verified publicly",
+  "commissionDisclosure": "LSZH receives commission from Make on later paid subscription",
+  "clickableEmailAndPdfLinkVerified": true,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "existingPdfReplaced": false,
+  "portalAndMakeUnchanged": true
+}

@@ -325,6 +325,15 @@ async function handler(req,res){
       :await store.recordOfferFollowUp(id,payload,user);
     return reply(res,200,{record});
   }
+  const customerNumber=pathname.match(/^\/api\/records\/kunden\/([A-Za-z0-9_-]{1,100})\/number$/);
+  const initialInvoice=pathname.match(/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/initial-invoice$/);
+  if(customerNumber||initialInvoice){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req)||!req.headers.origin)return reply(res,403,{error:'origin_mismatch'});
+    if(!/^application\/json(?:;\s*charset=utf-8)?$/i.test(req.headers['content-type']||''))return reply(res,415,{error:'invalid_content_type'});
+    const payload=await json(req);if(!payload||typeof payload!=='object'||Array.isArray(payload)||Object.keys(payload).length)return reply(res,400,{error:'invalid_request'});
+    return customerNumber?reply(res,200,{record:await store.ensureCustomerNumber(customerNumber[1],user)}):reply(res,200,await store.ensureInitialInvoice(initialInvoice[1],user));
+  }
   const parts=pathname.split('/').filter(Boolean);
   if(parts[0]!=='api'||parts[1]!=='records'||!store.TABLES.includes(parts[2])||parts.length>4)
     return reply(res,404,{error:'not_found'});

@@ -9,6 +9,8 @@ async function withApp(callback,enabled){
   const calls=[];
   const store={
     TABLES:['leads','kunden','offerten','rechnungen','projekte'],
+    async ensureCustomerNumber(id,user){calls.push({kind:'customer-number',id,user});return {id,customerNumber:'KD-1000'};},
+    async ensureInitialInvoice(id,user){calls.push({kind:'initial-invoice',id,user});return {offer:{id},invoice:{id:'synthetic_invoice',status:'Entwurf'}};},
     async resolveOfferSend(id,resolution,user){
       calls.push({kind:'resolve',id,resolution,user});
       return {id,status:resolution==='confirmed'?'Versendet':'Bereit'};
@@ -102,5 +104,19 @@ test('confirmation endpoints require login and same-origin explicit document app
   assert.equal((await fetch(base+'/confirmation-send',{method:'POST',headers,body:JSON.stringify({documentReviewed:true,sha256:'a'.repeat(64)})})).status,200);
   assert.equal(calls.at(-1).action,'confirmation-send');
   assert.equal((await fetch(base+'/confirmation-check',{method:'POST',headers,body:'{}'})).status,200);assert.equal(calls.at(-1).action,'confirmation-check');
+ },true);
+});
+
+test('customer numbering and invoice backfill require login, exact origin and empty JSON body',async()=>{
+ await withApp(async({origin,calls})=>{
+  const auth={Authorization:'Bearer test-token'},headers={...auth,Origin:origin,'Content-Type':'application/json'};
+  for(const suffix of ['kunden/synthetic_customer/number','offerten/synthetic_offer/initial-invoice']){
+   const url=origin+'/api/records/'+suffix;
+   assert.equal((await fetch(url,{method:'POST',body:'{}',headers:{Origin:origin,'Content-Type':'application/json'}})).status,401);
+   assert.equal((await fetch(url,{method:'POST',body:'{}',headers:auth})).status,403);
+   assert.equal((await fetch(url,{method:'POST',body:'{}',headers:{...headers,Origin:'https://other.example'}})).status,403);
+   for(const payload of [{amountCHF:1},{customerNumber:'KD-9999'},[]])assert.equal((await fetch(url,{method:'POST',headers,body:JSON.stringify(payload)})).status,400);
+   const count=calls.length;assert.equal((await fetch(url,{method:'POST',headers,body:'{}'})).status,200);assert.equal(calls.length,count+1);
+  }
  },true);
 });

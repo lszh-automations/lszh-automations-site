@@ -505,10 +505,10 @@ const definitions={
   ],columns:[['name','Name'],['company','Firma'],['email','E-Mail'],['city','Ort'],['createdAt','Eingegangen'],['followUpDate','Wiedervorlage'],['status','Status']]},
   kunden:{title:'Kunden',description:'Stammdaten deiner Geschäftskunden.',fields:[
     ['company','Firma','text'],['contactName','Ansprechpartner','text'],['email','E-Mail','email'],['street','Strasse / Hausnummer','text'],['postalCode','PLZ','text'],['city','Ort','text'],['country','Land','text'],['notes','Notizen','textarea'],['status','Status','status']
-  ],columns:[['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
+  ],columns:[['customerNumber','Kundennr.'],['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['title','Offerte'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
+  ],columns:[['number','Nr.'],['title','Offerte'],['customerId','Kunde'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
   rechnungen:{title:'Rechnungen',description:'Rechnungen mit nummerierter PDF und Swiss-QR-Zahlteil (nach Zahlungsfreigabe).',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
@@ -531,7 +531,7 @@ async function api(path,options={}) {
   if(!r.ok){const err=new Error(result.error || 'HTTP '+r.status);err.status=r.status;throw err;}
   return result;
 }
-function titleOf(table,record) {return (record && (record.company || record.title || record.name || record.number)) || '–';}
+function titleOf(table,record) {const title=(record && (record.company || record.title || record.name || record.number)) || '–';return table==='kunden'&&record?.customerNumber?record.customerNumber+' · '+title:title;}
 function resolveRef(key,value) {
   const refs={leadId:'leads',customerId:'kunden',projectId:'projekte',offerId:'offerten'};
   const match=(state.records[refs[key]]||[]).find(x=>x.id===value);
@@ -1135,6 +1135,7 @@ function render(){
           td.append(el('span',due?'lead-followup-badge overdue':'lead-followup-badge',rec.followUpDate));
         }else td.textContent='–';
       }
+      else if(key==='customerId'&&rec.customerNumber){td.textContent=rec.customerNumber+(rec.customerCompany?' · '+rec.customerCompany:'');}
       else if(key==='status'){
         const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
         const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(rec.status)?' success':''),overdue?'Überfällig':(rec.status||'–'));
@@ -1709,12 +1710,22 @@ async function renderContractWorkflow(offer){
     }
     if(value.state==='confirmed'){
       const legacy=$('offerWorkflow');if(legacy&&legacy!==area)legacy.hidden=true;
-      if(offer.status==='Angenommen'){area.append(el('p','','Auftrag übernommen. Kunde und Projekt sind zugeordnet.'));return;}
+      if(offer.status==='Angenommen'){
+        area.append(el('p','','Auftrag übernommen. Kunde und Projekt sind zugeordnet.'),el('p','','Kunde: '+(offer.customerNumber?offer.customerNumber+' · '+(offer.customerCompany||''):resolveRef('customerId',offer.customerId))));
+        if(offer.initialInvoiceId){
+          const open=el('button','btn','Rechnung öffnen');open.type='button';open.addEventListener('click',async()=>{open.disabled=true;try{const result=await api('/api/records/rechnungen/'+encodeURIComponent(offer.initialInvoiceId));$('offerEditor').close();navigateTo('rechnungen',result.record);}catch(error){message.textContent=error.message;message.hidden=false;}finally{open.disabled=false;}});area.append(open);
+          area.append(el('p','','Die Rechnung ist dem Auftrag und Kunden zugeordnet. Ein neuer Entwurf enthält nur einmalige Positionen; Fälligkeit prüfen und Versand separat auslösen.'));
+        }else if(offer.initialInvoiceState==='no_one_time_charges')area.append(el('p','','Keine einmaligen Kosten: Es wurde keine Rechnung erstellt. Monatliche Leistungen benötigen einen separaten Abrechnungsbeginn.'));
+        else{
+          const create=el('button','btn','Rechnungsentwurf für einmalige Leistungen erstellen');create.type='button';create.addEventListener('click',async()=>{if(create.disabled||!window.confirm('Einen Rechnungsentwurf nur für die einmaligen Leistungen dieser angenommenen Offerte erstellen? Es wird nichts versendet.'))return;create.disabled=true;try{await api('/api/records/offerten/'+encodeURIComponent(offer.id)+'/initial-invoice',{method:'POST',body:'{}'});await reopenSavedOffer(offer.id);}catch(error){message.textContent=error.message;message.hidden=false;create.disabled=false;}});area.append(create);
+        }
+        return;
+      }
       area.append(el('p','','Die Auftragsbestätigung ist versendet und geprüft. Übernimm jetzt den Auftrag, damit die Offerte auf Angenommen wechselt und Kunde und Projekt zugeordnet werden.'));
       if(offer.status==='Versendet'){
         const accept=el('button','btn primary','Auftrag übernehmen und Projekt anlegen');accept.type='button';
         accept.addEventListener('click',async()=>{
-          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Die Offerte wechselt auf Angenommen; Kunde und Projekt werden angelegt oder zugeordnet.'))return;
+          if(accept.disabled||!window.confirm('Den bestätigten Auftrag jetzt übernehmen? Die Offerte wechselt auf Angenommen; Kunde und Projekt werden zugeordnet und ein Rechnungsentwurf für einmalige Leistungen wird erstellt. Es wird nichts versendet.'))return;
           accept.disabled=true;message.hidden=true;
           try{await api('/api/records/offerten/'+encodeURIComponent(offer.id),{method:'PATCH',body:JSON.stringify({status:'Angenommen'})});await reopenSavedOffer(offer.id);}
           catch(error){message.textContent=error.message||'Auftrag konnte nicht übernommen werden. Bitte Offerte neu öffnen und den Status prüfen.';message.hidden=false;accept.disabled=false;}
@@ -2415,7 +2426,7 @@ function openInvoiceEditor(record=null,draft=null){
     element.addEventListener('change',markInvoiceUnsaved);
     const control=element.querySelector('input,select,textarea');
     controls[key]=control;
-    if(state.invoiceLocked&&control)control.disabled=true;
+    if(control&&(state.invoiceLocked||record?.source==='offer_acceptance'&&['customerId','projectId'].includes(key)))control.disabled=true;
     $('invoiceFields').append(element);
   }
   if(controls.projectId&&!state.invoiceLocked){
@@ -2442,7 +2453,7 @@ function openEditor(record=null,draft=null) {
   if(state.tab==='projekte'){openProjectEditor(record,draft);return;}
   if(state.tab==='rechnungen'){openInvoiceEditor(record,draft);return;}
   state.editing=record;
-  $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title;
+  $('editorTitle').textContent=(record?'Bearbeiten: ':'Neu: ')+definitions[state.tab].title+(state.tab==='kunden'&&record?.customerNumber?' – '+record.customerNumber:'');
   const form=$('editorForm');
   form.replaceChildren();
   for(const [key,label,type] of definitions[state.tab].fields)

@@ -1,0 +1,92 @@
+{
+  "runtimeFilesVerified": 82,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "4b98a0bd81a59cd38ba0272c7fbc28531ce8877eb470881dcd709c4891453c27"
+    },
+    {
+      "path": "dashboard-reporting.js",
+      "sha256": "0b4ee96a96e2670b6df1ba910bbd926ed2a48ce0a50cbb7ff4af26b788a497c9"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "d2abef12e8f9943e1587274cc4c2b0bcc8e020150461b5295fbf74e2ec859f65"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00139-mib",
+  "candidateUrl": "https://dashboard-analytics---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793127690.256198-2640f70849064dc7af27d09367df72c7.zip#1793127692512993",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "5effc61062044064725269b22339987fed8b20cf",
+  "parentRelease": "remove-dashboard-flows-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00139-mib",
+  "rollback": "lszh-crm-v2-00137-naf",
+  "trafficPercent": 100,
+  "crmTests": 529,
+  "browserDesktopMobile": "passed; all date filters, current vs historical stock/cohorts, money by invoice/payment date, charts and tables, persisted filters, fail-closed errors, no external requests or writes",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40565617349,
+    40565617332
+  ],
+  "buildId": "9d3edca3-ea48-4a3e-8169-af8a5db06c81",
+  "buildImageDigest": "sha256:dfb355ef4157b693ef34316db29cbec77ecd30b62439c2a8327b286c2f0f1ed2",
+  "deployMethod": "successful source build followed by digest-pinned image deploy after source CLI lost build lookup with NOT_FOUND; no second build",
+  "liveHtmlExactMatch": true,
+  "anonymousReportingApi": 401,
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeChanged": false,
+  "websitePortalChanged": false,
+  "analyticsOnly": true,
+  "filters": [
+    "month",
+    "quarter",
+    "year",
+    "custom",
+    "all"
+  ],
+  "developmentGrouping": [
+    "month",
+    "quarter",
+    "year"
+  ],
+  "readOnlyLiveDataCheck": {
+    "checkedAt": "2026-10-27T18:59:04.960Z",
+    "readOnly": true,
+    "sourceCounts": {
+      "leads": 10,
+      "kunden": 1,
+      "offerten": 9,
+      "rechnungen": 6,
+      "projekte": 4
+    },
+    "currentCustomers": 1,
+    "currentActiveCustomers": 1,
+    "customersAggregated": 1,
+    "invoicesAggregated": 6,
+    "offersAggregated": 9,
+    "projectsAggregated": 4,
+    "datedBuckets": 4,
+    "dataQuality": {
+      "customers": 0,
+      "invoices": 0,
+      "offers": 0,
+      "projects": 0,
+      "payments": 0,
+      "legacyPaid": 0,
+      "invalidAmounts": 0
+    },
+    "customerDataChanged": false,
+    "emailSent": false
+  },
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/42"
+}

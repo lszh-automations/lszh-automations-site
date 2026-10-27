@@ -1,3 +1,9 @@
+# Aktuell: Dashboard ausschliesslich für Kennzahlen und Auswertungen
+
+Das Dashboard zeigt Kunden-, Rechnungs-, Offerten- und Projektauswertungen mit Zeitraumfilter und Entwicklung nach Monaten/Quartalen/Jahren. Keine Aufgaben- oder Ablauflisten. [Aktuelle Bedienung und Kennzahlendefinitionen](LSZH_DASHBOARD_ANALYTICS.md). Die folgenden Angaben dokumentieren frühere Stände.
+
+---
+
 # Aktuell: Ablaufbereich vollständig entfernt
 
 Auf Benutzerwunsch ist der komplette Bereich „Deine laufenden Abläufe“ aus dem Dashboard entfernt, einschliesslich seiner Karten, Filter und speziellen Öffnungsfunktionen/Stile. Vier Kennzahlen und aufklappbare Auswertungen bleiben bestehen. Die folgenden Beschreibungen dokumentieren frühere Stände. [Live-Nachweis](../releases/remove-dashboard-flows-live-20261027.json).

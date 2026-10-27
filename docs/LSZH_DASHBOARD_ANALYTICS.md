@@ -34,3 +34,9 @@ Datensätze ohne auswertbares Datum sind nur bei Gesamt enthalten und werden kei
 529 CRM-Tests sowie Desktop-/Mobilprüfung erfolgreich. Abgedeckt: Monats-/Quartals-/Jahresgrenzen, Schaltjahr, Schweizer Datumswechsel, aktuelle vs abgeschlossene Vergleichsperioden, eigene inklusive Zeiträume, Kundenbestand vs Neukunden, getrennte Rechnungs-/Zahlungsdaten, Teilzahlungen, Korrekturen, Entwürfe, Stornos, Altrechnungen ohne Zahlungsbuchung, einseitige Annahmen, aktuelle Statuskohorten, undatierte Datensätze, mehr als 50 Einträge und keine zusätzlichen Identitätsdaten. Browserprüfung sämtlicher Filter, Entwicklung/Tabelle, Filtererhalt und Fehlerfälle mit vollständig blockiertem externem Netzwerk; keine Schreibaktionen.
 
 Bestehende Daten zusätzlich rein lesend abgeglichen: 1 Kunde, 6 Rechnungen, 9 Offerten, 4 Projekte vollständig aggregiert. Zur Prüfzeit keine fehlenden Datumsangaben oder ungültigen Beträge. Keine Kunden-/Zuordnungsänderung, Nachricht, Buchung, Make- oder sonstige Szenarioänderung.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00139-mib`, 100 % Verkehr. Alle 82 Laufzeitdateien bytegleich geprüft; drei gezielte Änderungen einschliesslich des neuen rein lesenden dashboard-reporting.js. Konfiguration und Dienstkonto unverändert. Build erfolgreich, Image-Digest festgelegt und gegen das bereitgestellte Image geprüft. Nach verlorenem Build-Lookup des ersten CLI-Aufrufs wurde dasselbe erfolgreiche Build-Ergebnis ohne zweiten Build bereitgestellt. Live-HTML bytegleich, Auswertung anonym HTTP 401. Keine jüngsten Revisionsfehler. Beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00137-naf`.
+
+[Release-Nachweis](../releases/dashboard-analytics-live-20261027.json) - [PR 42](https://github.com/lszh-automations/lszh-automations-site/pull/42).

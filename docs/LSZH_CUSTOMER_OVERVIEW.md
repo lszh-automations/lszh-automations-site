@@ -24,3 +24,12 @@ Die eng begrenzte Operator-Reparatur `scripts/crm-customer-relations-repair.cjs`
 `GET /api/records/kunden/:id/related?table=offerten|rechnungen|projekte&cursor=...` erfordert den vorhandenen CRM-Zugang. Seitenzeiger müssen zu demselben Kunden und Register gehören. Der Endpunkt schreibt keine Daten und führt keine automatische Reparatur beim Öffnen aus.
 
 493 CRM-Tests erfolgreich: seitenweise vollständige und ausschliessliche Zuordnung, alte Datensätze ohne Datum, widersprüchliche und mehrdeutige Kunden, Erhalt kommerzieller Angaben, wiederholte Reparatur, Anmeldung und GET-only-Endpunkt. Ein zusätzlicher Firestore-Emulatortest prüft den tatsächlichen REST-Reparaturpfad und mehr als zwei Seiten von Projekten ohne Erstellungsdatum. Desktop und Mobil wurden mit synthetischen Daten, blockiertem externem Netzwerk und simuliertem Speichern geprüft.
+
+
+## Live-Nachweis
+
+Aktiv seit 27.10.2026: **`lszh-crm-v2-00111-yaf`**, 100 % Verkehr. Alle 80 gebauten Laufzeitdateien exakt bestätigt; nur `cloud-records.js`, `public/index.html` und `server.js` geändert. Konfiguration und Dienstkonto unverändert. Beide GitHub-Prüfungen einschliesslich Firestore-Emulatortests erfolgreich. Oberfläche HTTP 200; die drei Kundenlisten sind anonym HTTP 401. Keine Fehlerlogs der neuen Revision im abschliessend kontrollierten Zeitfenster.
+
+Die fehlende Kunden-ID wurde bei Offerten **1000, 1002 und 1005** ergänzt. Der Prüfsummenvergleich bestätigt alle übrigen Offertendaten als unverändert. Der lesende Abgleich ergibt beim bestehenden Kunden **7 Offerten, 5 Rechnungen und 3 Projekte**; sämtliche ergänzten Verknüpfungen sind sichtbar. Offerte **1003** bleibt wegen abweichender Firma unzugeordnet. Keine Kundenstammdaten, Archivdateien, Zahlungen, Rechnungsstände oder Versandnachweise geändert; keine Mail oder neue Rechnung. Website, Portal und Make unverändert.
+
+[PR 31](https://github.com/lszh-automations/lszh-automations-site/pull/31) · [Live-Nachweis](../releases/customer-overview-live-20261027.json). Rückfallrevision: `lszh-crm-v2-00109-hiz`. Eine Rückkehr zur vorherigen Softwareversion entfernt die korrekten Kundenverknüpfungen nicht.

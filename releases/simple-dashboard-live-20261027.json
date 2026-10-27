@@ -1,0 +1,53 @@
+{
+  "runtimeFilesVerified": 80,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "c487361ccfadae1e8b9ea163a0ed6bcac2fb78e495661da85408b746d21df800"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "c8279c85b883c657d546c6c5149e8be6e2721246a3e8c66edad860742b2ffa6b"
+    }
+  ],
+  "configurationUnchanged": true,
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "candidate": "lszh-crm-v2-00123-kev",
+  "candidateUrl": "https://simple-dashboard---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryAndContract": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793119865.819021-46c58bbf7ca643f9b9282b7449495ceb.zip#1793119867960468",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "959847f29d57b119401c2f22724e9f20463c2b06",
+  "parentRelease": "invoice-due-colours-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00123-kev",
+  "rollback": "lszh-crm-v2-00121-keq",
+  "trafficPercent": 100,
+  "crmTests": 494,
+  "browserDesktopMobile": "passed; synthetic data only, external network blocked",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40544946317,
+    40544946281
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "documentsChanged": false,
+  "commercialWorkflowRulesChanged": false,
+  "summaryIsReadOnly": true,
+  "onlineAcceptanceNotCountedAsOpenOrFollowup": true,
+  "pendingConfirmationAndAdoptionCountAllRecords": true,
+  "previewBoundedAt8PerStep": true,
+  "monthlyValuesExcludeCustomerOnlyAcceptance": true,
+  "missingSummaryFailsClosed": true,
+  "offer1003AssignmentUnchanged": true,
+  "invoiceDueColoursAndPaidNeutralPreserved": true,
+  "websitePortalAndMakeUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/34"
+}

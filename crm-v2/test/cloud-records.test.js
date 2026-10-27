@@ -1113,3 +1113,34 @@ test('customer lifecycle keeps the right personal task across acceptance, onboar
  const paid=await store.recordInvoicePayment(invoice.id,{...partial,paymentId:'00000000-0000-4000-8000-000000000092',amountCHF:'149.95',reference:'TEST_ONLY final'},admin);assert.equal(paid.status,'Bezahlt');assert.equal(paid.outstandingCHF,0);
  assert.deepEqual(await tasks(),[]);assert.equal((await store.list('rechnungen')).length,1);assert.equal((await store.list('kunden')).length,1);
 });
+
+async function monthlyFixture(){
+ const clock={date:'2026-10-27T12:00:00Z'},db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_',{now:()=>clock.date});
+ const customer=await store.create('kunden',{company:'TEST_ONLY monthly',email:'synthetic@example.invalid',street:'Testweg 1',postalCode:'8000',city:'Zürich'},admin);
+ const offer=await store.create('offerten',{customerId:customer.id,title:'TEST_ONLY monthly',items:[{title:'Betreuung',qty:2,unitPriceCHF:25.05,mode:'monatlich'}]},admin);await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+ const project=(await store.list('projekte'))[0];return {clock,db,store,project,offer,customer};
+}
+const monthlyInput={startDate:'2026-10-27',reviewed:true,externalBillingChecked:true};
+test('monthly activation is explicit, nonretroactive and next-full-calendar-month only; no invoice or send at activation',async()=>{
+ const x=await monthlyFixture(),before=JSON.stringify([...x.db.storage]);
+ for(const input of [{...monthlyInput,reviewed:false},{...monthlyInput,externalBillingChecked:false},{...monthlyInput,startDate:'2026-10-26'},{...monthlyInput,startDate:'2026-02-30'}])await assert.rejects(x.store.activateMonthlyBilling(x.project.id,input,admin));
+ assert.equal(JSON.stringify([...x.db.storage]),before);
+ const result=await x.store.activateMonthlyBilling(x.project.id,monthlyInput,admin);assert.equal(result.plan.firstPeriod,'2026-11');assert.equal(result.plan.amountCHF,50.10);assert.equal((await x.store.list('rechnungen')).length,0);await x.store.monthlyBillingTick(admin);assert.equal((await x.store.list('rechnungen')).length,0);
+ await x.store.activateMonthlyBilling(x.project.id,monthlyInput,admin);assert.equal((await x.store.get('projekte',x.project.id)).monthlyBillingHistory.length,1);
+});
+test('monthly drafts use numbered exact calendar periods once, survive retries and cancellation without replacement',async()=>{
+ const x=await monthlyFixture();await x.store.activateMonthlyBilling(x.project.id,monthlyInput,admin);x.clock.date='2026-11-01T06:00:00Z';const r=await x.store.monthlyBillingTick(admin);assert.equal(r.results[0].created,1);
+ let invoices=await x.store.list('rechnungen');assert.equal(invoices.length,1);const i=invoices[0];assert.equal(i.amountCHF,50.10);assert.equal(i.status,'Entwurf');assert.equal(i.dueDate,'');assert.equal(i.invoiceDate,'2026-11-01');assert.equal(i.monthlyPeriod,'2026-11');assert.equal(i.customerId,x.customer.id);assert.equal(i.projectId,x.project.id);assert.equal(i.offerId,x.offer.id);assert.equal(i.invoiceDispatchState,undefined);
+ await x.store.monthlyBillingTick(admin);assert.equal((await x.store.list('rechnungen')).length,1);
+ x.db.storage.get('lszh_crm_v2_staging_rechnungen/'+i.id).status='Storniert';x.db.storage.get('lszh_crm_v2_staging_projekte/'+x.project.id).monthlyBilling.nextPeriod='2026-11';await x.store.monthlyBillingTick(admin);assert.equal((await x.store.list('rechnungen')).length,1);
+ x.clock.date='2026-12-01T06:00:00Z';await x.store.monthlyBillingTick(admin);assert.equal((await x.store.list('rechnungen')).length,2);
+});
+test('pausing stops drafts, resumption starts next full month, completed project alone does not stop agreed monthly service',async()=>{
+ const x=await monthlyFixture();await x.store.activateMonthlyBilling(x.project.id,monthlyInput,admin);await x.store.pauseMonthlyBilling(x.project.id,admin);x.clock.date='2026-12-15T12:00:00Z';await x.store.monthlyBillingTick(admin);assert.equal((await x.store.list('rechnungen')).length,0);
+ const resumed=await x.store.activateMonthlyBilling(x.project.id,{...monthlyInput,startDate:'2026-12-15'},admin);assert.equal(resumed.plan.firstPeriod,'2027-01');await x.store.update('projekte',x.project.id,{status:'Abgeschlossen'},admin);x.clock.date='2027-01-01T06:00:00Z';await x.store.monthlyBillingTick(admin);const rows=await x.store.list('rechnungen');assert.equal(rows.length,1);assert.equal(rows[0].monthlyPeriod,'2027-01');
+});
+test('monthly scheduler recovers missed periods, isolates changed contracts and surfaces a concrete error task',async()=>{
+ const x=await monthlyFixture();await x.store.activateMonthlyBilling(x.project.id,monthlyInput,admin);x.clock.date='2027-02-01T06:00:00Z';await x.store.monthlyBillingTick(admin);assert.deepEqual((await x.store.list('rechnungen')).map(i=>i.monthlyPeriod).sort(),['2026-11','2026-12','2027-01','2027-02']);assert.ok((await x.store.list('rechnungen')).every(i=>i.invoiceDate==='2027-02-01'));
+ const raw=x.db.storage.get('lszh_crm_v2_staging_offerten/'+x.offer.id);raw.items[0].unitPriceCHF=100;x.clock.date='2027-03-01T06:00:00Z';const result=await x.store.monthlyBillingTick(admin);assert.equal(result.errors,1);assert.equal((await x.store.list('rechnungen')).length,4);
+ const project=await x.store.get('projekte',x.project.id);assert.ok(project.monthlyBilling.lastError);const {personalTasks}=require('../cockpit-summary');assert.ok(personalTasks({projekte:[project],kunden:[x.customer]},'2027-03-01').some(t=>t.action==='Monatsabrechnung prüfen'));
+});

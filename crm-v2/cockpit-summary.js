@@ -208,6 +208,9 @@ function personalTasks(data,today,groups,nowMs=Date.now()){
     const reference=step.table==='offerten'?'Offerte '+(r.number||'–'):step.table==='rechnungen'?'Rechnung '+String(r.number||'–').replace(/^(?:RE|RG)-/i,''):step.table==='projekte'?'Projekt'+(r.title||r.description?' · '+(r.title||r.description):''):'Website-Anfrage';
     rows.push({table:step.table,id:step.id,company:step.company||group.company||step.title,reference,action,date:date||'',priority:step.priority,createdAt:step.createdAt});
   }
+  for(const p of data.projekte||[]){
+    if(p.monthlyBilling?.state==='active'&&p.monthlyBilling.lastError){const customer=by.kunden[p.customerId];rows.push({table:'projekte',id:p.id,company:customer?.company||p.title||'Projekt',reference:'Monatliche Abrechnung',action:'Monatsabrechnung prüfen',date:'',priority:0,createdAt:p.createdAt||''});}
+  }
   return rows.sort((a,b)=>a.priority-b.priority||(a.date||'9999').localeCompare(b.date||'9999')||a.createdAt.localeCompare(b.createdAt)||a.table.localeCompare(b.table)||String(a.id).localeCompare(String(b.id)));
 }
 

@@ -226,6 +226,22 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .offer-workflow-row{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
 .offer-workflow-row label{display:grid;gap:5px;font-size:12px;color:#bdcee0;min-width:175px;flex:1}
 .offer-workflow-row input{background:#0b141e;color:var(--text);border:1px solid #45617e;border-radius:8px;padding:10px;min-height:40px;max-width:100%}
+.offer-workflow-panel{display:grid;gap:12px;min-width:0}
+.offer-workflow-panel>label{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.55}
+.offer-workflow-panel>label:has(select){display:grid}
+.offer-workflow-panel>label>input[type=checkbox]{order:-1;flex:0 0 auto;margin-top:4px}
+.offer-workflow-panel select{width:100%;min-width:0;box-sizing:border-box;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font:inherit}
+.offer-workflow-panel[hidden],#offerProcess [hidden]{display:none}
+.offer-details{margin:12px 24px;border:1px solid var(--border);border-radius:10px}
+.offer-details>summary,.offer-process-details>summary{padding:13px;cursor:pointer;font-size:13px;font-weight:600}
+.offer-details .offer-fields{padding:14px}
+.offer-process-details{border:1px solid var(--border);border-radius:9px;min-width:0}
+.offer-process-details>div,.offer-process-details>section{padding:0 13px 13px}
+.offer-dialog[open]{display:flex;flex-direction:column;max-height:92dvh}
+.offer-dialog>.modal-head{flex:0 0 auto}
+#offerForm{min-height:0;max-height:none;overflow:auto;flex:1}
+.offer-actions{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--border);z-index:2}
+@media(max-width:600px){.offer-details{margin-left:16px;margin-right:16px}.offer-actions .btn{min-width:0;padding:10px 7px}.offer-actions{gap:7px}}
 .offer-workflow-error{color:#ffafb0!important}
 .offer-workflow-history{padding:12px;border-radius:9px;background:#101c2a;display:grid;gap:7px}
 .offer-workflow-history span{font-size:11px;color:#aec1d2;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -428,17 +444,24 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <span>Der Auftrag ist gewonnen. Änderungen sind nur später über eine berechtigte, protokollierte Korrektur möglich.</span>
     </div>
     <div id="offerFields" class="offer-fields"></div>
+    <p id="offerContactSummary" class="offer-hint"></p>
     <div class="offer-lines-head"><div><strong>Positionen</strong><p>Einmalige und monatliche Leistungen getrennt erfassen.</p></div><button class="btn" id="offerAddLine" type="button">+ Position hinzufügen</button></div>
     <div id="offerLines" class="offer-lines"></div>
     <div class="offer-totals">
       <div><span>Einmaliger Gesamtbetrag</span><strong id="offerOnce">CHF 0.00</strong></div>
       <div><span>Monatlicher Gesamtbetrag</span><strong id="offerMonthly">CHF 0.00 / Monat</strong></div>
     </div>
-    <p class="offer-hint" id="offerHint">PDF-Vorschau verwendet die zuletzt gespeicherte Version. Kein Kundenversand.</p>
-    <div id="offerWorkflow" class="offer-workflow" hidden></div>
-    <div id="offerContractWorkflow" class="offer-workflow" hidden></div>
+    <details id="offerDetails" class="offer-details"><summary>Beschreibung und weitere Angaben</summary><div id="offerDetailFields" class="offer-fields"></div><p class="offer-hint" id="offerHint">PDF-Vorschau verwendet die zuletzt gespeicherte Version. Kein Kundenversand.</p></details>
+    <section id="offerProcess" class="offer-workflow" aria-labelledby="offerNextTitle">
+      <h3 id="offerNextTitle">Nächster Schritt</h3>
+      <p id="offerNextAction" aria-live="polite"></p>
+      <button id="offerWorkflowRetry" class="btn" type="button" hidden>Stand erneut laden</button>
+      <div id="offerPrimaryWorkflow"></div>
+      <div id="offerContractWorkflow" class="offer-workflow-panel" hidden></div>
+      <details id="offerFollowUpDetails" class="offer-process-details" hidden><summary>Nachfassen und Verlauf</summary><div id="offerWorkflow" class="offer-workflow-panel" hidden></div></details>
+    </section>
     <div class="offer-actions">
-      <button type="button" class="btn" id="offerPrint" disabled>Druckansicht / PDF</button>
+      <button type="button" class="btn" id="offerPrint" disabled>PDF-Vorschau</button>
       <button type="button" class="btn" id="offerCancel">Schliessen</button>
       <button type="submit" class="btn primary" id="offerSave">Speichern</button>
     </div>
@@ -1721,7 +1744,12 @@ function quotePreviousItems(offer){
   return lines;
 }
 function markQuoteUnsaved(){
-  if(state.offerLocked)return;
+  if(state.offerLocked||state.offerOpening)return;
+  state.offerDirty=true;state.offerWorkflowNonce=(state.offerWorkflowNonce||0)+1;
+  $('offerContractWorkflow').dataset.offerId='';
+  $('offerNextAction').textContent='Änderungen speichern, danach die Unterlagen prüfen.';
+  $('offerFollowUpDetails').hidden=true;$('offerWorkflowRetry').hidden=true;
+  renderOfferContactSummary();
   $('offerPrint').disabled=true;
   $('offerWorkflow').hidden=true;
   $('offerContractWorkflow').hidden=true;
@@ -1850,20 +1878,26 @@ function suggestedOfferFollowUp(){
 async function reopenSavedOffer(id){
   $('offerEditor').close();
   await loadAll();
-  const updated=(state.records.offerten||[]).find(x=>x.id===id);
+  const updated=(state.records.offerten||[]).find(x=>x.id===id)||(await api('/api/records/offerten/'+encodeURIComponent(id))).record;
   if(updated)openOfferEditor(updated);
 }
 
 async function renderContractWorkflow(offer){
   const area=$('offerContractWorkflow');area.replaceChildren();area.hidden=!offer||!state.contractActionsEnabled;
   area.dataset.offerId=offer?.id||'';
+  const renderKey=String((Number(area.dataset.renderKey)||0)+1);area.dataset.renderKey=renderKey;
+  area.dataset.failed='';area.dataset.state='';area.dataset.usable='';
   if(area.hidden)return;
   area.append(el('h3','','Online-Kundenannahme'),el('p','','Vertragsunterlagen und Freigaben werden vor jeder Aktion geprüft.'));
   try{
     const base='/api/records/offerten/'+encodeURIComponent(offer.id)+'/contract';
     const value=await api(base);
-    if(area.hidden||area.dataset.offerId!==offer.id)return;
+    if(area.hidden||area.dataset.offerId!==offer.id||area.dataset.renderKey!==renderKey)return;
+    area.dataset.state=value.state;area.dataset.usable=String(Boolean(value.state!=='missing_package'||value.mayCreateDraft||value.mayPrepare));
+    area.dataset.invitation=value.invitationState||'';area.dataset.archive=value.archiveState||'';
+    area.dataset.confirmation=value.confirmationDeliveryState||'';area.dataset.receipt=String(Boolean(value.hasConfirmationReceipt));
     const labels={missing_package:'Noch kein freigegebenes Vertragspaket zugeordnet.',prepared:'Vertragspaket vorbereitet.',delivery_review:'Versand unklar – Postfach prüfen. Kein erneuter Versand.',sent:'Vollständiger Paketversand nachgewiesen.',customer_response_recorded:'Kundenannahme eingegangen – interne Prüfung erforderlich.',awaiting_lszh_confirmation:'Kunde hat angenommen – Auftragsbestätigung ausstehend.',confirmed:'Schriftliche LSZH-Bestätigung nachgewiesen.'};
+    area.dataset.statusText=labels[value.state]||'Online-Annahme noch nicht freigeschaltet.';
     area.append(el('p','',labels[value.state]||'Online-Annahme noch nicht freigeschaltet.'));
     const message=el('p','offer-workflow-error','');message.hidden=true;area.append(message);
     function action(caption,name,warning,withMessage=false){
@@ -1907,7 +1941,7 @@ async function renderContractWorkflow(offer){
       }
       return;
     }
-    if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action});return;}
+    if(value.simpleSendEnabled){const legacy=$('offerWorkflow');if(legacy&&legacy!==area&&(value.mayCreateDraft||value.mayPrepare||value.state!=='missing_package'))legacy.hidden=true;await renderSimpleContractSend({area,offer,value,base,message,action,renderKey});return;}
     if(value.mayCreateDraft){
       const classification=el('select','','');
       for(const [val,text] of [['review','AVV-Einstufung wählen'],['no','Keine Verarbeitung fremder Personendaten im Auftrag'],['yes','AVV erforderlich – ausgefüllte Anlagen A, B und C nötig']]){const option=el('option','',text);option.value=val;classification.append(option);}
@@ -1931,11 +1965,11 @@ async function renderContractWorkflow(offer){
     if(value.state==='sent')action('Befristeten Kundenlink erstellen','issue-link','Einen privaten Annahmelink für die bereits freigegebene Kontaktperson erstellen? Es wird keine zusätzliche E-Mail gesendet.');
     if(value.reviewEnabled&&value.state==='customer_response_recorded'&&value.archiveState==='complete')action('Interne Prüfung bestätigen','review','Identität, Vertretungsberechtigung, Dokumente und Annahmenachweis geprüft und freigeben? Es wird noch keine Auftragsbestätigung gesendet.');
     if(value.reviewEnabled&&value.state==='awaiting_lszh_confirmation')action('Schriftliche Bestätigung nachweisen','confirmation','Die bereits separat versendete schriftliche LSZH-Auftragsbestätigung unabhängig im Postfach prüfen?',true);
-  }catch{if(area.dataset.offerId===offer.id)area.append(el('p','','Online-Annahme ist noch nicht betriebsbereit. Bestehender CRM-Ablauf bleibt verfügbar.'));}
+  }catch{if(area.dataset.offerId===offer.id&&area.dataset.renderKey===renderKey){area.dataset.failed='true';area.append(el('p','','Der Bearbeitungsstand konnte nicht geladen werden. Bitte erneut laden; keinen Versand wiederholen.'));}}
 }
 
 
-async function renderSimpleContractSend({area,offer,value,base,message,action}){
+async function renderSimpleContractSend({area,offer,value,base,message,action,renderKey}){
   if(value.state==='delivery_review'){
     area.append(el('p','','Der Versand wird nicht wiederholt. Erst den tatsächlichen Versand prüfen.'));
     if(value.hasSendReceipt)action('Versandstatus prüfen','check','Den bestehenden Versand prüfen und bei Erfolg den persönlichen Annahmelink einmalig zustellen? Es werden keine PDFs erneut versendet.');
@@ -1961,7 +1995,7 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
         if(value.hasConfirmationReceipt)action('Bestätigungsversand prüfen','confirmation-check','Den bestehenden Versand im Gesendet-Ordner prüfen? Es wird nichts erneut gesendet.');
         else area.append(el('p','','Der Versandbeleg fehlt. Bitte den Versand intern prüfen lassen.'));
       }else{
-        const preview=await api(base+'/confirmation-preview');if(area.dataset.offerId!==offer.id)return;
+        const preview=await api(base+'/confirmation-preview');if(area.dataset.offerId!==offer.id||area.dataset.renderKey!==renderKey)return;
         area.append(el('h4','','Auftragsbestätigung'),el('p','','Empfänger: '+preview.recipient),el('p','',preview.subject));
         const pdf=el('button','btn','Auftragsbestätigung als PDF prüfen');pdf.type='button';pdf.addEventListener('click',()=>{const uri=URL.createObjectURL(new Blob([Uint8Array.from(atob(preview.data),c=>c.charCodeAt(0))],{type:'application/pdf'}));window.open(uri,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(uri),300000);});area.append(pdf);
         const label=el('label','','Empfänger und Auftragsbestätigung geprüft.'),checked=el('input','','');checked.type='checkbox';label.append(checked);area.append(label);
@@ -1978,7 +2012,7 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
   if(value.state==='confirmed'){area.append(el('p','','Auftragsbestätigung versendet und geprüft. Du kannst den angenommenen Auftrag jetzt intern übernehmen und Kunde und Projekt anlegen.'));return;}
   if(!value.mayCreateDraft&&!value.mayPrepare&&value.state!=='prepared'){area.append(el('p','','Online-Annahme ist für gültige, versandbereite Offerten verfügbar.'));return;}
   const preview=await api(base+'/preview');
-  if(area.dataset.offerId!==offer.id)return;
+  if(area.dataset.offerId!==offer.id||area.dataset.renderKey!==renderKey)return;
   area.append(el('h4','','Versandvorschau'),el('p','','Empfänger: '+preview.recipient),el('p','','Offerte '+preview.offerNumber+' – '+(preview.title||'')));
   if(preview.makeRequirements){const block=el('section','offer-workflow-meta');block.append(el('strong','',preview.makeRequirements.title));for(const paragraph of preview.makeRequirements.paragraphs)block.append(el('p','',paragraph));area.append(block);}
   for(const name of preview.documents)area.append(el('p','','PDF: '+name));
@@ -2005,8 +2039,62 @@ async function renderSimpleContractSend({area,offer,value,base,message,action}){
   });area.append(send);
 }
 
-function renderOfferWorkflow(offer){
-  renderContractWorkflow(offer);
+function renderOfferContactSummary(){
+  const form=$('offerForm'),lead=(state.records.leads||[]).find(r=>r.id===form.elements.namedItem('leadId')?.value),customer=(state.records.kunden||[]).find(r=>r.id===form.elements.namedItem('customerId')?.value),person=lead||customer;
+  $('offerContactSummary').textContent=person?'Empfänger: '+[person.company,person.email].filter(Boolean).join(' · '):'Empfänger über Kunde oder Website Lead zuordnen.';
+}
+function offerNextStep(offer,panel){
+  if(offer.status==='Abgelehnt')return 'Offerte abgelehnt.';
+  if(offer.status==='Angenommen')return 'Auftrag übernommen. Zugeordnete Rechnung und Projekt weiterbearbeiten.';
+  const stage=panel.dataset.state;
+  if(stage==='delivery_review')return 'Versandstatus klären – keinen erneuten Versand auslösen.';
+  if(stage==='sent')return panel.dataset.invitation==='sent'?'Auf die Rückmeldung des Kunden warten.':panel.dataset.invitation?'Zustellung des Annahmelinks klären.':'Persönlichen Annahmelink zustellen.';
+  if(stage==='customer_response_recorded')return panel.dataset.archive==='complete'?'Kundenannahme intern prüfen.':'Kundenannahme erfasst. Der Archivnachweis wird vervollständigt.';
+  if(stage==='awaiting_lszh_confirmation')return panel.dataset.confirmation?(panel.dataset.receipt==='true'?'Bestätigungsversand prüfen.':'Bestätigungsversand intern klären.'):'Auftragsbestätigung prüfen und senden.';
+  if(stage==='confirmed')return 'Bestätigten Auftrag übernehmen.';
+  return 'Empfänger und Unterlagen prüfen, dann senden.';
+}
+function tidyOfferPanel(area){
+  area.querySelector(':scope > h3')?.remove();
+  for(const node of [...area.children]){
+    if(node.tagName==='P'&&(node.textContent==='Vertragsunterlagen und Freigaben werden vor jeder Aktion geprüft.'||node.textContent===area.dataset.statusText))node.remove();
+    if(node.matches('section.offer-workflow-meta')){
+      const details=el('details','offer-process-details'),summary=el('summary','','Hinweise zu Make');details.append(summary);node.replaceWith(details);details.append(node);
+    }
+  }
+}
+async function renderOfferWorkflow(offer){
+  const nonce=(state.offerWorkflowNonce||0)+1;state.offerWorkflowNonce=nonce;state.offerDirty=false;
+  const legacy=$('offerWorkflow'),contract=$('offerContractWorkflow'),primary=$('offerPrimaryWorkflow'),details=$('offerFollowUpDetails');
+  details.append(legacy);details.open=false;details.hidden=true;contract.hidden=true;legacy.hidden=true;$('offerWorkflowRetry').hidden=true;
+  if(!offer){$('offerNextAction').textContent='Offerte erfassen und speichern.';return;}
+  renderLegacyOfferWorkflow(offer);legacy.hidden=true;
+  if(state.contractActionsEnabled&&offer.status!=='Abgelehnt'){
+    $('offerNextAction').textContent='Bearbeitungsstand wird geladen …';
+    await renderContractWorkflow(offer);
+    if(nonce!==state.offerWorkflowNonce||state.offerDirty)return;
+    if(contract.dataset.failed==='true'){
+      contract.hidden=true;legacy.hidden=true;$('offerNextAction').textContent='Bearbeitungsstand nicht verfügbar. Bitte erneut laden; keinen Versand wiederholen.';$('offerWorkflowRetry').hidden=false;return;
+    }
+    if(contract.dataset.usable==='true'){
+      contract.hidden=false;tidyOfferPanel(contract);$('offerNextAction').textContent=offerNextStep(offer,contract);
+      if(offer.status==='Versendet'&&!offer.onlineAcceptance&&contract.dataset.state==='sent'){
+        for(const row of [...legacy.querySelectorAll('.offer-workflow-row')])if([...row.querySelectorAll('button')].some(b=>/Als angenommen markieren|Als abgelehnt markieren/.test(b.textContent)))row.remove();
+        legacy.querySelector(':scope > h3')?.remove();legacy.hidden=false;details.hidden=false;
+      }
+      return;
+    }
+  }
+  if(nonce!==state.offerWorkflowNonce||state.offerDirty)return;
+  contract.hidden=true;legacy.hidden=false;primary.append(legacy);legacy.querySelector(':scope > h3')?.remove();
+  const explanation=legacy.querySelector(':scope > p');$('offerNextAction').textContent=explanation?.textContent||'Offerte prüfen.';explanation?.remove();
+}
+$('offerContractWorkflow').addEventListener('change',()=>{
+  for(const message of $('offerContractWorkflow').querySelectorAll('.offer-workflow-error'))if(message.textContent==='Bitte die Frage zu Personendaten beantworten und beide Prüfungen bestätigen.'||message.textContent==='Bitte zuerst die Auftragsbestätigung prüfen.')message.hidden=true;
+});
+$('offerWorkflowRetry').addEventListener('click',()=>{if(!state.offerDirty)renderOfferWorkflow(state.offerEditing);});
+
+function renderLegacyOfferWorkflow(offer){
   const area=$('offerWorkflow');
   area.replaceChildren();
   area.hidden=!offer;
@@ -2168,6 +2256,7 @@ function renderOfferWorkflow(offer){
 
 function openOfferEditor(record=null,draft=null){
   state.offerEditing=record;
+  state.offerDirty=false;
   state.offerLocked=isOfferLocked(record);
   state.offerOpening=true;
   $('offerEditor').classList.toggle('is-locked',state.offerLocked);
@@ -2183,6 +2272,7 @@ function openOfferEditor(record=null,draft=null){
     ?'Offerte Nr. '+(record.number||'–')+(state.offerLocked?' – '+offerDisplayStatus(record):' bearbeiten')
     :'Neue Offerte';
   $('offerFields').replaceChildren();
+  $('offerDetailFields').replaceChildren();$('offerDetails').open=false;
   $('offerLines').replaceChildren();
   const fields=['leadId','customerId','title','description','validUntil','status'];
   for(const [key,label,type] of definitions.offerten.fields){
@@ -2195,7 +2285,7 @@ function openOfferEditor(record=null,draft=null){
       const control=field.querySelector('input,select,textarea');
       if(control)control.disabled=true;
     }
-    $('offerFields').append(field);
+    (['leadId','description'].includes(key)?$('offerDetailFields'):$('offerFields')).append(field);
   }
   for(const line of quotePreviousItems(record||draft))addQuoteLine(line);
   state.offerOpening=false;
@@ -2214,6 +2304,8 @@ function openOfferEditor(record=null,draft=null){
   $('offerHint').textContent=state.offerLocked
     ?'Die gespeicherte Offerte ist unveränderbar. Die PDF-Ansicht bleibt verfügbar.'
     :'PDF-Vorschau verwendet nur die gespeicherte Offerte. Kein Kundenversand.';
+  renderOfferContactSummary();
+  $('offerDetails').open=!record&&!draft?.leadId&&!draft?.customerId;
   renderOfferWorkflow(record);
   $('offerEditor').showModal();
 }

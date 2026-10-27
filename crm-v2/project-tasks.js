@@ -46,4 +46,23 @@ function projectOnboardingState(project){
   if(!o.accessConfirmed)return {status:'Zugänge prüfen',next:'Benötigte Einladungen annehmen, Berechtigungen und Systemverbindungen gemeinsam prüfen.'};
   return {status:'Bereit zur Einrichtung',next:'Projektstart mit dem Kunden abstimmen und die Einrichtung planen.'};
 }
-module.exports={cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};
+function validProjectStartDay(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const date=new Date(value+'T12:00:00Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
+}
+function projectStartReadiness(project,today){
+  const missing=[],o=project?.onboarding;
+  if(!project?.customerId)missing.push('Kunden zuordnen');
+  if(typeof o?.makeRequired!=='boolean')missing.push('Make-Bedarf klären');
+  if(o?.makeRequired===true&&o?.invitationConfirmed!==true)missing.push('Make-Einladung prüfen');
+  if(o?.accessConfirmed!==true)missing.push('Zugänge und Berechtigungen prüfen');
+  if(!validProjectStartDay(project?.startDate))missing.push('Gültiges Startdatum festlegen');
+  else if(project.startDate>today)missing.push('Startdatum liegt noch in der Zukunft');
+  if(typeof project?.owner!=='string'||!project.owner.trim())missing.push('Verantwortliche Person eintragen');
+  if(!Array.isArray(project?.tasks)||!project.tasks.length)missing.push('Mindestens einen Umsetzungsschritt festlegen');
+  const started=Boolean(project?.startedAt),closed=project?.status==='Abgeschlossen';
+  return {canStart:!started&&!closed&&!missing.length,started,missing,
+    status:started?'Projektstart dokumentiert':closed?'Projekt abgeschlossen':project?.status==='In Arbeit'?'In Arbeit – Start noch nicht dokumentiert':missing.length?'Projektstart vorbereiten':'Bereit zum Projektstart'};
+}
+module.exports={validProjectStartDay,projectStartReadiness,cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};

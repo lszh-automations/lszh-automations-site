@@ -214,6 +214,15 @@ async function handler(req,res){
     if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});
     return reply(res,200,await store.invoiceReview(invoiceReviewPath[1]));
   }
+  const projectStartPath=pathname.match(/^\/api\/records\/projekte\/([A-Za-z0-9_-]{1,100})\/start$/);
+  if(projectStartPath){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const payload=await json(req);
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)||Object.keys(payload).length)
+      return reply(res,400,{error:'Projekt zuerst speichern; Start verwendet nur gespeicherte Angaben'});
+    return reply(res,200,{record:await store.startProject(projectStartPath[1],user)});
+  }
   const projectBillingPath=pathname.match(/^\/api\/records\/projekte\/([A-Za-z0-9_-]{1,100})\/billing$/);
   if(projectBillingPath){
     if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});

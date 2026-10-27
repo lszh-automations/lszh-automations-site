@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "efde8aba0bfa34293e18fd9c2bbf6c1ed0b17236",
+  "runtimeImplementationCommit": "abd17c12559174d4ed1654781d67a0bf4d263481",
+  "parentRelease": "unified-wordmark-live-20261026.json",
+  "service": "lszh-crm-v2",
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:66b097b04a69ec7e31c72ca1bfadb3bc9c3022b533ad7ad4caca73384cfad221",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "buildId": {
+    "lszh-crm-v2-1": "dd58fd9f-14f0-43af-8db1-32792ea17f4a"
+  },
+  "rollback": "lszh-crm-v2-00105-poy",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793060554.099955-64251796811a43cfb7f15fbccd4f527c.zip#1793060555724649"
+  },
+  "revision": "lszh-crm-v2-00107-wif",
+  "configurationUnchanged": true,
+  "runtimeFilesVerified": 80,
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "c33debdbc7856df661355b0f6479d481c35435f2681b75912f0d7e375f45d737",
+      "bytes": 60742
+    },
+    {
+      "path": "project-tasks.js",
+      "sha256": "3bfcdd6845b71eeb24ae821f2c320809b6f68181854d16702ab03b2da4f26192",
+      "bytes": 4817
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "2203b52d7966e30e3d4ec1cc27aec944963d4aa6e3448efc02b9650611fcc286",
+      "bytes": 198787
+    },
+    {
+      "path": "server.js",
+      "sha256": "a76a9a2fe4cbb7cc70a2fde0fe02ec381ac65b98fd81d37be12160afea522fcf",
+      "bytes": 23760
+    }
+  ],
+  "crmTests": 488,
+  "browserVariantsChecked": [
+    "desktop",
+    "mobile"
+  ],
+  "browserTestsUseOnlySyntheticData": true,
+  "canary": {
+    "url": "https://project-start-v1---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+    "indexStatus": 200,
+    "projectStartUi": true,
+    "anonymousStartStatus": 401
+  },
+  "startPrerequisites": [
+    "customer",
+    "make_requirement_known",
+    "make_invitation_if_required",
+    "access_checked",
+    "valid_start_date_on_or_before_swiss_today",
+    "responsible_person",
+    "implementation_steps",
+    "no_unsaved_form_changes"
+  ],
+  "startAuditFields": [
+    "startDate",
+    "startedAt",
+    "startedBy"
+  ],
+  "idempotentStart": true,
+  "repeatedStartDoesNotResumePausedProject": true,
+  "legacyActiveProjectsRemainEditable": true,
+  "customerDataChanged": false,
+  "migrationPerformed": false,
+  "emailSent": false,
+  "invoiceCreated": false,
+  "monthlyBillingStarted": false,
+  "websitePortalAndMakeUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/29",
+  "trafficPercent": 100,
+  "recentErrorLogCount": 0,
+  "live": {
+    "url": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+    "indexStatus": 200,
+    "projectStartUi": true,
+    "anonymousStartStatus": 401,
+    "anonymousProjectStatus": 401,
+    "customerDataWritten": false
+  },
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success",
+  "portalRegressionChecks": "success",
+  "githubWorkflowRuns": [
+    {
+      "id": 40426246460,
+      "name": "CRM V2 Cloud Staging Tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 40426246476,
+      "name": "Production baseline verification",
+      "conclusion": "success"
+    }
+  ]
+}

@@ -173,6 +173,44 @@ function processGroups(data,today,items=openProcesses(data,today),nowMs=Date.now
   return Object.values(groups).map(g=>{g.steps.sort(compare);g.primary=g.steps[0];g.mode=g.primary.mode;return g;}).sort((a,b)=>compare(a.primary,b.primary)||a.id.localeCompare(b.id));
 }
 
+// Only actionable work: never turn a merely open/waiting record into a task.
+function personalTasks(data,today,groups,nowMs=Date.now()){
+  groups=groups||processGroups(data,today,undefined,nowMs);
+  const by=Object.fromEntries(TABLES.map(t=>[t,Object.fromEntries((data[t]||[]).map(r=>[r.id,r]))]));
+  const rows=[];
+  const fresh=(state,at)=>state==='sending'&&Number.isFinite(Date.parse(at))&&nowMs-Date.parse(at)<300000;
+  for(const group of groups)for(const step of group.steps){
+    const r=by[step.table][step.id];if(!r)continue;
+    if(step.mode==='waiting'&&!(step.table==='leads'&&r.nextAction&&!validDay(r.followUpDate)))continue;
+    if(fresh(r.offerDispatchState,r.offerDispatchRequestedAt)||fresh(r.invoiceDispatchState,r.invoiceDispatchRequestedAt)||fresh(r.reminderDispatch?.state,r.reminderDispatch?.claimedAt))continue;
+    let action=step.action,date=step.date;
+    if(step.table==='leads'){
+      if(validDay(r.followUpDate)&&r.followUpDate>today)continue;
+      if(r.nextAction)action=r.nextAction;
+      else if(r.status==='Qualifiziert')action='Offerte vorbereiten';
+    }
+    if(step.table==='projekte'&&['Geplant','In Arbeit'].includes(r.status)){
+      const tasks=(r.tasks||[]).filter(t=>t.title?.trim()),next=tasks.find(t=>!t.done);
+      if(r.startedAt||r.status==='In Arbeit'){
+        if(next)action=next.title;
+        else if(tasks.length)action='Ergebnis abnehmen und Projekt abschliessen';
+        else continue; // No defined action; project status alone is not a task.
+      }else if(!r.customerId)action='Kunden zuordnen';
+      else if(typeof r.onboarding?.makeRequired!=='boolean')action='Make-Bedarf klären';
+      else if(r.onboarding.makeRequired&&!r.onboarding.invitationConfirmed)action='Make-Einladung prüfen';
+      else if(!r.onboarding.accessConfirmed)action='Benötigte Zugänge prüfen';
+      else if(!tasks.length)action='Umsetzungsschritt festlegen';
+      else if(validDay(r.startDate)&&r.startDate>today)continue;
+      else action='Projektstart bestätigen';
+    }
+    // A malformed cooldown needs a manual check, never an unusable send prompt.
+    if(step.table==='rechnungen'&&r.reminderHistory?.length&&!Number.isFinite(Date.parse(r.reminderHistory.at(-1).at))){action='Datum der letzten Mahnung prüfen';}
+    const reference=step.table==='offerten'?'Offerte '+(r.number||'–'):step.table==='rechnungen'?'Rechnung '+String(r.number||'–').replace(/^(?:RE|RG)-/i,''):step.table==='projekte'?'Projekt'+(r.title||r.description?' · '+(r.title||r.description):''):'Website-Anfrage';
+    rows.push({table:step.table,id:step.id,company:step.company||group.company||step.title,reference,action,date:date||'',priority:step.priority,createdAt:step.createdAt});
+  }
+  return rows.sort((a,b)=>a.priority-b.priority||(a.date||'9999').localeCompare(b.date||'9999')||a.createdAt.localeCompare(b.createdAt)||a.table.localeCompare(b.table)||String(a.id).localeCompare(String(b.id)));
+}
+
 async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}){
   const s=empty();const data=Object.fromEntries(TABLES.map(t=>[t,[]]));const cutoff=nowMs-24*60*60*1000;
   for(const table of TABLES){
@@ -233,6 +271,8 @@ async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}
   s.openProcesses=openProcesses(data,today);
   s.openProcessCount=s.openProcesses.length;
   s.processGroups=processGroups(data,today,s.openProcesses,nowMs);
+  s.personalTasks=personalTasks(data,today,s.processGroups,nowMs);
+  s.tasksAsOf=new Date(nowMs).toISOString();
   return s;
 }
-module.exports={cockpitSummary,invoiceKind,openProcesses,processGroups};
+module.exports={cockpitSummary,invoiceKind,openProcesses,processGroups,personalTasks};

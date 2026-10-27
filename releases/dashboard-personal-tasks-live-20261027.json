@@ -1,0 +1,60 @@
+{
+  "revision": "lszh-crm-v2-00143-yeh",
+  "rollback": "lszh-crm-v2-00141-tim",
+  "runtimeFiles": 82,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "9a16c5192f0869f479593b881805077ae4f8516fb68f5ab362071ec90e7af849"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "0d952327254c078e4a788cb1192c6d2872838e0fff3599ee7499a207380c8df6"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidateHtmlExact": true,
+  "anonymousApi": 401,
+  "invoiceMailMode": "production",
+  "tests": 537,
+  "desktopMobile": "passed; only direct tasks, fresh GET navigation, no metrics or waits, proper empty/error states",
+  "customerDataChanged": false,
+  "makeChanged": false,
+  "emailSent": false,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/44",
+  "buildId": "e8ee648c-0f3d-4c02-8129-a3f53b749db6",
+  "featureCommit": "17e946a8c1743909e978c04c95a1c837c44bec87",
+  "githubWorkflowRuns": [
+    40575074470,
+    40575074087
+  ],
+  "readOnlyCheck": {
+    "checkedAt": "2026-10-27T20:06:02.857Z",
+    "readOnly": true,
+    "sourceCounts": {
+      "leads": 10,
+      "kunden": 1,
+      "offerten": 9,
+      "rechnungen": 6,
+      "projekte": 4
+    },
+    "taskCount": 9,
+    "tasksByTable": {
+      "leads": 1,
+      "kunden": 0,
+      "offerten": 2,
+      "rechnungen": 3,
+      "projekte": 3
+    },
+    "waitingStepsExcluded": 6,
+    "customerDataChanged": false,
+    "emailSent": false
+  },
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793131596.758317-aab23cb759f842328ebffd37d1b97585.zip#1793131599035204",
+  "status": "live",
+  "trafficPercent": 100,
+  "liveHtmlExact": true,
+  "date": "2026-10-27",
+  "recentErrorCount": 0,
+  "githubChecks": "success"
+}

@@ -432,6 +432,10 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .customer-dialog .project-actions{position:static}
 @media(max-width:650px){.customer-dialog>.modal-head{padding:16px}.customer-dialog h2{font-size:19px}.customer-contact{gap:6px 12px}.customer-dialog .project-actions{padding:12px 16px}.customer-dialog .project-actions .btn{font-size:12px;padding:10px}}
 .invoice-reminder-mail{display:grid;gap:10px;margin:12px 0}.invoice-reminder-mail iframe{width:100%;height:380px;border:1px solid #41546c;border-radius:10px;background:#fff}.invoice-reminder-mail h4,.invoice-reminder-mail p{margin:0}.invoice-reminder-mail>.btn{justify-self:start}
+.personal-tasks{display:grid;gap:10px;grid-column:1/-1}
+.personal-task{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 24px;padding:20px 24px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.personal-task-info{min-width:0;overflow-wrap:anywhere}.personal-task-info small{color:var(--muted);font-size:13px}.personal-task-info h2{font-size:17px;line-height:1.5;margin:5px 0 0}.personal-task-urgent{display:inline-block;margin-top:8px;color:#f5b5aa;font-size:12px}.personal-task>.invoice-error{grid-column:1/-1;margin:0}
+@media(max-width:600px){.personal-task{padding:16px;gap:12px}.personal-task-info h2{font-size:15px}.personal-task .btn{padding:10px 12px}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1011,92 +1015,41 @@ function reportChange(value,previous){if(previous===null)return 'Kein Vergleich 
 
 function reportComparison(value,previous,unit=''){return previous===null?'Gesamter Zeitraum':reportChange(value,previous)+(unit?' '+unit:'')+' zur Vorperiode';}
 function renderKpis(){
-  const container=$('kpis');container.replaceChildren();container.hidden=state.tab!=='dashboard';if(container.hidden)return;
-  let ctx;try{ctx=reportContext();}catch{return;}if(!ctx)return;
-  const s=ctx.selected,p=ctx.previous,all=reportAggregate(ctx.report,{from:'1900-01-01',to:ctx.report.today,mode:'all'}),view=state.dashboardView||'overview',items=view==='overview'?[
-    {title:'Kunden',value:ctx.report.current.customers,note:'Aktueller Bestand',target:'reportOverviewOffers'},
-    {title:'Laufende Projekte',value:ctx.report.current.projects,note:'Noch nicht abgeschlossen',target:'reportOverviewOffers'},
-    {title:'Offene Offerten',value:Object.entries(all.offerStatuses).filter(([k])=>!['Beidseitig angenommen','Abgelehnt'].includes(k)).reduce((n,[,v])=>n+v,0),note:'Entwürfe, versendet und einseitig angenommen',target:'reportOverviewOffers'},
-    {title:'Ausstehendes Geld',value:invoiceCHF(all.outstandingCents/100),note:'Alle offenen Rechnungen heute',target:'reportOverviewInvoices'}
-  ]:view==='finance'?[
-    {title:'Verrechnet',value:invoiceCHF(s.invoiceCents/100),note:'Im gewählten Zeitraum',target:'reportInvoices'},
-    {title:'Zahlungen',value:invoiceCHF(s.paidCents/100),note:reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF'),target:'reportInvoices'},
-    {title:'Noch offen',value:invoiceCHF(s.outstandingCents/100),note:'Heutiger Rest der ausgewählten Rechnungen',target:'reportInvoices'},
-    {title:'Davon überfällig',value:invoiceCHF(s.overdueCents/100),note:'Fälligkeit überschritten',target:'reportInvoices'}
-  ]:[
-    {title:'Neue Kunden',value:s.customers,note:reportComparison(s.customers,p?p.customers:null),target:'reportCustomers'},
-    {title:'Erfasste Zahlungen',value:invoiceCHF(s.paidCents/100),note:reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF'),target:'reportInvoices'},
-    {title:'Angenommene Offerten',value:s.offerStatuses['Beidseitig angenommen']||0,note:'Heute bestätigt; im Zeitraum erstellt',target:'reportOffers'},
-    {title:'Projekte im Zeitraum',value:s.projects,note:reportComparison(s.projects,p?p.projects:null),target:'reportProjects'}
-  ];
-  for(const item of items){const card=el('button','kpi dash-kpi');card.type='button';card.setAttribute('aria-label',item.title+': '+item.value);card.append(el('span','',item.title),el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));card.onclick=()=>$(view==='month'?'reportDevelopment':item.target)?.scrollIntoView({behavior:'smooth',block:'start'});container.append(card);}
+  const container=$('kpis');container.replaceChildren();container.hidden=true;
+}
+async function openDashboardTask(task,button,error){
+  if(state.dashboardTaskOpening)return;
+  const token=state.token;state.dashboardTaskOpening=true;button.disabled=true;error.hidden=true;
+  try{
+    const {record}=await api('/api/records/'+task.table+'/'+encodeURIComponent(task.id));
+    for(const [key,table] of Object.entries({customerId:'kunden',leadId:'leads',offerId:'offerten',projectId:'projekte'})){
+      if(record[key]){try{const linked=await api('/api/records/'+table+'/'+encodeURIComponent(record[key]));if(state.token!==token)return;rememberRelatedRecord(table,linked.record);}catch(e){if(e.status!==404)throw e;}}
+    }
+    if(state.token!==token||state.tab!=='dashboard')return;
+    rememberRelatedRecord(task.table,record);navigateTo(task.table,record);
+  }catch(e){if(state.token===token&&state.tab==='dashboard'){error.textContent='Vorgang konnte nicht geöffnet werden: '+e.message;error.hidden=false;}}
+  finally{state.dashboardTaskOpening=false;button.disabled=false;}
 }
 function renderDashboard(){
   const area=$('dashboardArea');area.replaceChildren();$('dashboardIntro').replaceChildren();
-  const view=state.dashboardView||'overview',nav=el('div','report-chart-controls');nav.setAttribute('aria-label','Dashboard-Ansicht');
-  for(const [key,label] of [['overview','Geschäftsüberblick'],['finance','Finanzen'],['month','Monatsrückblick']]){const button=el('button','btn'+(view===key?' primary':''),label);button.type='button';button.setAttribute('aria-pressed',String(view===key));button.onclick=()=>{state.dashboardFilters=state.dashboardFilters||{};state.dashboardFilters[view]=state.reportFilter;state.dashboardView=key;state.reportFilter=state.dashboardFilters[key]||(key==='month'?{mode:'month'}:undefined);state.reportMetric=key==='finance'?'paidCents':'customersEnd';render();};nav.append(button);}$('dashboardIntro').append(nav);
-  const report=state.summary?.reporting,today=report?.today||localDateKey(),filter=state.reportFilter||(view==='month'?{mode:'month'}:{}),form=el('form','report-filter');form.id='reportFilter';form.noValidate=true;
-  const field=(label,control)=>{const wrap=el('label','',label);wrap.append(control);form.append(wrap);return wrap;};
-  const mode=el('select');mode.setAttribute('aria-label','Zeitraum');for(const[value,label]of [['month','Monat'],['quarter','Quartal'],['year','Jahr'],['custom','Eigener Zeitraum'],['all','Gesamt']]){const o=el('option','',label);o.value=value;mode.append(o);}mode.value=filter.mode||'year';field('Zeitraum',mode);
-  const month=el('input');month.type='month';month.value=filter.month||today.slice(0,7);month.setAttribute('aria-label','Monat wählen');const monthField=field('Monat',month);
-  const year=el('input');year.type='number';year.min='1900';year.max='2100';year.step='1';year.value=filter.year||today.slice(0,4);year.setAttribute('aria-label','Jahr wählen');const yearField=field('Jahr',year);
-  const quarter=el('select');quarter.setAttribute('aria-label','Quartal wählen');for(let i=1;i<=4;i++){const o=el('option','','Q'+i);o.value=String(i);quarter.append(o);}quarter.value=String(filter.quarter||Math.floor((Number(today.slice(5,7))-1)/3)+1);const quarterField=field('Quartal',quarter);
-  const from=el('input'),to=el('input');from.type=to.type='date';from.value=filter.from||today.slice(0,4)+'-01-01';to.value=filter.to||today;from.setAttribute('aria-label','Von');to.setAttribute('aria-label','Bis');const fromField=field('Von',from),toField=field('Bis',to);
-  const apply=el('button','btn primary','Anwenden');apply.type='submit';form.append(apply);
-  const visibility=()=>{monthField.hidden=mode.value!=='month';yearField.hidden=!['quarter','year'].includes(mode.value);quarterField.hidden=mode.value!=='quarter';fromField.hidden=toField.hidden=mode.value!=='custom';};mode.onchange=visibility;visibility();
-  form.onsubmit=event=>{event.preventDefault();state.reportFilter={mode:mode.value,month:month.value,year:year.value,quarter:quarter.value,from:from.value,to:to.value};render();};
-  if(view!=='overview')$('dashboardIntro').append(form);
-  if(!report){const p=dashboardPanel('Auswertungen derzeit nicht verfügbar','Bitte aktualisieren. Kennzahlen werden nur aus der vollständigen serverseitigen Auswertung angezeigt.');area.append(p.panel);return;}
-  let ctx;try{ctx=reportContext();}catch(error){const p=el('p','invoice-error',error.message);p.setAttribute('role','alert');area.append(p);return;}
-  const {range,selected:s,previous:p}=ctx,day=d=>d.split('-').reverse().join('.'),span=day(range.from)+' – '+day(range.to);
-  const stamp=new Date(report.loadedAt),meta=el('p','dash-data-scope','Auswahl: '+span+(range.previous?' · Vergleich: '+day(range.previous.from)+' – '+day(range.previous.to):' · Gesamter erfasster Zeitraum')+' · Stand: '+stamp.toLocaleString('de-CH'));
-  if(view!=='overview')$('dashboardIntro').append(meta);
-  const stats=(panel,items)=>{const grid=el('div','report-metrics');for(const[label,value,note]of items){const box=el('div');box.append(el('small','',label),el('strong','',String(value)));if(note)box.append(el('small','',note));grid.append(box);}panel.body.append(grid);};
-  const distribution=(panel,values)=>{const max=Math.max(1,...Object.values(values)),list=el('div','report-statuses');for(const[label,n]of Object.entries(values)){const row=el('div','report-status'),track=el('div','report-status-track'),fill=el('span');fill.style.width=(n/max*100)+'%';track.append(fill);row.append(el('span','',label),track,el('strong','',String(n)));list.append(row);}if(!Object.keys(values).length)list.append(el('p','dash-empty','Keine Einträge im gewählten Zeitraum.'));panel.body.append(list);};
-  const customers=dashboardPanel('Kunden','Neukunden nach Erfassungsdatum. Der aktuelle Bestand gilt unabhängig vom Zeitraumfilter.');customers.panel.id='reportCustomers';
-  stats(customers,[['Kundenbestand aktuell',report.current.customers],['Davon heute aktiv',report.current.activeCustomers],['Davon heute inaktiv',report.current.inactiveCustomers],['Neukunden im Zeitraum',s.customers,reportComparison(s.customers,p?p.customers:null)],['Erfasster Bestand am Periodenende',s.customersEnd,'Nach bekannten Erfassungsdaten']]);
-  customers.body.append(el('p','dash-finance-note','Die Bestandsentwicklung basiert auf den heute vorhandenen Kunden und ihrem Erfassungsdatum. Frühere Löschungen und historische Aktiv-/Inaktiv-Wechsel sind nicht rekonstruierbar.'));area.append(customers.panel);
-  const invoices=dashboardPanel('Rechnungen','Rechnungsvolumen nach Rechnungsdatum (ersatzweise Erfassungsdatum); erfasste Zahlungen nach Zahlungsdatum. Offene Beträge entsprechen dem heutigen Stand der ausgewählten Rechnungen.');invoices.panel.id='reportInvoices';
-  stats(invoices,[['Rechnungsvolumen',invoiceCHF(s.invoiceCents/100),'Ohne Entwürfe und Stornos'],['Erfasste Zahlungen',invoiceCHF(s.paidCents/100),reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF')],['Offener Rest aus Auswahl',invoiceCHF(s.outstandingCents/100),'Aktueller Restbetrag'],['Davon heute überfällig',invoiceCHF(s.overdueCents/100)],['Rechnungen in Auswahl',s.invoiceCount],['Davon Versand nachgewiesen',s.invoiceSent]]);
-  invoices.body.append(el('p','dash-finance-note',s.invoiceDrafts+' Entwürfe · '+s.invoiceCancelled+' stornierte Rechnungen im Zeitraum. Zahlungen enthalten nur gültige Einzelbuchungen; Korrekturen sind abgezogen. Rechnungsvolumen ist kein Zahlungseingang.'));
-  if(report.quality.legacyPaid)invoices.body.append(el('p','dash-finance-note',report.quality.legacyPaid+' ältere Bezahlt-Markierungen ohne Einzelbuchung sind nicht als erfasste Zahlungen enthalten.'));area.append(invoices.panel);
-  const offers=dashboardPanel('Offerten','Im Zeitraum angelegte Offerten mit ihrem heutigen Status. Eine einseitige Kundenannahme zählt separat.');offers.panel.id='reportOffers';
-  const accepted=s.offerStatuses['Beidseitig angenommen']||0,declined=s.offerStatuses.Abgelehnt||0,decisions=accepted+declined;
-  stats(offers,[['Offerten erstellt',s.offers,reportComparison(s.offers,p?p.offers:null)],['Beidseitig angenommen',accepted],['Abgelehnt',declined],['Annahmequote entschiedener Offerten',decisions?new Intl.NumberFormat('de-CH',{maximumFractionDigits:1}).format(accepted/decisions*100)+' %':'–','Angenommen / (angenommen + abgelehnt)'],['Vereinbarte Einmalwerte',invoiceCHF(s.acceptedOneTimeCents/100)],['Vereinbarte Monatswerte',invoiceCHF(s.acceptedMonthlyCents/100),'Vertragswerte, kein Zahlungseingang']]);distribution(offers,s.offerStatuses);area.append(offers.panel);
-  const projects=dashboardPanel('Projekte','Im Zeitraum angelegte Projekte mit ihrem heutigen Bearbeitungsstand. Historische Abschlusszeitpunkte wurden bisher nicht vollständig erfasst.');projects.panel.id='reportProjects';
-  stats(projects,[['Projekte erstellt',s.projects,reportComparison(s.projects,p?p.projects:null)],['Davon heute abgeschlossen',s.projectStatuses.Abgeschlossen||0],['Aktive Projekte insgesamt heute',report.current.projects,'Unabhängig vom Zeitraumfilter']]);distribution(projects,s.projectStatuses);area.append(projects.panel);
-  const development=dashboardPanel('Entwicklung im Zeitraum','Aufteilung nach Monaten, Quartalen oder Jahren. Der Kundenbestand ist kumuliert; alle anderen Werte beziehen sich auf den jeweiligen Abschnitt.');development.panel.id='reportDevelopment';
-  const controls=el('div','report-chart-controls'),group=el('select'),metric=el('select');group.setAttribute('aria-label','Entwicklung aufteilen');metric.setAttribute('aria-label','Kennzahl der Entwicklung');
-  for(const[value,label]of [['month','Monate'],['quarter','Quartale'],['year','Jahre']]){const o=el('option','',label);o.value=value;group.append(o);}group.value=state.reportGroup||'month';
-  for(const[value,label]of [['customersEnd','Kundenbestand'],['customers','Neukunden'],['paidCents','Erfasste Zahlungen'],['invoiceCents','Rechnungsvolumen'],['offers','Neue Offerten'],['projects','Neue Projekte']]){const o=el('option','',label);o.value=value;metric.append(o);}metric.value=state.reportMetric||'customersEnd';controls.append(group,metric);
-  const chart=el('div','report-chart'),details=el('details','report-data'),tableArea=el('div','scroll');details.append(el('summary','','Zahlen im Detail'),tableArea);
-  const draw=()=>{
-    state.reportGroup=group.value;state.reportMetric=metric.value;chart.replaceChildren();tableArea.replaceChildren();
-    let rows;try{rows=reportBuckets(report,range,group.value);}catch(error){chart.append(el('p','invoice-error',error.message));return;}
-    const max=Math.max(1,...rows.map(r=>r[metric.value])),money=metric.value.endsWith('Cents');
-    for(const row of rows){const line=el('div','report-chart-row'),track=el('div','report-chart-track'),fill=el('span');fill.style.width=(row[metric.value]/max*100)+'%';track.setAttribute('aria-hidden','true');track.append(fill);line.append(el('span','',row.label),track,el('strong','',money?invoiceCHF(row[metric.value]/100):String(row[metric.value])));chart.append(line);}
-    const table=el('table'),head=el('tr');for(const label of ['Zeitraum','Neukunden','Kundenbestand Ende','Rechnungsvolumen CHF','Zahlungen CHF','Offerten','Projekte'])head.append(el('th','',label));const thead=el('thead');thead.append(head);table.append(thead);const body=el('tbody');
-    for(const row of rows){const tr=el('tr');for(const value of [row.label,row.customers,row.customersEnd,invoiceCHF(row.invoiceCents/100),invoiceCHF(row.paidCents/100),row.offers,row.projects])tr.append(el('td','',String(value)));body.append(tr);}table.append(body);tableArea.append(table);
-  };
-  group.onchange=metric.onchange=draw;development.body.append(controls,chart,details);draw();area.append(development.panel);
-  if(view==='overview'){
-    area.replaceChildren();
-    const all=reportAggregate(report,{from:'1900-01-01',to:today,mode:'all'});
-    const offerPanel=dashboardPanel('Offerten im Überblick','Heutiger Stand aller Offerten. Orange bedeutet: Der Kunde hat angenommen, deine Bestätigung fehlt noch.');offerPanel.panel.id='reportOverviewOffers';distribution(offerPanel,all.offerStatuses);area.append(offerPanel.panel);
-    const invoicePanel=dashboardPanel('Rechnungen im Überblick','Offene Beträge aller Rechnungen heute, unabhängig vom Rechnungsdatum.');invoicePanel.panel.id='reportOverviewInvoices';stats(invoicePanel,[['Noch offen',invoiceCHF(all.outstandingCents/100)],['Davon überfällig',invoiceCHF(all.overdueCents/100)],['Entwürfe',all.invoiceDrafts]]);area.append(invoicePanel.panel);
-    area.append(el('p','dash-data-scope','Stand: '+stamp.toLocaleString('de-CH')+' · Für Zeitvergleiche Finanzen oder Monatsrückblick wählen.'));
-  }else if(view==='finance'){
-    customers.panel.remove();offers.panel.remove();projects.panel.remove();
-    metric.value='paidCents';draw();
-  }else{
-    customers.panel.remove();invoices.panel.remove();offers.panel.remove();projects.panel.remove();
-    const recap=dashboardPanel('Dein Rückblick','Neue Kunden, erfasste Zahlungen und neue Projekte im gewählten Zeitraum mit Vorperiodenvergleich. Angenommene Offerten zeigen den heutigen Status der im Zeitraum erstellten Offerten, nicht den Annahmezeitpunkt.');area.prepend(recap.panel);
+  const summary=state.summary;
+  if(!Array.isArray(summary?.personalTasks)){
+    const unavailable=el('p','dash-empty','Aufgaben konnten nicht geladen werden. Bitte aktualisieren.');unavailable.setAttribute('role','alert');area.append(unavailable);return;
   }
-  const missing=Object.entries(report.quality).filter(([k,n])=>!['legacyPaid','invalidAmounts'].includes(k)&&n).map(([k,n])=>({customers:'Kunden',invoices:'Rechnungen',offers:'Offerten',projects:'Projekte',payments:'Zahlungen'}[k])+': '+n);
-  const quality=el('p','dash-data-scope','Datenbasis: vollständige serverseitige Auswertung aller CRM-Register. Statusverteilungen zeigen den heutigen Stand der Auswahl; Zahlungen stammen aus manuell erfassten Buchungen. Keine Bankanbindung.');
-  if(missing.length)quality.append(el('span','',' Ohne auswertbares Datum: '+missing.join(' · ')+'. Diese Werte sind nur bei Gesamt enthalten und werden keiner Zeitspanne oder Kurve zugeordnet.'));
-  if(report.quality.invalidAmounts)quality.append(el('span','',' '+report.quality.invalidAmounts+' ungültige Betragsangaben wurden nicht berücksichtigt.'));
-  area.append(quality);
+  const tasks=summary.personalTasks;
+  if(!tasks.length){const empty=el('div','empty');empty.append(el('strong','','Aktuell ist nichts zu erledigen.'));area.append(empty);}
+  else{
+    const list=el('div','personal-tasks');list.setAttribute('aria-label','Deine Aufgaben');
+    for(const task of tasks){
+      const row=el('section','personal-task'),info=el('div','personal-task-info');
+      info.append(el('small','',task.company+' · '+task.reference),el('h2','',task.action));
+      if(task.priority===0||task.priority===1){const badge=el('span','personal-task-urgent',task.priority===0?'Prüfung nötig':'Überfällig');info.append(badge);}
+      const button=el('button','btn','Öffnen');button.type='button';button.setAttribute('aria-label',task.action+' – '+task.company+' – '+task.reference);const error=el('p','invoice-error');error.hidden=true;error.setAttribute('role','alert');button.onclick=()=>openDashboardTask(task,button,error);row.append(info,button,error);list.append(row);
+    }
+    area.append(list);
+  }
+  const stamp=new Date(summary.tasksAsOf);
+  if(Number.isFinite(stamp.getTime()))area.append(el('p','dash-data-scope','Stand: '+stamp.toLocaleString('de-CH')));
 }
 
 function projectIsOverdue(project){
@@ -1185,7 +1138,7 @@ function renderPageMore(area){
 function render(){
   const dashboard=state.tab==='dashboard';
   const d=dashboard
-    ?{title:'Dashboard',description:'Kennzahlen und Auswertungen zu Kunden, Rechnungen, Offerten und Projekten.'}
+    ?{title:'Dashboard',description:'Hier bist du dran.'}
     :definitions[state.tab];
   $('pageTitle').textContent=d.title;
   $('pageDesc').textContent=d.description;
@@ -3030,7 +2983,7 @@ async function loadAll(){
     state.pageInfo[x]={nextCursor:results[i].nextCursor,hasMore:results[i].hasMore,loading:false};
   });
   try{state.summary=(await api('/api/cockpit/summary')).summary;}
-  catch(err){state.summary=null;$('syncStatus').textContent='Gesamtkennzahlen nicht verfügbar – bitte aktualisieren';}
+  catch(err){state.summary=null;$('syncStatus').textContent='Aufgaben nicht verfügbar – bitte aktualisieren';}
   const reminders=await api('/api/reminders').catch(()=>({reminders:[]}));
   state.reminders=reminders.reminders||[];
   render();
@@ -3038,7 +2991,7 @@ async function loadAll(){
 // Only update new website leads in the background. Never replace open editors or
 // overwrite form inputs while someone is preparing an offer/invoice/project.
 async function refreshLeads(){
-  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending||document.activeElement?.closest('#reportFilter'))return;
+  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending||state.dashboardTaskOpening)return;
   const loginToken=state.token;
   leadsRefreshPending=true;
   $('refreshLeads').disabled=true;
@@ -3052,17 +3005,17 @@ async function refreshLeads(){
     if(changed||state.tab==='dashboard'){
       let summary=null;try{summary=(await api('/api/cockpit/summary')).summary;}catch{complete=false;}
       if(state.token!==loginToken)return;
-      if(document.querySelector('dialog[open]')||document.activeElement?.closest('#reportFilter'))return;
+      if(document.querySelector('dialog[open]')||state.dashboardTaskOpening)return;
       state.summary=summary;render();
     }
-    $('syncStatus').textContent=complete?'Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'Auswertungen nicht aktualisiert – bitte erneut versuchen';
+    $('syncStatus').textContent=complete?'Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'Aufgaben nicht aktualisiert – bitte erneut versuchen';
   }catch(err){
     if(state.token!==loginToken)return;
     if(err.status===401){
       state.token='';state.records={};$('workspace').hidden=true;$('signin').hidden=false;
       $('error').textContent='Deine Google-Anmeldung ist abgelaufen. Bitte erneut anmelden.';
       window.google?.accounts?.id?.prompt();
-    }else $('syncStatus').textContent='Aktualisierung fehlgeschlagen – bitte erneut versuchen';
+    }else{if(state.tab==='dashboard'){state.summary=null;render();}$('syncStatus').textContent='Aktualisierung fehlgeschlagen – bitte erneut versuchen';}
   }finally{
     leadsRefreshPending=false;
     $('refreshLeads').disabled=false;

@@ -47,6 +47,8 @@ h1{font-size:clamp(28px,3.4vw,39px);letter-spacing:-.04em;line-height:1.15;margi
 th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.09em;background:#111a27}
 th,td{padding:15px 18px;border-top:1px solid var(--border)}td{font-size:13px}td:first-child{font-weight:650}
 .badge{background:#233348;color:#c4dcf4;padding:5px 9px;border-radius:99px;font-weight:650;font-size:11px;display:inline-block}
+
+.offer-list{min-width:620px;table-layout:fixed}.offer-list th,.offer-list td{padding:13px 16px;vertical-align:middle}.offer-list th:nth-child(1){width:70px}.offer-list th:nth-child(2){width:30%}.offer-list th:nth-child(3){width:26%}.offer-list th:nth-child(4){width:112px}.offer-list th:nth-child(5){width:155px}.offer-list th:last-child{width:85px}.offer-list-contact{overflow-wrap:anywhere}.offer-list-secondary{display:block;color:var(--muted);margin-top:2px;font-size:11px}.offer-list .badge,.offer-list .lead-followup-badge{white-space:nowrap}.offer-list td:nth-child(2){overflow-wrap:anywhere}
 .badge.success{background:#15362c;color:#90e5c2}.badge.dim{background:#272d39;color:#c0c5cf}
 .link-btn{border:0;background:transparent;color:var(--accent);padding:3px 0;font-weight:650}
 .empty{text-align:center;padding:68px 22px;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:5px}
@@ -614,7 +616,7 @@ const definitions={
   ],columns:[['customerNumber','Kundennr.'],['company','Firma'],['contactName','Ansprechpartner'],['email','E-Mail'],['city','Ort'],['status','Status']]},
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['title','Offerte'],['customerId','Kunde'],['leadId','Lead'],['oneTimeCHF','Einmalig CHF'],['monthlyCHF','Monatlich CHF'],['followUpDate','Nachfassen'],['status','Status']]},
+  ],columns:[['number','Nr.'],['title','Offerte'],['offerContact','Kunde / Interessent'],['followUpDate','Nachfassen'],['status','Status']]},
   rechnungen:{title:'Rechnungen',description:'Rechnungen mit nummerierter PDF und Swiss-QR-Zahlteil (nach Zahlungsfreigabe).',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
@@ -1206,7 +1208,7 @@ function render(){
       state.searchRows.length+' geladen von '+(state.searchTotal??0)+' Treffern · gesamtes Register')
     :(state.records[state.tab]||[]).length+' geladen'+
       (available!==undefined?' von '+available+' Einträgen':'')+
-      ' · Weitere Seiten verfügbar';
+      (state.pageInfo[state.tab]?.hasMore?' · Weitere Seiten verfügbar':'');
   const needle=$('search').value.toLocaleLowerCase('de-CH');
   const records=filtered?state.searchRows:(state.records[state.tab]||[]);
   const area=$('tableArea');area.replaceChildren();
@@ -1218,7 +1220,7 @@ function render(){
     );
     area.append(empty);renderPageMore(area);return;
   }
-  const wrap=el('div','scroll'),table=el('table'),thead=el('thead'),tr=el('tr');
+  const wrap=el('div','scroll'),table=el('table',state.tab==='offerten'?'offer-list':''),thead=el('thead'),tr=el('tr');
   for(const col of d.columns)tr.append(el('th','',col[1]));
   tr.append(el('th','','Aktion'));thead.append(tr);table.append(thead);
   const tbody=el('tbody');
@@ -1226,7 +1228,15 @@ function render(){
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='createdAt'&&state.tab==='leads'){
+      if(key==='offerContact'){
+        const customer=(state.records.kunden||[]).find(x=>x.id===rec.customerId);
+        const lead=(state.records.leads||[]).find(x=>x.id===rec.leadId);
+        const name=rec.customerCompany||customer?.company||lead?.company||lead?.name||customer?.contactName;
+        td.append(el('div','offer-list-contact',name||(rec.customerId?'Kunde zugeordnet':rec.leadId?'Interessent zugeordnet':'Noch nicht zugeordnet')));
+        const number=rec.customerNumber||customer?.customerNumber;
+        if(number)td.append(el('small','offer-list-secondary',number));
+      }
+      else if(key==='createdAt'&&state.tab==='leads'){
         const urgency=leadUrgency(rec.createdAt,leadColourTime(rec));
         const age=el('span','lead-age'+(urgency?' lead-age-'+urgency:''),leadAge(rec.createdAt));
         age.dataset.leadCreatedAt=rec.createdAt||'';
@@ -1260,7 +1270,7 @@ function render(){
         const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue?'Überfällig':(shownStatus||'–'));
         if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
         td.append(tag);
-        if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','','Kundenannahme erfasst · interne Abwicklung ausstehend');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
+        if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','','Abwicklung offen');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
       }
       else if(key==='nextStep'){
         const next=el('div','',projectNextStep(rec));next.style.cssText='max-width:290px;font-size:13px;line-height:1.5';td.append(next);
@@ -1285,7 +1295,7 @@ function render(){
       edit.textContent='Öffnen';
       edit.addEventListener('click',()=>openProjectEditor(rec));
     }else if(state.tab==='kunden'){edit.textContent='Öffnen';edit.addEventListener('click',()=>openCustomerDetail(rec));}
-    else edit.addEventListener('click',()=>openEditor(rec));
+    else {if(state.tab==='offerten')edit.textContent='Öffnen';edit.addEventListener('click',()=>openEditor(rec));}
     td.append(edit);
     if(state.tab==='leads'&&rec.status==='Neu'){
       const remove=el('button','lead-delete','×');

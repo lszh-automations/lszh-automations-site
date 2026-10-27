@@ -35,3 +35,10 @@ Desktop und Mobil mit blockiertem externem Netzwerk geprüft: eine aktive Ansich
 Aktiv seit 27.10.2026: **`lszh-crm-v2-00113-gac`**, 100 % Verkehr. Alle 80 gebauten Laufzeitdateien exakt bestätigt; gegenüber der vorherigen Revision nur `public/index.html` geändert. Konfiguration und Dienstkonto unverändert. Beide GitHub-Prüfungen einschliesslich Firestore-Emulatortests erfolgreich. Live-Oberfläche HTTP 200; der Vertragsstatus ist anonym HTTP 401. Keine Fehlerlogs der neuen Revision im abschliessend kontrollierten Zeitfenster. Keine Kundendatensätze, Zuordnungen, Preise oder Dokumente verändert; keine Mail, Rechnung oder Auftragsübernahme ausgelöst. Offerte 1003 bleibt wie gewünscht unzugeordnet. Website, Portal und Make unverändert.
 
 [PR 32](https://github.com/lszh-automations/lszh-automations-site/pull/32) · [Live-Nachweis](../releases/simple-offers-live-20261027.json). Rückfallrevision: `lszh-crm-v2-00111-yaf`.
+
+
+## Kompakte Offertenliste (27.10.2026)
+
+Die Registerliste zeigt Nummer, Offertentitel, Kunde / Interessent, Nachfassen, Status und Öffnen. Die Betragsspalten entfallen nur in der Liste; gespeicherte Preise, Editor und PDFs bleiben unverändert. Firma erscheint einmal, Kundennummer klein darunter. Ohne Kundenzuordnung wird der vorhandene Lead angezeigt; dies erzeugt keine Zuordnung. Offerte 1003 bleibt unzugeordnet. Annahme mit ausstehender Abwicklung zeigt den kurzen Hinweis „Abwicklung offen“. Weitere Seiten werden nur bei hasMore angekündigt.
+
+Validierung: 493 CRM-Tests erfolgreich; Desktop und Mobilgerät mit künstlichen Daten, keine Kundendatenänderungen oder Nachrichten.

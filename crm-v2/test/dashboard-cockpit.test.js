@@ -77,11 +77,11 @@ test('receivables are ordered by urgency and original invoice objects are not so
   assert.equal(a.soonCount,1);
   assert.equal(a.openCount,4);
 });
-test('analytics dashboard uses complete server reporting and exposes no task lists',()=>{
+test('personal dashboard uses complete server tasks and no metrics or workflow groups',()=>{
   const renderer=html.slice(html.indexOf('function renderDashboard(){'),html.indexOf('function projectIsOverdue('));
-  assert.match(renderer,/vollständige serverseitige Auswertung/);
-  assert.match(renderer,/Rechnungsvolumen ist kein Zahlungseingang/);
-  assert.match(renderer,/Statusverteilungen zeigen den heutigen Stand/);
-  assert.doesNotMatch(renderer,/Jetzt wichtig|Wiedervorlagen|Offerten abschliessen|laufenden Abläufe/);
+  assert.match(renderer,/summary\.personalTasks/);
+  assert.match(renderer,/Aktuell ist nichts zu erledigen/);
+  assert.match(renderer,/Aufgaben konnten nicht geladen werden/);
+  assert.doesNotMatch(renderer,/reportFilter|reportContext|processGroups|openProcesses|Kennzahlen|Finanzen|Monatsrückblick/);
   assert.doesNotMatch(renderer,/\bPOST\b|\bPATCH\b|\bapi\s*\(/);
 });

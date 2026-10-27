@@ -412,6 +412,22 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .dash-detail-body>.dash-data-scope{margin:0}
 .dash-receivable-soon{color:#ffd18a}
 @media(max-width:700px){.dash-details>summary{padding:14px}.dash-detail-body{padding:0 10px 10px;gap:12px}}
+
+/* Customer overview: current work first; completed records on demand. */
+.customer-dialog[open]{display:flex;flex-direction:column;max-height:92dvh;overflow:hidden}
+.customer-dialog>.modal-head,.customer-dialog>.project-actions{flex:0 0 auto}
+.customer-dialog>.customer-body{min-height:0;max-height:none}
+.customer-contact{display:flex;flex-wrap:wrap;gap:6px 20px;padding:18px 0;color:#c9d9e8;font-size:13px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.customer-address{flex-basis:100%;color:var(--muted);font-size:12px}
+.customer-record-status{margin:6px 0 0;display:table}
+.customer-history{margin-top:10px;border-top:1px solid var(--border)}
+.customer-history>summary{cursor:pointer;padding:13px 0;color:#afc8dd;font-size:13px;font-weight:650}
+.customer-related-foot p,.customer-empty{font-size:12px;color:var(--muted)}
+.customer-invoice-amount strong{color:var(--text)}
+.customer-invoice-due{margin-top:7px;font-size:12px;color:var(--muted)}
+.customer-attention{color:#ffd18a!important}
+.customer-dialog .project-actions{position:static}
+@media(max-width:650px){.customer-dialog>.modal-head{padding:16px}.customer-dialog h2{font-size:19px}.customer-contact{gap:6px 12px}.customer-dialog .project-actions{padding:12px 16px}.customer-dialog .project-actions .btn{font-size:12px;padding:10px}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1446,12 +1462,46 @@ async function openCustomerRecord(table,id,button){
   }catch(error){if(nonce===state.customerViewNonce){$('customerDetailError').textContent=error.message;$('customerDetailError').hidden=false;}}
   finally{button.disabled=false;}
 }
+function customerRecordClosed(table,record){
+  return table==='projekte'?record.status==='Abgeschlossen':table==='rechnungen'?['Bezahlt','Storniert'].includes(record.status):['Angenommen','Abgelehnt'].includes(record.status);
+}
+function customerRelatedRow(table,record){
+  const row=el('div','customer-related-row'),info=el('div');
+  info.append(el('strong','',(record.number?record.number+' · ':'')+(record.title||record.description||'Eintrag')));
+  const status=table==='offerten'?offerDisplayStatus(record):record.status;
+  const pending=table==='offerten'&&offerAcceptancePending(record);
+  info.append(el('span','badge customer-record-status'+(pending?' pending':['Angenommen','Bezahlt','Abgeschlossen'].includes(status)?' success':''),status||'–'));
+  if(table==='projekte')info.append(el('p','',projectNextStep(record)));
+  if(table==='offerten')info.append(el('p','',pending?'Deine Bestätigung fehlt':record.status!=='Angenommen'&&record.onlineAcceptance?.state==='confirmed'?'Auftrag übernehmen':status==='Versendet'?'Auf Kundenantwort warten':status==='Entwurf'||status==='Bereit'?'Offerte vorbereiten und prüfen':''));
+  if(table==='rechnungen'){
+    const amount=el('p','customer-invoice-amount','Gesamt '+invoiceCHF(record.amountCHF));
+    if(['Offen','Teilbezahlt'].includes(record.status))amount.append(el('strong','',' · Noch offen '+invoiceCHF(invoiceDueInfo(record).remaining/100)));
+    info.append(amount);
+    const due=el('div','customer-invoice-due');due.append(el('span','','Fällig am '),invoiceDueBadge(record));info.append(due);
+    if(['sending','manual_review'].includes(record.invoiceDispatchState))info.append(el('p','customer-attention','Versand prüfen'));
+    else if(record.invoiceDispatchState!=='confirmed'&&!['Bezahlt','Storniert'].includes(record.status))info.append(el('p','','Versand noch nicht bestätigt'));
+  }
+  const open=el('button','btn','Öffnen');open.type='button';open.setAttribute('aria-label',(record.number||record.title||'Eintrag')+' öffnen');open.onclick=()=>openCustomerRecord(table,record.id,open);
+  row.append(info,open);return row;
+}
+function renderCustomerGroup(table,group,hasMore){
+  const list=group.querySelector('.customer-related-list'),history=group.querySelector('.customer-history-list'),details=group.querySelector('.customer-history');
+  list.replaceChildren();history.replaceChildren();
+  const rows=[...(group._records||[])],active=rows.filter(x=>!customerRecordClosed(table,x)),closed=rows.filter(x=>customerRecordClosed(table,x));
+  const rank=record=>table==='rechnungen'?({overdue:0,soon:1,open:2,closed:3}[invoiceDueInfo(record).kind]??4):table==='projekte'?(projectIsOverdue(record)?0:record.status==='Wartet auf Kunde'?1:2):offerAcceptancePending(record)?0:record.status!=='Angenommen'&&record.onlineAcceptance?.state==='confirmed'?1:2;
+  active.sort((a,b)=>rank(a)-rank(b)||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')));
+  if(!active.length)list.append(el('p','customer-empty',hasMore?'Keine offenen Vorgänge unter den bisher geladenen Einträgen.':'Keine offenen Vorgänge.'));
+  for(const record of active)list.append(customerRelatedRow(table,record));
+  for(const record of closed)history.append(customerRelatedRow(table,record));
+  details.hidden=!closed.length;
+  details.querySelector('summary').textContent=(table==='projekte'?'Abgeschlossene Projekte':table==='rechnungen'?'Bezahlte und stornierte Rechnungen':'Abgeschlossene Offerten')+' ('+closed.length+')';
+}
 async function loadCustomerRelated(table,group,more=false){
   const customer=state.customerViewing,nonce=state.customerViewNonce;
   if(!customer||group._loading)return;
   group._loading=true;
   const list=group.querySelector('.customer-related-list'),foot=group.querySelector('.customer-related-foot');
-  if(!more){list.replaceChildren();group._cursor='';group._seen=new Set();}
+  if(!more){list.replaceChildren();group._cursor='';group._seen=new Set();group._records=[];}
   foot.replaceChildren(el('p','','Wird geladen …'));
   try{
     const result=await api('/api/records/kunden/'+encodeURIComponent(customer.id)+'/related?table='+table+(more?'&cursor='+encodeURIComponent(group._cursor):''));
@@ -1459,19 +1509,12 @@ async function loadCustomerRelated(table,group,more=false){
     rememberRelatedRecord('kunden',result.customer);
     for(const record of result.records){
       if(group._seen.has(record.id))continue;group._seen.add(record.id);
-      const row=el('div','customer-related-row'),info=el('div');
-      info.append(el('strong','',(record.number?record.number+' · ':'')+(record.title||record.description||'Eintrag')));
-      const status=table==='offerten'?offerDisplayStatus(record):record.status;
-      const amount=table==='offerten'?quoteCHF(record.oneTimeCHF||0)+' einmalig · '+quoteCHF(record.monthlyCHF||0)+'/Monat':table==='rechnungen'?invoiceCHF(record.amountCHF):projectNextStep(record);
-      info.append(el('p','',(status||'–')+' · '+amount));
-      if(table==='rechnungen')info.append(el('p','',record.invoiceDispatchState==='confirmed'?'Versand bestätigt':record.invoiceDispatchState==='manual_review'?'Versand prüfen':'Versand nicht bestätigt'));
-      const open=el('button','btn','Öffnen');open.type='button';open.setAttribute('aria-label',(record.number||record.title||'Eintrag')+' öffnen');open.onclick=()=>openCustomerRecord(table,record.id,open);
-      row.append(info,open);list.append(row);
+      group._records.push(record);
     }
     foot.replaceChildren();
-    if(!group._seen.size)list.append(el('p','','Noch keine zugeordneten Einträge.'));
+    renderCustomerGroup(table,group,Boolean(result.hasMore));
     group._cursor=result.nextCursor;
-    foot.append(el('p','',group._seen.size+' Einträge'+(result.hasMore?' geladen':'')));
+    foot.append(el('p','',group._seen.size+' Einträge geladen'+(result.hasMore?' · weitere vorhanden':'')));
     if(result.hasMore){const next=el('button','btn','Weitere laden');next.type='button';next.onclick=()=>loadCustomerRelated(table,group,true);foot.append(next);}
   }catch(error){
     if(nonce!==state.customerViewNonce)return;
@@ -1483,15 +1526,19 @@ function openCustomerDetail(customer){
   rememberRelatedRecord('kunden',customer);
   $('customerDetailTitle').textContent=(customer.customerNumber?customer.customerNumber+' · ':'')+(customer.company||'Kunde');
   $('customerSummary').replaceChildren();$('customerRelations').replaceChildren();$('customerDetailError').hidden=true;
-  detailGroup($('customerSummary'),'Kontakt',[['Ansprechpartner',customer.contactName],['E-Mail',customer.email],['Adresse',[customer.street,[customer.postalCode,customer.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')]]);
+  const contact=el('div','customer-contact');
+  contact.append(el('strong','',customer.contactName||'Kein Ansprechpartner hinterlegt'));
+  const email=el('span','',customer.email||'Keine E-Mail hinterlegt');contact.append(email);
+  contact.append(el('span','customer-address',[customer.street,[customer.postalCode,customer.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Keine Adresse hinterlegt'));
+  $('customerSummary').append(contact);
   const groups=[];
-  for(const [table,title,label] of [['offerten','Offerten','+ Offerte'],['rechnungen','Rechnungen','+ Rechnung'],['projekte','Projekte','+ Projekt']]){
+  for(const [table,title,label] of [['projekte','Projekte','+ Projekt'],['rechnungen','Rechnungen','+ Rechnung'],['offerten','Offerten','+ Offerte']]){
     const group=el('section','customer-group');group.dataset.table=table;
     const head=el('div','customer-group-head'),create=el('button','btn',label);create.type='button';
     create.onclick=()=>{$('customerDetail').close();navigateTo(table);openEditor(null,{customerId:customer.id});};
-    head.append(el('h3','',title),create);group.append(head,el('div','customer-related-list'),el('div','customer-related-foot'));$('customerRelations').append(group);groups.push([table,group]);
+    head.append(el('h3','',title),create);const history=el('details','customer-history');history.hidden=true;history.append(el('summary','','Abgeschlossen'),el('div','customer-history-list'));group.append(head,el('div','customer-related-list'),history,el('div','customer-related-foot'));$('customerRelations').append(group);groups.push([table,group]);
   }
-  $('customerDetail').showModal();for(const [table,group]of groups)loadCustomerRelated(table,group);
+  $('customerDetail').showModal();document.querySelector('#customerDetail .customer-body').scrollTop=0;for(const [table,group]of groups)loadCustomerRelated(table,group);
 }
 $('customerDetailClose').addEventListener('click',()=>$('customerDetail').close());
 $('customerDetailCancel').addEventListener('click',()=>$('customerDetail').close());

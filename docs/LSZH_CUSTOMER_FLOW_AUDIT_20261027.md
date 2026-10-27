@@ -32,13 +32,22 @@ Bei Teilzahlung wird der tatsächliche Rest in Rappen weitergeführt; identische
 
 Der Abgleich bestätigt gespeicherte Versandbelege und Buchungen; er bestätigt nicht den Eingang im Empfängerpostfach oder Bankkontobewegungen. Kein neuer Gmail- oder Bankabgleich vorgenommen. Eine Bankanbindung besteht nicht.
 
+## Noch gesondert zu klären: monatliche Leistungen
+
+Die geprüfte CRM-Annahmelogik erstellt ausschliesslich Rechnungsentwürfe für einmalige Positionen. Ein verbindlicher Abrechnungsbeginn und die wiederkehrende Erstellung monatlicher Rechnungsentwürfe sind in diesem geprüften CRM-Ablauf nicht nachgewiesen. Der Projektstart ist ausdrücklich kein automatischer monatlicher Abrechnungsbeginn. Eine möglicherweise ausserhalb dieses CRM laufende Make-Abrechnung wurde bei dieser Prüfung nicht neu abgeglichen. Vor einer Erweiterung zuerst bestehende externe Abrechnung ausschliessen und die fachliche Regel zu Beginn, Turnus und anteiligen Monaten festlegen; keine pauschalen Monatsrechnungen erzeugen.
+
 ## Nächste fachliche Schritte
 
 1. Im laufenden Projekt zu Offerte 1006 den tatsächlichen nächsten Umsetzungsschritt erfassen.
 2. Für geplante Projekte 1002 und 1005 die tatsächlichen Make-/Zugangsvoraussetzungen prüfen und Startdatum, Verantwortlichkeit sowie Umsetzungsschritte ergänzen.
 3. Bei Rechnungsentwürfen 1004 und 1006 die vereinbarte Fälligkeit ergänzen und erst nach inhaltlicher/PDF-Prüfung entscheiden, ob sie versendet werden sollen.
-4. Einen konkreten Vorgang für einen vollständigen Live-Durchlauf auswählen, falls tatsächlicher Versand und Zahlungsnachweise erneut geprüft werden sollen. Keine bestehenden Szenarien auf Testbetrieb umstellen.
+4. Bestehende externe Monatsabrechnung abgleichen; anschliessend Abrechnungsbeginn, Turnus und gegebenenfalls anteilige Monate für monatliche Leistungen festlegen.
+5. Einen konkreten Vorgang für einen vollständigen Live-Durchlauf auswählen, falls tatsächlicher Versand und Zahlungsnachweise erneut geprüft werden sollen. Keine bestehenden Szenarien auf Testbetrieb umstellen.
 
 ## Validierung
 
 539 CRM-Tests erfolgreich, darunter der neue zusammenhängende Lebenszyklus mit allen relevanten Dashboard-Übergängen sowie Startdatum-/Verantwortlichkeits- und Zukunftsgrenzen. Bestehende Tests prüfen weiterhin Online-Annahme, Voraussetzungen vor Annahme, Auftragsbestätigung, Versandbelege, Transaktionen, Kunden-/Rechnungsnummern und Zahlungs-/Mahnlogik.
+
+## Live-Korrektur
+
+Revision `lszh-crm-v2-00145-kud`, 100 % Verkehr. 82 Laufzeitdateien bytegleich verglichen; ausschliesslich cockpit-summary.js geändert. Oberfläche, Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich, anonyme Aufgaben-API HTTP 401; 0 jüngste Revisionsfehler. Beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00143-yeh`. [Live-Nachweis](../releases/project-task-readiness-live-20261027.json) - [PR 45](https://github.com/lszh-automations/lszh-automations-site/pull/45).

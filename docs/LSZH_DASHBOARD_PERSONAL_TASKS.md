@@ -29,3 +29,7 @@ Bestehende CRM-Daten rein lesend abgeglichen: 9 Aufgaben (1 Lead, 2 Offerten, 3 
 ## Live-Nachweis
 
 Revision `lszh-crm-v2-00143-yeh`, 100 % Verkehr. 82 Laufzeitdateien bytegleich verglichen, genau zwei Änderungen: public/index.html und cockpit-summary.js. Konfiguration und Dienstkonto unverändert; Rechnungsversand bleibt im Produktionsmodus. Live-HTML bytegleich und anonyme Aufgaben-API HTTP 401. Beide GitHub-Prüfungen erfolgreich, 0 jüngste Revisionsfehler. Rückkehrrevision `lszh-crm-v2-00141-tim`. [Release-Nachweis](../releases/dashboard-personal-tasks-live-20261027.json).
+
+## Ergänzung: vollständige Projektstartvoraussetzungen
+
+Seit Revision lszh-crm-v2-00145-kud verwenden Projektaufgaben dieselbe Startbereitschaft wie die Startaktion. Insbesondere werden fehlendes gültiges Startdatum und Verantwortlichkeit vor der Startbestätigung angezeigt; ein künftiger Start wartet erst, wenn alle anderen Angaben vorliegen. Darstellung unverändert. [Fachlicher Gesamtabgleich](LSZH_CUSTOMER_FLOW_AUDIT_20261027.md).

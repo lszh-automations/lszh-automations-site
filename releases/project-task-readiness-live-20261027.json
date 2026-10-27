@@ -1,0 +1,35 @@
+{
+  "revision": "lszh-crm-v2-00145-kud",
+  "rollback": "lszh-crm-v2-00143-yeh",
+  "runtimeFiles": 82,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "60699befeb6c5222f320f24d83baeaedac44d4c10bd2059175890454ddc2f4c4"
+    }
+  ],
+  "configurationUnchanged": true,
+  "uiUnchanged": true,
+  "candidateHtmlExact": true,
+  "anonymousApi": 401,
+  "invoiceMailMode": "production",
+  "tests": 539,
+  "customerDataChanged": false,
+  "makeChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/45",
+  "buildId": "61b22922-8c78-4a7e-89de-dfd1ef99876f",
+  "featureCommit": "4e4fd8c539f1e13f49079b041212aa2cbd1122da",
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793133699.800736-bf2d5561ce584d519841af5f2659da33.zip#1793133702098793",
+  "date": "2026-10-27",
+  "status": "live",
+  "trafficPercent": 100,
+  "liveHtmlExact": true,
+  "recentErrorCount": 0,
+  "githubChecks": "success",
+  "githubWorkflowRuns": [
+    40580307220,
+    40580307141
+  ]
+}

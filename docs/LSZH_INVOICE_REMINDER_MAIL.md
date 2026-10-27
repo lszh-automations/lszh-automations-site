@@ -15,3 +15,9 @@ Neue authentifizierte Endpunkte: GET /api/records/rechnungen/:id/reminder-mail, 
 Vorhandenes Make-Gateway 8144117 unverändert genutzt. Das bestehende invoice_send/production-Schema mit invoice_send_reminder_<UUID>, Betreff enthält Ihre Rechnung Nr., Original-PDF und unveränderter Gmail-Quittung passt zum vorhandenen Filter. Aufbau, Filter und Gmail-Verbindung rein lesend geprüft. Kein Szenario erstellt, bearbeitet, aktiviert, ausgeführt oder auf Test umgestellt. Bestehende produktive Mailflags/IBAN/Webhook werden weiterverwendet; keine neuen Geheimnisse.
 
 Validierung: 502 CRM-Tests, 42 echte lokale Firestore-Integrationstests, durchgehender Geschäftsvorgang mit Desktop und Mobilgerät und simulierten Zustellungen. Abgedeckt: verbleibender Betrag, Escaping, alle Mahnstufen/Grenzen, veraltete Vorschau nach Zahlung/E-Mail-Änderung, parallele Reservierungen, idempotente Wiederholung, unsichere Antwort ohne Retry, fehlgeschlagene PDF-Erzeugung ohne Versand, Zahlung nach unklarem Versand und Postfachauflösung nach vollständiger Zahlung. Echte Browserprüfung: Vorschau, Checkbox/Versandbestätigung, Quittung, automatischer Verlauf, sieben Tage Sperre und anschliessender Rechnungsabschluss. Keine echte Mail oder Kundendatenänderung durch Test oder Übernahme.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00127-nam`, 100 % Verkehr. Alle 81 bereitgestellten Laufzeitdateien bytegleich geprüft; vier gezielte Änderungen gegenüber der Kundenansicht. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich, neue API ohne Anmeldung HTTP 401, keine jüngsten Fehler der neuen Revision. GitHub Production baseline verification erfolgreich; zusätzlicher CRM-Staging-Check wartet auf einen GitHub-Runner. Die CRM-Tests sind lokal vollständig bestanden. Rückkehrrevision `lszh-crm-v2-00125-tuh`.
+
+[Release-Nachweis](../releases/invoice-reminder-mail-live-20261027.json) - [PR 36](https://github.com/lszh-automations/lszh-automations-site/pull/36).

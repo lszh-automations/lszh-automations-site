@@ -1,0 +1,57 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "da0c393654f4fd47e08689a3b76cdedef3e563cadbb5119367d46c2e1fd768fe"
+    },
+    {
+      "path": "invoice-reminder.js",
+      "sha256": "d4ac1d7e17a66c50820664ae195c2104f6719011f9f1a76f99f0d3eb2e476a61"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "e32568fe7f90ebb6dc068281cef633b585c0d1f4fb37e4207a161cd5473f8fa4"
+    },
+    {
+      "path": "server.js",
+      "sha256": "b9282bf84d2c5b002b2252163e2a833bdc0fd4cbee6da8ae7ccb1c009686dd39"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00127-nam",
+  "candidateUrl": "https://reminder-mail---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousReminderApis": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793122509.499559-7fc7695b4b1f4fdf959b070ac76d1a2d.zip#1793122511689379",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "396fcabf7e221232b2a9029daca4b8e7581accf8",
+  "parentRelease": "simple-customers-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00127-nam",
+  "rollback": "lszh-crm-v2-00125-tuh",
+  "trafficPercent": 100,
+  "crmTests": 502,
+  "firestoreEmulatorTests": 42,
+  "browserDesktopMobile": "passed; full business flow, synthetic data and simulated deliveries only",
+  "githubChecks": {
+    "Production baseline verification": "success",
+    "CRM V2 Cloud Staging Tests": "queued; awaiting GitHub runner; equivalent CRM suite passed locally"
+  },
+  "workflowRuns": [
+    40551974963,
+    40551974882
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeScenario": 8144117,
+  "makeScenarioChanged": false,
+  "productionModeUnchanged": true,
+  "offer1003AssignmentUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/36"
+}

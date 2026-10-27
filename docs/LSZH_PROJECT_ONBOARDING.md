@@ -32,3 +32,8 @@ Implementierung: [PR 23](https://github.com/lszh-automations/lszh-automations-si
 ## Live-Nachweis
 
 Aktiv seit 26.10.2026: `lszh-crm-v2-00097-yun`, 100 % Verkehr. [Release-Manifest](../releases/project-onboarding-live-20261026.json). Alle 79 tatsächlich gebauten Dateien exakt bestätigt; gegenüber dem vorigen Release nur `cloud-records.js`, `project-tasks.js` und `public/index.html` geändert. Beide GitHub-Prüfungen einschliesslich echter Firestore-Emulatortests erfolgreich. Konfiguration und Dienstkonto unverändert. Oberfläche HTTP 200, anonymer Projektzugriff HTTP 401, keine Fehler der neuen Revision im kontrollierten Zeitfenster. Keine Produktions-/Kundendatensätze bearbeitet, keine Mail versendet, Portal und Make unverändert. Rückfallrevision: `lszh-crm-v2-00095-hix`.
+
+
+## Erweiterung vom 27.10.2026
+
+Nach dem Onboarding ist jetzt ein bewusster [Projektstart mit Startdatum, Verantwortlichkeit und Umsetzungsschritten](LSZH_PROJECT_START.md) verfügbar. Bereit zur Einrichtung und tatsächlich gestartete Umsetzung werden getrennt angezeigt. Der Start ist keine Abrechnungsfreigabe.

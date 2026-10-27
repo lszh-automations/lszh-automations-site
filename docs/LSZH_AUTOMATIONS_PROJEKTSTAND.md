@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Dokumentierter Projektstart, 27.10.2026
+
+CRM **`lszh-crm-v2-00107-wif`** erhält 100 % Verkehr. Nach dem vorhandenen Onboarding werden jetzt Startdatum, verantwortliche Person und Umsetzungsschritte erfasst. «Projekt starten» ist ein bewusster Schritt nach Speichern und erfüllten Voraussetzungen; der Server prüft erneut, dokumentiert Zeitpunkt und Bediener und setzt das Projekt auf In Arbeit. Die Projektliste zeigt Startstand und Verantwortlichkeit.
+
+Ein wiederholter oder paralleler Startauftrag überschreibt keinen Start und reaktiviert kein pausiertes Projekt. Bestehende aktive Projekte bleiben bearbeitbar, ohne historische Startdaten zu erfinden. Rechnungsversand und monatlicher Abrechnungsbeginn bleiben separate Entscheidungen. Keine Migration und keine Bearbeitung vorhandener Kundendaten; kein Mailversand und keine neue Rechnung.
+
+488 CRM-Tests, beide GitHub-Prüfungen einschliesslich echter Firestore-Emulatortests und Desktop-/Mobilablauf erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur vier vorgesehene CRM-Dateien geändert. Konfiguration und Dienstkonto unverändert. Live-Oberfläche HTTP 200, anonyme Startaufträge und Projektabfragen HTTP 401, keine Fehler im kontrollierten Zeitfenster. Website, Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_PROJECT_START.md) - [Live-Manifest](../releases/project-start-live-20261027.json) - [PR 29](https://github.com/lszh-automations/lszh-automations-site/pull/29).
+
+---
+
 # Aktiver Live-Stand - Einheitliche kompakte Wortmarke, 26.10.2026
 
 CRM **`lszh-crm-v2-00105-poy`** und Kundenportal **`lszh-customer-acceptance-pilot-00011-tox`** erhalten jeweils 100 % Verkehr. Die Website verwendet ebenfalls die neue Wortmarke. LSZH und AUTOMATIONS stehen eng zusammen; das separate App-Symbol entfällt auf allen aktiven Markenflächen.

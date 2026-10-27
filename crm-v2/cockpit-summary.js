@@ -195,13 +195,13 @@ function personalTasks(data,today,groups,nowMs=Date.now()){
         if(next)action=next.title;
         else if(tasks.length)action='Ergebnis abnehmen und Projekt abschliessen';
         else continue; // No defined action; project status alone is not a task.
-      }else if(!r.customerId)action='Kunden zuordnen';
-      else if(typeof r.onboarding?.makeRequired!=='boolean')action='Make-Bedarf klären';
-      else if(r.onboarding.makeRequired&&!r.onboarding.invitationConfirmed)action='Make-Einladung prüfen';
-      else if(!r.onboarding.accessConfirmed)action='Benötigte Zugänge prüfen';
-      else if(!tasks.length)action='Umsetzungsschritt festlegen';
-      else if(validDay(r.startDate)&&r.startDate>today)continue;
-      else action='Projektstart bestätigen';
+      }else{
+        const readiness=require('./project-tasks').projectStartReadiness(r,today);
+        const missing=readiness.missing.filter(x=>x!=='Startdatum liegt noch in der Zukunft');
+        if(missing.length)action=missing[0];
+        else if(!readiness.canStart)continue;
+        else action='Projektstart bestätigen';
+      }
     }
     // A malformed cooldown needs a manual check, never an unusable send prompt.
     if(step.table==='rechnungen'&&r.reminderHistory?.length&&!Number.isFinite(Date.parse(r.reminderHistory.at(-1).at))){action='Datum der letzten Mahnung prüfen';}

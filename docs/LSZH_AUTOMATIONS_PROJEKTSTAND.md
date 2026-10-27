@@ -1,3 +1,9 @@
+# Aktuell: Ablauf geprüft und Projektaufgaben korrigiert - 27.10.2026
+
+Live-Revision lszh-crm-v2-00145-kud (100 %). Projektaufgaben berücksichtigen jetzt sämtliche tatsächlichen Startvoraussetzungen, einschliesslich Startdatum und Verantwortlichkeit. Dashboard-Darstellung bleibt unverändert. 539 CRM-Tests einschliesslich zusammenhängendem lokalen Lebenszyklus sowie beide GitHub-Prüfungen erfolgreich. 82 Laufzeitdateien verglichen, nur cockpit-summary.js geändert; Konfiguration unverändert. Rein lesender CRM-Abgleich: Verknüpfungen konsistent, Online-Annahmen bestätigt und archiviert, Rechnung 1005 mit Versandnachweis; Offerte 1003 weiterhin ohne Zuordnung. Offene fachliche Eingaben und Grenzen der monatlichen Abrechnung im [Ablaufbericht](LSZH_CUSTOMER_FLOW_AUDIT_20261027.md). Keine Kundendaten-, Versand-, Zahlungs- oder Make-Änderungen. [Live-Nachweis](../releases/project-task-readiness-live-20261027.json) - [PR 45](https://github.com/lszh-automations/lszh-automations-site/pull/45).
+
+---
+
 # Aktuell: Dashboard nur mit persönlichen Aufgaben - 27.10.2026
 
 Live-Revision lszh-crm-v2-00143-yeh, 100 % Verkehr. Das Dashboard zeigt nur konkrete Aktionen für Lars: Kunde/Referenz, Aktion, Öffnen. Keine Kennzahlen, Diagramme, Ansichtswechsel oder Wartevorgänge. Erledigte Aufgaben verschwinden nach Aktualisierung aus den Fachdaten. Vollständiger serverseitiger Scan; zukünftige Wiedervorlagen, frischer Versand und siebentägige Mahnwartezeit werden berücksichtigt. Projektstatus allein erzeugt keine pauschale Aufgabe. Leere Liste und Ladefehler werden unterschieden.

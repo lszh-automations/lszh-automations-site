@@ -158,6 +158,11 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-list th,.invoice-list td{padding:13px 14px;vertical-align:middle}
 .invoice-list th:first-child{width:75px}.invoice-list th:nth-child(2){width:27%}.invoice-list th:nth-child(3){width:23%}.invoice-list th:nth-child(4){width:135px}.invoice-list th:nth-child(5){width:115px}.invoice-list th:nth-child(6){width:110px}.invoice-list th:last-child{width:80px}
 .invoice-list td:nth-child(2){overflow-wrap:anywhere}.invoice-list-amount,.invoice-list .badge{white-space:nowrap}
+.invoice-due-badge{display:inline-flex;white-space:nowrap;padding:4px 7px;border-radius:99px;border:1px solid #29624c;background:#15362c;color:#8ce5bc;font-size:11px;font-weight:650}
+.invoice-due-badge.soon{border-color:#926534;background:#453019;color:#ffd18a}
+.invoice-due-badge.overdue{border-color:#95505d;background:#44232e;color:#ffacb3}
+.invoice-due-badge.neutral{border-color:var(--border);background:#172231;color:var(--muted)}
+
 @media(max-width:600px){.invoice-details{margin:12px 16px}.invoice-footer{padding:12px;gap:7px}.invoice-footer .btn{padding:10px 12px;font-size:13px}.invoice-payments-history div{flex-wrap:wrap}.invoice-dialog .project-onboarding{margin:12px 16px}}
 
 
@@ -716,6 +721,7 @@ const LEAD_URGENCY_LABELS={
   red:'Rot: 16 Stunden oder älter'
 };
 function refreshLeadAges(){
+  if(typeof refreshInvoiceDueBadges==='function')refreshInvoiceDueBadges();
   // Due dates are based on the Swiss-local calendar day, not UTC. Refresh
   // the dashboard once when the day changes, without additional API traffic.
   if(typeof state!=='undefined' && typeof lastFollowUpDay!=='undefined' &&
@@ -767,6 +773,21 @@ function invoiceDueInfo(invoice,today=localDateKey()){
     return {kind:'open',remaining};
   const days=Math.round((dueMs-todayMs)/86400000);
   return {kind:days<0?'overdue':days<=7?'soon':'open',remaining,days};
+}
+function invoiceDueBadge(invoice,badge=el('span'),today=localDateKey()){
+  const info=invoiceDueInfo(invoice,today);
+  const value=invoice?.dueDate,ms=typeof value==='string'?Date.parse(value+'T12:00:00Z'):NaN;
+  const valid=/^\d{4}-\d{2}-\d{2}$/.test(value||'')&&Number.isFinite(ms)&&new Date(ms).toISOString().slice(0,10)===value;
+  const tone=Number.isFinite(info.days)?info.kind:'neutral';
+  badge.className='invoice-due-badge '+tone;
+  badge.textContent=valid?new Intl.DateTimeFormat('de-CH',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(ms)):(value||'–');
+  const reason=tone==='overdue'?'Überfällig':tone==='soon'?(info.days===0?'Heute fällig':'Fällig in '+info.days+' Tagen'):tone==='open'?'Fällig in mehr als 7 Tagen':!valid?'Kein gültiges Fälligkeitsdatum':info.kind==='closed'?'Keine offene fällige Forderung':'Fälligkeit nicht bestimmbar';
+  badge.title=reason;badge.setAttribute('aria-label',badge.textContent+' – '+reason);
+  badge.dataset.invoiceDue='true';badge._invoiceDueRecord=invoice;
+  return badge;
+}
+function refreshInvoiceDueBadges(){
+  document.querySelectorAll('[data-invoice-due]').forEach(badge=>invoiceDueBadge(badge._invoiceDueRecord,badge));
 }
 function invoiceDueTotals(invoices,today=localDateKey()){
   const result={overdueCount:0,overdueCents:0,soonCount:0,soonCents:0};
@@ -1315,12 +1336,12 @@ function render(){
         const next=el('div','',projectNextStep(rec));next.style.cssText='max-width:290px;font-size:13px;line-height:1.5';td.append(next);
       }
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
-      else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
+      else if(key==='dueDate'&&state.tab==='rechnungen'){td.append(invoiceDueBadge(rec));}
+      else if(key==='dueDate' && state.tab==='projekte'){
         td.textContent=rec.dueDate&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dueDate)
           ?new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(rec.dueDate+'T12:00:00'))
           :(rec.dueDate||'–');
         if(state.tab==='projekte'&&projectIsOverdue(rec))td.append(el('span','project-overdue','Überfällig'));
-        if(state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey())td.append(el('span','project-overdue','Überfällig'));
       }
       else td.textContent=valueText(key,rec[key]);
       row.append(td);

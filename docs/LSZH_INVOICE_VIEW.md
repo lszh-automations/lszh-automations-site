@@ -17,3 +17,9 @@ Validierung: 493 CRM-Tests; Desktop/Mobilgerät mit künstlichen Daten und gespe
 ## Live-Nachweis
 
 CRM-Version `lszh-crm-v2-00119-niz`, 100 % Verkehr. Rückkehrversion: `lszh-crm-v2-00117-bof`. Beide GitHub-Prüfungen erfolgreich; alle 80 Laufzeitdateien bestätigt, ausschliesslich public/index.html geändert. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich, anonyme Rechnungs-/Prüfabfragen HTTP 401. Keine Kundendatenänderung, Zahlung, Mail oder Dokumentänderung. [Nachweis](../releases/simple-invoices-live-20261027.json), [PR 33](https://github.com/lszh-automations/lszh-automations-site/pull/33).
+
+## Ampel bei Fällig am
+
+Offene und teilbezahlte Rechnungen mit Restbetrag: Datum rot bei Überfälligkeit, orange von heute bis einschliesslich sieben Tage vor Fälligkeit, grün ab acht Tagen. Bezahlte, stornierte und Entwurfsrechnungen sowie vollständig beglichene Rechnungen und fehlende/ungültige Daten bleiben neutral. Tooltip und zugänglicher Text erklären die Einstufung. Dieselbe Kalendertagsberechnung wie Fälligkeitsfilter und Übersicht; die bestehende Minutenaktualisierung hält die Farbanzeige auch bei Tageswechsel aktuell, ohne Serverzugriff oder Speicherung.
+
+Geprüft: 493 CRM-Tests sowie Desktop/Mobilgerät mit zwölf künstlichen Rechnungsvarianten, Grenzen gestern/heute/1/7/8 Tage, Teilzahlung, Bezahlt/Storniert/Entwurf, vollständige Zahlung, fehlendes/ungültiges Datum, Tageswechsel und Zeitumstellung.

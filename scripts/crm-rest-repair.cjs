@@ -27,7 +27,7 @@ function createRestDb({projectId,token,emulatorHost,fetchImpl=fetch}={}){
   try{return snapshot(this,await call('/'+this.path));}catch(e){if(e.status===404)return snapshot(this,null);throw e;}
  }};}
  const collection=name=>{
-  if(!/^lszh_crm_v2_(?:staging_)?(?:kunden|offerten|projekte|rechnungen|_meta)$/.test(name))throw Error('Unapproved collection');
+  if(!/^lszh_crm_v2_(?:staging_)?(?:kunden|leads|offerten|projekte|rechnungen|_meta)$/.test(name))throw Error('Unapproved collection');
   return {doc:id=>doc(name,id),where:(field,operator,value)=>{
    if(operator!=='==')throw Error('Only exact queries permitted');let limit=2;
    const query={limit:n=>{limit=n;return query;},async get(transaction){const rows=await call(':runQuery',{structuredQuery:{from:[{collectionId:name}],where:{fieldFilter:{field:{fieldPath:field},op:'EQUAL',value:encode(value)}},limit},...(transaction?{transaction}:{})});const docs=rows.filter(r=>r.document).map(r=>{const id=r.document.name.split('/').at(-1);return snapshot(doc(name,id),r.document);});return {docs,empty:!docs.length};}};return query;

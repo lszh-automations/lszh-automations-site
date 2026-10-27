@@ -176,6 +176,39 @@ function buildStore(db,prefix){
     const snap=await tx.get(col('projekte').doc(id));
     if(!snap.exists)throw err('Projekt nicht gefunden');return snap;
   };
+  // Automatic matching is deliberately stricter than a company-name search.
+  async function matchingCustomer(tx,lead,rejectAmbiguous=false){
+    if(!lead?.email||!lead?.company)return null;
+    const matches=await tx.get(col('kunden').where('email','==',norm(lead.email)).limit(2));
+    if(matches.docs.length>1&&rejectAmbiguous)throw err('Mehrere Kunden mit derselben E-Mail: Kunde vor Auftragsannahme eindeutig zuordnen',409);
+    if(matches.docs.length!==1)return null;
+    const row=matches.docs[0];
+    return norm(row.data().company).replace(/\s+/g,' ')===norm(lead.company).replace(/\s+/g,' ')?row:null;
+  }
+  async function linkCustomer(table,id,user,expectedCustomerId=''){
+    if(table!=='offerten')throw err('Zuordnungsprüfung nur für Offerten',400);
+    const ref=col(table).doc(id),date=now();
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);if(!snap.exists)throw err('Offerte nicht gefunden',404);
+      const row=snap.data();if(row.customerId)return;
+      if(['sending','manual_review'].includes(row.offerDispatchState))throw err('Versand zuerst abschliessen oder klären',409);
+      const lead=row.leadId?await tx.get(col('leads').doc(row.leadId)):null;
+      const customer=lead?.exists?await matchingCustomer(tx,lead.data()):null;
+      if(!customer)throw err('Keine eindeutige Kundenzuordnung über E-Mail und Firma',409);
+      if(expectedCustomerId&&customer.id!==expectedCustomerId)throw err('Kundenzuordnung seit der Prüfung geändert',409);
+      tx.update(ref,audit({customerId:customer.id},user,date));
+    });
+    return get(table,id);
+  }
+  async function customerRelated(id,table,cursor=''){
+    if(!['offerten','rechnungen','projekte'].includes(table))throw err('Ungültiges Kundenregister');
+    if(typeof cursor!=='string'||(cursor&&!/^[A-Za-z0-9_-]{1,100}$/.test(cursor)))throw err('Ungültiger Seitenzeiger');
+    const customer=await get('kunden',id);if(!customer)throw err('Kunde nicht gefunden',404);
+    let query=col(table).where('customerId','==',id);
+    if(cursor){const last=await col(table).doc(cursor).get();if(!last.exists||last.data().customerId!==id)throw err('Seitenzeiger veraltet – bitte Kundenübersicht neu laden',409);query=query.startAfter(last);}
+    const snap=await query.limit(51).get(),rows=snap.docs.slice(0,50);
+    return {customer,table,records:rows.map(toObject),hasMore:snap.docs.length>50,nextCursor:snap.docs.length>50?rows.at(-1).id:null};
+  }
   async function withCustomerNumbers(table,records){
     if(!['offerten','projekte','rechnungen'].includes(table))return records;
     const ids=[...new Set(records.map(r=>r.customerId).filter(Boolean))],customers=new Map();
@@ -206,8 +239,7 @@ function buildStore(db,prefix){
     const custRef=offer.customerId?col('kunden').doc(offer.customerId):null;
     const knownCustomer=custRef?await tx.get(custRef):null;
     let customer=knownCustomer?.exists?knownCustomer:null;
-    if(!customer&&lead?.email)customer=await queryOne(tx,'kunden','email',lead.email);
-    if(!customer&&lead?.company)customer=await queryOne(tx,'kunden','company',lead.company);
+    if(!customer)customer=await matchingCustomer(tx,lead,true);
     const project=await queryOne(tx,'projekte','offerId',offerRef.id);
     const customerRef=customer?.ref||col('kunden').doc(keyId('lead-',leadRef?.id||offerRef.id));
     const projectRef=project?.ref||col('projekte').doc(keyId('offer-',offerRef.id));
@@ -460,11 +492,12 @@ function buildStore(db,prefix){
       if(table==='leads'){
         let counter=null;
         if(input.status==='Qualifiziert')counter=await nextSequence(tx,'offer');
+        const matching=input.status==='Qualifiziert'?await matchingCustomer(tx,input):null;
         tx.create(ref,newRecord({...input,...freezeLeadUrgency({status:'Neu'},input.status,date)},user,date));
         if(counter){
           const offerRef=col('offerten').doc(keyId('lead-',ref.id));
           const offer=newRecord({
-            number:String(counter.next),leadId:ref.id,customerId:'',
+            number:String(counter.next),leadId:ref.id,customerId:matching?.id||'',
             title:'Automation für '+input.company,
             description:'',items:[],oneTimeCHF:0,monthlyCHF:0,
             validUntil:'',status:'Entwurf'
@@ -479,29 +512,34 @@ function buildStore(db,prefix){
           throw err('Lead zuerst qualifizieren');
         if(input.leadId&&await queryOne(tx,'offerten','leadId',input.leadId))
           throw err('Für diesen Lead existiert bereits eine Offerte');
-        await assertCustomer(tx,input.customerId);
+        const matched=!input.customerId&&lead?.exists?await matchingCustomer(tx,lead.data()):null;
+        const customerId=input.customerId||matched?.id||'';
+        await assertCustomer(tx,customerId);
         const counter=await nextSequence(tx,'offer');
         tx.set(counter.reference,{next:counter.next+1},{merge:true});
-        tx.create(ref,newRecord({...input,number:String(counter.next)},user,date));
+        tx.create(ref,newRecord({...input,customerId,number:String(counter.next)},user,date));
       }
       if(table==='projekte'){
         if(input.status==='In Arbeit')throw err('Projekt zuerst vorbereiten und über «Projekt starten» beginnen',409);
-        await assertCustomer(tx,input.customerId);
-        await acceptedOffer(tx,input.offerId);
+        const offer=await acceptedOffer(tx,input.offerId);
+        const customerId=input.customerId||offer?.data().customerId||'';
+        if(offer?.data().customerId&&customerId!==offer.data().customerId)throw err('Projekt und Offerte müssen denselben Kunden haben',409);
+        await assertCustomer(tx,customerId);
         if(input.offerId&&await queryOne(tx,'projekte','offerId',input.offerId))
           throw err('Diese Offerte ist bereits einem Projekt zugeordnet');
-        tx.create(ref,newRecord({...input,tasks:input.tasks||[],onboarding:input.onboarding||defaultOnboarding()},user,date));
+        tx.create(ref,newRecord({...input,customerId,tasks:input.tasks||[],onboarding:input.onboarding||defaultOnboarding()},user,date));
       }
       if(table==='rechnungen'){
-        await assertCustomer(tx,input.customerId);
         const project=await assertProject(tx,input.projectId);
-        if(project?.data().customerId && input.customerId!==project.data().customerId)
+        const customerId=input.customerId||project?.data().customerId||'';
+        await assertCustomer(tx,customerId);
+        if(project?.data().customerId && customerId!==project.data().customerId)
           throw err('Projekt und Rechnung müssen denselben Kunden haben');
-        validateInvoice(input,null);
+        validateInvoice({...input,customerId},null);
         if(!input.invoiceDate)input.invoiceDate=docDate();
         const counter=await nextSequence(tx,'invoice');
         tx.set(counter.reference,{next:counter.next+1},{merge:true});
-        tx.create(ref,newRecord({...input,number:'RE-'+counter.next},user,date));
+        tx.create(ref,newRecord({...input,customerId,number:'RE-'+counter.next},user,date));
       }
     });
     const saved=await ref.get();
@@ -554,8 +592,9 @@ function buildStore(db,prefix){
             // Manual/old ID collision guard; do not overwrite.
             const occupied=await tx.get(offerRef);
             if(occupied.exists)throw err('Offerten-Verknüpfung bereits vorhanden',409);
+            const matching=await matchingCustomer(tx,merged);
             const newOffer=newRecord({
-              number:String(counter.next),leadId:id,customerId:'',
+              number:String(counter.next),leadId:id,customerId:matching?.id||'',
               title:'Automation für '+merged.company,description:'',
               items:[],oneTimeCHF:0,monthlyCHF:0,validUntil:'',status:'Entwurf'
             },user,date);
@@ -1036,6 +1075,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {customerRelated,linkCustomer,startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

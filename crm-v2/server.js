@@ -209,6 +209,11 @@ async function handler(req,res){
   if(req.method==='GET'&&pathname==='/api/cockpit/summary'){
     return reply(res,200,{summary:await getCockpitSummary()});
   }
+  const customerRelatedPath=pathname.match(/^\/api\/records\/kunden\/([A-Za-z0-9_-]{1,100})\/related$/);
+  if(customerRelatedPath){
+    if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});
+    return reply(res,200,await store.customerRelated(customerRelatedPath[1],url.searchParams.get('table')||'',url.searchParams.get('cursor')||''));
+  }
   const invoiceReviewPath=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/readiness$/);
   if(invoiceReviewPath){
     if(req.method!=='GET')return reply(res,405,{error:'method_not_allowed'});

@@ -75,3 +75,21 @@ test('concurrent project starts persist one audit and leave linked commercial re
  await b.store.startProject(id,user);assert.deepEqual((await ref.get()).data(),paused);
  assert.deepEqual(await a.store.get('offerten',offer.id),accepted);assert.deepEqual(await a.store.get('rechnungen',invoice.id),invoice);
 });
+
+
+
+test('real customer relations include legacy records on all pages; exact REST backfill preserves sent data',async()=>{
+ const a=setup(),customer=await a.store.create('kunden',{company:'TEST_ONLY relations '+randomUUID(),email:randomUUID()+'@example.invalid'},user);
+ const key=randomUUID().replace(/-/g,''),leadId='rel_lead_'+key,offerId='rel_offer_'+key;
+ await a.db.collection(prefix+'leads').doc(leadId).set({email:customer.email,company:customer.company,status:'Qualifiziert'});
+ const offer={title:'TEST_ONLY sent',number:'TEST-201',leadId,status:'Versendet',customerId:'',offerSnapshotSha256:'unchanged'};
+ await a.db.collection(prefix+'offerten').doc(offerId).set(offer);
+ const restStore=buildStore(createRestDb({projectId,emulatorHost:'127.0.0.1:8788'}),prefix);
+ await restStore.linkCustomer('offerten',offerId,user);
+ const saved=(await a.db.collection(prefix+'offerten').doc(offerId).get()).data();assert.equal(saved.customerId,customer.id);assert.equal(saved.offerSnapshotSha256,'unchanged');assert.equal(saved.status,'Versendet');
+ await restStore.linkCustomer('offerten',offerId,user);assert.deepEqual((await a.db.collection(prefix+'offerten').doc(offerId).get()).data(),saved);
+ await Promise.all(Array.from({length:115},(_,i)=>a.db.collection(prefix+'projekte').doc('rel_'+key+'_'+String(i).padStart(3,'0')).set({title:'TEST_ONLY legacy',customerId:customer.id,status:'Geplant'})));
+ let cursor='',ids=[];do{const page=await a.store.customerRelated(customer.id,'projekte',cursor);ids.push(...page.records.map(r=>r.id));cursor=page.nextCursor;}while(cursor);
+ assert.equal(ids.length,115);assert.equal(new Set(ids).size,115);
+ const related=await a.store.customerRelated(customer.id,'offerten');assert.equal(related.records.length,1);assert.equal(related.records[0].id,offerId);
+});

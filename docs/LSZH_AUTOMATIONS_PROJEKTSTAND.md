@@ -1,3 +1,11 @@
+# Aktuell: Vier Standardaufgaben für neue Projekte - 27.10.2026
+
+Live-Revision lszh-crm-v2-00149-def (100 %). Neue Projekte aus Auftragsannahme oder manueller Erfassung erhalten vier offene Aufgaben: Automation einrichten; Gesamten Ablauf testen; Kundenabnahme einholen; Übergeben und Betrieb klären. Aufgaben bleiben bearbeitbar/entfernbar. Bestehende und ausdrücklich eigene/leere Listen unverändert; wiederholte Auftragsübernahme setzt nichts zurück. Vorlage ergänzen verwendet dieselben vier Titel ohne identische Doppeleinträge. Umfangsklärung entfällt, da vor Offerte erledigt. Vorbereitung, Make, Rechnungen und Monatsabrechnung unverändert.
+
+548 CRM-Tests, Desktop/Mobil und beide GitHub-Prüfungen erfolgreich. Alle 83 Laufzeitdateien bytegleich verglichen; drei gezielte Änderungen, Konfiguration unverändert. Keine Produktionsprojekte für Tests angelegt und keine vorhandenen Aufgaben geändert. [Bedienung](LSZH_PROJECT_STANDARD_TASKS.md) - [Live-Nachweis](../releases/project-standard-tasks-live-20261027.json) - [PR 47](https://github.com/lszh-automations/lszh-automations-site/pull/47).
+
+---
+
 # Aktuell: Monatliche Rechnungsentwürfe - 27.10.2026
 
 Live-Revision lszh-crm-v2-00147-roj (100 %). Im Projekt monatliche Abrechnung separat aktivieren: bestätigter Beginn ab heute, erster Leistungsmonat immer der nächste volle Kalendermonat, kein anteiliger erster Monat. Nur prüfbare Entwürfe ohne automatischen Versand. Vorschau und Pflichtprüfung bestehender/externer Rechnungen; Pause und Wiederaufnahme separat. Projektabschluss beendet Monatsleistungen nicht automatisch. Transaktionaler Dublettenschutz je Offerte/Monat; nachgeholte Leistungen mit tatsächlichem Erstellungsdatum, Fälligkeit zur Prüfung leer.

@@ -12,6 +12,7 @@ const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,freezeLeadUrgency}=require('./lead-contact');
 const {normalizeDispatchInput,normalizeFollowUpInput,checkReadyForDispatch,offerDisplayStatus}=require('./offer-tracking');
 
+const {activeReminder,paymentDuringReminder,reminderPreview}=require('./invoice-reminder');
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
 const STATUS={
   leads:LEAD_STATES,
@@ -663,6 +664,7 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='rechnungen'){
+        paymentDuringReminder(before,date);
         if(before.source==='offer_acceptance'&&(merged.customerId!==before.customerId||merged.projectId!==before.projectId))
           throw err('Kunde und Projekt eines automatischen Auftragsentwurfs dürfen nicht geändert werden',409);
         if(isInvoiceLocked(before)||before.status==='Teilbezahlt'||(before.paymentHistory||[]).length)
@@ -701,6 +703,7 @@ function buildStore(db,prefix){
           throw err('Buchungs-ID wurde bereits mit anderen Zahlungsdaten verwendet',409);
         return; // Exact duplicate: no second payment is posted.
       }
+      paymentDuringReminder(before,date);
       if(!['Offen','Teilbezahlt'].includes(before.status)||before.invoiceDispatchState!=='confirmed')
         throw err('Zahlung nur auf offenem, nachweislich versendetem Beleg erfassen',409);
       if(history.length>=100)throw err('Maximal 100 Zahlungseinträge pro Rechnung',409);
@@ -745,6 +748,7 @@ function buildStore(db,prefix){
         if(payment.reversalId===payload.reversalId&&payment.voidReason===reason)return;
         throw err('Zahlung wurde bereits korrigiert',409);
       }
+      paymentDuringReminder(before,date);
       if(!['Bezahlt','Teilbezahlt'].includes(before.status)||before.invoiceDispatchState!=='confirmed')
         throw err('Keine korrigierbare Zahlung auf dieser Rechnung',409);
       const amended=history.map((p,i)=>i===index?{...p,
@@ -774,6 +778,7 @@ function buildStore(db,prefix){
       const snap=await tx.get(ref);
       if(!snap.exists)throw err('Rechnung nicht gefunden',404);
       const invoice=snap.data();
+      if(activeReminder(invoice))throw err('Erinnerungsversand zuerst im Postfach klären',409);
       const previous=Array.isArray(invoice.reminderHistory)?invoice.reminderHistory:[];
       const replay=previous.find(item=>item.reminderId===payload.reminderId);
       if(replay){
@@ -802,6 +807,49 @@ function buildStore(db,prefix){
       },user,date));
     });
     return toObject(await ref.get());
+  }
+
+  async function invoiceReminderPreview(id){
+    const invoice=await get('rechnungen',id),customer=invoice?.customerId?await get('kunden',invoice.customerId):null;
+    return reminderPreview(invoice,customer,now());
+  }
+  async function claimInvoiceReminder(id,input,user){
+    if(!input||input.reviewed!==true||Object.keys(input).some(k=>!['reviewed','sha256','reminderId'].includes(k))||!/^[a-f0-9]{64}$/.test(input.sha256||'')||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.reminderId||''))throw err('Vorschau und Empfänger ausdrücklich prüfen',400);
+    const ref=col('rechnungen').doc(id),date=now();let claimed;
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);if(!snap.exists)throw err('Rechnung nicht gefunden',404);const invoice=snap.data();
+      const done=(invoice.reminderHistory||[]).find(x=>x.reminderId===input.reminderId);
+      if(done){if(done.previewSha256!==input.sha256)throw err('Mahn-ID bereits anders verwendet',409);claimed={replay:true,record:{id,...invoice}};return;}
+      if(invoice.reminderDispatch?.reminderId===input.reminderId)throw err('Versuch bereits reserviert; Stand neu laden',409);
+      const customer=invoice.customerId?await tx.get(col('kunden').doc(invoice.customerId)):null;
+      const project=invoice.projectId?await tx.get(col('projekte').doc(invoice.projectId)):null;
+      const preview=reminderPreview(invoice,customer?.data(),date);if(preview.sha256!==input.sha256)throw err('Vorschau veraltet. Restbetrag und Empfänger neu prüfen.',409);
+      const dispatch={state:'sending',reminderId:input.reminderId,kind:preview.kind,recipient:preview.recipient,outstandingCHF:preview.amountCHF,previewSha256:preview.sha256,claimedAt:date,by:user.email};
+      tx.update(ref,audit({reminderDispatch:dispatch},user,date));claimed={reminderId:input.reminderId,preview,invoice:{id,...invoice},customer:customer.data(),project:project?.exists?project.data():null};
+    });return claimed;
+  }
+  async function finishInvoiceReminder(id,reminderId,state,messageId,user){
+    if(!['confirmed','manual_review','not_sent'].includes(state))throw err('Ungültiger Erinnerungsstatus');
+    const ref=col('rechnungen').doc(id),date=now();
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);if(!snap.exists)throw err('Rechnung nicht gefunden',404);const invoice=snap.data(),d=invoice.reminderDispatch;
+      if(d?.reminderId!==reminderId)throw err('Versandversuch stimmt nicht überein',409);
+      if(d.state==='confirmed'&&state==='confirmed')return;
+      if(!['sending','manual_review'].includes(d.state))throw err('Versand bereits abgeschlossen',409);
+      const updates={reminderDispatch:{...d,state,messageId:messageId||'',finishedAt:date}};
+      if(state==='confirmed'){
+        const previous=invoice.reminderHistory||[];
+        if(previous.length>=3||previous.some(x=>x.reminderId===reminderId))throw err('Mahnprotokoll bereits abgeschlossen',409);
+        updates.reminderHistory=[...previous,{reminderId,kind:d.kind,at:date,by:d.by,recipient:d.recipient,outstandingCHF:d.outstandingCHF,delivery:messageId?'gmail_confirmed':'operator_confirmed_mailbox',messageId:messageId||'',previewSha256:d.previewSha256}];updates.lastReminderAt=date;updates.lastReminderKind=d.kind;
+      }
+      if(state!=='manual_review')updates.reminderDispatchHistory=[...(invoice.reminderDispatchHistory||[]),{...updates.reminderDispatch,resolvedBy:user.email}];
+      tx.update(ref,audit(updates,user,date));
+    });return get('rechnungen',id);
+  }
+  async function resolveInvoiceReminder(id,resolution,user){
+    if(!['confirmed','not_sent'].includes(resolution))throw err('Ungültige Klärung');const invoice=await get('rechnungen',id),d=invoice?.reminderDispatch;
+    if(!d||!activeReminder(invoice)||d.state==='sending'&&Date.now()-Date.parse(d.claimedAt)<300000)throw err('Versand läuft oder ist bereits geklärt',409);
+    return finishInvoiceReminder(id,d.reminderId,resolution,'',user);
   }
 
   // Exactly-once claim: the offer sender uses the same transaction-first pattern.
@@ -1075,6 +1123,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {customerRelated,linkCustomer,startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {invoiceReminderPreview,claimInvoiceReminder,finishInvoiceReminder,resolveInvoiceReminder,customerRelated,linkCustomer,startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

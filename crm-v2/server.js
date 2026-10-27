@@ -312,6 +312,17 @@ async function handler(req,res){
     if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
     return reply(res,200,{record:await store.reverseInvoicePayment(invoicePaymentReverse[1],await json(req),user)});
   }
+  const reminderMail=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/reminder-mail(?:\/(send|resolve))?$/);
+  if(reminderMail){
+    if(!invoiceSenderStatus.enabled||invoiceSenderConfig.mode!=='production')return reply(res,503,{error:'Erinnerungsversand nicht freigegeben'});
+    const {createReminderSender}=require('./invoice-reminder'),sender=createReminderSender(store,invoiceSenderConfig),id=reminderMail[1],action=reminderMail[2];
+    if(!action&&req.method==='GET')return reply(res,200,await sender.preview(id));
+    if(req.method!=='POST'||!action)return reply(res,405,{error:'method_not_allowed'});
+    if(!req.headers.origin||!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const input=await json(req);
+    if(action==='resolve'){if(Object.keys(input).some(k=>k!=='resolution'))return reply(res,400,{error:'invalid_resolution'});return reply(res,200,{record:await store.resolveInvoiceReminder(id,input.resolution,user)});}
+    return reply(res,200,await sender.send(id,input,user));
+  }
   // Human-confirmed external reminder log. Absolutely no outgoing mail here.
   const invoiceReminder=pathname.match(/^\/api\/records\/rechnungen\/([A-Za-z0-9_-]{1,100})\/reminders$/);
   if(invoiceReminder){

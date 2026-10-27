@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Zahlungserinnerungen mit Versandvorschau, 27.10.2026
+
+CRM **`lszh-crm-v2-00127-nam`** erhält 100 % Verkehr. Rechnung > Zahlungserinnerungen und Verlauf > Erinnerung prüfen und senden zeigt Empfänger, Betreff, offenen Restbetrag und Mailvorschau. Nach Prüfcheckbox und bewusster Bestätigung wird die ursprüngliche Rechnung mitgeschickt; Versand, Mahnstufe und Gmail-Nachweis werden automatisch protokolliert. Teilzahlungen werden im Text berücksichtigt. Bestehende drei Mahnstufen und sieben Tage Abstand bleiben. Unklarer Versand verlangt Postfachprüfung und verhindert Wiederholung; keine automatische Erinnerung, neue Rechnung oder Zahlungsbuchung.
+
+502 CRM-Tests, 42 lokale Firestore-Tests, vollständiger Geschäftsablauf mit Desktop/Mobilgerät und GitHub Production baseline verification erfolgreich. Zusätzlicher CRM-Staging-Check wartet auf einen GitHub-Runner; die CRM-Tests sind lokal vollständig bestanden. Alle 81 Laufzeitdateien bestätigt; vier gezielt geänderte/neue Dateien. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich, neue API anonym HTTP 401. Bestehendes Make-Gateway 8144117 rein lesend geprüft und unverändert genutzt. Kein Szenario bearbeitet, ausgeführt oder auf Test umgestellt. Keine echte Mail und keine Kundendatenänderung durch Prüfung oder Übernahme. Offerte 1003 weiterhin ohne Zuordnung. Lokaler Demo-Emulator beendet.
+
+[Bedienung und Grenzen](LSZH_INVOICE_REMINDER_MAIL.md) - [Live-Nachweis](../releases/invoice-reminder-mail-live-20261027.json) - [PR 36](https://github.com/lszh-automations/lszh-automations-site/pull/36).
+
+---
+
 # Aktiver Live-Stand - Vereinfachte Kundenansicht, 27.10.2026
 
 CRM **`lszh-crm-v2-00125-tuh`** erhält 100 % Verkehr. Kontaktangaben kompakt unter Firma/Kundennummer. Projekte, Rechnungen und Offerten zeigen laufende Einträge zuerst; abgeschlossene Projekte, bezahlte/stornierte Rechnungen und übernommene/abgelehnte Offerten sind aufklappbar. Offene Rechnungen zeigen Restbetrag und bestehende Fälligkeitsampel. Ausstehende Online-Bestätigungen und Auftragsübernahmen bleiben sichtbar. Ein älteres Datum allein versteckt keinen offenen Vorgang.

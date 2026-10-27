@@ -1,3 +1,11 @@
+# Aktiver Live-Stand - Rechnungen mit Fälligkeitsampel, 27.10.2026
+
+CRM **`lszh-crm-v2-00121-keq`** erhält 100 % Verkehr. Die vereinfachte Rechnungsansicht zeigt das Fälligkeitsdatum offener/teilbezahlter Rechnungen mit Restbetrag rot bei Überfälligkeit, orange für heute bis einschliesslich sieben Tage und grün ab acht Tagen. Bezahlte, stornierte und Entwurfsrechnungen, vollständig beglichene Forderungen sowie fehlende/ungültige Daten bleiben neutral. Tooltip und zugänglicher Text erklären die Einstufung. Aktualisierung über den bestehenden Minutentakt, keine zusätzlichen API-Aufrufe oder Datenänderungen.
+
+493 CRM-Tests, beide GitHub-Prüfungen und zwölf künstliche Desktop-/Mobilvarianten einschliesslich Grenztagen, Tageswechsel und Zeitumstellung erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur public/index.html geändert. Konfiguration unverändert, Live-HTML bytegleich und Prüf-Endpunkt anonym HTTP 401. Keine Zahlung, Nachricht oder Dokumentänderung. [Bedienung](LSZH_INVOICE_VIEW.md) - [Live-Nachweis](../releases/invoice-due-colours-live-20261027.json).
+
+---
+
 # Aktiver Live-Stand - Vereinfachte Rechnungsansicht, 27.10.2026
 
 CRM **`lszh-crm-v2-00119-niz`** erhält 100 % Verkehr. Rechnungen zeigen Kunde, Beschreibung, Fälligkeit und Status im Vordergrund; gespeicherte Rechnungen ausser Entwürfen zusätzlich Gesamtbetrag, Zahlungseingänge und Restbetrag. Nächster Schritt kommt aus der bestehenden serverseitigen Prüfung. Positionen, Projekt/Rechnungsdatum, Druckansicht, Versanddetails, Buchungshistorie, Zahlungserfassung und Mahnwesen sind aufklappbar. Neue Rechnungen und Entwürfe zeigen Positionen offen. PDF, Schliessen und Speichern bleiben mobil erreichbar.

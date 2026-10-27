@@ -1,0 +1,43 @@
+{
+  "runtimeFilesVerified": 80,
+  "onlyRuntimeChange": "public/index.html",
+  "htmlSha256": "5780dd3e362ce3c13ed0abfc8b52e87ba4de86ba28fd4afb38c5cdd43189cfca",
+  "configurationUnchanged": true,
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "candidate": "lszh-crm-v2-00121-keq",
+  "candidateUrl": "https://invoice-due-colours---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousReadiness": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793119204.161392-b4b9a3551765474fa4d0eb0dd24da6ff.zip#1793119206295282",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "31336d465367fff88603a4c26edf8ab3f9af22ca",
+  "parentRelease": "simple-invoices-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00121-keq",
+  "rollback": "lszh-crm-v2-00119-niz",
+  "trafficPercent": 100,
+  "crmTests": 493,
+  "browserDesktopMobile": "12 synthetic variants; yesterday/today/1/7/8 days, payment states, invalid/missing dates, midnight and DST passed",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40543133767,
+    40543133754
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "documentsChanged": false,
+  "businessRulesChanged": false,
+  "dueColours": {
+    "red": "overdue",
+    "orange": "0 through 7 days inclusive",
+    "green": "8 or more days",
+    "neutral": "draft, settled, cancelled, invalid or missing date"
+  },
+  "existingMinuteTimerReused": true,
+  "websitePortalAndMakeUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/33"
+}

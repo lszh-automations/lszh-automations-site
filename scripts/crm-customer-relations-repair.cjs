@@ -2,6 +2,7 @@
 // Explicit operator-only metadata backfill. Never creates or sends commercial records.
 const fs=require('node:fs'),crypto=require('node:crypto');
 const {createRestDb}=require('./crm-rest-repair.cjs'),{buildStore}=require('../crm-v2/cloud-records');
+const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
 const normalize=x=>String(x||'').trim().toLocaleLowerCase('de-CH').replace(/\s+/g,' ');
 async function main(){
  const args=process.argv.slice(2),ids=args.filter(x=>x.startsWith('--offer-id=')).map(x=>x.slice(11)),apply=args.includes('--apply');
@@ -14,9 +15,9 @@ async function main(){
   const lead=before.leadId?await db.collection('lszh_crm_v2_leads').doc(before.leadId).get():null;
   if(!lead?.exists)throw Error('Missing lead');const person=lead.data(),rows=await db.collection('lszh_crm_v2_kunden').where('email','==',normalize(person.email)).limit(2).get();
   if(rows.docs.length!==1||normalize(rows.docs[0].data().company)!==normalize(person.company))throw Error('No unique exact email/company match');
-  const customerId=rows.docs[0].id,hash=record=>crypto.createHash('sha256').update(JSON.stringify(Object.fromEntries(Object.keys(record).filter(k=>!['customerId','updatedAt','updatedBy'].includes(k)).sort().map(k=>[k,record[k]])))).digest('hex');
+  const customerId=rows.docs[0].id,hash=record=>crypto.createHash('sha256').update(JSON.stringify(canonical(Object.fromEntries(Object.keys(record).filter(k=>!['customerId','updatedAt','updatedBy'].includes(k)).map(k=>[k,record[k]]))))).digest('hex');
   const entry={offerId:id,number:before.number,customerId,mode:apply?'applied':'dry_run',originalLinkMetadata:Object.fromEntries(['customerId','updatedAt','updatedBy'].map(k=>[k,before[k]??null])),unchangedCommercialDataSha256:hash(before)};
-  if(apply){await store.linkCustomer('offerten',id,{email:'lars@lszh-automations.ch'},customerId);const after=(await ref.get()).data();if(after.customerId!==customerId||hash(after)!==entry.unchangedCommercialDataSha256)throw Error('Unexpected repair result');entry.commercialDataUnchanged=true;}
+  if(apply){fs.writeFileSync('../live-customer-overview-20261027/backfill-progress.json',JSON.stringify({offers:[...proof,entry]},null,2));await store.linkCustomer('offerten',id,{email:'lars@lszh-automations.ch'},customerId);const after=(await ref.get()).data();if(after.customerId!==customerId||hash(after)!==entry.unchangedCommercialDataSha256)throw Error('Unexpected repair result');entry.commercialDataUnchanged=true;}
   proof.push(entry);
  }
  const output={project:'lszh-automations',apply,offers:proof,emailSent:false,invoiceCreated:false};

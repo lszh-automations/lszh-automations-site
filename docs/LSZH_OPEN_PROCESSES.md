@@ -26,3 +26,11 @@ Die Auswertung liest alle CRM-Register. Bei starkem Wachstum sollte sie später 
 ## Validierung
 
 509 CRM-Tests erfolgreich. Neue fachliche Prüfungen decken 235 Leads über mehrere Registerseiten, alle offenen Status, Zukunfts-/fehlende Termine, Annahme und Übernahme, abgeschlossene Vorgänge, Teilzahlungen, ungeklärten Versand trotz Zahlung, bestehende Projektaufgaben, unbekannte Status und unveränderte Quelldaten ab. Desktop und Mobilgerät mit 242 synthetischen offenen Vorgängen geprüft: vollständige Liste trotz leerer Browserregister, Suche/Filter/Rücksetzen, direkte ältere ID samt Kunden-Nachladen, neue Projekte trotz unveränderter Leads, verspätete Antworten, leere/fehlerhafte Auswertung, kein Schreibaufruf oder externes Netzwerk.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00129-buq`, 100 % Verkehr. Alle 81 bereitgestellten Laufzeitdateien bytegleich geprüft; nur cockpit-summary.js und public/index.html geändert. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich; Gesamtauswertung ohne Anmeldung HTTP 401. Keine jüngsten Revisionsfehler. Beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00127-nam`.
+
+Bestehende Daten zusätzlich rein lesend geprüft: 20 offene Vorgänge (7 Leads, 5 Offerten, 5 Rechnungen, 3 Projekte), davon 13 ohne Termin. Dies ist eine Momentaufnahme; Anzahl verändert sich mit der Bearbeitung. Keine Kundendatenänderung oder Mail. Offerte 1003 ohne Zuordnung belassen. Make, Website und Portal unverändert.
+
+[Release-Nachweis](../releases/open-processes-live-20261027.json) - [PR 37](https://github.com/lszh-automations/lszh-automations-site/pull/37).

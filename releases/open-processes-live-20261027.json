@@ -1,0 +1,68 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "55b1277ac304c2ad032db268b6814065209ad337e87f9aa522947d7a1f79b845"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "a42de0fbb056825b8c6af33371a14f3a1ed8d0acdea14c3fc07180faf67129a5"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00129-buq",
+  "candidateUrl": "https://open-processes---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793123881.164393-d4432616e4344eef8ae28aedbf97fca7.zip#1793123883342375",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "01c228a88651a43e1636b755ed0295ca15e43ab5",
+  "parentRelease": "invoice-reminder-mail-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00129-buq",
+  "rollback": "lszh-crm-v2-00127-nam",
+  "trafficPercent": 100,
+  "crmTests": 509,
+  "browserDesktopMobile": "passed; 242 synthetic open records, no writes or external network",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40555468874,
+    40555468722
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeChanged": false,
+  "websitePortalChanged": false,
+  "productionConfigurationChanged": false,
+  "offer1003AssignmentUnchanged": true,
+  "readOnlyLiveDataCheck": {
+    "checkedAt": "2026-10-27T17:58:44.901Z",
+    "readOnly": true,
+    "counts": {
+      "leads": 10,
+      "kunden": 1,
+      "offerten": 8,
+      "rechnungen": 5,
+      "projekte": 3
+    },
+    "openProcesses": 20,
+    "openByTable": {
+      "leads": 7,
+      "offerten": 5,
+      "rechnungen": 5,
+      "projekte": 3
+    },
+    "missingDates": 13,
+    "unresolvedDelivery": 0,
+    "previewCap": false,
+    "customerDataChanged": false,
+    "emailSent": false
+  },
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/37"
+}

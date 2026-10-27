@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Alle offenen Vorgänge im Dashboard, 27.10.2026
+
+CRM **`lszh-crm-v2-00129-buq`** erhält 100 % Verkehr. Die zentrale Arbeitsliste zeigt jeden noch offenen Lead, jede Offerte, Rechnung und jedes Projekt aus den vollständigen CRM-Registern. Auch ohne Termin, mit künftigem Termin oder beim Warten auf Kunden/Zahlungen bleibt der Vorgang sichtbar. Status, nächster Schritt, vorhandener Termin und direktes Öffnen anhand der aktuellen ID. Keine Vorschaugrenze; Suche und Bereichsfilter lassen sich mit Alle anzeigen zurücksetzen. Ungeklärte Zustellung und fehlende Auftragsübernahme bleiben sichtbar. Ergänzende bisherige Annahme-/Wiedervorlagenlisten liegen unter Auswertungen. Keine neuen Checklisten oder automatischen Aktionen.
+
+509 CRM-Tests, Desktop-/Mobilprüfung mit 242 synthetischen Vorgängen sowie beide GitHub-Prüfungen erfolgreich. Alle 81 Laufzeitdateien bestätigt; nur public/index.html und die rein lesende cockpit-summary.js geändert. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich, Gesamtauswertung anonym HTTP 401, keine jüngsten Revisionsfehler. Bestehende Daten rein lesend geprüft: aktuell 20 offene Vorgänge (7 Leads, 5 Offerten, 5 Rechnungen, 3 Projekte), 13 davon ohne Termin. Keine Datenänderung, Mail, Zahlungsbuchung oder Dokumentänderung beim Kunden. Offerte 1003 ohne Zuordnung belassen. Make, Website und Portal unverändert.
+
+[Bedienung und Abschlussregeln](LSZH_OPEN_PROCESSES.md) - [Live-Nachweis](../releases/open-processes-live-20261027.json) - [PR 37](https://github.com/lszh-automations/lszh-automations-site/pull/37).
+
+---
+
 # Aktiver Live-Stand - Zahlungserinnerungen mit Versandvorschau, 27.10.2026
 
 CRM **`lszh-crm-v2-00127-nam`** erhält 100 % Verkehr. Rechnung > Zahlungserinnerungen und Verlauf > Erinnerung prüfen und senden zeigt Empfänger, Betreff, offenen Restbetrag und Mailvorschau. Nach Prüfcheckbox und bewusster Bestätigung wird die ursprüngliche Rechnung mitgeschickt; Versand, Mahnstufe und Gmail-Nachweis werden automatisch protokolliert. Teilzahlungen werden im Text berücksichtigt. Bestehende drei Mahnstufen und sieben Tage Abstand bleiben. Unklarer Versand verlangt Postfachprüfung und verhindert Wiederholung; keine automatische Erinnerung, neue Rechnung oder Zahlungsbuchung.

@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Vereinfachte Kundenansicht, 27.10.2026
+
+CRM **`lszh-crm-v2-00125-tuh`** erhält 100 % Verkehr. Kontaktangaben kompakt unter Firma/Kundennummer. Projekte, Rechnungen und Offerten zeigen laufende Einträge zuerst; abgeschlossene Projekte, bezahlte/stornierte Rechnungen und übernommene/abgelehnte Offerten sind aufklappbar. Offene Rechnungen zeigen Restbetrag und bestehende Fälligkeitsampel. Ausstehende Online-Bestätigungen und Auftragsübernahmen bleiben sichtbar. Ein älteres Datum allein versteckt keinen offenen Vorgang.
+
+Bestehende serverseitige Kunden-ID-Abfragen, weitere Seiten, Dublettenvermeidung, Öffnen nach konkreter ID mit Kundenprüfung und Kundenvorbelegung unverändert. Auch ältere offene Einträge auf weiteren Seiten bleiben erreichbar. Keine globale Finanzsumme aus unvollständigen Seiten. Geöffneter Verlauf bleibt beim Nachladen offen. Keine automatische Änderung durch Öffnen.
+
+494 CRM-Tests, beide GitHub-Prüfungen sowie künstliche Desktop-/Mobilabläufe erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur public/index.html geändert. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich, alle drei Kundenlisten anonym HTTP 401. Keine Kundendaten-/Zuordnungsänderung, Mail, Zahlungsbuchung oder Dokumentänderung. Offerte 1003 weiterhin ohne Zuordnung. Dashboard, Rechnungsampel, Website, Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_CUSTOMER_VIEW.md) - [Live-Nachweis](../releases/simple-customers-live-20261027.json) - [PR 35](https://github.com/lszh-automations/lszh-automations-site/pull/35).
+
+---
+
 # Aktiver Live-Stand - Vereinfachtes Dashboard, 27.10.2026
 
 CRM **`lszh-crm-v2-00123-kev`** erhält 100 % Verkehr. Das Dashboard zeigt vier Kennzahlen, maximal fünf unmittelbar sichtbare dringende Kategorien und weitere Aufgaben zum Aufklappen. Priorisierte Forderungen sind direkt zu öffnen. Offerten mit Kundenannahme und ausstehender LSZH-Bestätigung bzw. Auftragsübernahme erscheinen getrennt. Fällige Rückmeldungen werden nur bei Einträgen gezeigt. Finanzdetails, Pipeline, Projektstatus, letzte Leads und interne Erinnerungsvorschauen liegen unter Auswertungen und weitere Vorgänge. Aufklappzustand bleibt bei Aktualisierung erhalten.

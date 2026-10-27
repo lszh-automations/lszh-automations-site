@@ -16,7 +16,7 @@ Für jeden fälligen Leistungsmonat wird ein nummerierter Rechnungsentwurf aus d
 
 Stabile Rechnungsidentität je angenommener Offerte und Kalenderperiode, gemeinsame Rechnungsnummernvergabe und Fortschreibung in derselben Firestore-Transaktion. Wiederholungen und konkurrierende Aufrufe erzeugen keinen zweiten Entwurf. Eine stornierte Monatsrechnung wird nicht still ersetzt. Andere Projekte/Offerten oder gleichnamige Firmen werden nicht zusammengerechnet. Manuelle oder externe Rechnungen ohne diese Periodenidentität können nicht zuverlässig automatisch erkannt werden; deshalb die verpflichtende Prüfung vor jeder Aktivierung.
 
-Ein eigener täglicher Cloud-Scheduler-Aufruf soll ausschliesslich aktivierte Pläne abarbeiten. Bestehende Make-Szenarien und Scheduler bleiben unverändert. Fehlende Perioden werden mit höchstens zwölf Perioden je Projekt und Lauf nachgeholt; weitere folgen in nachfolgenden Läufen. Vertrags-/Zuordnungsänderungen oder inaktive Kunden stoppen die Erstellung für den betroffenen Plan und erzeugen eine konkrete Prüfaufgabe. Der interne Endpunkt verwendet eine eigene konfigurierte Google-OIDC-Zielgruppe und überprüft den Scheduler-Dienstaccount, keine anonyme Ausführung.
+Ein eigener täglicher Cloud-Scheduler-Aufruf arbeitet ausschliesslich aktivierte Pläne ab, um 06:15 Uhr Europe/Zurich. Bestehende Make-Szenarien und Scheduler bleiben unverändert. Fehlende Perioden werden mit höchstens zwölf Perioden je Projekt und Lauf nachgeholt; weitere folgen in nachfolgenden Läufen. Vertrags-/Zuordnungsänderungen oder inaktive Kunden stoppen die Erstellung für den betroffenen Plan und erzeugen eine konkrete Prüfaufgabe. Der interne Endpunkt verwendet eine eigene konfigurierte Google-OIDC-Zielgruppe und überprüft den Scheduler-Dienstaccount, keine anonyme Ausführung.
 
 ## Bestandsabgleich
 
@@ -25,3 +25,9 @@ Am 27.10.2026 wurden alle 20 sichtbaren Make-Szenarien und die drei Cloud-Schedu
 ## Prüfung
 
 546 CRM-Tests; zusätzlich Emulatorprüfung konkurrierender echter Firestore-Transaktionen. Desktop und Mobil: Datums-/Betragsvorschau, verpflichtende Bestätigung, Aktivierung und Pause, unveränderter Projektstatus, kein Mailaufruf. Keine bestehenden Kundenaufträge im Rahmen der Bereitstellung aktivieren und keine Testrechnung in Produktionsdaten anlegen.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00147-roj`, 100 % Verkehr. Alle 83 Laufzeitdateien bytegleich geprüft; fünf gezielte Änderungen einschliesslich neuem monthly-billing.js. Nur zwei neue Konfigurationswerte für die Scheduler-Identität/Zielgruppe; sonstige Konfiguration, Dienstkonto und produktiver Mailversand unverändert. Alle drei bisherigen Zeitpläne und Make-Szenarien unverändert. Neuer eigener Job lszh-crm-v2-monthly-drafts, täglich 06:15 Europe/Zurich. Tatsächlicher authentifizierter Erstaufruf HTTP 200, danach rein lesend weiterhin 0 aktivierte Pläne und 0 Monatsrechnungen. Keine Testrechnung und kein Versand. Live-HTML exakt, geschützte Operator-/Scheduler-APIs anonym HTTP 401, keine jüngsten Revisionsfehler. 546 CRM-Tests, zusätzliche Firestore-Emulatorprüfung, Desktop-/Mobilprüfung und beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00145-kud`; bei Rückkehr den neuen Scheduler-Job pausieren, bestehende Jobs unverändert lassen.
+
+[Live-Nachweis](../releases/monthly-billing-live-20261027.json) - [PR 46](https://github.com/lszh-automations/lszh-automations-site/pull/46).

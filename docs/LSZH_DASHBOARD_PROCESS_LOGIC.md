@@ -23,3 +23,9 @@ Die Einordnung folgt gespeicherten Status, Verknüpfungen, Terminen und Aufgaben
 521 CRM-Tests sowie Desktop-/Mobilprüfung erfolgreich. Fachliche Fälle: Auftrag mit Projekt und paralleler Rechnung, nicht mehr erforderliche Lead-Hinweise, mehrere Aufträge desselben Kunden, widersprüchliche Verknüpfungen, fristgerechtes Warten/Nachfassen, sieben volle Tage zwischen Mahnstufen, ungeklärter Versand trotz Zahlung, vollständige Erfassung ohne Begrenzung und unveränderte Quelldaten. Browserprüfung mit leer geladenen Registern, konkreten IDs, Suche/Filter, getrennten Abschnitten sowie leerer/fehlgeschlagener Auswertung; keine Schreibaufrufe oder externen Testnachrichten.
 
 Bestehende Daten rein lesend geprüft: Momentaufnahme 21 offene Datensätze ergeben 10 Abläufe, davon 7 mit eigener Arbeit und 3 im Warten. Fünf durch bestehende Offerten überholte Lead-Hinweise entfallen; offene Projekt-/Rechnungsschritte bleiben gebündelt erhalten.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00135-nen`, 100 % Verkehr. Alle 81 Laufzeitdateien bytegleich geprüft; nur public/index.html und die rein lesende cockpit-summary.js geändert. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich; Gesamtauswertung anonym HTTP 401. Keine jüngsten Revisionsfehler. Beide GitHub-Prüfungen erfolgreich; die Datenbankprüfung wurde nach einem geschlossenen Emulator-Testtransaktionslauf erfolgreich wiederholt. Rückkehrrevision `lszh-crm-v2-00133-des`.
+
+[Release-Nachweis](../releases/dashboard-process-logic-live-20261027.json) - [PR 40](https://github.com/lszh-automations/lszh-automations-site/pull/40).

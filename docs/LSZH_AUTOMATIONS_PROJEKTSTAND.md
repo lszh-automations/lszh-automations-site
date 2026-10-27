@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Dashboard mit fachlicher Ablaufbündelung, 27.10.2026
+
+CRM **`lszh-crm-v2-00135-nen`** erhält 100 % Verkehr. Die Hauptansicht bündelt zusammengehörige Anfrage, Offerte, Projekt und Rechnung anhand konkreter Verknüpfungen je Auftrag. Eigene nächste Schritte und Warten auf Kunde/Zahlung getrennt. Durch vorhandene Offerten überholte Lead-Hinweise entfallen, explizite Lead-Aktionen bleiben. Verschiedene Aufträge desselben Kunden bleiben getrennt. Parallele Projektarbeit und offene Zahlung stehen in derselben Karte. Bisherige Zusatzkästen unter Auswertungen statt doppelter Hauptansicht. Keine Zuordnung über Firmenname/E-Mail.
+
+521 CRM-Tests, Desktop-/Mobilprüfung und beide GitHub-Prüfungen erfolgreich. Datenbankprüfung nach geschlossenem Emulator-Testtransaktionslauf erfolgreich wiederholt. Alle 81 Laufzeitdateien bytegleich bestätigt, nur Anzeige und rein lesende Auswertung geändert. Konfiguration unverändert, Live-HTML bytegleich, Gesamtauswertung anonym HTTP 401, keine jüngsten Revisionsfehler. Bestehende Daten rein lesend geprüft: 21 offene Datensätze ergeben 10 Abläufe, davon 7 mit eigener Arbeit und 3 Warten; fünf überholte Lead-Hinweise entfallen. Keine Datenänderung, Mail, Buchung oder neue Aufgabe. Offerte 1003 weiterhin ohne Kundenzuordnung; Make, Website und Portal unverändert.
+
+[Logik und Bedienung](LSZH_DASHBOARD_PROCESS_LOGIC.md) - [Live-Nachweis](../releases/dashboard-process-logic-live-20261027.json) - [PR 40](https://github.com/lszh-automations/lszh-automations-site/pull/40).
+
+---
+
 # Aktiver Live-Stand - PDFs über Dokumentnummer öffnen, 27.10.2026
 
 CRM **`lszh-crm-v2-00133-des`** erhält 100 % Verkehr. Rechnungsnummer in der Listenansicht ohne RE-/RG-Präfix; gespeicherte Nummern, PDFs und Referenzen unverändert. Klick auf verfügbare Rechnungs- und Offertennummern öffnet das private PDF in einem neuen Tab. Archivierte Offerten werden bytegleich und mit Integritäts-/Zuordnungsprüfung gelesen; nicht archivierte Offerten können als aktuelle PDF-Vorschau geöffnet werden. Rechnungsansicht auch für Teilbezahlt/Bezahlt ohne Statusänderung. Entwürfe und stornierte Rechnungen ohne Nummernlink; vorhandene Versandprüfung unverändert.

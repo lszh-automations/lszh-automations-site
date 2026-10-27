@@ -1,3 +1,9 @@
+# Aktuelle Hauptansicht: zusammenhängende Abläufe
+
+Die frühere Liste einzelner offener Datensätze ist durch Auftragsbündelung mit getrennten eigenen Schritten und Wartezeiten ersetzt. [Aktuelle Logik und Bedienung](LSZH_DASHBOARD_PROCESS_LOGIC.md). Die folgenden Angaben beschreiben den früheren Stand beziehungsweise weiterhin vorhandene Auswertungen.
+
+---
+
 # Alle offenen Vorgänge im Dashboard
 
 Stand: 27.10.2026

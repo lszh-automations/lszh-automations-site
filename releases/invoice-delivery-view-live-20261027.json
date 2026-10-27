@@ -1,0 +1,49 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "05e252dee87551dc5743f64ffa27b774cd9be76959d2dd30745f6ef214797d41"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "4a76ebc6b71c4251bef293a28ee56e20623a2042e4383d50031d06626834564d"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00131-gus",
+  "candidateUrl": "https://invoice-review-clear---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793124854.10906-8ad969cde723427bbd02c9e042dea06f.zip#1793124856306516",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "7a47014b0eb2f54c53420f3b23f8b43e430a63ed",
+  "parentRelease": "open-processes-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00131-gus",
+  "rollback": "lszh-crm-v2-00129-buq",
+  "trafficPercent": 100,
+  "crmTests": 512,
+  "browserDesktopMobile": "passed; synthetic one-rappen invoice and simulated receipt only",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40558055268,
+    40558055222
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "anonymousReadinessApi": 401,
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeChanged": false,
+  "websitePortalChanged": false,
+  "productionConfigurationChanged": false,
+  "invoice1005CheckedReadOnly": true,
+  "invoice1005Cause": "User confirmed PDF had not yet been opened; prerequisite checkbox correctly disabled",
+  "customerPdfPersisted": false,
+  "shippingAndPaymentSeparated": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/38"
+}

@@ -17,3 +17,9 @@ Rein lesende Prüfung am 27.10.2026: vollständige Rechnungs-/Kundendaten, serve
 ## Validierung
 
 512 CRM-Tests erfolgreich. Desktop und Mobilgerät mit synthetischer 1-Rappen-Rechnung: zunächst PDF-/Checkbox-Sperre mit verständlichem Hinweis, PDF-Download, Checkbox, manueller Versand mit ausschliesslich simulierter Quittung. Danach Versendet und gleichzeitig Offen sichtbar. Inhaltsänderungen und erneutes Öffnen setzen die Prüfung zurück. Keine echte Nachricht; Make-Szenarien und Versandregeln unverändert.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00131-gus`, 100 % Verkehr. Alle 81 Laufzeitdateien bytegleich geprüft; nur public/index.html und die rein lesende cockpit-summary.js geändert. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich; Rechnungsprüfung und Gesamtauswertung anonym HTTP 401. Keine jüngsten Revisionsfehler; beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00129-buq`.
+
+[Release-Nachweis](../releases/invoice-delivery-view-live-20261027.json) - [PR 38](https://github.com/lszh-automations/lszh-automations-site/pull/38).

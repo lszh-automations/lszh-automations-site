@@ -117,6 +117,62 @@ function openProcesses(data,today){
   return rows.sort((a,b)=>a.priority-b.priority||(a.date||'9999').localeCompare(b.date||'9999')||a.createdAt.localeCompare(b.createdAt)||a.table.localeCompare(b.table)||String(a.id).localeCompare(String(b.id)));
 }
 
+
+// Bundle a business flow by exact offer/project IDs, never by company or email.
+// Keep simultaneous delivery and billing work, but remove superseded lead prompts.
+function processGroups(data,today,items=openProcesses(data,today),nowMs=Date.now()){
+  const by=Object.fromEntries(TABLES.map(t=>[t,Object.fromEntries((data[t]||[]).map(r=>[r.id,r]))]));
+  const groups={},compatible=(a,b)=>!a?.customerId||!b?.customerId||a.customerId===b.customerId;
+  const activeOffers=(data.offerten||[]).filter(o=>o.status!=='Abgelehnt');
+  function anchor(item,r){
+    if(item.table==='offerten')return ['offerten',r];
+    if(item.table==='projekte'){
+      const o=by.offerten[r.offerId];return o&&compatible(r,o)?['offerten',o]:['projekte',r];
+    }
+    if(item.table==='rechnungen'){
+      const p=by.projekte[r.projectId],direct=by.offerten[r.offerId],via=p&&by.offerten[p.offerId];
+      if(p&&!compatible(r,p)||direct&&via&&direct.id!==via.id||direct&&!compatible(r,direct)||via&&!compatible(r,via))return ['rechnungen',r];
+      const o=direct||via;return o?['offerten',o]:p?['projekte',p]:['rechnungen',r];
+    }
+    const offers=activeOffers.filter(o=>o.leadId===r.id);
+    if(offers.length===1)return ['offerten',offers[0]];
+    return ['leads',r];
+  }
+  function step(item,r){
+    const x={...item,mode:item.priority===0?'check':'action'};
+    const due=validDay(item.date)&&item.date<=today;
+    if(item.table==='leads'&&r.status==='Kontaktiert'&&!due){x.mode='waiting';x.action=r.nextAction?'Kundenrückmeldung ausstehend: '+r.nextAction:'Auf Kundenrückmeldung warten';}
+    if(item.table==='leads'&&r.nextAction&&validDay(r.followUpDate)&&r.followUpDate>today){x.mode='waiting';x.action='Geplante Rückmeldung: '+r.nextAction;}
+    if(item.table==='offerten'&&r.status==='Versendet'&&!['customer_response_recorded','awaiting_lszh_confirmation','confirmed'].includes(r.onlineAcceptance?.state)&&!['sending','manual_review'].includes(r.offerDispatchState)){
+      x.mode=due?'action':'waiting';x.action=due?'Offerte nachfassen':'Auf Antwort zur Offerte warten';
+    }
+    if(item.table==='rechnungen'&&['Offen','Teilbezahlt'].includes(r.status)&&r.invoiceDispatchState==='confirmed'&&!['sending','manual_review'].includes(r.reminderDispatch?.state)&&outstandingCents(r)>0){
+      const kind=invoiceKind(r,today),last=r.reminderHistory?.at(-1),next=last?Date.parse(last.at)+7*86400000:NaN;
+      if(kind!=='overdue'){x.mode='waiting';x.action=r.status==='Teilbezahlt'?'Auf restlichen Zahlungseingang warten':'Auf Zahlungseingang warten';}
+      else if(Number.isFinite(next)&&nowMs<next){x.mode='waiting';x.action='Zahlung abwarten; nächste Mahnstufe frühestens '+localSwissDate(new Date(next)).split('-').reverse().join('.');}
+      else{x.mode='action';x.action=(r.reminderHistory||[]).length>=3?'Offene Forderung persönlich klären':'Zahlungseingang prüfen und gegebenenfalls erinnern';}
+    }
+    if(item.table==='projekte'&&r.status==='Wartet auf Kunde'){
+      x.mode=validDay(r.dueDate)&&r.dueDate<today?'action':'waiting';x.action=x.mode==='action'?'Ausstehende Kundenrückmeldung nachfassen':'Auf Angaben oder Freigabe des Kunden warten';
+    }else if(item.table==='projekte'&&r.status==='In Arbeit'&&!r.startedAt){x.action=(r.tasks||[]).find(t=>!t.done&&t.title?.trim())?.title||'Projektstand prüfen und Umsetzung weiterführen';}
+    return x;
+  }
+  for(const item of items){
+    const r=by[item.table][item.id];if(!r)continue;
+    // Qualification creates its offer already: do not ask to create it again.
+    if(item.table==='leads'&&!r.nextAction&&activeOffers.some(o=>o.leadId===r.id))continue;
+    const [table,parent]=anchor(item,r),key=table+':'+parent.id;
+    if(!groups[key]){
+      const customer=by.kunden[parent.customerId],lead=table==='leads'?parent:by.leads[parent.leadId];
+      groups[key]={id:key,title:parent.title||parent.description||parent.company||parent.name||'Vorgang',company:customer?.company||lead?.company||parent.company||'',reference:table==='offerten'?(parent.status==='Angenommen'?'Auftrag ':'Offerte ')+(parent.number||'–'):table==='projekte'?'Projekt':table==='rechnungen'?'Rechnung '+String(parent.number||'').replace(/^RE-/,''):'Anfrage',steps:[]};
+    }
+    groups[key].steps.push(step(item,r));
+  }
+  const order={check:0,action:1,waiting:2};
+  const compare=(a,b)=>order[a.mode]-order[b.mode]||a.priority-b.priority||(a.date||'9999').localeCompare(b.date||'9999')||a.table.localeCompare(b.table)||String(a.id).localeCompare(String(b.id));
+  return Object.values(groups).map(g=>{g.steps.sort(compare);g.primary=g.steps[0];g.mode=g.primary.mode;return g;}).sort((a,b)=>compare(a.primary,b.primary)||a.id.localeCompare(b.id));
+}
+
 async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}){
   const s=empty();const data=Object.fromEntries(TABLES.map(t=>[t,[]]));const cutoff=nowMs-24*60*60*1000;
   for(const table of TABLES){
@@ -175,6 +231,7 @@ async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}
   }
   s.openProcesses=openProcesses(data,today);
   s.openProcessCount=s.openProcesses.length;
+  s.processGroups=processGroups(data,today,s.openProcesses,nowMs);
   return s;
 }
-module.exports={cockpitSummary,invoiceKind,openProcesses};
+module.exports={cockpitSummary,invoiceKind,openProcesses,processGroups};

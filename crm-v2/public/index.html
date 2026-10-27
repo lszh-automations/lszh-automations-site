@@ -321,6 +321,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 @media(max-width:620px){.lead-workflow-fields{grid-template-columns:1fr}}
 .dashboard-intro-wrapper{margin-bottom:20px}
 .dashboard-area{display:grid;gap:18px}
+.process-group-section{margin:24px 0 8px}.process-group-section>h3{font-size:16px;margin-bottom:6px}.process-flow-card{border:1px solid var(--border);border-radius:12px;padding:16px;margin:14px 0;background:var(--panel2)}.process-flow-card>strong{display:block;font-size:15px;overflow-wrap:anywhere}.process-flow-reference{display:block;color:var(--muted);font-size:12px;font-weight:500;margin-top:5px}.process-flow-step{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin-top:10px}.process-flow-step p{margin:4px 0 8px}.process-flow-waiting{border-top:1px solid var(--border);padding-top:12px;margin-top:14px;display:grid;gap:8px}.process-flow-waiting small{color:var(--muted)}.process-flow-waiting .link-btn{text-align:left;white-space:normal}.process-flow-step .btn{white-space:nowrap}@media(max-width:620px){.process-flow-step{grid-template-columns:1fr}.process-flow-step .btn{justify-self:start}.process-flow-card{padding:13px}}
 .open-process-controls{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px}
 .open-process-controls input,.open-process-controls select{font:inherit;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:0}
 .open-process-controls input{flex:1 1 220px}.open-process-controls select{flex:0 1 200px}
@@ -1011,48 +1012,49 @@ async function openDashboardProcess(item,button,error){
   finally{button.disabled=false;}
 }
 function renderOpenProcesses(area){
-  const panel=dashboardPanel('Alle offenen Vorgänge','Jeder laufende Vorgang bleibt sichtbar – auch ohne Termin und während du auf Kunden oder Zahlungen wartest.');
-  panel.panel.id='openProcesses';
-  const items=state.summary?.openProcesses;
-  if(!Array.isArray(items)){
-    panel.body.append(el('p','open-process-error','Vollständige Vorgangsübersicht nicht verfügbar. Bitte aktualisieren; geladene Registerseiten wären unvollständig.'));
-    area.append(panel.panel);return;
-  }
+  const panel=dashboardPanel('Deine laufenden Abläufe','Zusammengehörige Offerten, Projekte und Rechnungen sind gebündelt. Deine nächsten Schritte und Wartezeiten bleiben getrennt.');panel.panel.id='openProcesses';
+  const groups=state.summary?.processGroups;
+  if(!Array.isArray(groups)){panel.body.append(el('p','open-process-error','Vollständige Abläufe derzeit nicht verfügbar. Bitte aktualisieren.'));area.append(panel.panel);return;}
   const controls=el('div','open-process-controls'),search=el('input'),filter=el('select');
-  search.type='search';search.placeholder='Firma oder Vorgang suchen';search.value=state.openProcessSearch||'';search.setAttribute('aria-label','Offene Vorgänge durchsuchen');
-  filter.setAttribute('aria-label','Art des offenen Vorgangs');
-  for(const [value,label] of [['','Alle Bereiche'],['leads','Leads'],['offerten','Offerten'],['projekte','Projekte'],['rechnungen','Rechnungen']]){
-    const option=el('option','',label+' ('+(value?items.filter(x=>x.table===value).length:items.length)+')');option.value=value;filter.append(option);
-  }
-  filter.value=state.openProcessFilter||'';
-  const reset=el('button','btn','Alle anzeigen');reset.type='button';
-  controls.append(search,filter,reset);
-  const count=el('p','dash-section-footnote'),list=el('div'),error=el('p','open-process-error');error.setAttribute('role','status');
+  search.type='search';search.placeholder='Kunde, Auftrag oder Dokument suchen';search.value=state.openProcessSearch||'';search.setAttribute('aria-label','Laufende Abläufe durchsuchen');
+  filter.setAttribute('aria-label','Abläufe filtern');
+  const categories=[['','Alle Abläufe'],['action','Bei dir in Bearbeitung'],['waiting','Warten auf Kunde oder Zahlung']];
+  for(const [value,label]of categories){const n=groups.filter(g=>!value||(value==='action'?g.mode!=='waiting':g.mode==='waiting')).length,option=el('option','',label+' ('+n+')');option.value=value;filter.append(option);}
+  filter.value=categories.some(x=>x[0]===state.openProcessFilter)?state.openProcessFilter:'';
+  const reset=el('button','btn','Alle anzeigen');reset.type='button';controls.append(search,filter,reset);
+  const count=el('p','dash-section-footnote'),list=el('div');
   const draw=()=>{
-    state.openProcessSearch=search.value;state.openProcessFilter=filter.value;list.replaceChildren();error.textContent='';
-    const needle=search.value.trim().toLocaleLowerCase('de-CH');
-    const shown=items.filter(x=>(!filter.value||x.table===filter.value)&&(!needle||[x.title,x.number,x.company,x.status,x.action].join(' ').toLocaleLowerCase('de-CH').includes(needle)));
-    const date=new Date(state.summary.loadedAt);
-    count.textContent=shown.length+' von '+items.length+' offenen Vorgängen'+(filter.value||needle?' · Ansicht gefiltert':' · Alle sichtbar')+(Number.isFinite(date.getTime())?' · Aktualisiert '+date.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'');
-    reset.hidden=!filter.value&&!needle;
-    if(!shown.length)list.append(el('p','dash-empty',items.length?'Kein Treffer. Mit „Alle anzeigen“ die vollständige Liste öffnen.':'Keine offenen Vorgänge in den CRM-Registern.'));
-    for(const item of shown){
-      const row=el('div','open-process-row'),copy=el('div','open-process-copy');
-      const label=({leads:'Lead',offerten:'Offerte',projekte:'Projekt',rechnungen:'Rechnung'})[item.table]||item.table;
-      const title=el('strong','',label+(item.number?' '+item.number:'')+(item.title!==item.number?' · '+item.title:''));
-      title.append(el('span','badge'+(item.table==='offerten'&&item.pending?' pending':['Angenommen','Bezahlt'].includes(item.status)?' success':''),item.status));
-      if(item.table==='rechnungen')appendInvoiceDelivery(title,item);
-      copy.append(title,el('p',item.priority<=1?'open-process-priority':item.pending?'open-process-pending':'',item.action));
-      const when=item.date?' · '+(item.table==='rechnungen'?'Fällig':item.table==='projekte'?'Zieltermin':'Wiedervorlage')+': '+item.date.split('-').reverse().join('.') : ' · Kein Termin hinterlegt';
-      copy.append(el('small','',(item.company||'Ohne Firmenangabe')+when));
-      const open=el('button','btn','Öffnen');open.type='button';open.setAttribute('aria-label',label+' '+(item.number||item.title)+' öffnen');
-      const rowError=el('p','open-process-error');rowError.setAttribute('role','status');copy.append(rowError);
-      open.addEventListener('click',()=>openDashboardProcess(item,open,rowError));row.append(copy,open);list.append(row);
+    state.openProcessSearch=search.value;state.openProcessFilter=filter.value;list.replaceChildren();
+    const needle=search.value.trim().toLocaleLowerCase('de-CH'),shown=groups.filter(g=>(!filter.value||(filter.value==='action'?g.mode!=='waiting':g.mode==='waiting'))&&(!needle||[g.title,g.company,g.reference,...g.steps.flatMap(x=>[x.number,x.action,x.status])].join(' ').toLocaleLowerCase('de-CH').includes(needle)));
+    count.textContent=shown.length+' von '+groups.length+' laufenden Abläufen'+(needle||filter.value?' · Gefilterte Ansicht':' · Alle sichtbar');reset.hidden=!needle&&!filter.value;
+    if(!shown.length)list.append(el('p','dash-empty',groups.length?'Kein Treffer. Mit „Alle anzeigen“ zurück zur vollständigen Übersicht.':'Alle erfassten Abläufe sind abgeschlossen.'));
+    for(const [waiting,title]of [[false,'Deine nächsten Schritte'],[true,'Warten auf Kunde oder Zahlung']]){
+      const selected=shown.filter(g=>(g.mode==='waiting')===waiting);if(!selected.length)continue;
+      const section=el('section','process-group-section');section.dataset.processMode=waiting?'waiting':'action';
+      section.append(el('h3','',title+' ('+selected.length+')'),el('p','dash-section-footnote',waiting?'Hier ist im Moment keine unmittelbare Aktion von dir fällig.':'Konkrete Arbeitsschritte aus dem aktuellen Bearbeitungsstand.'));
+      for(const group of selected){
+        const card=el('article','process-flow-card');card.dataset.processGroup=group.id;
+        const heading=el('strong','',group.company||group.title);heading.append(el('span','process-flow-reference',group.reference));card.append(heading);
+        const active=group.steps.filter(x=>x.mode!=='waiting'),waitingSteps=group.steps.filter(x=>x.mode==='waiting');
+        for(const [i,item]of (waiting?waitingSteps:active).entries()){
+          const line=el('div','process-flow-step'),copy=el('div','open-process-copy'),prefix=waiting?'':i===0?'Als Nächstes: ':'Ausserdem: ';
+          copy.append(el('p',item.mode==='check'?'open-process-pending':'',prefix+item.action.replace(/^(?:Als Nächstes|Nächster Schritt):\s*/,'')));
+          const label=({leads:'Anfrage',offerten:'Offerte',projekte:'Projekt',rechnungen:'Rechnung'})[item.table],number=String(item.number||'').replace(/^(RE|RG)-/,'');
+          const status=el('small','',label+(number?' '+number:'')+' · '+item.status+(item.date?' · '+(item.table==='rechnungen'?'Fällig am ':item.table==='projekte'?'Zieltermin ': 'Wiedervorlage ')+item.date.split('-').reverse().join('.'):''));copy.append(status);
+          const open=el('button','btn',label+' öffnen');open.type='button';open.setAttribute('aria-label',label+' '+(number||item.title)+' öffnen');
+          const error=el('p','open-process-error');error.setAttribute('role','status');copy.append(error);open.onclick=()=>openDashboardProcess(item,open,error);line.append(copy,open);card.append(line);
+        }
+        if(!waiting&&waitingSteps.length){
+          const wait=el('div','process-flow-waiting');wait.append(el('small','','Parallel ausstehend:'));
+          for(const item of waitingSteps){const open=el('button','link-btn',item.action+(item.number?' ('+String(item.number).replace(/^RE-/,'')+')':''));open.type='button';const error=el('p','open-process-error');error.setAttribute('role','status');open.onclick=()=>openDashboardProcess(item,open,error);wait.append(open,error);}card.append(wait);
+        }
+        section.append(card);
+      }
+      list.append(section);
     }
   };
-  search.addEventListener('input',draw);filter.addEventListener('change',draw);
-  reset.addEventListener('click',()=>{search.value='';filter.value='';draw();});
-  panel.body.append(controls,count,error,list);draw();area.append(panel.panel);
+  search.oninput=draw;filter.onchange=draw;reset.onclick=()=>{search.value='';filter.value='';draw();};
+  panel.body.append(controls,count,list);draw();area.append(panel.panel);
 }
 
 function renderDashboard(){
@@ -1265,7 +1267,7 @@ function renderDashboard(){
   renderOpenProcesses(area);
   const extraWork=el('div','dash-detail-body');
   upper.append(tasks.panel,receivables.panel);
-  area.append(upper);
+  extraWork.append(upper);
   const pendingConfirmations=state.summary?state.summary.pendingConfirmations||[]:(state.records.offerten||[]).filter(offerAcceptancePending);
   const pendingAdoptions=state.summary?state.summary.pendingAdoptions||[]:(state.records.offerten||[]).filter(x=>x.status!=='Angenommen'&&x.onlineAcceptance?.state==='confirmed');
   if(pendingConfirmations.length||pendingAdoptions.length){

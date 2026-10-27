@@ -1,0 +1,108 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "970a534393fbf193e3216e0cc68cd0a93021185d7ee737faa8a95f7a66a4fdb3"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "4a3c767ad1ef7038151d13e3f5cc09ddfb7ac7dbf687e378e4000e476c3aba47"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00135-nen",
+  "candidateUrl": "https://process-logic---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793126220.430389-1479cec5baa641b582606178e32e2975.zip#1793126222643423",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "17637c17c3f9b97500254a6be72e340efee0ff48",
+  "parentRelease": "document-number-pdf-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00135-nen",
+  "rollback": "lszh-crm-v2-00133-des",
+  "trafficPercent": 100,
+  "crmTests": 521,
+  "browserDesktopMobile": "passed; synthetic grouped flows, actions vs waiting, exact-ID navigation and no writes",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40561619210,
+    40561619141
+  ],
+  "initialBaselineFailure": "unrelated emulator concurrent acceptance notification transaction invalid/closed; failed job rerun",
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeChanged": false,
+  "websitePortalChanged": false,
+  "offer1003AssignmentUnchanged": true,
+  "readOnlyLiveLogicCheck": {
+    "checkedAt": "2026-10-27T18:34:35.876Z",
+    "readOnly": true,
+    "openRecords": 21,
+    "flows": 10,
+    "action": 7,
+    "waiting": 3,
+    "groupedSteps": 16,
+    "supersededLeadPrompts": 5,
+    "references": [
+      {
+        "reference": "Auftrag 1004",
+        "mode": "action",
+        "stepCount": 4
+      },
+      {
+        "reference": "Offerte 1005",
+        "mode": "action",
+        "stepCount": 1
+      },
+      {
+        "reference": "Anfrage",
+        "mode": "action",
+        "stepCount": 1
+      },
+      {
+        "reference": "Offerte 1008",
+        "mode": "action",
+        "stepCount": 1
+      },
+      {
+        "reference": "Auftrag 1007",
+        "mode": "action",
+        "stepCount": 2
+      },
+      {
+        "reference": "Auftrag 1002",
+        "mode": "action",
+        "stepCount": 2
+      },
+      {
+        "reference": "Auftrag 1006",
+        "mode": "action",
+        "stepCount": 2
+      },
+      {
+        "reference": "Offerte 1000",
+        "mode": "waiting",
+        "stepCount": 1
+      },
+      {
+        "reference": "Offerte 1003",
+        "mode": "waiting",
+        "stepCount": 1
+      },
+      {
+        "reference": "Offerte 1001",
+        "mode": "waiting",
+        "stepCount": 1
+      }
+    ],
+    "customerDataChanged": false
+  },
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/40"
+}

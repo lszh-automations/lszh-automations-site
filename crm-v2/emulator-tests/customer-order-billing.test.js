@@ -71,7 +71,7 @@ test('concurrent project starts persist one audit and leave linked commercial re
  await a.store.update('projekte',id,{startDate:'2020-01-02',owner:'TEST_ONLY responsible',tasks:[{title:'Umsetzen',done:false}],onboarding:{makeRequired:true,invitationConfirmed:true,accessConfirmed:true,notes:''}},user);
  const result=await Promise.all([a.store.startProject(id,user),b.store.startProject(id,{email:'other@example.invalid'})]);
  assert.equal(result[0].startedAt,result[1].startedAt);assert.equal(result[0].startedBy,result[1].startedBy);assert.equal(result[0].status,'In Arbeit');
- await a.store.update('projekte',id,{status:'Wartet auf Kunde'},user);const paused=await a.store.get('projekte',id);
- assert.deepEqual(await b.store.startProject(id,user),paused);
+ await a.store.update('projekte',id,{status:'Wartet auf Kunde'},user);const ref=a.db.collection(prefix+'projekte').doc(id),paused=(await ref.get()).data();
+ await b.store.startProject(id,user);assert.deepEqual((await ref.get()).data(),paused);
  assert.deepEqual(await a.store.get('offerten',offer.id),accepted);assert.deepEqual(await a.store.get('rechnungen',invoice.id),invoice);
 });

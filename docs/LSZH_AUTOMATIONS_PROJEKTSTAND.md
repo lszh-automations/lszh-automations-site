@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - PDFs über Dokumentnummer öffnen, 27.10.2026
+
+CRM **`lszh-crm-v2-00133-des`** erhält 100 % Verkehr. Rechnungsnummer in der Listenansicht ohne RE-/RG-Präfix; gespeicherte Nummern, PDFs und Referenzen unverändert. Klick auf verfügbare Rechnungs- und Offertennummern öffnet das private PDF in einem neuen Tab. Archivierte Offerten werden bytegleich und mit Integritäts-/Zuordnungsprüfung gelesen; nicht archivierte Offerten können als aktuelle PDF-Vorschau geöffnet werden. Rechnungsansicht auch für Teilbezahlt/Bezahlt ohne Statusänderung. Entwürfe und stornierte Rechnungen ohne Nummernlink; vorhandene Versandprüfung unverändert.
+
+514 CRM-Tests, Desktop-/Mobilprüfung und beide GitHub-Prüfungen erfolgreich. Alle 81 Laufzeitdateien bytegleich bestätigt, vier gezielte Änderungen. Konfiguration unverändert. Live-HTML bytegleich, beide PDF-APIs anonym HTTP 401, keine jüngsten Revisionsfehler. Keine Kundendatenänderung, Mail oder Zahlungsbuchung; Make, Website und Portal unverändert.
+
+[Bedienung und Grenzen](LSZH_DOCUMENT_NUMBER_PDF.md) - [Live-Nachweis](../releases/document-number-pdf-live-20261027.json) - [PR 39](https://github.com/lszh-automations/lszh-automations-site/pull/39).
+
+---
+
 # Aktiver Live-Stand - Rechnungsversand separat sichtbar, 27.10.2026
 
 CRM **`lszh-crm-v2-00131-gus`** erhält 100 % Verkehr. Zahlungs- und Versandstatus getrennt in Rechnungsliste, Kundenansicht, Dashboard und Rechnungsdialog. Eine versendete unbezahlte Rechnung bleibt Offen und zeigt zusätzlich Versendet. Fehlende Nachweise, laufender oder unklarer Versand bleiben ausdrücklich erkennbar. Fälligkeitsampel unverändert am Datum. Swiss-QR-PDF prüfen steht direkt bei der Kontrollcheckbox und dem Sendebutton; ein gesperrter Versand nennt den fehlenden Schritt. Bestehende Prüfungen bleiben erhalten.

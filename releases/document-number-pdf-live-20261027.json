@@ -1,0 +1,53 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "contract-crm-actions.js",
+      "sha256": "e23226199983d9e7f97fe85421373413c6f886a92163a38911c365d3991ef3c2"
+    },
+    {
+      "path": "contract-crm-runtime.js",
+      "sha256": "26f5795f5b720ed20786e9d1a91a2fe020776e385ab8baa6fdfdf94f3cf8da3f"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "440bc4bc6b65433765de01fa68987659b4c885fbf7b9e81500afe4e8d42aff2e"
+    },
+    {
+      "path": "server.js",
+      "sha256": "562ad074d8eb1637f0b4fa608dfbae1fc85a041a1edb4669239a36ff81386c59"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00133-des",
+  "candidateUrl": "https://document-number-pdf---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793125557.457548-c77d2c2ea9e044529dcce32ac0532806.zip#1793125559672766",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "e3b8366e4537d36e598b8d3021ef2a95c5dcbecd",
+  "parentRelease": "invoice-delivery-view-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00133-des",
+  "rollback": "lszh-crm-v2-00131-gus",
+  "trafficPercent": 100,
+  "crmTests": 514,
+  "browserDesktopMobile": "passed; synthetic documents only, authenticated GETs and unchanged source records",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40559910428,
+    40559910495
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "anonymousPdfApis": 401,
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "makeChanged": false,
+  "websitePortalChanged": false,
+  "documentNumbersStoredUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/39"
+}

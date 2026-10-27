@@ -321,6 +321,17 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 @media(max-width:620px){.lead-workflow-fields{grid-template-columns:1fr}}
 .dashboard-intro-wrapper{margin-bottom:20px}
 .dashboard-area{display:grid;gap:18px}
+.open-process-controls{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px}
+.open-process-controls input,.open-process-controls select{font:inherit;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:0}
+.open-process-controls input{flex:1 1 220px}.open-process-controls select{flex:0 1 200px}
+.open-process-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--border)}
+.open-process-copy{min-width:0;overflow-wrap:anywhere}.open-process-copy strong{font-size:14px;display:block;line-height:1.4}
+.open-process-copy p{font-size:13px;line-height:1.55;margin:6px 0}.open-process-copy small{font-size:11px;color:var(--muted)}
+.open-process-copy .badge{margin-left:8px}.open-process-row .btn{white-space:nowrap}
+.open-process-priority{color:#ffb5bc}.open-process-pending{color:#ffd0a0}
+.open-process-error{font-size:12px;color:#ffb5bc;white-space:pre-wrap}
+@media(max-width:620px){.open-process-row{grid-template-columns:minmax(0,1fr)}.open-process-row>.btn{justify-self:start}.open-process-copy .badge{margin:6px 0 0;display:table}}
+
 .dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
 .dash-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;min-width:0;overflow:hidden}
 .dash-panel-header{padding:22px 24px 17px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border)}
@@ -978,6 +989,70 @@ function renderKpis(){
     container.append(card);
   }
 }
+
+async function openDashboardProcess(item,button,error){
+  const token=state.token,nonce=(state.openProcessNonce||0)+1;state.openProcessNonce=nonce;
+  button.disabled=true;error.textContent='';
+  try{
+    const {record}=await api('/api/records/'+item.table+'/'+encodeURIComponent(item.id));
+    if(!record||record.id!==item.id)throw Error('Vorgang nicht mehr vorhanden. Bitte Übersicht aktualisieren.');
+    const linked=[];
+    for(const [key,table] of Object.entries({customerId:'kunden',leadId:'leads',offerId:'offerten',projectId:'projekte'})){
+      if(record[key]&&!(state.records[table]||[]).some(x=>x.id===record[key])){
+        try{const result=await api('/api/records/'+table+'/'+encodeURIComponent(record[key]));if(result.record)linked.push([table,result.record]);}
+        catch(e){if(e.status!==404)throw e;}
+      }
+    }
+    if(state.token!==token||state.tab!=='dashboard'||nonce!==state.openProcessNonce||!button.isConnected)return;
+    for(const [table,row] of linked)rememberRelatedRecord(table,row);
+    rememberRelatedRecord(item.table,record);navigateTo(item.table,record);
+  }catch(e){if(state.token===token&&state.tab==='dashboard'&&nonce===state.openProcessNonce)error.textContent='Öffnen fehlgeschlagen: '+e.message+' Bitte aktualisieren.';}
+  finally{button.disabled=false;}
+}
+function renderOpenProcesses(area){
+  const panel=dashboardPanel('Alle offenen Vorgänge','Jeder laufende Vorgang bleibt sichtbar – auch ohne Termin und während du auf Kunden oder Zahlungen wartest.');
+  panel.panel.id='openProcesses';
+  const items=state.summary?.openProcesses;
+  if(!Array.isArray(items)){
+    panel.body.append(el('p','open-process-error','Vollständige Vorgangsübersicht nicht verfügbar. Bitte aktualisieren; geladene Registerseiten wären unvollständig.'));
+    area.append(panel.panel);return;
+  }
+  const controls=el('div','open-process-controls'),search=el('input'),filter=el('select');
+  search.type='search';search.placeholder='Firma oder Vorgang suchen';search.value=state.openProcessSearch||'';search.setAttribute('aria-label','Offene Vorgänge durchsuchen');
+  filter.setAttribute('aria-label','Art des offenen Vorgangs');
+  for(const [value,label] of [['','Alle Bereiche'],['leads','Leads'],['offerten','Offerten'],['projekte','Projekte'],['rechnungen','Rechnungen']]){
+    const option=el('option','',label+' ('+(value?items.filter(x=>x.table===value).length:items.length)+')');option.value=value;filter.append(option);
+  }
+  filter.value=state.openProcessFilter||'';
+  const reset=el('button','btn','Alle anzeigen');reset.type='button';
+  controls.append(search,filter,reset);
+  const count=el('p','dash-section-footnote'),list=el('div'),error=el('p','open-process-error');error.setAttribute('role','status');
+  const draw=()=>{
+    state.openProcessSearch=search.value;state.openProcessFilter=filter.value;list.replaceChildren();error.textContent='';
+    const needle=search.value.trim().toLocaleLowerCase('de-CH');
+    const shown=items.filter(x=>(!filter.value||x.table===filter.value)&&(!needle||[x.title,x.number,x.company,x.status,x.action].join(' ').toLocaleLowerCase('de-CH').includes(needle)));
+    const date=new Date(state.summary.loadedAt);
+    count.textContent=shown.length+' von '+items.length+' offenen Vorgängen'+(filter.value||needle?' · Ansicht gefiltert':' · Alle sichtbar')+(Number.isFinite(date.getTime())?' · Aktualisiert '+date.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'');
+    reset.hidden=!filter.value&&!needle;
+    if(!shown.length)list.append(el('p','dash-empty',items.length?'Kein Treffer. Mit „Alle anzeigen“ die vollständige Liste öffnen.':'Keine offenen Vorgänge in den CRM-Registern.'));
+    for(const item of shown){
+      const row=el('div','open-process-row'),copy=el('div','open-process-copy');
+      const label=({leads:'Lead',offerten:'Offerte',projekte:'Projekt',rechnungen:'Rechnung'})[item.table]||item.table;
+      const title=el('strong','',label+(item.number?' '+item.number:'')+(item.title!==item.number?' · '+item.title:''));
+      title.append(el('span','badge'+(item.table==='offerten'&&item.pending?' pending':['Angenommen','Bezahlt'].includes(item.status)?' success':''),item.status));
+      copy.append(title,el('p',item.priority<=1?'open-process-priority':item.pending?'open-process-pending':'',item.action));
+      const when=item.date?' · '+(item.table==='rechnungen'?'Fällig':item.table==='projekte'?'Zieltermin':'Wiedervorlage')+': '+item.date.split('-').reverse().join('.') : ' · Kein Termin hinterlegt';
+      copy.append(el('small','',(item.company||'Ohne Firmenangabe')+when));
+      const open=el('button','btn','Öffnen');open.type='button';open.setAttribute('aria-label',label+' '+(item.number||item.title)+' öffnen');
+      const rowError=el('p','open-process-error');rowError.setAttribute('role','status');copy.append(rowError);
+      open.addEventListener('click',()=>openDashboardProcess(item,open,rowError));row.append(copy,open);list.append(row);
+    }
+  };
+  search.addEventListener('input',draw);filter.addEventListener('change',draw);
+  reset.addEventListener('click',()=>{search.value='';filter.value='';draw();});
+  panel.body.append(controls,count,error,list);draw();area.append(panel.panel);
+}
+
 function renderDashboard(){
   const area=$('dashboardArea'),detailsOpen=area.querySelector('#dashboardDetails')?.open||false,tasksOpen=area.querySelector('#dashboardMoreTasks')?.open||false;area.replaceChildren();
   const stats=dashboardStats(state.records);
@@ -1185,6 +1260,8 @@ function renderDashboard(){
   lower.append(pipeline.panel,finance.panel);
   const allInvoices=el('button','btn','Alle offenen Rechnungen');allInvoices.type='button';
   allInvoices.addEventListener('click',()=>navigateTo('rechnungen',null,'open'));receivables.body.append(allInvoices);
+  renderOpenProcesses(area);
+  const extraWork=el('div','dash-detail-body');
   upper.append(tasks.panel,receivables.panel);
   area.append(upper);
   const pendingConfirmations=state.summary?state.summary.pendingConfirmations||[]:(state.records.offerten||[]).filter(offerAcceptancePending);
@@ -1200,7 +1277,7 @@ function renderDashboard(){
       }
     }
     pending.body.append(el('p','dash-section-footnote','Bis zu acht Einträge je Schritt. Öffnen löst keine Bestätigung oder Auftragsübernahme aus.'));
-    area.append(pending.panel);
+    extraWork.append(pending.panel);
   }
   const followUpGrid=el('div','dash-grid');
   if(due.length){
@@ -1211,12 +1288,12 @@ function renderDashboard(){
     offerTasks.body.append(el('p','dash-section-footnote','Bis zu 8 von '+(state.summary?.dueOfferCount??dueOffers.length)+' fälligen Offerten.'));
     followUpGrid.append(offerTasks.panel);
   }
-  if(followUpGrid.children.length)area.append(followUpGrid);
+  if(followUpGrid.children.length)extraWork.append(followUpGrid);
   const details=el('details','dash-details');details.id='dashboardDetails';details.open=detailsOpen;
   details.append(el('summary','','Auswertungen und weitere Vorgänge'));
   const detailBody=el('div','dash-detail-body');
   const operations=el('div','dash-grid');operations.append(projectPanel.panel,recent.panel);
-  detailBody.append(lower,operations);
+  detailBody.append(extraWork,lower,operations);
   if(priorities.some(x=>x.secondary))detailBody.append(secondaryTasks.panel);
   detailBody.append(scope);details.append(detailBody);area.append(details);
 }
@@ -3132,7 +3209,7 @@ async function loadAll(){
 // Only update new website leads in the background. Never replace open editors or
 // overwrite form inputs while someone is preparing an offer/invoice/project.
 async function refreshLeads(){
-  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending)return;
+  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending||document.activeElement?.closest('#openProcesses'))return;
   const loginToken=state.token;
   leadsRefreshPending=true;
   $('refreshLeads').disabled=true;
@@ -3140,12 +3217,16 @@ async function refreshLeads(){
     const result=await api('/api/records/leads?pageSize=50');
     if(state.token!==loginToken)return; // Late response after logout or re-login.
     const incoming=Array.isArray(result.records)?result.records:[];
-    if(JSON.stringify(incoming)!==JSON.stringify((state.records.leads||[]).slice(0,50))){
-      state.records.leads=[...incoming,...(state.records.leads||[]).filter(x=>!incoming.some(y=>y.id===x.id))];
-      try{state.summary=(await api('/api/cockpit/summary')).summary;}catch{state.summary=null;}
-      render();
+    const changed=JSON.stringify(incoming)!==JSON.stringify((state.records.leads||[]).slice(0,50));
+    if(changed)state.records.leads=[...incoming,...(state.records.leads||[]).filter(x=>!incoming.some(y=>y.id===x.id))];
+    let complete=true;
+    if(changed||state.tab==='dashboard'){
+      let summary=null;try{summary=(await api('/api/cockpit/summary')).summary;}catch{complete=false;}
+      if(state.token!==loginToken)return;
+      if(document.querySelector('dialog[open]')||document.activeElement?.closest('#openProcesses'))return;
+      state.summary=summary;render();
     }
-    $('syncStatus').textContent='Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+    $('syncStatus').textContent=complete?'Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'Vorgangsübersicht nicht aktualisiert – bitte erneut versuchen';
   }catch(err){
     if(state.token!==loginToken)return;
     if(err.status===401){

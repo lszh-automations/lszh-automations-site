@@ -1,3 +1,9 @@
+# Aktuelle Ergänzung: vollständige Vorgangsübersicht
+
+Seit 27.10.2026 zeigt die Hauptansicht zusätzlich **Alle offenen Vorgänge** ohne Vorschaugrenze, mit nächstem Schritt, Status, Termin, Suche und Bereichsfilter. Auch wartende Vorgänge, Entwürfe und Datensätze ohne Termin bleiben sichtbar. Frühere separate Annahme-/Wiedervorlagenvorschauen liegen unter den Auswertungen. [Aktuelle Bedienung und Abschlussregeln](LSZH_OPEN_PROCESSES.md), [Live-Nachweis](../releases/open-processes-live-20261027.json). Die folgende Dokumentation beschreibt den weiterhin vorhandenen Kennzahlen-/Auswertungsteil.
+
+---
+
 # Vereinfachtes Dashboard
 
 Stand: 27.10.2026

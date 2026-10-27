@@ -40,11 +40,87 @@ function invoiceKind(inv,today,remaining){
   const days=Math.round((Date.parse(inv.dueDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/86400000);
   return days<=7?'soon':'open';
 }
+
+// One compact, complete row per unfinished CRM record. No preview cap and no
+// writes: terminal states remain authoritative except for unresolved delivery
+// or an accepted offer whose handover links are missing.
+function openProcesses(data,today){
+  const customers=Object.fromEntries((data.kunden||[]).map(r=>[r.id,r]));
+  const leads=Object.fromEntries((data.leads||[]).map(r=>[r.id,r]));
+  const projects=data.projekte||[],invoices=data.rechnungen||[],rows=[];
+  const uncertain=s=>['sending','manual_review'].includes(s);
+  const add=(table,r,action,{date='',priority=4,pending=false}={})=>{
+    const customer=customers[r.customerId],lead=leads[r.leadId];
+    rows.push({table,id:r.id,title:r.title||r.company||r.name||r.description||r.number||'Eintrag ohne Bezeichnung',
+      number:r.number||'',company:customer?.company||lead?.company||r.company||'',
+      status:table==='offerten'?offerDisplayStatus(r):r.status||'Status fehlt',action,
+      date:validDay(date)?date:'',priority,pending,createdAt:r.createdAt||''});
+  };
+  const duePriority=date=>validDay(date)&&date<=today?(date<today?1:2):4;
+  for(const r of data.leads||[]){
+    if(['Gewonnen','Verloren'].includes(r.status))continue;
+    const known=['Neu','Kontaktiert','Qualifiziert'].includes(r.status);
+    const action=!known?'Status prüfen':r.nextAction||({Neu:'Anfrage prüfen und kontaktieren',Kontaktiert:'Kundenrückmeldung verfolgen',Qualifiziert:'Offerte vorbereiten oder Rückmeldung verfolgen'}[r.status]);
+    add('leads',r,action,{date:r.followUpDate,priority:known?duePriority(r.followUpDate):0});
+  }
+  for(const r of data.offerten||[]){
+    if(uncertain(r.offerDispatchState)){add('offerten',r,'Offertenversand im Postfach prüfen',{priority:0,pending:true});continue;}
+    const acceptance=r.onlineAcceptance;
+    if(r.status!=='Abgelehnt'&&acceptance?.state==='confirmed'&&(acceptance.reviewRequired===true||acceptance.archiveState&&acceptance.archiveState!=='complete')){
+      add('offerten',r,'Annahme und Archivierung prüfen',{priority:0,pending:true});continue;
+    }
+    if(r.status!=='Abgelehnt'&&['customer_response_recorded','awaiting_lszh_confirmation'].includes(acceptance?.state)){
+      add('offerten',r,'Kundenannahme prüfen und Auftragsbestätigung senden',{priority:3,pending:true});continue;
+    }
+    if(r.status!=='Angenommen'&&r.status!=='Abgelehnt'&&acceptance?.state==='confirmed'){
+      add('offerten',r,'Bestätigten Auftrag übernehmen',{priority:3});continue;
+    }
+    if(r.status==='Angenommen'){
+      const linked=projects.filter(p=>p.offerId===r.id);
+      if(!r.customerId||!customers[r.customerId]||!linked.length){add('offerten',r,'Auftragsübernahme prüfen: Kunde oder Projekt fehlt',{priority:0});continue;}
+      if(money(r.oneTimeCHF)>0&&!invoices.some(i=>i.id===r.initialInvoiceId||i.offerId===r.id||linked.some(p=>i.projectId===p.id))){
+        add('offerten',r,'Rechnungsentwurf für einmalige Leistungen prüfen',{priority:3});
+      }
+      continue;
+    }
+    if(r.status==='Abgelehnt')continue;
+    const action={Entwurf:'Offerte fertigstellen',Bereit:'Offerte prüfen und versenden',Versendet:'Auf Kundenantwort warten; bei Bedarf nachfassen'}[r.status]||'Offertenstatus prüfen';
+    add('offerten',r,action,{date:r.followUpDate,priority:['Entwurf','Bereit','Versendet'].includes(r.status)?duePriority(r.followUpDate):0});
+  }
+  for(const r of invoices){
+    if(uncertain(r.reminderDispatch?.state)){add('rechnungen',r,'Erinnerungsversand im Postfach prüfen',{priority:0,pending:true});continue;}
+    if(uncertain(r.invoiceDispatchState)){add('rechnungen',r,'Rechnungsversand im Postfach prüfen',{priority:0,pending:true});continue;}
+    if(['Bezahlt','Storniert'].includes(r.status))continue;
+    let action='Rechnungsstatus prüfen',priority=0;
+    if(r.status==='Entwurf'){action='Rechnung vervollständigen, prüfen und versenden';priority=4;}
+    else if(['Offen','Teilbezahlt'].includes(r.status)){
+      if(outstandingCents(r)<=0)action='Zahlungsstand und Rechnungsabschluss prüfen';
+      else if(r.invoiceDispatchState!=='confirmed'){action='Rechnungsversand prüfen und abschliessen';priority=3;}
+      else{const kind=invoiceKind(r,today);action=kind==='overdue'?'Zahlungseingang prüfen und bei Bedarf erinnern':'Auf Zahlung warten; Zahlungseingang verfolgen';priority=kind==='overdue'?1:kind==='soon'?2:4;}
+    }
+    add('rechnungen',r,action,{date:r.dueDate,priority});
+  }
+  for(const r of projects){
+    if(r.status==='Abgeschlossen')continue;
+    let action='Projektstatus prüfen',priority=0;
+    if(['Geplant','In Arbeit','Wartet auf Kunde'].includes(r.status)){
+      priority=duePriority(r.dueDate);
+      if(r.status==='Wartet auf Kunde')action='Kundenrückmeldung und fehlende Angaben verfolgen';
+      else if(!r.startedAt){
+        const o=r.onboarding;
+        action=!r.customerId?'Kunden zuordnen':typeof o?.makeRequired!=='boolean'?'Make-Bedarf klären':o.makeRequired&&!o.invitationConfirmed?'Einladung ins kundeneigene Make-Konto prüfen':!o.accessConfirmed?'Benötigte Zugänge prüfen':'Projektstart vorbereiten und dokumentieren';
+      }else{const task=(r.tasks||[]).find(t=>!t.done&&t.title?.trim());action=task?'Nächster Schritt: '+task.title:'Ergebnis abnehmen und Projekt abschliessen';}
+    }
+    add('projekte',r,action,{date:r.dueDate,priority});
+  }
+  return rows.sort((a,b)=>a.priority-b.priority||(a.date||'9999').localeCompare(b.date||'9999')||a.createdAt.localeCompare(b.createdAt)||a.table.localeCompare(b.table)||String(a.id).localeCompare(String(b.id)));
+}
+
 async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}){
-  const s=empty();const cutoff=nowMs-24*60*60*1000;
+  const s=empty();const data=Object.fromEntries(TABLES.map(t=>[t,[]]));const cutoff=nowMs-24*60*60*1000;
   for(const table of TABLES){
     for await(const r of store.scan(table)){
-      s.counts[table]++;
+      s.counts[table]++;data[table].push(r);
       if(table==='leads'){
         s.leadCount++;if(Object.hasOwn(s.leadStages,r.status))s.leadStages[r.status]++;
         if(r.status==='Neu'){
@@ -96,6 +172,8 @@ async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}
       }
     }
   }
+  s.openProcesses=openProcesses(data,today);
+  s.openProcessCount=s.openProcesses.length;
   return s;
 }
-module.exports={cockpitSummary,invoiceKind};
+module.exports={cockpitSummary,invoiceKind,openProcesses};

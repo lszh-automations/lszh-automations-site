@@ -1428,7 +1428,12 @@ function render(){
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='invoiceContact'){
+      if(key==='number'&&['offerten','rechnungen'].includes(state.tab)){
+        const label=String(rec.number??'–').replace(/^(?:RE|RG)-/i,'');
+        const available=state.tab==='offerten'?Boolean(rec.contractPackageId||rec.items?.length||rec.oneTimeCHF>0||rec.monthlyCHF>0):['Offen','Teilbezahlt','Bezahlt'].includes(rec.status);
+        if(available){const link=el('button','link-btn',label);link.type='button';link.title=(state.tab==='offerten'?'Offerten':'Rechnungs')+'-PDF öffnen';link.setAttribute('aria-label',link.title+' '+label);const type=state.tab==='offerten'?'offerte':'rechnung';link.addEventListener('click',()=>openRecordPdf(type,rec.id));td.append(link);}else td.textContent=label;
+      }
+      else if(key==='invoiceContact'){
         const customer=(state.records.kunden||[]).find(x=>x.id===rec.customerId);
         td.append(el('div','offer-list-contact',rec.customerCompany||customer?.company||customer?.contactName||(rec.customerId?'Kunde zugeordnet':'Noch nicht zugeordnet')));
         const number=rec.customerNumber||customer?.customerNumber;
@@ -3556,6 +3561,21 @@ $('offerAddLine').addEventListener('click',()=>{
   addQuoteLine();
   markQuoteUnsaved();
 });
+
+async function openRecordPdf(type,id){
+  const token=state.token,tab=window.open('about:blank','_blank');
+  if(!tab){window.alert('Bitte Pop-ups für das CRM erlauben.');return;}
+  tab.opener=null;
+  try{
+    const response=await fetch('/api/pdf/'+type+'/'+encodeURIComponent(id)+(type==='rechnung'?'?view=1':''),{headers:{Authorization:'Bearer '+token}});
+    if(!response.ok){const error=await response.json().catch(()=>({}));throw Error(error.error||'PDF derzeit nicht verfügbar');}
+    if(!response.headers.get('content-type')?.startsWith('application/pdf'))throw Error('Keine PDF-Datei erhalten');
+    const blob=await response.blob();
+    if(state.token!==token){tab.close();return;}
+    const uri=URL.createObjectURL(blob);tab.location.replace(uri);setTimeout(()=>URL.revokeObjectURL(uri),300000);
+  }catch(error){tab.close();window.alert('PDF nicht verfügbar: '+error.message);}
+}
+
 async function openCloudPrint(type,id){
   // A private PDF must never be available by an unauthenticated GET link.
   // Open a blank tab during the actual click to avoid popup blockers, then

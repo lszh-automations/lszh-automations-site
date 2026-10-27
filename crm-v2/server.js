@@ -251,10 +251,26 @@ async function handler(req,res){
     const customer=invoice.customerId?await store.get('kunden',invoice.customerId):null;
     const project=invoice.projectId?await store.get('projekte',invoice.projectId):null;
     const {makeInvoicePdf}=require('./invoice-pdf'); // lazy: existing HTTP harnesses mock only enabled routes
-    const pdf=await makeInvoicePdf(invoice,customer,project,{iban});
+    const viewing=url.searchParams.get('view')==='1';
+    if(viewing&&!['Offen','Teilbezahlt','Bezahlt'].includes(invoice.status))return reply(res,404,{error:'Für diese Rechnung ist kein PDF verfügbar'});
+    const pdf=await makeInvoicePdf(viewing?{...invoice,status:'Offen'}:invoice,customer,project,{iban});
     res.writeHead(200,{...headers,'Content-Type':'application/pdf',
       'Content-Disposition':'attachment; filename="LSZH_Rechnung_'+invoice.number+'.pdf"'});
     return res.end(pdf);
+  }
+  const offerPdf=pathname.match(/^\/api\/pdf\/offerte\/([A-Za-z0-9_-]{1,100})$/);
+  if(req.method==='GET'&&offerPdf){
+    const id=offerPdf[1],offer=await store.get('offerten',id);
+    if(!offer)return reply(res,404,{error:'record_not_found'});
+    let pdf=CONTRACT_ACTIONS_ENABLED?await getContractActions().offerPdf(id):null;
+    if(!pdf){
+      if(offer.contractPackageId)return reply(res,503,{error:'Archiviertes Offerten-PDF derzeit nicht verfügbar'});
+      const {existingLines}=require('./offer-pricing');
+      if(!existingLines(offer).length)return reply(res,404,{error:'Noch kein Offerten-PDF verfügbar'});
+      const lead=offer.leadId?await store.get('leads',offer.leadId):null,customer=offer.customerId?await store.get('kunden',offer.customerId):null;
+      pdf=require('./offer-pdf').makePdf(offer,lead||customer||{}, {makeRequirementsVersion:require('./make-requirements').MAKE_REQUIREMENTS_VERSION});
+    }
+    return reply(res,200,pdf,'application/pdf');
   }
   const print=pathname.match(/^\/api\/print\/(offerte|rechnung)\/([A-Za-z0-9_-]{1,100})$/);
   if(req.method==='GET'&&print){

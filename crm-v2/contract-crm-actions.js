@@ -4,7 +4,7 @@ const {invitationKey}=require('./simple-customer-send');
 const {confirmationKey}=require('./order-confirmation');
 const {MAKE_REQUIREMENTS_VERSION}=require('./make-requirements');
 const draftKey=id=>'draftPackage_'+digest(Buffer.from(id));
-function createCrmContractActions({transaction,publisher,review,portalOrigin,pilot,reviewEnabled=false,preparation,invitations,confirmation}={}){
+function createCrmContractActions({transaction,publisher,review,portalOrigin,pilot,reviewEnabled=false,preparation,invitations,confirmation,readArchivedPdf}={}){
  if(pilot&&(!/^[A-Za-z0-9_-]{1,100}$/.test(pilot.offerId||'')||pilot.recipient!=='lars.schulthess@outlook.com'))throw fault('PILOT_CONFIG_INVALID',503);
  const origin=new URL(portalOrigin);if(origin.protocol!=='https:'||origin.origin!==portalOrigin)throw fault('INVALID_ORIGIN',503);
  async function load(id){
@@ -53,7 +53,16 @@ function createCrmContractActions({transaction,publisher,review,portalOrigin,pil
   if(action==='issue-link'){const link=await publisher.issueLink(r.packageId,user);return {url:portalOrigin+'/#'+link.token,expiresAt:link.expiresAt};}
   throw fault('NOT_FOUND',404);
  }
- return Object.freeze({status,act});
+ async function offerPdf(id){
+  const r=await load(id),pkg=r.publication?.package||r.draft?.package;
+  if(!pkg){if(r.offer.contractPackageId)throw fault('ARCHIVED_OFFER_UNAVAILABLE',404);return null;}
+  if(pkg.offerId!==id)throw fault('CRM_BINDING_INVALID',409);
+  const document=pkg.documents?.find(d=>d.kind==='offer');
+  if(!document||typeof readArchivedPdf!=='function')throw fault('ARCHIVED_OFFER_UNAVAILABLE',404);
+  const bytes=Buffer.from(await readArchivedPdf(document.archiveFileId,document));
+  require('./offer-contract-package').verifyDocumentBytes(document,bytes);return bytes;
+ }
+ return Object.freeze({status,act,offerPdf});
 }
 async function routeCrmContract({req,res,path,user,enabled,getActions,readJson,reply}={}){
  const m=/^\/api\/records\/offerten\/([A-Za-z0-9_-]{1,100})\/contract(?:\/(preview|preview-terms|preview-avv|send|check|invite|draft|prepare|dispatch|reconcile|issue-link|review|confirmation|confirmation-preview|confirmation-send|confirmation-check))?$/.exec(path);

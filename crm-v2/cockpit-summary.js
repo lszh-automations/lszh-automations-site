@@ -4,6 +4,7 @@
 // O(N) Firestore reads per request: switch to transactional materialized
 // aggregates before very large datasets or high-frequency polling.
 const {localSwissDate,validDay,outstandingCents,paidCents}=require('./invoice-accounting');
+const {offerDisplayStatus}=require('./offer-tracking');
 const TABLES=['leads','kunden','offerten','rechnungen','projekte'];
 const leadStatuses=['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'];
 const money=x=>{const v=Number(x);return Number.isFinite(v)&&v>0?Math.round(v*100):0;};
@@ -20,6 +21,7 @@ function empty(){
     legacyPaidCount:0,projectDone:0,projectOverdue:0,tasksDone:0,tasksTotal:0,
     leadStages:Object.fromEntries(leadStatuses.map(k=>[k,0])),
     dueLeadCount:0,dueOfferCount:0,reminderPreviewCount:0,
+    pendingConfirmationCount:0,pendingAdoptionCount:0,pendingConfirmations:[],pendingAdoptions:[],
     recentLeads:[],dueLeads:[],dueOffers:[],receivables:[]
   };
 }
@@ -55,11 +57,18 @@ async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}
         }
       }
       if(table==='offerten'){
-        if(['Entwurf','Bereit','Versendet'].includes(r.status)){
+        const shownStatus=offerDisplayStatus(r);
+        const pending=shownStatus==='Angenommen'&&r.status!=='Angenommen';
+        if(pending&&['customer_response_recorded','awaiting_lszh_confirmation'].includes(r.onlineAcceptance?.state)){
+          s.pendingConfirmationCount++;keepTop(s.pendingConfirmations,r,8,newest);
+        }else if(pending&&r.onlineAcceptance?.state==='confirmed'){
+          s.pendingAdoptionCount++;keepTop(s.pendingAdoptions,r,8,newest);
+        }
+        if(['Entwurf','Bereit','Versendet'].includes(shownStatus)){
           s.openOffers++;s.openOfferCents+=money(r.oneTimeCHF);
         }
-        if(r.status==='Angenommen')s.acceptedMonthlyCents+=money(r.monthlyCHF);
-        if(r.status==='Versendet'&&validDay(r.followUpDate)&&r.followUpDate<=today){
+        if(r.status==='Angenommen'||r.onlineAcceptance?.state==='confirmed'&&shownStatus==='Angenommen')s.acceptedMonthlyCents+=money(r.monthlyCHF);
+        if(shownStatus==='Versendet'&&validDay(r.followUpDate)&&r.followUpDate<=today){
           s.dueOfferCount++;keepTop(s.dueOffers,r,8,earliest);
         }
       }

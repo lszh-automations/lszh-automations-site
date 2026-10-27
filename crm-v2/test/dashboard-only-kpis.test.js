@@ -52,7 +52,7 @@ test('Overview KPI cards exist only on dashboard, not in the five working tabs',
   const h=createHarness();
   h.renderKpis();
   assert.equal(h.kpis.hidden,false);
-  assert.equal(h.kpis.children.length,5);
+  assert.equal(h.kpis.children.length,4);
   assert.equal(h.getStatsCalls(),1);
   const first=h.kpis.children[0];
   assert.equal(first.tag,'button');
@@ -69,7 +69,7 @@ test('Overview KPI cards exist only on dashboard, not in the five working tabs',
   h.state.tab='dashboard';
   h.renderKpis();
   assert.equal(h.kpis.hidden,false,'Dashboard KPIs return when navigating back');
-  assert.equal(h.kpis.children.length,5);
+  assert.equal(h.kpis.children.length,4);
   assert.equal(h.getStatsCalls(),2);
 });
 

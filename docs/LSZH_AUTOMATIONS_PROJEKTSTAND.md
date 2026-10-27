@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Vereinfachtes Dashboard, 27.10.2026
+
+CRM **`lszh-crm-v2-00123-kev`** erhält 100 % Verkehr. Das Dashboard zeigt vier Kennzahlen, maximal fünf unmittelbar sichtbare dringende Kategorien und weitere Aufgaben zum Aufklappen. Priorisierte Forderungen sind direkt zu öffnen. Offerten mit Kundenannahme und ausstehender LSZH-Bestätigung bzw. Auftragsübernahme erscheinen getrennt. Fällige Rückmeldungen werden nur bei Einträgen gezeigt. Finanzdetails, Pipeline, Projektstatus, letzte Leads und interne Erinnerungsvorschauen liegen unter Auswertungen und weitere Vorgänge. Aufklappzustand bleibt bei Aktualisierung erhalten.
+
+Vollständige rein lesende Gesamtauswertung korrigiert: online angenommene Offerten zählen nicht mehr als offen oder zum Nachfassen. Bestätigungs- und Übernahmezähler umfassen alle Datensätze, Vorschauen maximal acht je Schritt. Monatliche Vertragswerte schliessen einseitige Kundenannahmen aus. Gespeicherte Offerten und der gesamte Bestätigungs-/Übernahmeablauf bleiben unverändert. Fehlende Gesamtauswertung zeigt keine unvollständigen Finanzsummen als Gesamtwerte.
+
+494 CRM-Tests, beide GitHub-Prüfungen und künstliche Desktop-/Mobilabläufe erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur public/index.html und cockpit-summary.js geändert. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich, Gesamtauswertung und Vertragsstatus anonym HTTP 401. Keine Kundendatenänderung, Mail, Zahlungsbuchung oder Dokumentänderung. Offerte 1003 weiterhin ohne Zuordnung. Rechnungsampel und neutrale Darstellung bezahlter Rechnungen unverändert. Website, Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_DASHBOARD_VIEW.md) - [Live-Nachweis](../releases/simple-dashboard-live-20261027.json) - [PR 34](https://github.com/lszh-automations/lszh-automations-site/pull/34).
+
+---
+
 # Aktiver Live-Stand - Rechnungen mit Fälligkeitsampel, 27.10.2026
 
 CRM **`lszh-crm-v2-00121-keq`** erhält 100 % Verkehr. Die vereinfachte Rechnungsansicht zeigt das Fälligkeitsdatum offener/teilbezahlter Rechnungen mit Restbetrag rot bei Überfälligkeit, orange für heute bis einschliesslich sieben Tage und grün ab acht Tagen. Bezahlte, stornierte und Entwurfsrechnungen, vollständig beglichene Forderungen sowie fehlende/ungültige Daten bleiben neutral. Tooltip und zugänglicher Text erklären die Einstufung. Aktualisierung über den bestehenden Minutentakt, keine zusätzlichen API-Aufrufe oder Datenänderungen.

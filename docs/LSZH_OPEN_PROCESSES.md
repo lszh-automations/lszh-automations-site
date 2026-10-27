@@ -1,3 +1,9 @@
+# Aktuell: Ablaufbereich vollständig entfernt
+
+Auf Benutzerwunsch ist der komplette Bereich „Deine laufenden Abläufe“ aus dem Dashboard entfernt, einschliesslich seiner Karten, Filter und speziellen Öffnungsfunktionen/Stile. Vier Kennzahlen und aufklappbare Auswertungen bleiben bestehen. Die folgenden Beschreibungen dokumentieren frühere Stände. [Live-Nachweis](../releases/remove-dashboard-flows-live-20261027.json).
+
+---
+
 # Aktuelle Hauptansicht: zusammenhängende Abläufe
 
 Die frühere Liste einzelner offener Datensätze ist durch Auftragsbündelung mit getrennten eigenen Schritten und Wartezeiten ersetzt. [Aktuelle Logik und Bedienung](LSZH_DASHBOARD_PROCESS_LOGIC.md). Die folgenden Angaben beschreiben den früheren Stand beziehungsweise weiterhin vorhandene Auswertungen.

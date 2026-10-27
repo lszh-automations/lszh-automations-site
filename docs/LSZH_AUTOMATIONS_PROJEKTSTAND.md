@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Ablaufbereich aus Dashboard entfernt, 27.10.2026
+
+CRM **`lszh-crm-v2-00137-naf`** erhält 100 % Verkehr. Auf Benutzerwunsch den kompletten Bereich Deine laufenden Abläufe aus dem Dashboard entfernt: keine Karten, Filter, speziellen Öffnungsfunktionen oder Stile dieses Bereichs mehr. Die vier Kennzahlen und aufklappbaren Auswertungen bleiben bestehen. Nur public/index.html geändert; keine Daten-, Zuordnungs- oder Prozessänderung.
+
+521 CRM-Tests, Desktop-/Mobilprüfung und beide GitHub-Prüfungen erfolgreich. Alle 81 Laufzeitdateien bytegleich bestätigt. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich und Bereich darin nicht mehr vorhanden. Keine jüngsten Revisionsfehler. Keine Nachricht, Buchung oder Kundendatenänderung. Make, Website und Portal unverändert.
+
+[Live-Nachweis](../releases/remove-dashboard-flows-live-20261027.json) - [PR 41](https://github.com/lszh-automations/lszh-automations-site/pull/41).
+
+---
+
 # Aktiver Live-Stand - Dashboard mit fachlicher Ablaufbündelung, 27.10.2026
 
 CRM **`lszh-crm-v2-00135-nen`** erhält 100 % Verkehr. Die Hauptansicht bündelt zusammengehörige Anfrage, Offerte, Projekt und Rechnung anhand konkreter Verknüpfungen je Auftrag. Eigene nächste Schritte und Warten auf Kunde/Zahlung getrennt. Durch vorhandene Offerten überholte Lead-Hinweise entfallen, explizite Lead-Aktionen bleiben. Verschiedene Aufträge desselben Kunden bleiben getrennt. Parallele Projektarbeit und offene Zahlung stehen in derselben Karte. Bisherige Zusatzkästen unter Auswertungen statt doppelter Hauptansicht. Keine Zuordnung über Firmenname/E-Mail.

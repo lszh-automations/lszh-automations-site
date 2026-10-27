@@ -42,3 +42,8 @@ Aktiv seit 27.10.2026: **`lszh-crm-v2-00113-gac`**, 100 % Verkehr. Alle 80 gebau
 Die Registerliste zeigt Nummer, Offertentitel, Kunde / Interessent, Nachfassen, Status und Öffnen. Die Betragsspalten entfallen nur in der Liste; gespeicherte Preise, Editor und PDFs bleiben unverändert. Firma erscheint einmal, Kundennummer klein darunter. Ohne Kundenzuordnung wird der vorhandene Lead angezeigt; dies erzeugt keine Zuordnung. Offerte 1003 bleibt unzugeordnet. Annahme mit ausstehender Abwicklung zeigt den kurzen Hinweis „Abwicklung offen“. Weitere Seiten werden nur bei hasMore angekündigt.
 
 Validierung: 493 CRM-Tests erfolgreich; Desktop und Mobilgerät mit künstlichen Daten, keine Kundendatenänderungen oder Nachrichten.
+
+
+## Annahmestatus farblich unterscheiden (27.10.2026)
+
+In der Offertenliste bleibt „Angenommen“ orange bei ausschliesslicher Kundenannahme (customer_response_recorded / awaiting_lszh_confirmation). Hinweis: „Deine Bestätigung fehlt“. Erst onlineAcceptance.state=confirmed, also nach nachgewiesener LSZH-Auftragsbestätigung, erscheint der Status grün. Die spätere Auftragseröffnung ist dafür nicht nötig. Bisher intern auf Angenommen gesetzte Offerten ohne Online-Annahme bleiben grün. Geschäftsregeln und Kundendaten bleiben unverändert. Geprüft: 493 CRM-Tests sowie sechs Statusvarianten auf Desktop und Mobilgerät mit künstlichen Daten.

@@ -49,6 +49,7 @@ th,td{padding:15px 18px;border-top:1px solid var(--border)}td{font-size:13px}td:
 .badge{background:#233348;color:#c4dcf4;padding:5px 9px;border-radius:99px;font-weight:650;font-size:11px;display:inline-block}
 
 .offer-list{min-width:620px;table-layout:fixed}.offer-list th,.offer-list td{padding:13px 16px;vertical-align:middle}.offer-list th:nth-child(1){width:70px}.offer-list th:nth-child(2){width:30%}.offer-list th:nth-child(3){width:26%}.offer-list th:nth-child(4){width:112px}.offer-list th:nth-child(5){width:155px}.offer-list th:last-child{width:85px}.offer-list-contact{overflow-wrap:anywhere}.offer-list-secondary{display:block;color:var(--muted);margin-top:2px;font-size:11px}.offer-list .badge,.offer-list .lead-followup-badge{white-space:nowrap}.offer-list td:nth-child(2){overflow-wrap:anywhere}
+.badge.pending{background:#453019;color:#ffd18a;border:1px solid #926534}
 .badge.success{background:#15362c;color:#90e5c2}.badge.dim{background:#272d39;color:#c0c5cf}
 .link-btn{border:0;background:transparent;color:var(--accent);padding:3px 0;font-weight:650}
 .empty{text-align:center;padding:68px 22px;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:5px}
@@ -1267,10 +1268,12 @@ function render(){
       else if(key==='status'){
         const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
         const shownStatus=state.tab==='offerten'?offerDisplayStatus(rec):rec.status;
-        const tag=el('span','badge'+(['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue?'Überfällig':(shownStatus||'–'));
+        const pendingAcceptance=state.tab==='offerten'&&offerAcceptancePending(rec);
+        const tag=el('span','badge'+(pendingAcceptance?' pending':['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue?'Überfällig':(shownStatus||'–'));
+        if(state.tab==='offerten'&&shownStatus==='Angenommen')tag.title=pendingAcceptance?'Vom Kunden angenommen – deine Bestätigung steht aus.':'Beidseitig bestätigt';
         if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
         td.append(tag);
-        if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','','Abwicklung offen');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
+        if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','',pendingAcceptance?'Deine Bestätigung fehlt':'Abwicklung offen');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
       }
       else if(key==='nextStep'){
         const next=el('div','',projectNextStep(rec));next.style.cssText='max-width:290px;font-size:13px;line-height:1.5';td.append(next);
@@ -1850,6 +1853,7 @@ function quoteItemsFromForm(){
   }
   return items;
 }
+function offerAcceptancePending(offer){return offerDisplayStatus(offer)==='Angenommen'&&Boolean(offer.onlineAcceptance)&&offer.onlineAcceptance.state!=='confirmed';}
 function offerDisplayStatus(offer){return offer?.status==='Versendet'&&['customer_response_recorded','awaiting_lszh_confirmation','confirmed'].includes(offer.onlineAcceptance?.state)?'Angenommen':offer?.status||'';}
 function isOfferLocked(offer){
   if(!offer)return false;

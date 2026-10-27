@@ -19,3 +19,10 @@ Nach dem dokumentierten Start rücken die Aufgaben nach oben; die Vorbereitung w
 Die Änderung betrifft ausschliesslich die CRM-Oberfläche. Es gibt keine neue Datenstruktur, keine Migration, keine Änderung der Startvoraussetzungen und keine automatische Rechnung, Abrechnung oder Mail. Sämtliche zugeklappten Angaben werden weiterhin beim bewussten Speichern berücksichtigt. Bestehende Aufgaben, Notizen, Verknüpfungen und Startnachweise bleiben erhalten.
 
 Desktop und Mobil mit synthetischen Daten und blockierten externen Netzwerkzugriffen geprüft: kompakter Kopf, Vorbereitung, tatsächlicher Start, nächste Aufgabe, Speichern/Wiederöffnen mit zugeklappten Angaben, Pause, erledigte Aufgaben, Abschluss, Rechnungsabruf erst bei Bedarf, Fehler/Wiederholung und Öffnen der verknüpften Rechnung. Die vorhandenen 488 CRM-Tests prüfen weiterhin die unveränderten Fachregeln.
+
+
+## Live-Nachweis
+
+Aktiv seit 27.10.2026: **`lszh-crm-v2-00109-hiz`**, 100 % Verkehr. Alle 80 gebauten Laufzeitdateien exakt bestätigt; gegenüber der vorherigen Version nur `public/index.html` geändert. Konfiguration und Dienstkonto unverändert. Beide GitHub-Prüfungen einschliesslich Firestore-Emulatortests erfolgreich. Live-Oberfläche HTTP 200, anonyme Projektabfragen und Startaufträge HTTP 401. Keine Fehlerlogs der neuen Revision im kontrollierten Zeitfenster. Keine Produktionsdatensätze bearbeitet. Website, Kundenportal und Make unverändert.
+
+[PR 30](https://github.com/lszh-automations/lszh-automations-site/pull/30) · [Live-Manifest](../releases/simple-projects-live-20261027.json). Rückfallrevision: `lszh-crm-v2-00107-wif`.

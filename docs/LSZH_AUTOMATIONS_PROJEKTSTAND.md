@@ -1,3 +1,23 @@
+# Aktiver Live-Stand - Rechnungen mit Fälligkeitsampel, 27.10.2026
+
+CRM **`lszh-crm-v2-00121-keq`** erhält 100 % Verkehr. Die vereinfachte Rechnungsansicht zeigt das Fälligkeitsdatum offener/teilbezahlter Rechnungen mit Restbetrag rot bei Überfälligkeit, orange für heute bis einschliesslich sieben Tage und grün ab acht Tagen. Bezahlte, stornierte und Entwurfsrechnungen, vollständig beglichene Forderungen sowie fehlende/ungültige Daten bleiben neutral. Tooltip und zugänglicher Text erklären die Einstufung. Aktualisierung über den bestehenden Minutentakt, keine zusätzlichen API-Aufrufe oder Datenänderungen.
+
+493 CRM-Tests, beide GitHub-Prüfungen und zwölf künstliche Desktop-/Mobilvarianten einschliesslich Grenztagen, Tageswechsel und Zeitumstellung erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur public/index.html geändert. Konfiguration unverändert, Live-HTML bytegleich und Prüf-Endpunkt anonym HTTP 401. Keine Zahlung, Nachricht oder Dokumentänderung. [Bedienung](LSZH_INVOICE_VIEW.md) - [Live-Nachweis](../releases/invoice-due-colours-live-20261027.json).
+
+---
+
+# Aktiver Live-Stand - Vereinfachte Rechnungsansicht, 27.10.2026
+
+CRM **`lszh-crm-v2-00119-niz`** erhält 100 % Verkehr. Rechnungen zeigen Kunde, Beschreibung, Fälligkeit und Status im Vordergrund; gespeicherte Rechnungen ausser Entwürfen zusätzlich Gesamtbetrag, Zahlungseingänge und Restbetrag. Nächster Schritt kommt aus der bestehenden serverseitigen Prüfung. Positionen, Projekt/Rechnungsdatum, Druckansicht, Versanddetails, Buchungshistorie, Zahlungserfassung und Mahnwesen sind aufklappbar. Neue Rechnungen und Entwürfe zeigen Positionen offen. PDF, Schliessen und Speichern bleiben mobil erreichbar.
+
+Versandfreigabe erfordert weiterhin gespeicherte Daten, geprüftes PDF und Empfänger sowie bewusste Bestätigung. Unklarer Versand erlaubt nur Klärung; bestätigte Sendungen bieten keinen erneuten Versand. Zahlungs- und Mahnregeln, Preisberechnung, Kundenzuordnungen und PDFs unverändert. Bestehende Offertenansicht bleibt erhalten: kompakte Liste ohne Betragsspalten; Kundenannahme orange bis zur nachgewiesenen LSZH-Bestätigung, danach grün.
+
+493 CRM-Tests, beide GitHub-Prüfungen sowie Desktop-/Mobilabläufe erfolgreich. Alle 80 Laufzeitdateien bestätigt, ausschliesslich public/index.html geändert. Konfiguration und Dienstkonto unverändert; Live-Oberfläche bytegleich und Rechnungs-/Prüfabfragen anonym HTTP 401. Keine Kundendaten geändert, keine Zahlung, Mail oder Dokumentänderung. Offerte 1003 weiterhin ohne Zuordnung. Website, Portal und Make unverändert.
+
+[Bedienung und Grenzen](LSZH_INVOICE_VIEW.md) - [Live-Nachweis](../releases/simple-invoices-live-20261027.json) - [PR 33](https://github.com/lszh-automations/lszh-automations-site/pull/33).
+
+---
+
 # Aktiver Live-Stand - Vereinfachte Offertenansicht, 27.10.2026
 
 CRM **`lszh-crm-v2-00113-gac`** erhält 100 % Verkehr. Offerten zeigen Kunde, Titel, Gültigkeit, Status, Empfänger und Positionen im Vordergrund. Beschreibung und Lead-Verknüpfung sind aufklappbar. Versand, Online-Annahme, Auftragsbestätigung und Auftragsübernahme erscheinen in einem einzigen Bereich «Nächster Schritt». Make-Hinweise sowie Nachfassen und Verlauf sind bei Bedarf zugänglich. PDF-Vorschau, Schliessen und Speichern bleiben auch mobil erreichbar.

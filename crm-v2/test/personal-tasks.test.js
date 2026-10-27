@@ -28,8 +28,13 @@ test('project status alone creates no task; explicit work, completed checklists 
  const d=base();d.projekte=[{id:'wait',status:'Wartet auf Kunde'},{id:'later',status:'Wartet auf Kunde',dueDate:'2026-10-28'},{id:'due',status:'Wartet auf Kunde',dueDate:'2026-10-26'},{id:'undefined',status:'In Arbeit'},{id:'work',status:'In Arbeit',tasks:[{title:'Erledigt',done:true},{title:'Webhook prüfen',done:false}]},{id:'finish',status:'In Arbeit',tasks:[{title:'Erledigt',done:true}]},{id:'done',status:'Abgeschlossen',tasks:[{title:'Alt',done:false}]}];assert.deepEqual(new Set(ids(d)),new Set(['due','work','finish']));assert.equal(tasks(d).find(t=>t.id==='work').action,'Webhook prüfen');
 });
 test('scheduled project start waits only after all preparation including actual implementation steps',()=>{
- const d=base();d.projekte=[{id:'p',status:'Geplant',customerId:'k',startDate:'2026-10-28',onboarding:{makeRequired:false,accessConfirmed:true},tasks:[{title:'Umsetzen',done:false}]}];assert.deepEqual(ids(d),[]);d.projekte[0].startDate=today;assert.equal(tasks(d)[0].action,'Projektstart bestätigen');d.projekte[0].tasks=[];assert.equal(tasks(d)[0].action,'Umsetzungsschritt festlegen');
+ const d=base();d.projekte=[{id:'p',status:'Geplant',customerId:'k',owner:'Lars',startDate:'2026-10-28',onboarding:{makeRequired:false,accessConfirmed:true},tasks:[{title:'Umsetzen',done:false}]}];assert.deepEqual(ids(d),[]);d.projekte[0].startDate=today;assert.equal(tasks(d)[0].action,'Projektstart bestätigen');d.projekte[0].tasks=[];assert.equal(tasks(d)[0].action,'Mindestens einen Umsetzungsschritt festlegen');
 });
 test('complete scan includes all tasks beyond first register page and never mutates inputs',async()=>{
  const d=base();d.leads=Array.from({length:235},(_,i)=>({id:'l'+i,status:'Neu',company:'Firma'}));const before=JSON.stringify(d);const summary=await cockpitSummary({async *scan(t){yield* d[t];}},{today,nowMs:now});assert.equal(summary.personalTasks.length,235);assert.equal(summary.tasksAsOf,new Date(now).toISOString());assert.equal(JSON.stringify(d),before);
+});
+
+test('project task uses the actual start prerequisites, including date and owner before confirming start',()=>{
+ const d=base();const p={id:'p',status:'Geplant',customerId:'k',onboarding:{makeRequired:true,invitationConfirmed:true,accessConfirmed:true},tasks:[{title:'Einrichten',done:false}]};d.projekte=[p];
+ assert.equal(tasks(d)[0].action,'Gültiges Startdatum festlegen');p.startDate='2026-10-28';assert.equal(tasks(d)[0].action,'Verantwortliche Person eintragen');p.owner='Lars';assert.deepEqual(ids(d),[]);p.startDate=today;assert.equal(tasks(d)[0].action,'Projektstart bestätigen');
 });

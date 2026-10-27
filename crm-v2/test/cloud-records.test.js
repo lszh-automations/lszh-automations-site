@@ -1081,3 +1081,35 @@ test('proven not-sent reminder frees stage without deleting audit and requires a
  await x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},admin);await x.store.finishInvoiceReminder(x.invoice.id,id,'manual_review','',admin);const r=await x.store.resolveInvoiceReminder(x.invoice.id,'not_sent',admin);assert.equal((r.reminderHistory||[]).length,0);assert.equal(r.reminderDispatchHistory.length,1);assert.equal((await x.store.invoiceReminderPreview(x.invoice.id)).kind,'Zahlungserinnerung');
  await assert.rejects(()=>x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},admin),/reserviert/);
 });
+
+test('customer lifecycle keeps the right personal task across acceptance, onboarding, dispatch, partial payment and closure',async()=>{
+ const {cockpitSummary}=require('../cockpit-summary'),{localSwissDate}=require('../invoice-accounting');
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_'),today=localSwissDate();
+ const tasks=async()=>{const d={};for(const table of ['leads','kunden','offerten','rechnungen','projekte'])d[table]=await store.list(table);return (await cockpitSummary({async *scan(table){yield* d[table];}},{today})).personalTasks;};
+ const lead=await store.create('leads',newLead('TEST_ONLY lifecycle'),admin);assert.equal((await tasks())[0].table,'leads');
+ await store.update('leads',lead.id,{status:'Qualifiziert'},admin);const offer=(await store.list('offerten'))[0];
+ await store.update('offerten',offer.id,{items:[{title:'Setup',qty:1,unitPriceCHF:199.95,mode:'einmalig'},{title:'Betrieb',qty:1,unitPriceCHF:25,mode:'monatlich'}]},admin);
+ // In-memory evidence states from the separately tested online acceptance/confirmation path.
+ const storedOffer=db.storage.get('lszh_crm_v2_staging_offerten/'+offer.id);storedOffer.onlineAcceptance={state:'customer_response_recorded',reviewRequired:true,archiveState:'complete'};
+ assert.match((await tasks()).find(t=>t.id===offer.id).action,/Kundenannahme/);
+ await assert.rejects(store.update('offerten',offer.id,{status:'Angenommen'},admin),e=>e.status===409);
+ storedOffer.onlineAcceptance={state:'confirmed',reviewRequired:false,archiveState:'complete'};
+ await store.update('offerten',offer.id,{status:'Angenommen'},admin);
+ const accepted=await store.get('offerten',offer.id),invoice=await store.get('rechnungen',accepted.initialInvoiceId),project=(await store.list('projekte'))[0];
+ assert.equal((await store.list('kunden')).length,1);assert.match((await store.list('kunden'))[0].customerNumber,/^KD-/);assert.equal(invoice.amountCHF,199.95);assert.equal(invoice.items.length,1);assert.equal(invoice.status,'Entwurf');assert.equal(invoice.customerId,project.customerId);assert.equal(project.offerId,offer.id);
+ assert.ok(!(await tasks()).some(t=>t.table==='leads'||t.table==='offerten'));
+ await store.update('projekte',project.id,{onboarding:{makeRequired:true,invitationConfirmed:false,accessConfirmed:false,notes:''}},admin);assert.equal((await tasks()).find(t=>t.id===project.id).action,'Make-Einladung prüfen');
+ await store.update('projekte',project.id,{onboarding:{makeRequired:true,invitationConfirmed:true,accessConfirmed:true,notes:''},tasks:[{title:'Einrichten',done:false}]},admin);
+ assert.equal((await tasks()).find(t=>t.id===project.id).action,'Gültiges Startdatum festlegen');await assert.rejects(store.startProject(project.id,admin),e=>e.status===409);
+ await store.update('projekte',project.id,{startDate:today},admin);assert.equal((await tasks()).find(t=>t.id===project.id).action,'Verantwortliche Person eintragen');
+ await store.update('projekte',project.id,{owner:'TEST_ONLY operator'},admin);assert.equal((await tasks()).find(t=>t.id===project.id).action,'Projektstart bestätigen');
+ await store.startProject(project.id,admin);assert.equal((await tasks()).find(t=>t.id===project.id).action,'Einrichten');
+ await store.update('rechnungen',invoice.id,{dueDate:today,status:'Offen'},admin);assert.equal((await store.invoiceReview(invoice.id)).readiness.canSend,true);
+ const claim=await store.claimInvoiceSend(invoice.id,admin);assert.ok(!(await tasks()).some(t=>t.id===invoice.id));await store.finishInvoiceSend(invoice.id,claim.attemptId,'confirmed','synthetic_lifecycle_receipt');
+ const partial={paymentId:'00000000-0000-4000-8000-000000000091',amountCHF:'50.00',paidOn:today,method:'Banküberweisung',reference:'TEST_ONLY partial'};
+ const paidPart=await store.recordInvoicePayment(invoice.id,partial,admin);assert.equal(paidPart.status,'Teilbezahlt');assert.equal(paidPart.outstandingCHF,149.95);await store.recordInvoicePayment(invoice.id,partial,admin);assert.equal((await store.get('rechnungen',invoice.id)).paymentHistory.length,1);
+ await store.update('projekte',project.id,{tasks:[{title:'Einrichten',done:true}]},admin);assert.equal((await tasks()).find(t=>t.id===project.id).action,'Ergebnis abnehmen und Projekt abschliessen');
+ await store.update('projekte',project.id,{status:'Abgeschlossen'},admin);assert.equal((await store.get('rechnungen',invoice.id)).status,'Teilbezahlt');
+ const paid=await store.recordInvoicePayment(invoice.id,{...partial,paymentId:'00000000-0000-4000-8000-000000000092',amountCHF:'149.95',reference:'TEST_ONLY final'},admin);assert.equal(paid.status,'Bezahlt');assert.equal(paid.outstandingCHF,0);
+ assert.deepEqual(await tasks(),[]);assert.equal((await store.list('rechnungen')).length,1);assert.equal((await store.list('kunden')).length,1);
+});

@@ -6,7 +6,7 @@
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked,invoiceReadiness}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
-const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding,validProjectStartDay,projectStartReadiness}=require('./project-tasks');
+const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding,defaultProjectTasks,validProjectStartDay,projectStartReadiness}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,freezeLeadUrgency}=require('./lead-contact');
@@ -273,7 +273,7 @@ function buildStore(db,prefix,options={}){
       const fields={
         customerId:finalCustomer.id,offerId:offerRef.id,
         title:offer.title||'Gewonnenes Projekt',description:offer.description||'',
-        dueDate:'',tasks:[],onboarding:defaultOnboarding(),status:'Geplant'
+        dueDate:'',tasks:defaultProjectTasks(),onboarding:defaultOnboarding(),status:'Geplant'
       };
       tx.create(finalProject,newRecord(fields,user,date));
     }
@@ -528,7 +528,7 @@ function buildStore(db,prefix,options={}){
         await assertCustomer(tx,customerId);
         if(input.offerId&&await queryOne(tx,'projekte','offerId',input.offerId))
           throw err('Diese Offerte ist bereits einem Projekt zugeordnet');
-        tx.create(ref,newRecord({...input,customerId,tasks:input.tasks||[],onboarding:input.onboarding||defaultOnboarding()},user,date));
+        tx.create(ref,newRecord({...input,customerId,tasks:input.tasks===undefined?defaultProjectTasks():input.tasks,onboarding:input.onboarding||defaultOnboarding()},user,date));
       }
       if(table==='rechnungen'){
         const project=await assertProject(tx,input.projectId);

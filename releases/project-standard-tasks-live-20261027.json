@@ -1,0 +1,44 @@
+{
+  "revision": "lszh-crm-v2-00149-def",
+  "rollback": "lszh-crm-v2-00147-roj",
+  "runtimeFiles": 83,
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "035de889d065b998e5763aa89f3f410f0e7eb84e5e9a5bc059db7324e4408b7f"
+    },
+    {
+      "path": "project-tasks.js",
+      "sha256": "7a4761c1159464666d66bf1bcbe1862028860fd06618a147e3e75cc8c4c2a357"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "51d1a0eda6323f131ecf91528a1d2797efdf3516a523bf74b9861eb05f005166"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidateHtmlExact": true,
+  "anonymousApi": 401,
+  "invoiceMailMode": "production",
+  "tests": 548,
+  "desktopMobile": "passed; four fresh unchecked defaults, no duplicate exact titles, existing and legacy tasks unchanged",
+  "productionProjectsCreated": 0,
+  "existingProjectTasksChanged": false,
+  "makeChanged": false,
+  "schedulerChanged": false,
+  "emailSent": false,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/47",
+  "buildId": "91adf9a4-edaf-40f6-90cc-cdc8446b062c",
+  "featureCommit": "30c56238d6532547558f4f3e5302e273578c8072",
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793135757.009047-d76b83070a8142dc9814be80eab1e51c.zip#1793135759327946",
+  "date": "2026-10-27",
+  "status": "live",
+  "trafficPercent": 100,
+  "liveHtmlExact": true,
+  "recentErrorCount": 0,
+  "githubChecks": "success",
+  "githubWorkflowRuns": [
+    40585363245,
+    40585362873
+  ]
+}

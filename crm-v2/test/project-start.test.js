@@ -11,3 +11,9 @@ test('readiness uses real calendar dates and the Swiss day without changing reco
  assert.ok(projectStartReadiness({...p,onboarding:{...p.onboarding,makeRequired:true}},'2026-10-27').missing.includes('Make-Einladung prüfen'));
  assert.equal(JSON.stringify(p),before);
 });
+
+test('project standard task factory returns fresh unchecked tasks matching the browser template',()=>{
+ const {defaultProjectTasks,DEFAULT_PROJECT_TASK_TITLES}=require('../project-tasks'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+ const first=defaultProjectTasks();assert.equal(first.length,4);assert.ok(first.every(t=>t.done===false));first[0].done=true;first[0].title='Changed';assert.equal(defaultProjectTasks()[0].title,'Automation einrichten');assert.equal(defaultProjectTasks()[0].done,false);
+ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8'),match=html.match(/const DEFAULT_PROJECT_TASK_TITLES=(\[[^;]+\]);/);assert.ok(match);assert.deepEqual(Array.from(vm.runInNewContext(match[1])),Array.from(DEFAULT_PROJECT_TASK_TITLES));
+});

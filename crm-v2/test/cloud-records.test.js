@@ -1041,3 +1041,43 @@ test('acceptance never guesses between duplicate mailboxes or reuses a different
  const ambiguous=await store.create('leads',{...newLead(),company:'TEST_ONLY Company',email:c.email,status:'Qualifiziert'},admin),q=(await store.list('offerten')).find(o=>o.leadId===ambiguous.id),before=JSON.stringify([...db.storage]);
  await assert.rejects(()=>store.update('offerten',q.id,{status:'Angenommen'},admin),e=>e.status===409);assert.equal(JSON.stringify([...db.storage]),before);
 });
+
+async function reminderCase(){
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const customer=await store.create('kunden',{company:'TEST_ONLY Reminder',email:'test@example.invalid',street:'Testweg 1',postalCode:'8000',city:'Zürich',country:'CH'},admin);
+ const invoice=await store.create('rechnungen',{customerId:customer.id,description:'TEST_ONLY Reminder',invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:199.95}]},admin);
+ const claim=await store.claimInvoiceSend(invoice.id,admin);await store.finishInvoiceSend(invoice.id,claim.attemptId,'confirmed','SYNTHETIC_GMAIL');
+ return {db,store,customer,invoice};
+}
+test('reminder claim rechecks preview, reserves once, blocks overlapping booking and records Gmail receipt once',async()=>{
+ const x=await reminderCase(),p=await x.store.invoiceReminderPreview(x.invoice.id),input={reviewed:true,sha256:p.sha256,reminderId:require('node:crypto').randomUUID()};
+ const c=await x.store.claimInvoiceReminder(x.invoice.id,input,admin);assert.equal(c.preview.amountCHF,199.95);
+ await assert.rejects(()=>x.store.claimInvoiceReminder(x.invoice.id,input,admin),/reserviert/);
+ await assert.rejects(()=>x.store.recordInvoicePayment(x.invoice.id,{paymentId:require('node:crypto').randomUUID(),amountCHF:10,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},admin),/gerade versendet/);
+ const saved=await x.store.finishInvoiceReminder(x.invoice.id,c.reminderId,'confirmed','SYNTHETIC_MESSAGE',admin);assert.equal(saved.reminderHistory.length,1);assert.equal(saved.reminderHistory[0].delivery,'gmail_confirmed');assert.equal(saved.reminderHistory[0].outstandingCHF,199.95);assert.equal(saved.status,'Offen');
+ assert.equal((await x.store.claimInvoiceReminder(x.invoice.id,input,admin)).replay,true);
+ await assert.rejects(()=>x.store.invoiceReminderPreview(x.invoice.id),/sieben Tage/);
+});
+test('payment or customer change after preview rejects stale reminder without claiming or sending',async()=>{
+ const x=await reminderCase(),p=await x.store.invoiceReminderPreview(x.invoice.id);
+ await x.store.recordInvoicePayment(x.invoice.id,{paymentId:require('node:crypto').randomUUID(),amountCHF:50,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},admin);
+ await assert.rejects(()=>x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:require('node:crypto').randomUUID()},admin),/veraltet/);
+ assert.equal((await x.store.get('rechnungen',x.invoice.id)).reminderDispatch,undefined);
+ const q=await x.store.invoiceReminderPreview(x.invoice.id);assert.equal(q.amountCHF,149.95);
+ await x.store.update('kunden',x.customer.id,{email:'changed@example.invalid'},admin);
+ await assert.rejects(()=>x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:q.sha256,reminderId:require('node:crypto').randomUUID()},admin),/veraltet/);
+});
+test('uncertain reminder blocks new mail and external logs but permits payment and preserves later mailbox audit',async()=>{
+ const x=await reminderCase(),p=await x.store.invoiceReminderPreview(x.invoice.id),id=require('node:crypto').randomUUID();
+ await x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},admin);await x.store.finishInvoiceReminder(x.invoice.id,id,'manual_review','',admin);
+ await assert.rejects(()=>x.store.invoiceReminderPreview(x.invoice.id),/Postfach/);
+ await assert.rejects(()=>x.store.recordInvoiceReminder(x.invoice.id,{reminderId:require('node:crypto').randomUUID(),kind:'Zahlungserinnerung'},admin),/klären/);
+ await x.store.recordInvoicePayment(x.invoice.id,{paymentId:require('node:crypto').randomUUID(),amountCHF:199.95,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},admin);
+ const resolved=await x.store.resolveInvoiceReminder(x.invoice.id,'confirmed',admin);assert.equal(resolved.status,'Bezahlt');assert.equal(resolved.reminderHistory[0].outstandingCHF,199.95);assert.equal(resolved.reminderHistory[0].delivery,'operator_confirmed_mailbox');assert.equal(resolved.reminderDispatchHistory.length,1);
+ await assert.rejects(()=>x.store.invoiceReminderPreview(x.invoice.id),/Restbetrag/);
+});
+test('proven not-sent reminder frees stage without deleting audit and requires a new reviewed attempt',async()=>{
+ const x=await reminderCase(),p=await x.store.invoiceReminderPreview(x.invoice.id),id=require('node:crypto').randomUUID();
+ await x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},admin);await x.store.finishInvoiceReminder(x.invoice.id,id,'manual_review','',admin);const r=await x.store.resolveInvoiceReminder(x.invoice.id,'not_sent',admin);assert.equal((r.reminderHistory||[]).length,0);assert.equal(r.reminderDispatchHistory.length,1);assert.equal((await x.store.invoiceReminderPreview(x.invoice.id)).kind,'Zahlungserinnerung');
+ await assert.rejects(()=>x.store.claimInvoiceReminder(x.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},admin),/reserviert/);
+});

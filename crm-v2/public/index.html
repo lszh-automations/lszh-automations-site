@@ -428,6 +428,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .customer-attention{color:#ffd18a!important}
 .customer-dialog .project-actions{position:static}
 @media(max-width:650px){.customer-dialog>.modal-head{padding:16px}.customer-dialog h2{font-size:19px}.customer-contact{gap:6px 12px}.customer-dialog .project-actions{padding:12px 16px}.customer-dialog .project-actions .btn{font-size:12px;padding:10px}}
+.invoice-reminder-mail{display:grid;gap:10px;margin:12px 0}.invoice-reminder-mail iframe{width:100%;height:380px;border:1px solid #41546c;border-radius:10px;background:#fff}.invoice-reminder-mail h4,.invoice-reminder-mail p{margin:0}.invoice-reminder-mail>.btn{justify-self:start}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -585,15 +586,16 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <h3>Fälligkeitskontrolle und Mahnwesen</h3>
       <p id="invoiceReminderStatus" class="invoice-reminder-status" role="status"></p>
       <p id="invoiceReminderNotice"></p>
+      <div id="invoiceReminderMail" class="invoice-reminder-mail"></div>
       <p id="invoiceReminderHistory" class="invoice-reminder-history"></p>
-      <div id="invoiceReminderActions" hidden>
+      <details id="invoiceReminderExternal"><summary>Externen Versand dokumentieren</summary><div id="invoiceReminderActions" hidden>
         <p class="invoice-reminder-check">Vor jedem manuellen Versand: Zahlungseingänge, Empfänger, Restbetrag und Inhalt prüfen. Das CRM versendet keine Mahnung automatisch.</p>
         <textarea id="invoiceReminderText" aria-label="Entwurf Zahlungserinnerung" readonly></textarea>
         <div class="invoice-reminder-buttons">
           <button class="btn" type="button" id="invoiceCopyReminder">Erinnerungstext kopieren</button>
           <button class="btn" type="button" id="invoiceLogReminder">Externen Versand bestätigen</button>
         </div>
-      </div>
+      </div></details>
     </section>
     </details><div class="invoice-actions invoice-footer">
       <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
@@ -2741,6 +2743,7 @@ function invoiceCHF(number){
 function markInvoiceUnsaved(event){
   if(state.invoiceLocked||(event?.target&&!$('invoiceForm').contains(event.target)))return;
   state.invoiceDirty=true;resetInvoiceReview('Änderungen zuerst speichern');
+  renderInvoiceReminderMail(state.invoiceEditing);
   $('invoicePrint').disabled=true;
   $('invoicePdf').disabled=true;
   $('invoiceSend').disabled=true;
@@ -2846,7 +2849,7 @@ function renderInvoiceReminders(invoice){
       const rest=Number.isFinite(Number(h.outstandingCHF))?
         invoiceCHF(Number(h.outstandingCHF)):'unbekannt';
       const meta=el('span','',
-        'Externen Versand manuell bestätigt · Empfänger: '+(h.recipient||'–')+
+        (h.delivery==='gmail_confirmed'?'Per Gmail versendet':h.delivery==='operator_confirmed_mailbox'?'Versand im Postfach bestätigt':'Externen Versand manuell bestätigt')+' · Empfänger: '+(h.recipient||'–')+
         ' · Bestätigt von: '+(h.by||'–')+' · Restbetrag bei Bestätigung: '+rest);
       const id=el('span','','Protokoll-ID: '+(h.reminderId||'–'));
       record.append(title,meta,id);
@@ -2879,6 +2882,43 @@ function renderInvoiceReminders(invoice){
     'Falls Sie die Zahlung bereits veranlasst haben, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n'+
     'Freundliche Grüsse\nLSZH Automations\nLSZH Invest GmbH';
   $('invoiceLogReminder').dataset.pendingId='';
+}
+function renderInvoiceReminderMail(invoice){
+  const area=$('invoiceReminderMail'),nonce=state.invoiceReminderNonce=(state.invoiceReminderNonce||0)+1;
+  area.replaceChildren();
+  if(!invoice||!state.invoiceMailEnabled||state.invoiceMailMode!=='production')return;
+  const current=()=>state.invoiceEditing?.id===invoice.id&&state.invoiceReminderNonce===nonce&&$('invoiceEditor').open&&!state.invoiceDirty;
+  const reload=()=>{const b=el('button','btn','Stand neu laden');b.type='button';b.onclick=async()=>{b.disabled=true;try{await reopenSavedInvoice(invoice.id);}catch(e){b.disabled=false;window.alert(e.message);}};area.append(b);};
+  if(state.invoiceDirty){area.append(el('p','','Änderungen zuerst speichern.'));return;}
+  const d=invoice.reminderDispatch;
+  if(d&&['sending','manual_review'].includes(d.state)){
+    $('invoiceReminderActions').hidden=true;$('invoiceReminderExternal').hidden=true;
+    area.append(el('p','','Erinnerungsversand läuft oder ist unklar. Gmail Gesendet prüfen; nicht erneut senden.'));reload();
+    if(d.state==='sending'&&Date.now()-Date.parse(d.claimedAt)<300000)return;
+    for(const [text,resolution,question]of [['Im Postfach bestätigt','confirmed','Hast du diese konkrete Zahlungserinnerung in Gmail Gesendet gefunden?'],['Sicher nicht versendet','not_sent','Ist sicher nachgewiesen, dass diese Erinnerung nicht versendet wurde? Bei Unsicherheit abbrechen.']]){
+      const b=el('button','btn',text);b.type='button';b.onclick=async()=>{if(!current()||!window.confirm(question))return;b.disabled=true;try{await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/reminder-mail/resolve',{method:'POST',body:JSON.stringify({resolution})});if(current())await reopenSavedInvoice(invoice.id);}catch(e){if(current()){area.replaceChildren(el('p','',e.message));reload();}}};area.append(b);
+    }return;
+  }
+  if($('invoiceReminderActions').hidden)return;
+  const preview=el('button','btn primary','Erinnerung prüfen und senden');preview.type='button';area.append(preview);
+  preview.onclick=async()=>{
+    if(!current()||preview.disabled)return;preview.disabled=true;
+    try{
+      const value=await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/reminder-mail');if(!current())return;
+      area.replaceChildren(el('h4','',value.kind),el('p','','Empfänger: '+value.recipient),el('p','','Betreff: '+value.subject),el('p','','Offener Restbetrag: '+invoiceCHF(value.amountCHF)));
+      const frame=el('iframe');frame.title='Vorschau Zahlungserinnerung';frame.setAttribute('sandbox','');frame.srcdoc=value.html;area.append(frame);
+      area.append(el('p','','Anhang: ursprüngliche Rechnung. Keine neue Rechnung und keine automatische Zahlung.'));
+      const label=el('label','onboarding-check'),check=el('input');check.type='checkbox';label.append(check,document.createTextNode('Empfänger, Restbetrag und Inhalt geprüft. Die Erinnerung jetzt einmalig senden.'));area.append(label);
+      const send=el('button','btn primary',value.kind+' senden');send.type='button';send.disabled=true;check.onchange=()=>send.disabled=!check.checked||!current();area.append(send);
+      const reminderId=window.crypto.randomUUID();
+      send.onclick=async()=>{
+        if(send.disabled||!current()||!check.checked||!window.confirm(value.kind+' an '+value.recipient+' über '+invoiceCHF(value.amountCHF)+' jetzt senden?'))return;
+        send.disabled=true;check.disabled=true;$('invoiceReminderActions').hidden=true;$('invoiceReminderExternal').hidden=true;
+        try{await api('/api/records/rechnungen/'+encodeURIComponent(invoice.id)+'/reminder-mail/send',{method:'POST',body:JSON.stringify({reviewed:true,sha256:value.sha256,reminderId})});if(current())await reopenSavedInvoice(invoice.id);}
+        catch(e){if(current()){area.replaceChildren(el('p','','Versand nicht bestätigt: '+e.message));reload();}}
+      };
+    }catch(e){if(current()){area.replaceChildren(el('p','',e.message));reload();}}
+  };
 }
 function renderInvoicePayments(invoice){
   const panel=$('invoicePaymentsPanel'),entry=$('invoicePaymentEntry');
@@ -2947,6 +2987,9 @@ function renderInvoiceDispatch(invoice){
   review.replaceChildren();review.hidden=true;
   renderInvoicePayments(invoice);
   renderInvoiceReminders(invoice);
+  $('invoiceReminderExternal').hidden=$('invoiceReminderActions').hidden;
+  $('invoiceReminderExternal').open=!(state.invoiceMailEnabled&&state.invoiceMailMode==='production');
+  renderInvoiceReminderMail(invoice);
   $('invoicePaymentDetails').hidden=$('invoicePaymentEntry').hidden;
   $('invoiceRemindersDetails').hidden=!invoice;
   $('invoiceDispatchDetails').hidden=!invoice;
@@ -3000,7 +3043,7 @@ function renderInvoiceDispatch(invoice){
 async function reopenSavedInvoice(id){
   $('invoiceEditor').close();
   await loadAll();
-  const record=(state.records.rechnungen||[]).find(x=>x.id===id);
+  const record=(state.records.rechnungen||[]).find(x=>x.id===id)||(await api('/api/records/rechnungen/'+encodeURIComponent(id))).record;
   if(record)openInvoiceEditor(record);
 }
 

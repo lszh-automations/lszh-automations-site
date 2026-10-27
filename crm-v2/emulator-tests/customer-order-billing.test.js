@@ -93,3 +93,22 @@ test('real customer relations include legacy records on all pages; exact REST ba
  assert.equal(ids.length,115);assert.equal(new Set(ids).size,115);
  const related=await a.store.customerRelated(customer.id,'offerten');assert.equal(related.records.length,1);assert.equal(related.records[0].id,offerId);
 });
+
+async function reminderFixture(){
+ const a=setup(),customer=await a.store.create('kunden',{company:'TEST_ONLY Reminder '+randomUUID(),email:'test@example.invalid',street:'Testweg 1',postalCode:'8000',city:'Zürich',country:'CH'},user);
+ const invoice=await a.store.create('rechnungen',{customerId:customer.id,description:'TEST_ONLY Reminder',invoiceDate:'2020-01-01',dueDate:'2020-01-31',status:'Offen',items:[{title:'Setup',qty:1,unitPriceCHF:199.95}]},user);
+ const claim=await a.store.claimInvoiceSend(invoice.id,user);await a.store.finishInvoiceSend(invoice.id,claim.attemptId,'confirmed','synthetic_invoice');return {...a,customer,invoice};
+}
+test('two independent Firestore clients cannot claim the same reminder twice and payment changes invalidate the preview',async()=>{
+ const a=await reminderFixture(),b=setup(),p=await a.store.invoiceReminderPreview(a.invoice.id),input={reviewed:true,sha256:p.sha256,reminderId:randomUUID()};
+ const claims=await Promise.allSettled([a.store.claimInvoiceReminder(a.invoice.id,input,user),b.store.claimInvoiceReminder(a.invoice.id,{...input,reminderId:randomUUID()},user)]);assert.equal(claims.filter(x=>x.status==='fulfilled').length,1);
+ const saved=await a.store.get('rechnungen',a.invoice.id);await a.store.finishInvoiceReminder(a.invoice.id,saved.reminderDispatch.reminderId,'confirmed','synthetic_receipt',user);assert.equal((await a.store.get('rechnungen',a.invoice.id)).reminderHistory.length,1);
+ const c=await reminderFixture(),preview=await c.store.invoiceReminderPreview(c.invoice.id);await c.store.recordInvoicePayment(c.invoice.id,{paymentId:randomUUID(),amountCHF:50,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},user);
+ await assert.rejects(()=>c.store.claimInvoiceReminder(c.invoice.id,{reviewed:true,sha256:preview.sha256,reminderId:randomUUID()},user),/veraltet/);assert.equal((await c.store.get('rechnungen',c.invoice.id)).reminderDispatch,undefined);
+});
+test('uncertain Firestore reminder cannot be resent; payment and explicit mailbox resolution retain the original balance audit',async()=>{
+ const a=await reminderFixture(),p=await a.store.invoiceReminderPreview(a.invoice.id),id=randomUUID();await a.store.claimInvoiceReminder(a.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:id},user);await a.store.finishInvoiceReminder(a.invoice.id,id,'manual_review','',user);
+ await assert.rejects(()=>a.store.claimInvoiceReminder(a.invoice.id,{reviewed:true,sha256:p.sha256,reminderId:randomUUID()},user),/Postfach/);
+ await a.store.recordInvoicePayment(a.invoice.id,{paymentId:randomUUID(),amountCHF:199.95,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},user);
+ const r=await a.store.resolveInvoiceReminder(a.invoice.id,'confirmed',user);assert.equal(r.status,'Bezahlt');assert.equal(r.reminderHistory[0].outstandingCHF,199.95);assert.equal(r.reminderDispatchHistory.length,1);
+});

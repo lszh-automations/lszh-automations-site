@@ -1,3 +1,17 @@
+# Aktiver Live-Stand - Kundenübersicht und automatische Zuordnung, 27.10.2026
+
+CRM **`lszh-crm-v2-00111-yaf`** erhält 100 % Verkehr. Unter «Kunden > Öffnen» stehen Kontaktangaben sowie zugehörige Offerten, Rechnungen und Projekte mit direkten Öffnen- und Neu-Schaltflächen. Serverabfragen nach Kunden-ID finden die Einträge unabhängig von geladenen Registerseiten und auch ohne historisches Erstellungsdatum. Weitere Seiten werden ausdrücklich nachgeladen. Nicht geladene Verknüpfungen bleiben im Editor erhalten.
+
+Neue Einträge aus der Kundenübersicht übernehmen den Kunden. Projekte und Rechnungen leiten ihn auch aus ihrer angenommenen Offerte beziehungsweise ihrem Projekt ab. Qualifizierte Leads werden nur bei eindeutiger E-Mail und gleicher Firma einem bestehenden Kunden zugeordnet. Firmennamen oder gemeinsam genutzte Mailboxen werden nicht blind zusammengeführt.
+
+Fehlende Kunden-IDs bei Offerten 1000, 1002 und 1005 ergänzt; alle übrigen Offertendaten per Prüfsumme unverändert bestätigt. Beim bestehenden Kunden sind 7 Offerten, 5 Rechnungen und 3 Projekte lesend bestätigt. Offerte 1003 bleibt wegen abweichender Firma auf ausdrücklichen Wunsch vorerst ohne Kundenzuordnung. Keine Kundenstammdaten, Archivdateien, Preise, Zahlungen oder Versandnachweise verändert; keine Mail und keine neue Rechnung. Gezielter Backfill von drei Verknüpfungen, keine pauschale Kundenzusammenführung.
+
+493 CRM-Tests, beide GitHub-Prüfungen einschliesslich echter Firestore-Emulatortests und Desktop-/Mobilablauf erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur drei vorgesehene CRM-Dateien geändert. Konfiguration und Dienstkonto unverändert. Live-Oberfläche HTTP 200; die drei Kundenlisten sind anonym HTTP 401. Keine Fehler im kontrollierten Zeitfenster. Website, Portal und Make unverändert.
+
+[Bedienung und Zuordnungsregeln](LSZH_CUSTOMER_OVERVIEW.md) - [Live-Nachweis](../releases/customer-overview-live-20261027.json) - [PR 31](https://github.com/lszh-automations/lszh-automations-site/pull/31).
+
+---
+
 # Aktiver Live-Stand - Vereinfachte Projektansicht, 27.10.2026
 
 CRM **`lszh-crm-v2-00109-hiz`** erhält 100 % Verkehr. Der Projektkopf zeigt nur Kunde, Projektname, Zieltermin und Status. Darunter stehen ein nächster Schritt und die einzige Aufgabenliste. Nach dem dokumentierten Start rücken die Aufgaben nach oben und die Vorbereitung klappt zu. Beschreibung, Offerte, Startnachweis und Rechnungen sind bei Bedarf unter «Weitere Details» erreichbar; Rechnungen werden erst beim Öffnen geladen. Die Projektliste verwendet ebenfalls eine einzige Spalte für den nächsten Schritt.

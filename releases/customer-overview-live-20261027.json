@@ -109,7 +109,9 @@
     "unresolvedOffer": {
       "number": "1003",
       "reason": "Email matches but company differs",
-      "customerIdLeftEmpty": true
+      "customerIdLeftEmpty": true,
+      "userDecision": "leave_unassigned",
+      "userDecisionConfirmedOn": "2026-10-27"
     },
     "verifiedRelatedCounts": {
       "offerten": 7,

@@ -1,3 +1,9 @@
+# Ergänzung nach dem Audit: monatliche Entwürfe umgesetzt
+
+Nach dem Bestandsabgleich wurde die fachliche Monatsregel bestätigt und separat umgesetzt: ausdrücklich aktivierter Beginn, erster voller Kalendermonat danach, nur Entwürfe ohne Versand. [Aktuelle Bedienung und Nachweise](LSZH_MONTHLY_BILLING.md). Bestehende Aufträge bleiben deaktiviert, bis der Bediener sie ausdrücklich prüft und freigibt. Die folgenden Aussagen dokumentieren den vorausgehenden Auditstand.
+
+---
+
 # Fachlicher Ablauf: Prüfung vom 27.10.2026
 
 ## Ergebnis und Grenzen

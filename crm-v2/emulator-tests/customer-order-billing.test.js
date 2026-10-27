@@ -112,3 +112,14 @@ test('uncertain Firestore reminder cannot be resent; payment and explicit mailbo
  await a.store.recordInvoicePayment(a.invoice.id,{paymentId:randomUUID(),amountCHF:199.95,paidOn:new Date().toISOString().slice(0,10),method:'Banküberweisung',reference:''},user);
  const r=await a.store.resolveInvoiceReminder(a.invoice.id,'confirmed',user);assert.equal(r.status,'Bezahlt');assert.equal(r.reminderHistory[0].outstandingCHF,199.95);assert.equal(r.reminderDispatchHistory.length,1);
 });
+
+test('concurrent monthly scheduler workers create one invoice and advance the period atomically',async()=>{
+ const a=setup(),b=setup(),clock={date:'2026-10-27T12:00:00Z'};
+ const storeA=buildStore(a.db,prefix,{now:()=>clock.date}),storeB=buildStore(b.db,prefix,{now:()=>clock.date});
+ const c=await storeA.create('kunden',{company:'TEST_ONLY monthly '+randomUUID()},user),o=await storeA.create('offerten',{customerId:c.id,title:'TEST_ONLY monthly',items:[{title:'Betreuung',qty:1,unitPriceCHF:99.95,mode:'monatlich'}]},user);
+ await storeA.update('offerten',o.id,{status:'Angenommen'},user);const docs=await a.db.collection(prefix+'projekte').where('offerId','==',o.id).get(),id=docs.docs[0].id;
+ await storeA.activateMonthlyBilling(id,{startDate:'2026-10-27',reviewed:true,externalBillingChecked:true},user);clock.date='2026-11-01T06:00:00Z';
+ const result=await Promise.all([storeA.createDueMonthlyInvoice(id,user),storeB.createDueMonthlyInvoice(id,user)]);assert.equal(result.filter(x=>x.created).length,1);
+ const invoices=await a.db.collection(prefix+'rechnungen').where('offerId','==',o.id).get();assert.equal(invoices.size,1);assert.equal(invoices.docs[0].data().monthlyPeriod,'2026-11');assert.equal(invoices.docs[0].data().status,'Entwurf');assert.equal((await storeA.get('projekte',id)).monthlyBilling.nextPeriod,'2026-12');
+ await storeB.createDueMonthlyInvoice(id,user);assert.equal((await a.db.collection(prefix+'rechnungen').where('offerId','==',o.id).get()).size,1);
+});

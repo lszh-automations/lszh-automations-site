@@ -1,0 +1,70 @@
+{
+  "revision": "lszh-crm-v2-00147-roj",
+  "rollback": "lszh-crm-v2-00145-kud",
+  "runtimeFiles": 83,
+  "changedRuntimeFiles": [
+    {
+      "path": "cloud-records.js",
+      "sha256": "7edb68d10080afa6bd53ca36b1459b7911bb0857e9da69aedaf55cf8451d4dc9"
+    },
+    {
+      "path": "cockpit-summary.js",
+      "sha256": "54d5ad8e710ec26e5ceec1accad011c0dd71c18aae5329864cf3fce825b61bb0"
+    },
+    {
+      "path": "monthly-billing.js",
+      "sha256": "c7bd0741c2ea5e9b181a3519a75f8bc2fc54e484559014d60c9990e613227f45"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "cf04331fcb1942f4f6019f83cdddce92e1f8a90120eb82fae836a8773a0dd2b9"
+    },
+    {
+      "path": "server.js",
+      "sha256": "77fce3c0c0ce86a3a40259307269f2ea4f790c14a364eaba33ee22692a5a18ae"
+    }
+  ],
+  "onlyEnvAdditions": [
+    "CRM_BILLING_SCHEDULER_AUDIENCE",
+    "CRM_BILLING_SCHEDULER_EMAIL"
+  ],
+  "otherConfigurationUnchanged": true,
+  "candidateHtmlExact": true,
+  "anonymousApis": 401,
+  "invoiceMailMode": "production",
+  "tests": 546,
+  "desktopMobile": "passed",
+  "customerPlansActivated": 0,
+  "productionTestInvoicesCreated": 0,
+  "emailSent": false,
+  "makeChanged": false,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/46",
+  "buildId": "14b214fa-624d-4eb3-bd56-3e87d5eb2415",
+  "featureCommit": "1392d79e77f332cbdda2d697726a4168c6bdd921",
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793134504.879053-4396e686dcb14027b13edc5233fa43db.zip#1793134507206752",
+  "date": "2026-10-27",
+  "status": "live",
+  "trafficPercent": 100,
+  "liveHtmlExact": true,
+  "githubChecks": "success",
+  "githubWorkflowRuns": [
+    40582320472,
+    40582320465
+  ],
+  "scheduler": {
+    "name": "lszh-crm-v2-monthly-drafts",
+    "schedule": "15 6 * * *",
+    "timeZone": "Europe/Zurich",
+    "state": "ENABLED",
+    "authenticatedManualRun": 200,
+    "existingThreeJobsUnchanged": true
+  },
+  "liveDataCheck": {
+    "checkedAt": "2026-10-27T20:59:36.642Z",
+    "projects": 5,
+    "activePlans": 0,
+    "monthlyInvoices": 0,
+    "readOnly": true
+  },
+  "recentErrorCount": 0
+}

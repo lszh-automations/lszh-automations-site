@@ -81,12 +81,12 @@ function verify(table,data){
 }
 function toObject(doc){return {id:doc.id,...doc.data()};}
 function keyId(prefix,key){return prefix+String(key).replace(/[^a-zA-Z0-9_-]/g,'-');}
-function buildStore(db,prefix){
+function buildStore(db,prefix,options={}){
   if(!/^lszh_crm_v2_(?:staging_)?$/.test(prefix))
     throw Error('CRM_RECORD_PREFIX must be explicitly approved: lszh_crm_v2_ or lszh_crm_v2_staging_');
   const col=table=>db.collection(prefix+table);
   const seq=kind=>db.collection(prefix+'_meta').doc(kind+'_sequence');
-  const now=()=>new Date().toISOString();
+  const now=options.now||(()=>new Date().toISOString());
   const docDate=()=>new Date().toISOString().slice(0,10);
   const defaultStatus=table=>STATUS[table][0];
   const queryOne=async(tx,table,field,value)=>{
@@ -665,7 +665,7 @@ function buildStore(db,prefix){
       }
       if(table==='rechnungen'){
         paymentDuringReminder(before,date);
-        if(before.source==='offer_acceptance'&&(merged.customerId!==before.customerId||merged.projectId!==before.projectId))
+        if(['offer_acceptance','monthly_billing'].includes(before.source)&&(merged.customerId!==before.customerId||merged.projectId!==before.projectId))
           throw err('Kunde und Projekt eines automatischen Auftragsentwurfs dürfen nicht geändert werden',409);
         if(isInvoiceLocked(before)||before.status==='Teilbezahlt'||(before.paymentHistory||[]).length)
           throw err('Rechnung mit Zahlungseingängen ist schreibgeschützt',403);
@@ -1123,6 +1123,7 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {invoiceReminderPreview,claimInvoiceReminder,finishInvoiceReminder,resolveInvoiceReminder,customerRelated,linkCustomer,startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  const monthlyBilling=require('./monthly-billing').createMonthlyBilling({db,col,audit,newRecord,now,get,scan,nextSequence});
+  return {...monthlyBilling,invoiceReminderPreview,claimInvoiceReminder,finishInvoiceReminder,resolveInvoiceReminder,customerRelated,linkCustomer,startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

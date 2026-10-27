@@ -189,6 +189,15 @@ async function handler(req,res){
       return reply(res,403,{error:'forbidden'});
     return reply(res,200,{...(await mailDispatcher.tick()),acceptanceNotifications:await getAcceptanceNotifier().tick()});
   }
+  if(pathname==='/api/internal/billing/tick'){
+    if(req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    const email=String(process.env.CRM_BILLING_SCHEDULER_EMAIL||'').toLowerCase(),audience=String(process.env.CRM_BILLING_SCHEDULER_AUDIENCE||'');
+    if(!email||!audience)return reply(res,404,{error:'billing_scheduler_not_configured'});
+    const bearer=/^Bearer ([A-Za-z0-9._-]+)$/.exec(String(req.headers.authorization||''));if(!bearer)return reply(res,401,{error:'unauthorized'});
+    let claims;try{claims=(await authClient.verifyIdToken({idToken:bearer[1],audience})).getPayload();}catch{return reply(res,401,{error:'unauthorized'});}
+    if(!claims?.email_verified||String(claims.email||'').toLowerCase()!==email)return reply(res,403,{error:'forbidden'});
+    const result=await store.monthlyBillingTick({email});return reply(res,result.errors?503:200,result);
+  }
   if(!pathname.startsWith('/api/'))return reply(res,404,{error:'not_found'});
   if(!configured())return reply(res,503,{error:'not_configured'});
   const user=await userFrom(req);
@@ -227,6 +236,16 @@ async function handler(req,res){
     if(!payload||typeof payload!=='object'||Array.isArray(payload)||Object.keys(payload).length)
       return reply(res,400,{error:'Projekt zuerst speichern; Start verwendet nur gespeicherte Angaben'});
     return reply(res,200,{record:await store.startProject(projectStartPath[1],user)});
+  }
+  const monthlyBillingPath=pathname.match(/^\/api\/records\/projekte\/([A-Za-z0-9_-]{1,100})\/monthly-billing(?:\/(activate|pause))?$/);
+  if(monthlyBillingPath){
+    const [,id,action]=monthlyBillingPath;
+    if(!action&&req.method==='GET')return reply(res,200,await store.monthlyBillingStatus(id));
+    if(!action||req.method!=='POST')return reply(res,405,{error:'method_not_allowed'});
+    if(!sameOrigin(req))return reply(res,403,{error:'origin_mismatch'});
+    const payload=await json(req);
+    if(action==='pause'){if(Object.keys(payload).length)return reply(res,400,{error:'invalid_body'});return reply(res,200,await store.pauseMonthlyBilling(id,user));}
+    return reply(res,200,await store.activateMonthlyBilling(id,payload,user));
   }
   const projectBillingPath=pathname.match(/^\/api\/records\/projekte\/([A-Za-z0-9_-]{1,100})\/billing$/);
   if(projectBillingPath){

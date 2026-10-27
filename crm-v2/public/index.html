@@ -643,6 +643,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div id="projectTasks" class="project-tasks"></div>
       <button class="btn project-template" type="button" id="projectTaskTemplate">Vorlage ergänzen</button>
     </section>
+    <details id="projectMonthlySection" class="project-disclosure"><summary>Monatliche Abrechnung</summary><div id="projectMonthlyBilling" class="project-onboarding project-disclosure-body" aria-live="polite"></div></details>
     <details id="projectDetails" class="project-disclosure">
       <summary>Weitere Details <span>Beschreibung, Offerte und Rechnungen</span></summary>
       <div id="projectDetailFields" class="project-fields"></div>
@@ -2324,6 +2325,33 @@ function openOfferEditor(record=null,draft=null){
 }
 
 
+async function renderMonthlyBilling(record){
+  const area=$('projectMonthlyBilling');area.replaceChildren();
+  if(!record){area.append(el('p','','Projekt zuerst speichern.'));return;}
+  const id=record.id;area.append(el('p','','Abrechnung wird geladen …'));
+  const current=()=>state.projectEditing?.id===id&&$('projectEditor').open;
+  try{
+    const result=await api('/api/records/projekte/'+encodeURIComponent(id)+'/monthly-billing');if(!current())return;
+    area.replaceChildren();const plan=result.plan;
+    area.append(el('p','',plan?.state==='active'?'Aktiv · '+invoiceCHF(plan.amountCHF)+' pro Kalendermonat':plan?.state==='paused'?'Monatsabrechnung pausiert':'Noch nicht aktiviert'));
+    if(plan?.lastError)area.append(el('p','invoice-error',plan.lastError));
+    if(plan?.state==='active'){
+      area.append(el('p','','Bestätigter Beginn: '+plan.startDate+' · Erster Leistungsmonat: '+plan.firstPeriod+' · Nächster Leistungsmonat: '+plan.nextPeriod));
+      area.append(el('p','','Für jeden Leistungsmonat entsteht ab dem 1. genau ein Entwurf. Projektabschluss beendet die Monatsabrechnung nicht. Versand und Fälligkeit prüfst du wie bisher.'));
+      const pause=el('button','btn','Monatsabrechnung pausieren');pause.type='button';pause.onclick=async()=>{if(!window.confirm('Künftige Monatsentwürfe stoppen? Bereits erstellte Rechnungen bleiben bestehen.'))return;pause.disabled=true;try{await api('/api/records/projekte/'+encodeURIComponent(id)+'/monthly-billing/pause',{method:'POST',body:'{}'});await update();}catch(e){showError(e);pause.disabled=false;}};area.append(pause);
+    }else if(result.eligible){
+      const label=el('label','','Abrechnungsbeginn separat bestätigen'),date=el('input');date.type='date';date.min=result.today;date.max='2099-12-31';date.value=result.today;date.setAttribute('aria-label','Bestätigter Abrechnungsbeginn');label.append(date);area.append(label);
+      const first=el('p');const showFirst=()=>{const [y,m]=date.value.split('-').map(Number);first.textContent=date.value?'Erster Leistungsmonat: '+(m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0'))+' · '+invoiceCHF(result.monthlyCHF)+' pro Monat. Für den angebrochenen Monat entsteht keine Rechnung.':'Datum wählen.';};date.onchange=showFirst;showFirst();area.append(first);
+      const confirm=el('label','onboarding-check'),check=el('input');check.type='checkbox';confirm.append(check,document.createTextNode('Beginn und monatliche Leistungen sind vereinbart. Ich habe bestehende Rechnungen und externe Abrechnungen geprüft; diese Monatsleistungen werden nicht bereits anderweitig verrechnet.'));area.append(confirm);
+      const start=el('button','btn',plan?'Mit neuem Beginn aktivieren':'Monatsabrechnung aktivieren');start.type='button';start.disabled=true;check.onchange=()=>{start.disabled=!check.checked;};
+      start.onclick=async()=>{if(!date.value||!check.checked)return;if(state.projectSavedPayload!==JSON.stringify(projectFormPayload())){showError(new Error('Projektänderungen zuerst speichern.'));return;}if(!window.confirm(first.textContent+' Jetzt nur die Entwurfserstellung aktivieren? Es wird nichts versendet.'))return;start.disabled=true;try{await api('/api/records/projekte/'+encodeURIComponent(id)+'/monthly-billing/activate',{method:'POST',body:JSON.stringify({startDate:date.value,reviewed:true,externalBillingChecked:true})});await update();}catch(e){showError(e);start.disabled=false;}};area.append(start);
+      area.append(el('p','','Die Wiederaufnahme beginnt ebenfalls erst im nächsten vollen Kalendermonat. Pausierte Monate werden nicht nachverrechnet.'));
+    }else area.append(el('p','',result.reason));
+    const error=el('p','invoice-error');error.hidden=true;error.setAttribute('role','alert');area.append(error);
+    function showError(e){if(current()){error.textContent=e.message;error.hidden=false;}}
+    async function update(){if(!current())return;const fresh=await api('/api/records/projekte/'+encodeURIComponent(id));if(!current())return;rememberRelatedRecord('projekte',fresh.record);state.projectEditing=fresh.record;await renderMonthlyBilling(fresh.record);}
+  }catch(e){if(current()){area.replaceChildren(el('p','invoice-error','Monatsabrechnung konnte nicht geladen werden: '+e.message));const retry=el('button','btn','Erneut laden');retry.type='button';retry.onclick=()=>renderMonthlyBilling(record);area.append(retry);}}
+}
 async function renderProjectBilling(record){
   const area=$('projectBilling');area.replaceChildren();
   if(!record){area.append(el('p','','Projekt zuerst speichern.'));return;}
@@ -2588,6 +2616,7 @@ function openProjectEditor(record=null,draft=null){
   renderProjectStart();
   $('projectEditor').showModal();
   $('projectBilling').replaceChildren();
+  $('projectMonthlySection').open=false;renderMonthlyBilling(record);
 }
 
 

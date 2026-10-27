@@ -1,3 +1,9 @@
+# Aktuell: Drei Dashboard-Ansichten - 27.10.2026
+
+Live-Revision lszh-crm-v2-00141-tim (100 %): Geschäftsüberblick, Finanzen und Monatsrückblick mit getrennten Zeitraumfiltern. Nur Oberfläche geändert, 82 Laufzeitdateien verglichen, Konfiguration unverändert; 529 Tests und Desktop-/Mobilprüfung erfolgreich. Keine Kundendaten-, Nachrichten-, Make- oder Prozessänderung. [Bedienung](LSZH_DASHBOARD_THREE_VIEWS.md) und [Live-Nachweis](../releases/dashboard-three-views-live-20261027.json).
+
+---
+
 # Aktiver Live-Stand - Filterbares Kennzahlen-Dashboard, 27.10.2026
 
 CRM **`lszh-crm-v2-00139-mib`** erhält 100 % Verkehr. Dashboard ausschliesslich für Kennzahlen und Auswertungen zu Kunden, Rechnungen, Offerten und Projekten. Gemeinsamer Filter für Monat, Quartal, Jahr, eigenen Zeitraum und Gesamt, mit Vorperiodenvergleich. Entwicklung nach Monaten/Quartalen/Jahren, wählbare Kennzahl und Zahlentabelle. Keine Aufgaben-, Lead-, Wiedervorlagen- oder Ablaufkarten. Aktueller Kunden-/Projektbestand ausdrücklich vom Zeitraum abgegrenzt.

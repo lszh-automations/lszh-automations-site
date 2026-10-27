@@ -1004,7 +1004,7 @@ function reportBuckets(report,range,group='month'){
 }
 function reportContext(){
   const report=state.summary?.reporting;if(!report)return null;
-  const range=reportRange(state.reportFilter,report.today,report.days),selected=reportAggregate(report,range),previous=range.previous?reportAggregate(report,range.previous):null;
+  const range=reportRange(state.reportFilter||(state.dashboardView==='month'?{mode:'month'}:undefined),report.today,report.days),selected=reportAggregate(report,range),previous=range.previous?reportAggregate(report,range.previous):null;
   return {report,range,selected,previous};
 }
 function reportChange(value,previous){if(previous===null)return 'Kein Vergleich bei Gesamt';const delta=value-previous;return (delta>0?'+':'')+new Intl.NumberFormat('de-CH',{maximumFractionDigits:2}).format(delta)+(previous?' ('+(delta>0?'+':'')+new Intl.NumberFormat('de-CH',{maximumFractionDigits:1}).format(delta/previous*100)+' %)':' · Vorperiode: 0');}
@@ -1013,17 +1013,29 @@ function reportComparison(value,previous,unit=''){return previous===null?'Gesamt
 function renderKpis(){
   const container=$('kpis');container.replaceChildren();container.hidden=state.tab!=='dashboard';if(container.hidden)return;
   let ctx;try{ctx=reportContext();}catch{return;}if(!ctx)return;
-  const s=ctx.selected,p=ctx.previous,items=[
-    {title:'Kundenbestand aktuell',value:ctx.report.current.customers,note:s.customers+' Neukunden im Zeitraum',target:'reportCustomers'},
+  const s=ctx.selected,p=ctx.previous,all=reportAggregate(ctx.report,{from:'1900-01-01',to:ctx.report.today,mode:'all'}),view=state.dashboardView||'overview',items=view==='overview'?[
+    {title:'Kunden',value:ctx.report.current.customers,note:'Aktueller Bestand',target:'reportOverviewOffers'},
+    {title:'Laufende Projekte',value:ctx.report.current.projects,note:'Noch nicht abgeschlossen',target:'reportOverviewOffers'},
+    {title:'Offene Offerten',value:Object.entries(all.offerStatuses).filter(([k])=>!['Beidseitig angenommen','Abgelehnt'].includes(k)).reduce((n,[,v])=>n+v,0),note:'Entwürfe, versendet und einseitig angenommen',target:'reportOverviewOffers'},
+    {title:'Ausstehendes Geld',value:invoiceCHF(all.outstandingCents/100),note:'Alle offenen Rechnungen heute',target:'reportOverviewInvoices'}
+  ]:view==='finance'?[
+    {title:'Verrechnet',value:invoiceCHF(s.invoiceCents/100),note:'Im gewählten Zeitraum',target:'reportInvoices'},
+    {title:'Zahlungen',value:invoiceCHF(s.paidCents/100),note:reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF'),target:'reportInvoices'},
+    {title:'Noch offen',value:invoiceCHF(s.outstandingCents/100),note:'Heutiger Rest der ausgewählten Rechnungen',target:'reportInvoices'},
+    {title:'Davon überfällig',value:invoiceCHF(s.overdueCents/100),note:'Fälligkeit überschritten',target:'reportInvoices'}
+  ]:[
+    {title:'Neue Kunden',value:s.customers,note:reportComparison(s.customers,p?p.customers:null),target:'reportCustomers'},
     {title:'Erfasste Zahlungen',value:invoiceCHF(s.paidCents/100),note:reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF'),target:'reportInvoices'},
-    {title:'Offerten im Zeitraum',value:s.offers,note:reportComparison(s.offers,p?p.offers:null),target:'reportOffers'},
+    {title:'Angenommene Offerten',value:s.offerStatuses['Beidseitig angenommen']||0,note:'Heute bestätigt; im Zeitraum erstellt',target:'reportOffers'},
     {title:'Projekte im Zeitraum',value:s.projects,note:reportComparison(s.projects,p?p.projects:null),target:'reportProjects'}
   ];
-  for(const item of items){const card=el('button','kpi dash-kpi');card.type='button';card.setAttribute('aria-label',item.title+': '+item.value);card.append(el('span','',item.title),el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));card.onclick=()=>$(item.target)?.scrollIntoView({behavior:'smooth',block:'start'});container.append(card);}
+  for(const item of items){const card=el('button','kpi dash-kpi');card.type='button';card.setAttribute('aria-label',item.title+': '+item.value);card.append(el('span','',item.title),el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));card.onclick=()=>$(view==='month'?'reportDevelopment':item.target)?.scrollIntoView({behavior:'smooth',block:'start'});container.append(card);}
 }
 function renderDashboard(){
   const area=$('dashboardArea');area.replaceChildren();$('dashboardIntro').replaceChildren();
-  const report=state.summary?.reporting,today=report?.today||localDateKey(),filter=state.reportFilter||{},form=el('form','report-filter');form.id='reportFilter';form.noValidate=true;
+  const view=state.dashboardView||'overview',nav=el('div','report-chart-controls');nav.setAttribute('aria-label','Dashboard-Ansicht');
+  for(const [key,label] of [['overview','Geschäftsüberblick'],['finance','Finanzen'],['month','Monatsrückblick']]){const button=el('button','btn'+(view===key?' primary':''),label);button.type='button';button.setAttribute('aria-pressed',String(view===key));button.onclick=()=>{state.dashboardFilters=state.dashboardFilters||{};state.dashboardFilters[view]=state.reportFilter;state.dashboardView=key;state.reportFilter=state.dashboardFilters[key]||(key==='month'?{mode:'month'}:undefined);state.reportMetric=key==='finance'?'paidCents':'customersEnd';render();};nav.append(button);}$('dashboardIntro').append(nav);
+  const report=state.summary?.reporting,today=report?.today||localDateKey(),filter=state.reportFilter||(view==='month'?{mode:'month'}:{}),form=el('form','report-filter');form.id='reportFilter';form.noValidate=true;
   const field=(label,control)=>{const wrap=el('label','',label);wrap.append(control);form.append(wrap);return wrap;};
   const mode=el('select');mode.setAttribute('aria-label','Zeitraum');for(const[value,label]of [['month','Monat'],['quarter','Quartal'],['year','Jahr'],['custom','Eigener Zeitraum'],['all','Gesamt']]){const o=el('option','',label);o.value=value;mode.append(o);}mode.value=filter.mode||'year';field('Zeitraum',mode);
   const month=el('input');month.type='month';month.value=filter.month||today.slice(0,7);month.setAttribute('aria-label','Monat wählen');const monthField=field('Monat',month);
@@ -1033,12 +1045,12 @@ function renderDashboard(){
   const apply=el('button','btn primary','Anwenden');apply.type='submit';form.append(apply);
   const visibility=()=>{monthField.hidden=mode.value!=='month';yearField.hidden=!['quarter','year'].includes(mode.value);quarterField.hidden=mode.value!=='quarter';fromField.hidden=toField.hidden=mode.value!=='custom';};mode.onchange=visibility;visibility();
   form.onsubmit=event=>{event.preventDefault();state.reportFilter={mode:mode.value,month:month.value,year:year.value,quarter:quarter.value,from:from.value,to:to.value};render();};
-  $('dashboardIntro').append(form);
+  if(view!=='overview')$('dashboardIntro').append(form);
   if(!report){const p=dashboardPanel('Auswertungen derzeit nicht verfügbar','Bitte aktualisieren. Kennzahlen werden nur aus der vollständigen serverseitigen Auswertung angezeigt.');area.append(p.panel);return;}
   let ctx;try{ctx=reportContext();}catch(error){const p=el('p','invoice-error',error.message);p.setAttribute('role','alert');area.append(p);return;}
   const {range,selected:s,previous:p}=ctx,day=d=>d.split('-').reverse().join('.'),span=day(range.from)+' – '+day(range.to);
   const stamp=new Date(report.loadedAt),meta=el('p','dash-data-scope','Auswahl: '+span+(range.previous?' · Vergleich: '+day(range.previous.from)+' – '+day(range.previous.to):' · Gesamter erfasster Zeitraum')+' · Stand: '+stamp.toLocaleString('de-CH'));
-  $('dashboardIntro').append(meta);
+  if(view!=='overview')$('dashboardIntro').append(meta);
   const stats=(panel,items)=>{const grid=el('div','report-metrics');for(const[label,value,note]of items){const box=el('div');box.append(el('small','',label),el('strong','',String(value)));if(note)box.append(el('small','',note));grid.append(box);}panel.body.append(grid);};
   const distribution=(panel,values)=>{const max=Math.max(1,...Object.values(values)),list=el('div','report-statuses');for(const[label,n]of Object.entries(values)){const row=el('div','report-status'),track=el('div','report-status-track'),fill=el('span');fill.style.width=(n/max*100)+'%';track.append(fill);row.append(el('span','',label),track,el('strong','',String(n)));list.append(row);}if(!Object.keys(values).length)list.append(el('p','dash-empty','Keine Einträge im gewählten Zeitraum.'));panel.body.append(list);};
   const customers=dashboardPanel('Kunden','Neukunden nach Erfassungsdatum. Der aktuelle Bestand gilt unabhängig vom Zeitraumfilter.');customers.panel.id='reportCustomers';
@@ -1067,6 +1079,19 @@ function renderDashboard(){
     for(const row of rows){const tr=el('tr');for(const value of [row.label,row.customers,row.customersEnd,invoiceCHF(row.invoiceCents/100),invoiceCHF(row.paidCents/100),row.offers,row.projects])tr.append(el('td','',String(value)));body.append(tr);}table.append(body);tableArea.append(table);
   };
   group.onchange=metric.onchange=draw;development.body.append(controls,chart,details);draw();area.append(development.panel);
+  if(view==='overview'){
+    area.replaceChildren();
+    const all=reportAggregate(report,{from:'1900-01-01',to:today,mode:'all'});
+    const offerPanel=dashboardPanel('Offerten im Überblick','Heutiger Stand aller Offerten. Orange bedeutet: Der Kunde hat angenommen, deine Bestätigung fehlt noch.');offerPanel.panel.id='reportOverviewOffers';distribution(offerPanel,all.offerStatuses);area.append(offerPanel.panel);
+    const invoicePanel=dashboardPanel('Rechnungen im Überblick','Offene Beträge aller Rechnungen heute, unabhängig vom Rechnungsdatum.');invoicePanel.panel.id='reportOverviewInvoices';stats(invoicePanel,[['Noch offen',invoiceCHF(all.outstandingCents/100)],['Davon überfällig',invoiceCHF(all.overdueCents/100)],['Entwürfe',all.invoiceDrafts]]);area.append(invoicePanel.panel);
+    area.append(el('p','dash-data-scope','Stand: '+stamp.toLocaleString('de-CH')+' · Für Zeitvergleiche Finanzen oder Monatsrückblick wählen.'));
+  }else if(view==='finance'){
+    customers.panel.remove();offers.panel.remove();projects.panel.remove();
+    metric.value='paidCents';draw();
+  }else{
+    customers.panel.remove();invoices.panel.remove();offers.panel.remove();projects.panel.remove();
+    const recap=dashboardPanel('Dein Rückblick','Neue Kunden, erfasste Zahlungen und neue Projekte im gewählten Zeitraum mit Vorperiodenvergleich. Angenommene Offerten zeigen den heutigen Status der im Zeitraum erstellten Offerten, nicht den Annahmezeitpunkt.');area.prepend(recap.panel);
+  }
   const missing=Object.entries(report.quality).filter(([k,n])=>!['legacyPaid','invalidAmounts'].includes(k)&&n).map(([k,n])=>({customers:'Kunden',invoices:'Rechnungen',offers:'Offerten',projects:'Projekte',payments:'Zahlungen'}[k])+': '+n);
   const quality=el('p','dash-data-scope','Datenbasis: vollständige serverseitige Auswertung aller CRM-Register. Statusverteilungen zeigen den heutigen Stand der Auswahl; Zahlungen stammen aus manuell erfassten Buchungen. Keine Bankanbindung.');
   if(missing.length)quality.append(el('span','',' Ohne auswertbares Datum: '+missing.join(' · ')+'. Diese Werte sind nur bei Gesamt enthalten und werden keiner Zeitspanne oder Kurve zugeordnet.'));

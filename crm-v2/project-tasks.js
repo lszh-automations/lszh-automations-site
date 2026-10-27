@@ -67,4 +67,16 @@ function projectStartReadiness(project,today){
   return {canStart:!started&&!closed&&!missing.length,started,missing,
     status:started?'Projektstart dokumentiert':closed?'Projekt abgeschlossen':project?.status==='In Arbeit'?'In Arbeit – Start noch nicht dokumentiert':missing.length?'Projektstart vorbereiten':'Bereit zum Projektstart'};
 }
-module.exports={defaultProjectTasks,DEFAULT_PROJECT_TASK_TITLES,validProjectStartDay,projectStartReadiness,cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};
+function cleanProjectCompletion(value,today=require('./invoice-accounting').localSwissDate()){
+  const limits={acceptedOn:10,acceptanceNote:2000,instructions:2000,alertsOwner:180,handedOverOn:10};
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!Object.hasOwn(limits,k)))throw projectError('Ungültige Angaben zu Abnahme und Übergabe');
+  const out={};
+  for(const [key,max] of Object.entries(limits)){
+    if(value[key]!==undefined&&typeof value[key]!=='string')throw projectError('Ungültige Angabe: '+key);
+    out[key]=(value[key]||'').trim();if(out[key].length>max)throw projectError('Angabe zu lang: '+key);
+  }
+  for(const key of ['acceptedOn','handedOverOn'])if(out[key]&&(!validProjectStartDay(out[key])||out[key]>today))throw projectError('Abnahme- und Übergabedatum müssen gültig sein und dürfen nicht in der Zukunft liegen');
+  if(out.handedOverOn&&(!out.instructions||!out.alertsOwner))throw projectError('Für eine dokumentierte Übergabe Anleitung und Zuständigkeit für Fehlermeldungen ergänzen');
+  return out;
+}
+module.exports={cleanProjectCompletion,defaultProjectTasks,DEFAULT_PROJECT_TASK_TITLES,validProjectStartDay,projectStartReadiness,cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};

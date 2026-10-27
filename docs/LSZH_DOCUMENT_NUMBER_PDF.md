@@ -11,3 +11,9 @@ Archivierte Vertrags-Offerten werden bytegleich aus dem bestehenden Archiv geles
 Bei offenen, teilbezahlten und bezahlten Rechnungen wird das PDF anhand des gespeicherten Rechnungsinhalts gelesen. Die reine Ansicht erlaubt auch die Originalrechnung einer bezahlten/teilbezahlten Rechnung: der PDF-Erzeuger erhält nur im Arbeitsspeicher den für den ursprünglichen QR-Zahlteil benötigten Status Offen. Der gespeicherte Zahlungsstatus, Betrag und Buchungsverlauf bleiben unverändert. Diese Ansicht ist keine neue Rechnung und kein Nachweis einer Zahlung. Entwürfe und stornierte Rechnungen bekommen keinen neuen Nummernlink. Bisherige PDF-Prüfung im Versanddialog bleibt unverändert.
 
 Validierung: 514 CRM-Tests, einschliesslich exakter Archivbytes, Manipulations-/Zuordnungsabwehr, authentifizierter PDF-GETs, anonym HTTP 401, fehlender Dokumente und unverändertem Bezahlt-Status beim Lesen. Desktop und Mobilgerät: reine Nummern, Klick auf konkrete Dokument-ID, echtes PDF-MIME/Format, Entwurfsnummer ohne Link und ausschliesslich lesende Anfragen mit synthetischen Daten. Keine Kundendatenänderung oder Nachricht.
+
+## Live-Nachweis
+
+Revision `lszh-crm-v2-00133-des`, 100 % Verkehr. Alle 81 Laufzeitdateien bytegleich geprüft; vier gezielte Änderungen. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich; beide PDF-APIs ohne Anmeldung HTTP 401. Keine jüngsten Revisionsfehler. Beide GitHub-Prüfungen erfolgreich. Rückkehrrevision `lszh-crm-v2-00131-gus`.
+
+[Release-Nachweis](../releases/document-number-pdf-live-20261027.json) - [PR 39](https://github.com/lszh-automations/lszh-automations-site/pull/39).

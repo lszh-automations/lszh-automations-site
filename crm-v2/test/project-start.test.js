@@ -17,3 +17,11 @@ test('project standard task factory returns fresh unchecked tasks matching the b
  const first=defaultProjectTasks();assert.equal(first.length,4);assert.ok(first.every(t=>t.done===false));first[0].done=true;first[0].title='Changed';assert.equal(defaultProjectTasks()[0].title,'Automation einrichten');assert.equal(defaultProjectTasks()[0].done,false);
  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8'),match=html.match(/const DEFAULT_PROJECT_TASK_TITLES=(\[[^;]+\]);/);assert.ok(match);assert.deepEqual(Array.from(vm.runInNewContext(match[1])),Array.from(DEFAULT_PROJECT_TASK_TITLES));
 });
+
+test('completion evidence validates real past dates and a useful handover without fabricating acceptance',()=>{
+ const {cleanProjectCompletion}=require('../project-tasks');
+ assert.deepEqual(cleanProjectCompletion({},'2026-10-27'),{acceptedOn:'',acceptanceNote:'',instructions:'',alertsOwner:'',handedOverOn:''});
+ const pending=cleanProjectCompletion({acceptanceNote:' Noch Rückmeldung offen '},'2026-10-27');assert.equal(pending.acceptedOn,'');assert.equal(pending.acceptanceNote,'Noch Rückmeldung offen');
+ for(const input of [{acceptedOn:'2026-02-30'},{acceptedOn:'2026-10-28'},{handedOverOn:'2026-10-27'},{alertsOwner:'x'.repeat(181)},{acceptanceNote:'x'.repeat(2001)},{acceptedOn:true},{approved:true}])assert.throws(()=>cleanProjectCompletion(input,'2026-10-27'));
+ assert.equal(cleanProjectCompletion({handedOverOn:'2026-10-27',instructions:' Drive-Anleitung ',alertsOwner:' Lars '},'2026-10-27').alertsOwner,'Lars');
+});

@@ -176,7 +176,7 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .project-onboarding h3{margin:0 0 12px;font-size:16px}
 .project-onboarding p{font-size:13px;line-height:1.6}
 .project-onboarding>label{display:block;margin:14px 0 8px;font-size:13px}
-.project-onboarding select,.project-onboarding textarea{box-sizing:border-box;width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.project-onboarding select,.project-onboarding textarea,#projectCompletionSection input{box-sizing:border-box;width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
 .project-onboarding .onboarding-check{display:flex;align-items:flex-start;gap:10px;line-height:1.6}
 .onboarding-check input{flex:0 0 auto;margin-top:4px}
 .project-onboarding .onboarding-hint{color:var(--muted);font-size:12px}
@@ -643,6 +643,24 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div id="projectTasks" class="project-tasks"></div>
       <button class="btn project-template" type="button" id="projectTaskTemplate">Vorlage ergänzen</button>
     </section>
+    <details id="projectCompletionSection" class="project-disclosure">
+      <summary>Abnahme und Übergabe</summary>
+      <div class="project-onboarding project-disclosure-body">
+        <p>Hier dokumentierst du die Abnahme des Projektergebnisses und die Übergabe. Aufgaben werden weiterhin separat abgehakt.</p>
+        <label for="projectAcceptedOn">Kundenfreigabe des Ergebnisses am</label>
+        <input type="date" id="projectAcceptedOn">
+        <label for="projectAcceptanceNote">Freigabe oder offene Punkte</label>
+        <textarea id="projectAcceptanceNote" maxlength="2000" rows="3" placeholder="Zum Beispiel: Freigabe durch … oder noch zu erledigende Punkte."></textarea>
+        <label for="projectInstructions">Anleitung / Ablageort</label>
+        <textarea id="projectInstructions" maxlength="2000" rows="2" placeholder="Link oder Hinweis, wo der Kunde die Anleitung findet."></textarea>
+        <label for="projectAlertsOwner">Wer erhält und bearbeitet Fehlermeldungen?</label>
+        <input type="text" id="projectAlertsOwner" maxlength="180" placeholder="Name oder E-Mail / vereinbarte Zuständigkeit">
+        <label for="projectHandedOverOn">Übergabe erfolgt am</label>
+        <input type="date" id="projectHandedOverOn">
+        <p class="onboarding-hint">Datumsfelder nur nach tatsächlicher Freigabe bzw. Übergabe ausfüllen. Speichern bestätigt nichts gegenüber dem Kunden und versendet keine Nachricht.</p>
+        <p id="projectCompletionAudit" class="onboarding-hint"></p>
+      </div>
+    </details>
     <details id="projectMonthlySection" class="project-disclosure"><summary>Monatliche Abrechnung</summary><div id="projectMonthlyBilling" class="project-onboarding project-disclosure-body" aria-live="polite"></div></details>
     <details id="projectDetails" class="project-disclosure">
       <summary>Weitere Details <span>Beschreibung, Offerte und Rechnungen</span></summary>
@@ -2473,6 +2491,8 @@ function projectFormPayload(){
   for(const key of ['customerId','offerId','title','description','startDate','owner','dueDate','status'])data[key]=form.elements.namedItem(key)?.value??'';
   if(state.projectEditing?.offerId){data.offerId=state.projectEditing.offerId;data.customerId=state.projectEditing.customerId||'';}
   data.tasks=projectTasksFromForm();data.onboarding=projectOnboardingFromForm();
+  const completion={acceptedOn:$('projectAcceptedOn').value,acceptanceNote:$('projectAcceptanceNote').value.trim(),instructions:$('projectInstructions').value.trim(),alertsOwner:$('projectAlertsOwner').value.trim(),handedOverOn:$('projectHandedOverOn').value};
+  if(state.projectEditing?.completion||Object.values(completion).some(Boolean))data.completion=completion;
   return data;
 }
 function projectNextStep(project){
@@ -2571,6 +2591,12 @@ function openProjectEditor(record=null,draft=null){
   $('projectDetails').open=false;
   $('projectTasks').replaceChildren();
   $('projectError').hidden=true;
+  const completion=record?.completion||draft?.completion||{};
+  for(const [key,id] of Object.entries({acceptedOn:'projectAcceptedOn',acceptanceNote:'projectAcceptanceNote',instructions:'projectInstructions',alertsOwner:'projectAlertsOwner',handedOverOn:'projectHandedOverOn'}))$(id).value=completion[key]||'';
+  $('projectAcceptedOn').max=$('projectHandedOverOn').max=localDateKey();
+  $('projectCompletionSection').open=false;
+  const completionStamp=new Date(record?.completionUpdatedAt||'');
+  $('projectCompletionAudit').textContent=Number.isFinite(completionStamp.getTime())?'Nachweise zuletzt bearbeitet: '+completionStamp.toLocaleString('de-CH')+' · '+(record.completionUpdatedBy||''):'';
   const onboarding=record?.onboarding||draft?.onboarding||{};
   $('projectMakeRequired').value=onboarding.makeRequired===true?'yes':onboarding.makeRequired===false?'no':'unknown';
   $('projectInvitationConfirmed').checked=onboarding.invitationConfirmed===true;

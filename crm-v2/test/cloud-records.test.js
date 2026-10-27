@@ -1154,3 +1154,14 @@ test('new accepted and manually created projects get independent default tasks; 
  const custom=await store.create('projekte',{title:'TEST_ONLY eigene Aufgaben',tasks:[{title:'Spezifisch',done:false}]},admin);assert.deepEqual(custom.tasks,[{title:'Spezifisch',done:false}]);
  db.storage.set('lszh_crm_v2_staging_projekte/legacy_defaults',{title:'TEST_ONLY Bestand',status:'Geplant'});await store.update('projekte','legacy_defaults',{description:'Nur Beschreibung'},admin);assert.equal((await store.get('projekte','legacy_defaults')).tasks,undefined);
 });
+
+test('project acceptance and handover evidence roundtrip with actor audit while tasks, status and other records remain unchanged',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_'),project=await store.create('projekte',{title:'TEST_ONLY evidence',status:'Abgeschlossen',tasks:[{title:'Eigene Aufgabe',done:false}]},admin);
+ const before=await store.get('projekte',project.id),otherBefore=JSON.stringify([...db.storage].filter(([k])=>!k.endsWith('/'+project.id)));
+ const completion={acceptedOn:'2020-01-02',acceptanceNote:'Freigabe durch TEST_ONLY Kunde',instructions:'https://example.invalid/anleitung',alertsOwner:'TEST_ONLY Betrieb',handedOverOn:'2020-01-03'};
+ const saved=await store.update('projekte',project.id,{completion,completionUpdatedAt:'forged',completionUpdatedBy:'forged'},admin);assert.deepEqual(saved.completion,completion);assert.equal(saved.completionUpdatedBy,admin.email);assert.ok(saved.completionUpdatedAt);assert.notEqual(saved.completionUpdatedAt,'forged');assert.equal(saved.status,before.status);assert.deepEqual(saved.tasks,before.tasks);
+ await store.update('projekte',project.id,{description:'Andere Änderung'}, {email:'other@example.invalid'});const unchanged=await store.get('projekte',project.id);assert.deepEqual(unchanged.completion,completion);assert.equal(unchanged.completionUpdatedBy,admin.email);assert.equal(unchanged.completionUpdatedAt,saved.completionUpdatedAt);
+ assert.equal(JSON.stringify([...db.storage].filter(([k])=>!k.endsWith('/'+project.id))),otherBefore);
+ await assert.rejects(store.update('projekte',project.id,{completion:{...completion,acceptedOn:'2099-01-01'}},admin));assert.deepEqual((await store.get('projekte',project.id)).completion,completion);
+ const legacy=await store.create('projekte',{title:'TEST_ONLY no evidence'},admin);await store.update('projekte',legacy.id,{description:'Unrelated'},admin);assert.equal((await store.get('projekte',legacy.id)).completion,undefined);
+});

@@ -6,7 +6,7 @@
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked,invoiceReadiness}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
-const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding,defaultProjectTasks,validProjectStartDay,projectStartReadiness}=require('./project-tasks');
+const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding,defaultProjectTasks,cleanProjectCompletion,validProjectStartDay,projectStartReadiness}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,freezeLeadUrgency}=require('./lead-contact');
@@ -26,7 +26,7 @@ const FIELDS={
   kunden:['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten:['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen:['customerId','projectId','description','invoiceDate','items','amountCHF','dueDate','status'],
-  projekte:['customerId','offerId','title','description','dueDate','startDate','owner','tasks','onboarding','status']
+  projekte:['customerId','offerId','title','description','dueDate','startDate','owner','tasks','onboarding','completion','status']
 };
 const REQUIRED={
   leads:['name','company','email','street','postalCode','city','country'],
@@ -48,6 +48,7 @@ function clean(table,input){
       else throw err('Ungültige Positionen');
       continue;
     }
+    if(field==='completion'){out.completion=cleanProjectCompletion(value);continue;}
     if(field==='onboarding'){out.onboarding=cleanProjectOnboarding(value);continue;}
     if(field==='tasks'){
       if(table!=='projekte')throw err('Ungültige Aufgaben');
@@ -528,7 +529,7 @@ function buildStore(db,prefix,options={}){
         await assertCustomer(tx,customerId);
         if(input.offerId&&await queryOne(tx,'projekte','offerId',input.offerId))
           throw err('Diese Offerte ist bereits einem Projekt zugeordnet');
-        tx.create(ref,newRecord({...input,customerId,tasks:input.tasks===undefined?defaultProjectTasks():input.tasks,onboarding:input.onboarding||defaultOnboarding()},user,date));
+        tx.create(ref,newRecord({...input,...(input.completion?{completionUpdatedAt:date,completionUpdatedBy:user.email}:{}),customerId,tasks:input.tasks===undefined?defaultProjectTasks():input.tasks,onboarding:input.onboarding||defaultOnboarding()},user,date));
       }
       if(table==='rechnungen'){
         const project=await assertProject(tx,input.projectId);
@@ -660,6 +661,7 @@ function buildStore(db,prefix,options={}){
         await acceptedOffer(tx,merged.offerId);
         if(merged.offerId!==before.offerId&&merged.offerId&&await queryOne(tx,'projekte','offerId',merged.offerId))
           throw err('Offerte ist bereits einem Projekt zugeordnet');
+        if(Object.hasOwn(input,'completion')&&JSON.stringify(input.completion)!==JSON.stringify(before.completion)){input.completionUpdatedAt=date;input.completionUpdatedBy=user.email;}
         tx.update(ref,audit(input,user,date));
         return;
       }

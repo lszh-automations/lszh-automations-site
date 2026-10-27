@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-const source=html.slice(html.indexOf('async function renderContractWorkflow('),html.indexOf('function renderOfferWorkflow('));
+const source=html.slice(html.indexOf('async function renderContractWorkflow('),html.indexOf('async function renderOfferWorkflow('));
 function setup(value,enabled=true){
  const calls=[],area={children:[],dataset:{},hidden:true,close(){},replaceChildren(){this.children=[];},append(...items){this.children.push(...items);}};
  const state={contractActionsEnabled:enabled};let confirm=true;

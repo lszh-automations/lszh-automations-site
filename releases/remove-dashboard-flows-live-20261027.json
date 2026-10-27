@@ -1,0 +1,37 @@
+{
+  "runtimeFilesVerified": 81,
+  "changedRuntimeFiles": [
+    {
+      "path": "public/index.html",
+      "sha256": "6b0f2959de00d0947bff7d686d4a95679d13bc2a7618e2c5ac449729385789e5"
+    }
+  ],
+  "configurationUnchanged": true,
+  "candidate": "lszh-crm-v2-00137-naf",
+  "candidateUrl": "https://remove-flows---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousSummaryApi": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793126702.3706-6d1632bdf11140b5969dc7e0cb7d6547.zip#1793126704593023",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "12a38e442f9e8f31e77ce4fcc93fca4aa222fb5c",
+  "parentRelease": "dashboard-process-logic-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00137-naf",
+  "rollback": "lszh-crm-v2-00135-nen",
+  "trafficPercent": 100,
+  "crmTests": 521,
+  "browserDesktopMobile": "passed; entire flow section absent, four KPIs and remaining reports preserved",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40562835159,
+    40562835161
+  ],
+  "liveHtmlExactMatch": true,
+  "flowSectionAbsent": true,
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "makeChanged": false,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/41"
+}

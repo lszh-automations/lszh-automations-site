@@ -1,3 +1,9 @@
+# Aktuell: Ablaufbereich vollständig entfernt
+
+Auf Benutzerwunsch ist der komplette Bereich „Deine laufenden Abläufe“ aus dem Dashboard entfernt, einschliesslich seiner Karten, Filter und speziellen Öffnungsfunktionen/Stile. Vier Kennzahlen und aufklappbare Auswertungen bleiben bestehen. Die folgenden Beschreibungen dokumentieren frühere Stände. [Live-Nachweis](../releases/remove-dashboard-flows-live-20261027.json).
+
+---
+
 # Dashboard nach tatsächlichen Abläufen
 
 Stand: 27.10.2026

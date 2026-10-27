@@ -1144,3 +1144,13 @@ test('monthly scheduler recovers missed periods, isolates changed contracts and 
  const raw=x.db.storage.get('lszh_crm_v2_staging_offerten/'+x.offer.id);raw.items[0].unitPriceCHF=100;x.clock.date='2027-03-01T06:00:00Z';const result=await x.store.monthlyBillingTick(admin);assert.equal(result.errors,1);assert.equal((await x.store.list('rechnungen')).length,4);
  const project=await x.store.get('projekte',x.project.id);assert.ok(project.monthlyBilling.lastError);const {personalTasks}=require('../cockpit-summary');assert.ok(personalTasks({projekte:[project],kunden:[x.customer]},'2027-03-01').some(t=>t.action==='Monatsabrechnung prüfen'));
 });
+
+test('new accepted and manually created projects get independent default tasks; explicit lists and legacy edits stay unchanged',async()=>{
+ const {defaultProjectTasks}=require('../project-tasks'),db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const lead=await store.create('leads',newLead('TEST_ONLY default tasks'),admin);await store.update('leads',lead.id,{status:'Qualifiziert'},admin);await store.update('leads',lead.id,{status:'Gewonnen'},admin);const won=(await store.list('projekte'))[0];assert.deepEqual(won.tasks,defaultProjectTasks());
+ await store.update('projekte',won.id,{tasks:[{title:'Eigene Aufgabe',done:true}]},admin);await store.update('leads',lead.id,{status:'Gewonnen'},admin);assert.deepEqual((await store.get('projekte',won.id)).tasks,[{title:'Eigene Aufgabe',done:true}]);
+ const manual=await store.create('projekte',{title:'TEST_ONLY manuell'},admin);assert.deepEqual(manual.tasks,defaultProjectTasks());
+ const empty=await store.create('projekte',{title:'TEST_ONLY ohne Aufgaben',tasks:[]},admin);assert.deepEqual(empty.tasks,[]);
+ const custom=await store.create('projekte',{title:'TEST_ONLY eigene Aufgaben',tasks:[{title:'Spezifisch',done:false}]},admin);assert.deepEqual(custom.tasks,[{title:'Spezifisch',done:false}]);
+ db.storage.set('lszh_crm_v2_staging_projekte/legacy_defaults',{title:'TEST_ONLY Bestand',status:'Geplant'});await store.update('projekte','legacy_defaults',{description:'Nur Beschreibung'},admin);assert.equal((await store.get('projekte','legacy_defaults')).tasks,undefined);
+});

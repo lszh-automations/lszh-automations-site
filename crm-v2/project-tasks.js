@@ -3,6 +3,8 @@
 // Project checklists and manually confirmed onboarding for the authenticated CRM.
 // Each project owns an ordered list. No external task service or notifications.
 const MAX_TASKS=30;
+const DEFAULT_PROJECT_TASK_TITLES=Object.freeze(['Automation einrichten','Gesamten Ablauf testen','Kundenabnahme einholen','Übergeben und Betrieb klären']);
+function defaultProjectTasks(){return DEFAULT_PROJECT_TASK_TITLES.map(title=>({title,done:false}));}
 function projectError(message){return Object.assign(new Error(message),{status:400});}
 function cleanProjectTasks(input){
   if(!Array.isArray(input)||input.length>MAX_TASKS)
@@ -65,4 +67,4 @@ function projectStartReadiness(project,today){
   return {canStart:!started&&!closed&&!missing.length,started,missing,
     status:started?'Projektstart dokumentiert':closed?'Projekt abgeschlossen':project?.status==='In Arbeit'?'In Arbeit – Start noch nicht dokumentiert':missing.length?'Projektstart vorbereiten':'Bereit zum Projektstart'};
 }
-module.exports={validProjectStartDay,projectStartReadiness,cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};
+module.exports={defaultProjectTasks,DEFAULT_PROJECT_TASK_TITLES,validProjectStartDay,projectStartReadiness,cleanProjectTasks,projectProgress,overdueProject,MAX_TASKS,defaultOnboarding,cleanProjectOnboarding,projectOnboardingState};

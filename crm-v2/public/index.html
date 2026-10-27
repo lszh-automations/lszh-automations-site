@@ -2561,6 +2561,7 @@ function projectTasksFromForm(){
   }
   return tasks;
 }
+const DEFAULT_PROJECT_TASK_TITLES=['Automation einrichten','Gesamten Ablauf testen','Kundenabnahme einholen','Übergeben und Betrieb klären'];
 function openProjectEditor(record=null,draft=null){
   state.projectEditing=record;
   $('projectEditorTitle').textContent=record?'Projekt bearbeiten':'Neues Projekt';
@@ -2592,7 +2593,8 @@ function openProjectEditor(record=null,draft=null){
     const area=['startDate','owner'].includes(key)?'projectStartFields':['offerId','description'].includes(key)?'projectDetailFields':'projectFields';
     $(area).append(field);
   }
-  for(const task of Array.isArray(record?.tasks)?record.tasks:[])addProjectTask(task,false);
+  const projectTasks=record?(Array.isArray(record.tasks)?record.tasks:[]):Array.isArray(draft?.tasks)?draft.tasks:DEFAULT_PROJECT_TASK_TITLES.map(title=>({title,done:false}));
+  for(const task of projectTasks)addProjectTask(task,false);
   renderProjectProgress();
   const customer=(state.records.kunden||[]).find(c=>c.id===record?.customerId);
   const offer=(state.records.offerten||[]).find(o=>o.id===record?.offerId);
@@ -3293,7 +3295,7 @@ $('projectDetails').addEventListener('toggle',()=>{
 $('projectForm').addEventListener('input',renderProjectStart);
 $('projectForm').addEventListener('change',renderProjectStart);
 $('projectTaskTemplate').addEventListener('click',()=>{
-  const titles=['Vereinbarten Ablauf und Umfang abstimmen','Automation einrichten','Mit Testdaten prüfen und Ergebnis dokumentieren','Mit Kunde abnehmen und übergeben'];
+  const titles=DEFAULT_PROJECT_TASK_TITLES;
   const existing=projectTasksFromForm().map(t=>t.title.toLocaleLowerCase('de-CH'));
   const additions=titles.filter(t=>!existing.includes(t.toLocaleLowerCase('de-CH')));
   if(projectTasksFromForm().length+additions.length>30){$('projectError').textContent='Für diese Schritte reichen die verbleibenden Aufgabenplätze nicht aus (maximal 30).';$('projectError').hidden=false;return;}

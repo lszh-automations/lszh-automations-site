@@ -77,15 +77,11 @@ test('receivables are ordered by urgency and original invoice objects are not so
   assert.equal(a.soonCount,1);
   assert.equal(a.openCount,4);
 });
-test('read-only dashboard distinguishes complete server totals and paginated lists',()=>{
-  assert.match(html,/DEIN LSZH COCKPIT/);
-  assert.match(html,/Datenbasis: serverseitige Auswertung aller CRM-Register/);
-  assert.match(html,/Datenbasis eingeschränkt: serverseitige Kennzahlen derzeit nicht geladen/);
-  assert.match(html,/Die Listen laden Seiten zu je 50 Einträgen/);
-  assert.match(html,/Historische „Bezahlt“-Markierungen ohne Einzelbuchung/);
-  assert.match(html,/Monatswerte sind weder Zahlungseingänge noch realisierter Umsatz/);
-  assert.match(html,/dashboardPanel\('Offene Forderungen im Blick'/);
-  assert.match(html,/dashboardPanel\('Projektstatus'/);
-  const pure=html.slice(html.indexOf('function cockpitMetrics('),html.indexOf('function renderInvoiceDueOverview('));
-  assert.doesNotMatch(pure,/\bfetch\s*\(|\bapi\s*\(|\bPOST\b|\bPATCH\b/);
+test('analytics dashboard uses complete server reporting and exposes no task lists',()=>{
+  const renderer=html.slice(html.indexOf('function renderDashboard(){'),html.indexOf('function projectIsOverdue('));
+  assert.match(renderer,/vollständige serverseitige Auswertung/);
+  assert.match(renderer,/Rechnungsvolumen ist kein Zahlungseingang/);
+  assert.match(renderer,/Statusverteilungen zeigen den heutigen Stand/);
+  assert.doesNotMatch(renderer,/Jetzt wichtig|Wiedervorlagen|Offerten abschliessen|laufenden Abläufe/);
+  assert.doesNotMatch(renderer,/\bPOST\b|\bPATCH\b|\bapi\s*\(/);
 });

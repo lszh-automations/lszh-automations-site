@@ -28,9 +28,10 @@ function createHarness(){
   const navigation=[];
   const context={
     state,
+    reportContext:()=>{statsCalls++;return {report:{current:{customers:1}},selected:{customers:0,paidCents:0,offers:0,projects:0},previous:null};},
+    reportComparison:()=>'Gesamter Zeitraum',
     $:name=>{
-      assert.equal(name,'kpis');
-      return kpis;
+      return name==='kpis'?kpis:{scrollIntoView:()=>navigation.push(name)};
     },
     dashboardStats:()=>{
       statsCalls++;
@@ -56,8 +57,8 @@ test('Overview KPI cards exist only on dashboard, not in the five working tabs',
   assert.equal(h.getStatsCalls(),1);
   const first=h.kpis.children[0];
   assert.equal(first.tag,'button');
-  first.listeners.click();
-  assert.deepEqual(h.navigation,['leads']);
+  first.onclick();
+  assert.deepEqual(h.navigation,['reportCustomers']);
 
   for(const tab of ['leads','kunden','offerten','rechnungen','projekte']){
     h.state.tab=tab;

@@ -229,6 +229,7 @@ async function cockpitSummary(store,{today=localSwissDate(),nowMs=Date.now()}={}
       }
     }
   }
+  s.reporting=require('./dashboard-reporting').reportingSummary(data,{today});
   s.openProcesses=openProcesses(data,today);
   s.openProcessCount=s.openProcesses.length;
   s.processGroups=processGroups(data,today,s.openProcesses,nowMs);

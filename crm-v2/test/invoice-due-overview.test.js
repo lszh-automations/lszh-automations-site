@@ -60,8 +60,8 @@ test('due overview is only in invoice register with no automatic mail or payment
     assert.match(html,new RegExp('<option value="'+option+'">'));
   }
   assert.match(html,/invoiceDueFilter'\)\.addEventListener\('change'/);
-  assert.match(html,/invoiceDueTotals\(state\.records\.rechnungen\)/);
-  assert.match(html,/Mahnungen ausschliesslich manuell nach Prüfung/);
+  assert.match(html,/invoiceDueTotals\(invoices\)/);
+  assert.match(html,/Das CRM versendet keine Mahnung automatisch/);
   assert.match(html,/Dies protokolliert nur den bereits erfolgten Versand/);
   assert.doesNotMatch(html,/setInterval\(.*invoiceReminder|setInterval\(.*recordInvoiceReminder/);
 });

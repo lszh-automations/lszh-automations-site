@@ -321,6 +321,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 @media(max-width:620px){.lead-workflow-fields{grid-template-columns:1fr}}
 .dashboard-intro-wrapper{margin-bottom:20px}
 .dashboard-area{display:grid;gap:18px}
+.report-filter{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:18px;background:var(--panel);border:1px solid var(--border);border-radius:14px}.report-filter label{display:grid;gap:7px;color:var(--muted);font-size:12px}.report-filter [hidden]{display:none!important}.report-filter input,.report-filter select,.report-chart-controls select{min-width:120px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:11px;border-radius:8px;font:inherit;font-size:13px;color-scheme:dark}.report-filter input[type=number]{width:120px}.report-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:12px 0}.report-metrics>div{border-bottom:1px solid var(--border);padding:10px 0 16px}.report-metrics small{display:block;font-size:12px;line-height:1.5;color:var(--muted)}.report-metrics strong{display:block;font-size:23px;margin:8px 0;overflow-wrap:anywhere}.report-statuses{display:grid;gap:12px;margin-top:20px}.report-status{display:grid;grid-template-columns:190px minmax(0,1fr) 35px;align-items:center;gap:14px;font-size:13px}.report-status-track,.report-chart-track{height:10px;border-radius:12px;background:#243246;overflow:hidden}.report-status-track>span,.report-chart-track>span{display:block;height:100%;background:var(--accent);border-radius:12px}.report-chart-controls{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 22px}.report-chart{max-height:400px;overflow:auto;display:grid;gap:14px}.report-chart-row{display:grid;grid-template-columns:95px minmax(50px,1fr) 145px;align-items:center;gap:14px;font-size:13px}.report-chart-row strong{text-align:right;white-space:nowrap;font-size:12px}.report-data{margin-top:24px}.report-data summary{cursor:pointer;color:var(--muted);font-size:13px}.report-data table{margin-top:14px}.report-data th,.report-data td{font-size:12px;padding:12px;white-space:nowrap}.report-data .scroll{max-height:420px}.report-data thead{position:sticky;top:0;background:var(--panel)}@media(max-width:720px){.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.report-metrics strong{font-size:20px}.report-chart-row{grid-template-columns:75px minmax(25px,1fr) 110px;gap:8px}.report-chart-row strong{font-size:11px}.report-status{grid-template-columns:130px minmax(25px,1fr) 25px;gap:8px}.report-filter{padding:14px;gap:10px}.report-filter label{flex:1 1 130px;min-width:0}.report-filter input,.report-filter select{width:100%;min-width:0}}
+
 
 .dash-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
 .dash-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;min-width:0;overflow:hidden}
@@ -954,276 +956,124 @@ function dashboardPanel(title,description){
   panel.append(head,body);
   return {panel,body};
 }
+
+function reportValidDay(day){return typeof day==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(day)&&Number.isFinite(Date.parse(day+'T12:00:00Z'))&&new Date(day+'T12:00:00Z').toISOString().slice(0,10)===day;}
+function reportDayAdd(day,n){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function reportMonthStart(year,month){return new Date(Date.UTC(year,month-1,1,12)).toISOString().slice(0,10);}
+function reportRange(filter={},today=localDateKey(),days=[]){
+  const mode=filter.mode||'year',year=filter.year===undefined?Number(today.slice(0,4)):Number(filter.year);let from,to,previousFrom,previousEnd;
+  if(!['month','quarter','year','custom','all'].includes(mode))throw Error('Ungültiger Zeitraum.');
+  if(mode==='month'){
+    const month=filter.month===undefined?today.slice(0,7):filter.month;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Bitte einen gültigen Monat wählen.');
+    const [y,m]=month.split('-').map(Number);if(y<1900||y>2100)throw Error('Monat muss zwischen 1900 und 2100 liegen.');from=reportMonthStart(y,m);to=reportDayAdd(reportMonthStart(y,m+1),-1);previousFrom=reportMonthStart(y,m-1);previousEnd=reportDayAdd(from,-1);
+  }else if(mode==='quarter'||mode==='year'){
+    if(!Number.isInteger(year)||year<1900||year>2100)throw Error('Jahr muss zwischen 1900 und 2100 liegen.');
+    const q=Number(filter.quarter||Math.floor((Number(today.slice(5,7))-1)/3)+1);if(mode==='quarter'&&(!Number.isInteger(q)||q<1||q>4))throw Error('Bitte ein gültiges Quartal wählen.');
+    const start=mode==='quarter'?(q-1)*3+1:1,width=mode==='quarter'?3:12;
+    from=reportMonthStart(year,start);to=reportDayAdd(reportMonthStart(year,start+width),-1);previousFrom=reportMonthStart(year,start-width);previousEnd=reportDayAdd(from,-1);
+  }else if(mode==='all'){from=days[0]?.day||today;to=today;}
+  else{from=filter.from;to=filter.to;if(!reportValidDay(from)||!reportValidDay(to))throw Error('Bitte gültiges Start- und Enddatum wählen.');}
+  if(from>to)throw Error('Das Startdatum muss vor dem Enddatum liegen.');if(from>today)throw Error('Der Zeitraum liegt vollständig in der Zukunft.');
+  const incomplete=to>today;to=incomplete?today:to;
+  const length=Math.round((Date.parse(to+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000)+1;
+  if(length>73415)throw Error('Bitte einen kürzeren Zeitraum wählen.');
+  let previous=null;
+  if(mode==='custom')previous={from:reportDayAdd(from,-length),to:reportDayAdd(from,-1)};
+  else if(mode!=='all')previous={from:previousFrom,to:incomplete?[reportDayAdd(previousFrom,length-1),previousEnd].sort()[0]:previousEnd};
+  return {mode,from,to,previous};
+}
+function reportAggregate(report,range){
+  const keys=['customers','invoiceCount','invoiceCents','invoiceDrafts','invoiceCancelled','invoiceSent','outstandingCents','overdueCents','paidCents','payments','offers','offerOneTimeCents','offerMonthlyCents','acceptedOneTimeCents','acceptedMonthlyCents','projects'];
+  const result=Object.fromEntries(keys.map(k=>[k,0]));result.offerStatuses={};result.projectStatuses={};
+  const add=row=>{for(const k of keys)result[k]+=Number(row[k]||0);for(const key of ['offerStatuses','projectStatuses'])for(const [status,n]of Object.entries(row[key]||{}))result[key][status]=(result[key][status]||0)+n;};
+  for(const row of report.days||[])if(row.day>=range.from&&row.day<=range.to)add(row);
+  if(range.mode==='all'&&report.undated)add(report.undated);
+  result.customersEnd=(report.days||[]).filter(r=>r.day<=range.to).reduce((n,r)=>n+r.customers,0);
+  return result;
+}
+function reportBuckets(report,range,group='month'){
+  const rows=[],key=day=>group==='year'?day.slice(0,4):group==='quarter'?day.slice(0,4)+' Q'+(Math.floor((Number(day.slice(5,7))-1)/3)+1):day.slice(0,7);
+  let cursor=range.from;
+  while(cursor<=range.to){
+    const year=Number(cursor.slice(0,4)),month=Number(cursor.slice(5,7));
+    const next=group==='year'?reportMonthStart(year+1,1):group==='quarter'?reportMonthStart(year,Math.floor((month-1)/3)*3+4):reportMonthStart(year,month+1);
+    const end=[reportDayAdd(next,-1),range.to].sort()[0];rows.push({label:key(cursor),from:cursor,to:end,...reportAggregate(report,{from:cursor,to:end})});cursor=next;
+    if(rows.length>2500)throw Error('Für diesen Zeitraum bitte Quartale oder Jahre wählen.');
+  }
+  return rows;
+}
+function reportContext(){
+  const report=state.summary?.reporting;if(!report)return null;
+  const range=reportRange(state.reportFilter,report.today,report.days),selected=reportAggregate(report,range),previous=range.previous?reportAggregate(report,range.previous):null;
+  return {report,range,selected,previous};
+}
+function reportChange(value,previous){if(previous===null)return 'Kein Vergleich bei Gesamt';const delta=value-previous;return (delta>0?'+':'')+new Intl.NumberFormat('de-CH',{maximumFractionDigits:2}).format(delta)+(previous?' ('+(delta>0?'+':'')+new Intl.NumberFormat('de-CH',{maximumFractionDigits:1}).format(delta/previous*100)+' %)':' · Vorperiode: 0');}
+
+function reportComparison(value,previous,unit=''){return previous===null?'Gesamter Zeitraum':reportChange(value,previous)+(unit?' '+unit:'')+' zur Vorperiode';}
 function renderKpis(){
-  const container=$('kpis');
-  container.replaceChildren();
-  container.hidden=state.tab!=='dashboard';
-  if(container.hidden)return;
-  // Fail closed: never display partial client-side financial totals as global
-  // KPIs when the authenticated server-wide summary is unavailable.
-  if(!state.summary&&Object.keys(state.pageInfo||{}).length)return;
-  const stats=dashboardStats(state.records);
-  const items=[
-    {title:'Neue Leads',value:stats.newLeads,note:'Warten auf Prüfung',tab:'leads'},
-    {title:'Offene Offerten',value:stats.openOffers,note:'Entwurf, bereit oder versendet',tab:'offerten'},
-    {title:'Offene Forderungen',value:invoiceCHF(stats.openInvoiceAmount),note:stats.openInvoices+' Rechnungen mit Restbetrag',tab:'rechnungen'},
-    {title:'Aktive Projekte',value:stats.activeProjects,note:'Geplant oder in Bearbeitung',tab:'projekte'}
+  const container=$('kpis');container.replaceChildren();container.hidden=state.tab!=='dashboard';if(container.hidden)return;
+  let ctx;try{ctx=reportContext();}catch{return;}if(!ctx)return;
+  const s=ctx.selected,p=ctx.previous,items=[
+    {title:'Kundenbestand aktuell',value:ctx.report.current.customers,note:s.customers+' Neukunden im Zeitraum',target:'reportCustomers'},
+    {title:'Erfasste Zahlungen',value:invoiceCHF(s.paidCents/100),note:reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF'),target:'reportInvoices'},
+    {title:'Offerten im Zeitraum',value:s.offers,note:reportComparison(s.offers,p?p.offers:null),target:'reportOffers'},
+    {title:'Projekte im Zeitraum',value:s.projects,note:reportComparison(s.projects,p?p.projects:null),target:'reportProjects'}
   ];
-  for(const item of items){
-    const card=el('button','kpi dash-kpi');
-    card.type='button';
-    card.setAttribute('aria-label',item.title+': '+item.value+'. '+definitions[item.tab].title+' öffnen');
-    const top=el('div','dash-kpi-top');
-    top.append(el('span','',item.title),el('span','dash-kpi-arrow','↗'));
-    card.append(top,el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));
-    card.addEventListener('click',()=>navigateTo(item.tab));
-    container.append(card);
-  }
+  for(const item of items){const card=el('button','kpi dash-kpi');card.type='button';card.setAttribute('aria-label',item.title+': '+item.value);card.append(el('span','',item.title),el('strong','',String(item.value)),el('small','dash-kpi-note',item.note));card.onclick=()=>$(item.target)?.scrollIntoView({behavior:'smooth',block:'start'});container.append(card);}
 }
-
 function renderDashboard(){
-  const area=$('dashboardArea'),detailsOpen=area.querySelector('#dashboardDetails')?.open||false,tasksOpen=area.querySelector('#dashboardMoreTasks')?.open||false;area.replaceChildren();
-  const stats=dashboardStats(state.records);
-  const intro=el('div','dash-intro'),introText=el('div');
-  introText.append(
-    el('span','eyebrow','DEIN LSZH COCKPIT')
-  );
-  const stamp=el('span','dash-meta','Stand: '+new Intl.DateTimeFormat('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()));
-  intro.append(introText,stamp);
-  $('dashboardIntro').replaceChildren(intro);
-  const scope=el('p','dash-data-scope');
-  const tables=['leads','kunden','offerten','rechnungen','projekte'];
-  const lengths=tables.map(name=>definitions[name].title+': '+
-    (state.summary?.counts?.[name]??(state.records[name]||[]).length)).join(' · ');
-  scope.textContent=state.summary?
-    'Datenbasis: serverseitige Auswertung aller CRM-Register. '+lengths+
-    ' · Die Listen laden Seiten zu je 50 Einträgen. Keine Bankdaten oder automatische Buchhaltung.':
-    'Datenbasis eingeschränkt: serverseitige Kennzahlen derzeit nicht geladen. '+lengths+
-    ' · Summen und Prioritäten können unvollständig sein.';
-  if(!state.summary)scope.classList.add('dash-data-scope--limited');
-  if(!state.summary&&Object.keys(state.pageInfo||{}).length){
-    const unavailable=dashboardPanel('Gesamtkennzahlen vorübergehend nicht verfügbar',
-      'Die vollständige serverseitige Berechnung konnte nicht geladen werden.');
-    unavailable.body.append(el('p','dash-finance-note',
-      'Zur Sicherheit zeigt das CRM keine unvollständigen finanziellen Summen als Gesamtzahlen an. Bitte aktualisieren.'));
-    area.append(scope,unavailable.panel);
-    return;
-  }
-  const upper=el('div','dash-grid');
-  const tasks=dashboardPanel('Jetzt wichtig','Dringende Vorgänge zuerst.');
-  const secondaryTasks=dashboardPanel('Weitere Vorgänge','Offene Arbeit und interne Erinnerungsvorschauen.');
-  const priorities=[
-    {n:(state.summary?state.summary.overdueCount:invoiceDueTotals(state.records.rechnungen).overdueCount),title:'Überfällige Rechnungen',description:'Offene Restbeträge prüfen',tab:'rechnungen',filter:'overdue',icon:'▣'},
-    {n:(state.summary?state.summary.dueLeadCount:dueLeadFollowUps(state.records.leads).length),title:'Fällige Wiedervorlagen',description:'Nächste Aktion heute oder überfällig',tab:'leads',icon:'◷'},
-    {n:(state.summary?state.summary.dueOfferCount:dueOfferFollowUps(state.records.offerten).length),title:'Offerten nachfassen',description:'Rückmeldung heute fällig oder überfällig',tab:'offerten',icon:'▤'},
-    {n:(state.summary?.pendingConfirmationCount??(state.records.offerten||[]).filter(offerAcceptancePending).length),title:'Offerten intern bestätigen',description:'Kundenannahme liegt vor',tab:'offerten',status:'Angenommen',icon:'▤'},
-    {n:(state.summary?.pendingAdoptionCount??(state.records.offerten||[]).filter(x=>x.status!=='Angenommen'&&x.onlineAcceptance?.state==='confirmed').length),title:'Bestätigte Aufträge übernehmen',description:'Kunde, Projekt und Rechnungsentwurf anlegen',tab:'offerten',status:'Angenommen',icon:'▤'},
-    {n:stats.newLeads,title:'Neue Anfragen prüfen',description:'Noch nicht bearbeitete Website-Leads',tab:'leads',status:'Neu',icon:'↗'},
-    {n:(state.summary?state.summary.projectOverdue:(state.records.projekte||[]).filter(p=>projectIsOverdue(p)).length),title:'Überfällige Projekttermine',description:'Zieltermin überschritten',tab:'projekte',icon:'◷'},
-    {n:stats.waitingProjects,title:'Auf Kundenantwort warten',description:'Wartende Projekte ansehen',tab:'projekte',status:'Wartet auf Kunde',icon:'◇'},
-    {n:(state.summary?state.summary.reminderPreviewCount:(state.reminders||[]).filter(r=>(state.records.leads||[]).some(l=>l.id===r.leadId&&l.status==='Neu')).length),title:'24h-Erinnerungen (Vorschau)',description:'Nur intern vorgemerkt – keine E-Mail verschickt',tab:'leads',icon:'◷',secondary:true},
-    {n:stats.openOffers,title:'Offene Offerten bearbeiten',description:'Entwürfe, bereite oder versendete Angebote',tab:'offerten',icon:'▤',secondary:true},
-    {n:stats.openInvoices,title:'Offene Rechnungen prüfen',description:'Offene und teilbezahlte Rechnungen mit Restbetrag',tab:'rechnungen',filter:'open',icon:'▣',secondary:true}
-  ].filter(x=>x.n>0);
-  if(!priorities.some(x=>!x.secondary)){
-    const empty=el('div','dash-empty');
-    empty.append(el('strong','','Keine dringenden Aufgaben'),el('span','','Weitere offene Vorgänge findest du in den Registern.'));
-    tasks.body.append(empty);
-  }
-  const moreTasks=el('details','dash-more-tasks');moreTasks.id='dashboardMoreTasks';moreTasks.open=tasksOpen;
-  moreTasks.append(el('summary','','Weitere dringende Vorgänge ('+Math.max(0,priorities.filter(x=>!x.secondary).length-5)+')'));
-  let mainTaskIndex=0;
-  for(const task of priorities){
-    const button=el('button','dash-task');button.type='button';
-    const icon=el('span','dash-task-icon',task.icon);
-    const content=el('span','dash-task-content');
-    content.append(el('strong','',task.n+' × '+task.title));
-    if(task.secondary)content.append(el('small','',task.description));else button.title=task.description;
-    button.append(icon,content,el('span','dash-task-next','Öffnen →'));
-    button.addEventListener('click',()=>{
-      navigateTo(task.tab,null,task.filter||'all');
-      if(task.status){state.filterStatus=task.status;$('statusFilter').value=task.status;loadFilteredRows();}
-    });
-    if(task.secondary)secondaryTasks.body.append(button);
-    else (++mainTaskIndex<=5?tasks.body:moreTasks).append(button);
-  }
-  if(mainTaskIndex>5)tasks.body.append(moreTasks);
-  const recent=dashboardPanel('Aktuelle Website-Leads','Die zuletzt erfassten Anfragen.');
-  const recentLeads=state.summary?state.summary.recentLeads:
-    [...(state.records.leads||[])].sort((a,b)=>
-      String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,4);
-  if(!recentLeads.length){
-    const empty=el('div','dash-empty');
-    empty.append(el('strong','','Noch keine Leads vorhanden'),el('span','','Neue Anfragen erscheinen hier nach der Erfassung.'));
-    recent.body.append(empty);
-  }
-  for(const lead of recentLeads){
-    const button=el('button','dash-lead');button.type='button';
-    const details=el('span','dash-lead-info');
-    details.append(el('strong','',lead.company||lead.name||'Unbenannter Lead'));
-    const secondary=[lead.name,lead.city].filter(Boolean).join(' · ');
-    details.append(el('small','',secondary||'Website-Anfrage'));
-    const side=el('span','dash-lead-side');
-    side.append(el('span','badge'+(lead.status==='Qualifiziert'?' success':''),lead.status||'–'),el('span','dash-open','Öffnen →'));
-    button.append(details,side);
-    button.addEventListener('click',()=>navigateTo('leads',lead));
-    recent.body.append(button);
-  }
-  const followUps=dashboardPanel('Fällige Wiedervorlagen','Heute fällige und überfällige nächste Aktionen.');
-  const due=state.summary?state.summary.dueLeads:dueLeadFollowUps(state.records.leads);
-  if(!due.length){
-    followUps.body.append(el('div','dash-empty','Keine Wiedervorlagen fällig.'));
-  }
-  for(const lead of due.slice(0,8)){
-    const button=el('button','dash-lead');button.type='button';
-    const content=el('span','dash-lead-info');
-    content.append(el('strong','',lead.company||lead.name||'Lead'),
-      el('small','',lead.nextAction+' · '+lead.followUpDate));
-    button.append(content,el('span','dash-open','Öffnen →'));
-    button.addEventListener('click',()=>navigateTo('leads',lead));
-    followUps.body.append(button);
-  }
-  const offerTasks=dashboardPanel('Offerten-Nachverfolgung','Versendete Offerten, bei denen eine Rückmeldung fällig ist.');
-  const dueOffers=state.summary?state.summary.dueOffers:dueOfferFollowUps(state.records.offerten);
-  if(!dueOffers.length)offerTasks.body.append(el('div','dash-empty','Keine Offerten zum Nachfassen fällig.'));
-  for(const offer of dueOffers.slice(0,8)){
-    const item=el('button','dash-lead');item.type='button';
-    const copy=el('span','dash-lead-info');
-    copy.append(el('strong','','Offerte '+(offer.number||'–')+' · '+(offer.title||'')),
-      el('small','','Nachfassen am '+offer.followUpDate+' · '+(offer.sentTo||'')));
-    item.append(copy,el('span','dash-open','Öffnen →'));
-    item.addEventListener('click',()=>navigateTo('offerten',offer));
-    offerTasks.body.append(item);
-  }
-
-  const lower=el('div','dash-grid');
-  const pipeline=dashboardPanel('Lead-Pipeline','Verteilung nach Bearbeitungsstatus.');
-  const stages=['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'];
-  for(let i=0;i<stages.length;i++){
-    const count=state.summary?Number(state.summary.leadStages?.[stages[i]]||0):
-      (state.records.leads||[]).filter(x=>x.status===stages[i]).length;
-    const row=el('div','dash-pipeline-row');
-    const track=el('div','dash-pipeline-track'),fill=el('div','dash-pipeline-fill stage-'+i);
-    fill.style.width=(stats.leadCount?Math.round(100*count/stats.leadCount):0)+'%';
-    track.append(fill);
-    row.append(el('span','dash-pipeline-label',stages[i]),track,el('strong','dash-pipeline-value',String(count)));
-    pipeline.body.append(row);
-  }
-  const finance=dashboardPanel('Finanz- und Forderungsüberblick',
-    'CHF-Beträge rappen-genau; Zahlungen, offene Forderungen und Offerten strikt getrennt.');
-  const cockpit=state.summary?{
-    openCents:state.summary.openInvoiceCents,overdueCents:state.summary.overdueCents,
-    soonCents:state.summary.soonCents,bookedCents:state.summary.paidCents,
-    openOfferCents:state.summary.openOfferCents,acceptedMonthlyCents:state.summary.acceptedMonthlyCents,
-    legacyPaidCount:state.summary.legacyPaidCount,projectActive:state.summary.activeProjects,
-    projectWaiting:state.summary.waitingProjects,projectDone:state.summary.projectDone,
-    projectOverdue:state.summary.projectOverdue,tasksDone:state.summary.tasksDone,
-    tasksTotal:state.summary.tasksTotal,
-    receivables:state.summary.receivables.map(({invoice,kind,remaining})=>({
-      invoice,info:{kind,remaining}
-    }))
-  }:cockpitMetrics(state.records);
-  const financeRows=[
-    ['Offene Forderungen',invoiceCHF(cockpit.openCents/100),true],
-    ['Davon überfällig',invoiceCHF(cockpit.overdueCents/100),true],
-    ['Innerhalb 7 Tagen fällig',invoiceCHF(cockpit.soonCents/100),false],
-    ['Erfasste Zahlungseingänge (alle Zeiten)',invoiceCHF(cockpit.bookedCents/100),false],
-    ['Offenes einmaliges Offertenvolumen',invoiceCHF(cockpit.openOfferCents/100),false],
-    ['Vereinbarte Monatswerte aus angenommenen Offerten',invoiceCHF(cockpit.acceptedMonthlyCents/100),false]
-  ];
-  const financeList=el('div','dash-finance');
-  for(const [label,value,highlight] of financeRows){
-    const row=el('div','dash-finance-item'+(highlight?' dash-finance-item--priority':''));
-    row.append(el('span','',label),el('strong','',value));financeList.append(row);
-  }
-  const denom=cockpit.openCents+cockpit.bookedCents;
-  const progress=denom?Math.round(cockpit.bookedCents/denom*100):0;
-  const meterTitle=el('div','dash-meter-head');
-  meterTitle.append(el('span','','Anteil verbuchter Beträge am dargestellten Rechnungsportfolio'),
-    el('strong','',progress+' %'));
-  const meter=el('progress','dash-meter');meter.max=100;meter.value=progress;
-  meter.setAttribute('aria-label','Anteil verbuchter Beträge im geladenen Rechnungsportfolio');
-  finance.body.append(financeList,meterTitle,meter,el('p','dash-finance-note',
-    'Die erfassten Zahlungen sind manuelle Buchungen, keine bestätigten Bankkontostände. '+
-    'Historische „Bezahlt“-Markierungen ohne Einzelbuchung werden nicht als Zahlungseingang gezählt'+
-    (cockpit.legacyPaidCount?' ('+cockpit.legacyPaidCount+' solche Altrechnungen).':'.')+
-    ' Offerten und Monatswerte sind weder Zahlungseingänge noch realisierter Umsatz. '+
-    'Der Prozentwert ist keine Bilanz- oder Cashflow-Kennzahl.'));
-  const receivables=dashboardPanel('Offene Forderungen im Blick',
-    'Älteste überfällige zuerst, danach bald fällige. Direkter Sprung zur Rechnung.');
-  if(!cockpit.receivables.length)receivables.body.append(el('p','dash-empty','Keine offenen Restbeträge in den geladenen Rechnungen.'));
-  for(const item of cockpit.receivables.slice(0,6)){
-    const inv=item.invoice,info=item.info;
-    const button=el('button','dash-lead');button.type='button';
-    const copy=el('span','dash-lead-info');
-    copy.append(el('strong','',inv.number||'Rechnung'),el('small','',
-      (inv.dueDate?'Fällig: '+inv.dueDate.slice(8,10)+'.'+inv.dueDate.slice(5,7)+'.'+inv.dueDate.slice(0,4):'Ohne Fälligkeit')+
-      ' · '+(info.kind==='overdue'?'Überfällig':info.kind==='soon'?'Bald fällig':'Offen')+
-      ' · '+(inv.status||'')));
-    button.append(copy,el('span','dash-receivable-amount'+(info.kind==='overdue'?' dash-receivable-overdue':info.kind==='soon'?' dash-receivable-soon':''),invoiceCHF(info.remaining/100)));
-    button.addEventListener('click',()=>navigateTo('rechnungen',inv));
-    receivables.body.append(button);
-  }
-  receivables.body.append(el('p','dash-section-footnote',
-    'Bis zu sechs Rechnungen, nach Fälligkeit priorisiert.'));
-  const projectPanel=dashboardPanel('Projektstatus',
-    'Status und Aufgabenfortschritt der geladenen Projekte; kein finanzieller Umsatz.');
-  const groups=[
-    ['Aktiv',cockpit.projectActive,''],
-    ['Wartet auf Kunde',cockpit.projectWaiting,'waiting'],
-    ['Abgeschlossen',cockpit.projectDone,'done'],
-    ['Termin überschritten',cockpit.projectOverdue,'waiting']
-  ];
-  const projectsTotal=state.summary?state.summary.counts.projekte:(state.records.projekte||[]).length;
-  for(const [label,count,tone] of groups){
-    const line=el('div','dash-project-row'),track=el('div','dash-project-track');
-    const fill=el('div','dash-project-fill'+(tone?' dash-project-fill--'+tone:''));
-    fill.style.width=(projectsTotal?Math.round(count/projectsTotal*100):0)+'%';
-    track.append(fill);line.append(el('span','',label),track,el('strong','',String(count)));
-    projectPanel.body.append(line);
-  }
-  projectPanel.body.append(el('p','dash-section-footnote',
-    cockpit.tasksDone+' von '+cockpit.tasksTotal+' Projektaufgaben erledigt. '+
-    'Statusgruppen können sich überschneiden: „Wartet auf Kunde“ zählt auch als aktiv.'));
-  lower.append(pipeline.panel,finance.panel);
-  const allInvoices=el('button','btn','Alle offenen Rechnungen');allInvoices.type='button';
-  allInvoices.addEventListener('click',()=>navigateTo('rechnungen',null,'open'));receivables.body.append(allInvoices);
-  const extraWork=el('div','dash-detail-body');
-  upper.append(tasks.panel,receivables.panel);
-  extraWork.append(upper);
-  const pendingConfirmations=state.summary?state.summary.pendingConfirmations||[]:(state.records.offerten||[]).filter(offerAcceptancePending);
-  const pendingAdoptions=state.summary?state.summary.pendingAdoptions||[]:(state.records.offerten||[]).filter(x=>x.status!=='Angenommen'&&x.onlineAcceptance?.state==='confirmed');
-  if(pendingConfirmations.length||pendingAdoptions.length){
-    const pending=dashboardPanel('Offerten abschliessen','Kundenannahmen prüfen und bestätigte Aufträge übernehmen.');
-    for(const [offers,label,tone] of [[pendingConfirmations,'Deine Bestätigung fehlt',' pending'],[pendingAdoptions,'Auftrag übernehmen',' success']]){
-      for(const offer of offers.slice(0,8)){
-        const button=el('button','dash-lead');button.type='button';
-        const copy=el('span','dash-lead-info');copy.append(el('strong','','Offerte '+(offer.number||'–')+' · '+(offer.title||'')));
-        button.append(copy,el('span','badge'+tone,label));
-        button.addEventListener('click',()=>navigateTo('offerten',offer));pending.body.append(button);
-      }
-    }
-    pending.body.append(el('p','dash-section-footnote','Bis zu acht Einträge je Schritt. Öffnen löst keine Bestätigung oder Auftragsübernahme aus.'));
-    extraWork.append(pending.panel);
-  }
-  const followUpGrid=el('div','dash-grid');
-  if(due.length){
-    followUps.body.append(el('p','dash-section-footnote','Bis zu 8 von '+(state.summary?.dueLeadCount??due.length)+' fälligen Wiedervorlagen.'));
-    followUpGrid.append(followUps.panel);
-  }
-  if(dueOffers.length){
-    offerTasks.body.append(el('p','dash-section-footnote','Bis zu 8 von '+(state.summary?.dueOfferCount??dueOffers.length)+' fälligen Offerten.'));
-    followUpGrid.append(offerTasks.panel);
-  }
-  if(followUpGrid.children.length)extraWork.append(followUpGrid);
-  const details=el('details','dash-details');details.id='dashboardDetails';details.open=detailsOpen;
-  details.append(el('summary','','Auswertungen und weitere Vorgänge'));
-  const detailBody=el('div','dash-detail-body');
-  const operations=el('div','dash-grid');operations.append(projectPanel.panel,recent.panel);
-  detailBody.append(extraWork,lower,operations);
-  if(priorities.some(x=>x.secondary))detailBody.append(secondaryTasks.panel);
-  detailBody.append(scope);details.append(detailBody);area.append(details);
+  const area=$('dashboardArea');area.replaceChildren();$('dashboardIntro').replaceChildren();
+  const report=state.summary?.reporting,today=report?.today||localDateKey(),filter=state.reportFilter||{},form=el('form','report-filter');form.id='reportFilter';form.noValidate=true;
+  const field=(label,control)=>{const wrap=el('label','',label);wrap.append(control);form.append(wrap);return wrap;};
+  const mode=el('select');mode.setAttribute('aria-label','Zeitraum');for(const[value,label]of [['month','Monat'],['quarter','Quartal'],['year','Jahr'],['custom','Eigener Zeitraum'],['all','Gesamt']]){const o=el('option','',label);o.value=value;mode.append(o);}mode.value=filter.mode||'year';field('Zeitraum',mode);
+  const month=el('input');month.type='month';month.value=filter.month||today.slice(0,7);month.setAttribute('aria-label','Monat wählen');const monthField=field('Monat',month);
+  const year=el('input');year.type='number';year.min='1900';year.max='2100';year.step='1';year.value=filter.year||today.slice(0,4);year.setAttribute('aria-label','Jahr wählen');const yearField=field('Jahr',year);
+  const quarter=el('select');quarter.setAttribute('aria-label','Quartal wählen');for(let i=1;i<=4;i++){const o=el('option','','Q'+i);o.value=String(i);quarter.append(o);}quarter.value=String(filter.quarter||Math.floor((Number(today.slice(5,7))-1)/3)+1);const quarterField=field('Quartal',quarter);
+  const from=el('input'),to=el('input');from.type=to.type='date';from.value=filter.from||today.slice(0,4)+'-01-01';to.value=filter.to||today;from.setAttribute('aria-label','Von');to.setAttribute('aria-label','Bis');const fromField=field('Von',from),toField=field('Bis',to);
+  const apply=el('button','btn primary','Anwenden');apply.type='submit';form.append(apply);
+  const visibility=()=>{monthField.hidden=mode.value!=='month';yearField.hidden=!['quarter','year'].includes(mode.value);quarterField.hidden=mode.value!=='quarter';fromField.hidden=toField.hidden=mode.value!=='custom';};mode.onchange=visibility;visibility();
+  form.onsubmit=event=>{event.preventDefault();state.reportFilter={mode:mode.value,month:month.value,year:year.value,quarter:quarter.value,from:from.value,to:to.value};render();};
+  $('dashboardIntro').append(form);
+  if(!report){const p=dashboardPanel('Auswertungen derzeit nicht verfügbar','Bitte aktualisieren. Kennzahlen werden nur aus der vollständigen serverseitigen Auswertung angezeigt.');area.append(p.panel);return;}
+  let ctx;try{ctx=reportContext();}catch(error){const p=el('p','invoice-error',error.message);p.setAttribute('role','alert');area.append(p);return;}
+  const {range,selected:s,previous:p}=ctx,day=d=>d.split('-').reverse().join('.'),span=day(range.from)+' – '+day(range.to);
+  const stamp=new Date(report.loadedAt),meta=el('p','dash-data-scope','Auswahl: '+span+(range.previous?' · Vergleich: '+day(range.previous.from)+' – '+day(range.previous.to):' · Gesamter erfasster Zeitraum')+' · Stand: '+stamp.toLocaleString('de-CH'));
+  $('dashboardIntro').append(meta);
+  const stats=(panel,items)=>{const grid=el('div','report-metrics');for(const[label,value,note]of items){const box=el('div');box.append(el('small','',label),el('strong','',String(value)));if(note)box.append(el('small','',note));grid.append(box);}panel.body.append(grid);};
+  const distribution=(panel,values)=>{const max=Math.max(1,...Object.values(values)),list=el('div','report-statuses');for(const[label,n]of Object.entries(values)){const row=el('div','report-status'),track=el('div','report-status-track'),fill=el('span');fill.style.width=(n/max*100)+'%';track.append(fill);row.append(el('span','',label),track,el('strong','',String(n)));list.append(row);}if(!Object.keys(values).length)list.append(el('p','dash-empty','Keine Einträge im gewählten Zeitraum.'));panel.body.append(list);};
+  const customers=dashboardPanel('Kunden','Neukunden nach Erfassungsdatum. Der aktuelle Bestand gilt unabhängig vom Zeitraumfilter.');customers.panel.id='reportCustomers';
+  stats(customers,[['Kundenbestand aktuell',report.current.customers],['Davon heute aktiv',report.current.activeCustomers],['Davon heute inaktiv',report.current.inactiveCustomers],['Neukunden im Zeitraum',s.customers,reportComparison(s.customers,p?p.customers:null)],['Erfasster Bestand am Periodenende',s.customersEnd,'Nach bekannten Erfassungsdaten']]);
+  customers.body.append(el('p','dash-finance-note','Die Bestandsentwicklung basiert auf den heute vorhandenen Kunden und ihrem Erfassungsdatum. Frühere Löschungen und historische Aktiv-/Inaktiv-Wechsel sind nicht rekonstruierbar.'));area.append(customers.panel);
+  const invoices=dashboardPanel('Rechnungen','Rechnungsvolumen nach Rechnungsdatum (ersatzweise Erfassungsdatum); erfasste Zahlungen nach Zahlungsdatum. Offene Beträge entsprechen dem heutigen Stand der ausgewählten Rechnungen.');invoices.panel.id='reportInvoices';
+  stats(invoices,[['Rechnungsvolumen',invoiceCHF(s.invoiceCents/100),'Ohne Entwürfe und Stornos'],['Erfasste Zahlungen',invoiceCHF(s.paidCents/100),reportComparison(s.paidCents/100,p?p.paidCents/100:null,'CHF')],['Offener Rest aus Auswahl',invoiceCHF(s.outstandingCents/100),'Aktueller Restbetrag'],['Davon heute überfällig',invoiceCHF(s.overdueCents/100)],['Rechnungen in Auswahl',s.invoiceCount],['Davon Versand nachgewiesen',s.invoiceSent]]);
+  invoices.body.append(el('p','dash-finance-note',s.invoiceDrafts+' Entwürfe · '+s.invoiceCancelled+' stornierte Rechnungen im Zeitraum. Zahlungen enthalten nur gültige Einzelbuchungen; Korrekturen sind abgezogen. Rechnungsvolumen ist kein Zahlungseingang.'));
+  if(report.quality.legacyPaid)invoices.body.append(el('p','dash-finance-note',report.quality.legacyPaid+' ältere Bezahlt-Markierungen ohne Einzelbuchung sind nicht als erfasste Zahlungen enthalten.'));area.append(invoices.panel);
+  const offers=dashboardPanel('Offerten','Im Zeitraum angelegte Offerten mit ihrem heutigen Status. Eine einseitige Kundenannahme zählt separat.');offers.panel.id='reportOffers';
+  const accepted=s.offerStatuses['Beidseitig angenommen']||0,declined=s.offerStatuses.Abgelehnt||0,decisions=accepted+declined;
+  stats(offers,[['Offerten erstellt',s.offers,reportComparison(s.offers,p?p.offers:null)],['Beidseitig angenommen',accepted],['Abgelehnt',declined],['Annahmequote entschiedener Offerten',decisions?new Intl.NumberFormat('de-CH',{maximumFractionDigits:1}).format(accepted/decisions*100)+' %':'–','Angenommen / (angenommen + abgelehnt)'],['Vereinbarte Einmalwerte',invoiceCHF(s.acceptedOneTimeCents/100)],['Vereinbarte Monatswerte',invoiceCHF(s.acceptedMonthlyCents/100),'Vertragswerte, kein Zahlungseingang']]);distribution(offers,s.offerStatuses);area.append(offers.panel);
+  const projects=dashboardPanel('Projekte','Im Zeitraum angelegte Projekte mit ihrem heutigen Bearbeitungsstand. Historische Abschlusszeitpunkte wurden bisher nicht vollständig erfasst.');projects.panel.id='reportProjects';
+  stats(projects,[['Projekte erstellt',s.projects,reportComparison(s.projects,p?p.projects:null)],['Davon heute abgeschlossen',s.projectStatuses.Abgeschlossen||0],['Aktive Projekte insgesamt heute',report.current.projects,'Unabhängig vom Zeitraumfilter']]);distribution(projects,s.projectStatuses);area.append(projects.panel);
+  const development=dashboardPanel('Entwicklung im Zeitraum','Aufteilung nach Monaten, Quartalen oder Jahren. Der Kundenbestand ist kumuliert; alle anderen Werte beziehen sich auf den jeweiligen Abschnitt.');development.panel.id='reportDevelopment';
+  const controls=el('div','report-chart-controls'),group=el('select'),metric=el('select');group.setAttribute('aria-label','Entwicklung aufteilen');metric.setAttribute('aria-label','Kennzahl der Entwicklung');
+  for(const[value,label]of [['month','Monate'],['quarter','Quartale'],['year','Jahre']]){const o=el('option','',label);o.value=value;group.append(o);}group.value=state.reportGroup||'month';
+  for(const[value,label]of [['customersEnd','Kundenbestand'],['customers','Neukunden'],['paidCents','Erfasste Zahlungen'],['invoiceCents','Rechnungsvolumen'],['offers','Neue Offerten'],['projects','Neue Projekte']]){const o=el('option','',label);o.value=value;metric.append(o);}metric.value=state.reportMetric||'customersEnd';controls.append(group,metric);
+  const chart=el('div','report-chart'),details=el('details','report-data'),tableArea=el('div','scroll');details.append(el('summary','','Zahlen im Detail'),tableArea);
+  const draw=()=>{
+    state.reportGroup=group.value;state.reportMetric=metric.value;chart.replaceChildren();tableArea.replaceChildren();
+    let rows;try{rows=reportBuckets(report,range,group.value);}catch(error){chart.append(el('p','invoice-error',error.message));return;}
+    const max=Math.max(1,...rows.map(r=>r[metric.value])),money=metric.value.endsWith('Cents');
+    for(const row of rows){const line=el('div','report-chart-row'),track=el('div','report-chart-track'),fill=el('span');fill.style.width=(row[metric.value]/max*100)+'%';track.setAttribute('aria-hidden','true');track.append(fill);line.append(el('span','',row.label),track,el('strong','',money?invoiceCHF(row[metric.value]/100):String(row[metric.value])));chart.append(line);}
+    const table=el('table'),head=el('tr');for(const label of ['Zeitraum','Neukunden','Kundenbestand Ende','Rechnungsvolumen CHF','Zahlungen CHF','Offerten','Projekte'])head.append(el('th','',label));const thead=el('thead');thead.append(head);table.append(thead);const body=el('tbody');
+    for(const row of rows){const tr=el('tr');for(const value of [row.label,row.customers,row.customersEnd,invoiceCHF(row.invoiceCents/100),invoiceCHF(row.paidCents/100),row.offers,row.projects])tr.append(el('td','',String(value)));body.append(tr);}table.append(body);tableArea.append(table);
+  };
+  group.onchange=metric.onchange=draw;development.body.append(controls,chart,details);draw();area.append(development.panel);
+  const missing=Object.entries(report.quality).filter(([k,n])=>!['legacyPaid','invalidAmounts'].includes(k)&&n).map(([k,n])=>({customers:'Kunden',invoices:'Rechnungen',offers:'Offerten',projects:'Projekte',payments:'Zahlungen'}[k])+': '+n);
+  const quality=el('p','dash-data-scope','Datenbasis: vollständige serverseitige Auswertung aller CRM-Register. Statusverteilungen zeigen den heutigen Stand der Auswahl; Zahlungen stammen aus manuell erfassten Buchungen. Keine Bankanbindung.');
+  if(missing.length)quality.append(el('span','',' Ohne auswertbares Datum: '+missing.join(' · ')+'. Diese Werte sind nur bei Gesamt enthalten und werden keiner Zeitspanne oder Kurve zugeordnet.'));
+  if(report.quality.invalidAmounts)quality.append(el('span','',' '+report.quality.invalidAmounts+' ungültige Betragsangaben wurden nicht berücksichtigt.'));
+  area.append(quality);
 }
+
 function projectIsOverdue(project){
   if(!project?.dueDate||project.status==='Abgeschlossen')return false;
   const now=new Date();
@@ -1310,7 +1160,7 @@ function renderPageMore(area){
 function render(){
   const dashboard=state.tab==='dashboard';
   const d=dashboard
-    ?{title:'Dashboard',description:'Dein Arbeitsplatz für Leads, Offerten, Rechnungen und Projekte.'}
+    ?{title:'Dashboard',description:'Kennzahlen und Auswertungen zu Kunden, Rechnungen, Offerten und Projekten.'}
     :definitions[state.tab];
   $('pageTitle').textContent=d.title;
   $('pageDesc').textContent=d.description;
@@ -1676,7 +1526,7 @@ function appendContactSection(body,lead){
 function appendFollowUpSection(body,lead){
   const section=el('section','lead-detail-group lead-workflow-section');
   section.append(el('h3','','Nächste Aktion & Wiedervorlage'),
-    el('p','lead-workflow-note','Offene Termine erscheinen am Fälligkeitstag im Dashboard. Es wird keine E-Mail automatisch verschickt.'));
+    el('p','lead-workflow-note','Offene Termine stehen im Register Website Leads. Es wird keine E-Mail automatisch verschickt.'));
   if(lead.followUpDate&&lead.nextAction){
     const overdue=lead.followUpDate<localDateKey();
     section.append(el('span','lead-followup-badge'+(overdue?' overdue':''),
@@ -2389,8 +2239,8 @@ function renderLegacyOfferWorkflow(offer){
       el('span','','Versand erfasst: '+(offer.sentAt?leadDate(offer.sentAt):'ältere Offerte')),
       el('strong','','Nächste Wiedervorlage: '+(offer.followUpDate||'Noch nicht festgelegt'))
     );
-    area.append(meta);
-    message.textContent='Wiedervorlagen werden im Dashboard sichtbar, aber nicht automatisch an Kunden verschickt.';
+    $('dashboardIntro').append(meta);
+    message.textContent='Das Nachfassdatum steht in der Offertenübersicht. Es wird keine Nachricht automatisch verschickt.';
     const row=el('div','offer-workflow-row');
     const dateLabel=el('label','','Nächstes Nachfassen'),date=el('input');
     date.type='date';date.value=offer.followUpDate||suggestedOfferFollowUp();
@@ -3163,7 +3013,7 @@ async function loadAll(){
 // Only update new website leads in the background. Never replace open editors or
 // overwrite form inputs while someone is preparing an offer/invoice/project.
 async function refreshLeads(){
-  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending)return;
+  if(!state.token||document.hidden||document.querySelector('dialog[open]')||leadsRefreshPending||document.activeElement?.closest('#reportFilter'))return;
   const loginToken=state.token;
   leadsRefreshPending=true;
   $('refreshLeads').disabled=true;
@@ -3177,10 +3027,10 @@ async function refreshLeads(){
     if(changed||state.tab==='dashboard'){
       let summary=null;try{summary=(await api('/api/cockpit/summary')).summary;}catch{complete=false;}
       if(state.token!==loginToken)return;
-      if(document.querySelector('dialog[open]'))return;
+      if(document.querySelector('dialog[open]')||document.activeElement?.closest('#reportFilter'))return;
       state.summary=summary;render();
     }
-    $('syncStatus').textContent=complete?'Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'Vorgangsübersicht nicht aktualisiert – bitte erneut versuchen';
+    $('syncStatus').textContent=complete?'Aktualisiert '+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'Auswertungen nicht aktualisiert – bitte erneut versuchen';
   }catch(err){
     if(state.token!==loginToken)return;
     if(err.status===401){

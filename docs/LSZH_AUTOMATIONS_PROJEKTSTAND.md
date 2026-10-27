@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Filterbares Kennzahlen-Dashboard, 27.10.2026
+
+CRM **`lszh-crm-v2-00139-mib`** erhält 100 % Verkehr. Dashboard ausschliesslich für Kennzahlen und Auswertungen zu Kunden, Rechnungen, Offerten und Projekten. Gemeinsamer Filter für Monat, Quartal, Jahr, eigenen Zeitraum und Gesamt, mit Vorperiodenvergleich. Entwicklung nach Monaten/Quartalen/Jahren, wählbare Kennzahl und Zahlentabelle. Keine Aufgaben-, Lead-, Wiedervorlagen- oder Ablaufkarten. Aktueller Kunden-/Projektbestand ausdrücklich vom Zeitraum abgegrenzt.
+
+Kundenbestand, Neukunden und abgeleitete Bestandsentwicklung; Rechnungsvolumen nach Rechnungsdatum und gültige Zahlungen nach Zahlungsdatum getrennt, heutige offene/überfällige Reste der Auswahl. Offertenstatus der gewählten Erfassungskohorte mit einseitiger/beidseitiger Annahme und vereinbarten Vertragswerten. Projektstatus der im Zeitraum angelegten Projekte. Fehlende historische Statuswechsel/Löschungen werden nicht erfunden; undatierte Daten und Altrechnungen ohne Zahlungsbuchung ausdrücklich gekennzeichnet. Schweizer Kalender und ganze Rappen. Vollständige serverseitige Auswertung, keine zusätzlichen Identitätsdaten in den neuen Aggregaten.
+
+529 CRM-Tests, Desktop-/Mobilprüfung und beide GitHub-Prüfungen erfolgreich. Bestehende Daten rein lesend abgeglichen: 1 Kunde, 6 Rechnungen, 9 Offerten, 4 Projekte vollständig; zur Prüfzeit keine fehlenden Datumsangaben oder ungültigen Beträge. Alle 82 Laufzeitdateien bytegleich bestätigt, drei gezielte Änderungen. Konfiguration und Dienstkonto unverändert; erfolgreiches Build-Ergebnis per Digest bereitgestellt. Live-HTML bytegleich, Auswertung anonym HTTP 401, keine jüngsten Revisionsfehler. Keine Kundendaten-, Zuordnungs-, Nachrichten-, Zahlungs- oder Szenarioänderung. Make, Website und Portal unverändert.
+
+[Bedienung und Kennzahlendefinitionen](LSZH_DASHBOARD_ANALYTICS.md) - [Live-Nachweis](../releases/dashboard-analytics-live-20261027.json) - [PR 42](https://github.com/lszh-automations/lszh-automations-site/pull/42).
+
+---
+
 # Aktiver Live-Stand - Ablaufbereich aus Dashboard entfernt, 27.10.2026
 
 CRM **`lszh-crm-v2-00137-naf`** erhält 100 % Verkehr. Auf Benutzerwunsch den kompletten Bereich Deine laufenden Abläufe aus dem Dashboard entfernt: keine Karten, Filter, speziellen Öffnungsfunktionen oder Stile dieses Bereichs mehr. Die vier Kennzahlen und aufklappbaren Auswertungen bleiben bestehen. Nur public/index.html geändert; keine Daten-, Zuordnungs- oder Prozessänderung.

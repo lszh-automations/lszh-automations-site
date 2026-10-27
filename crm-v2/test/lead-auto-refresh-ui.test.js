@@ -140,8 +140,7 @@ test('due follow-ups use local calendar date and only actionable lead stages',()
   assert.deepEqual(Array.from(dueLeadFollowUps(leads,'2026-10-23'),lead=>lead.id),
     ['yesterday','today']);
   assert.deepEqual(Array.from(dueLeadFollowUps([],'2026-10-23')),[]);
-  assert.match(html,/dashboardPanel\('Fällige Wiedervorlagen'/);
-  assert.match(html,/navigateTo\('leads',lead\)/);
+  assert.match(html,/Offene Termine stehen im Register Website Leads/);
 });
 test('lead dialog adds contact history, follow-up actions and qualification',()=>{
   assert.match(html,/function appendContactSection\(body,lead\)/);
@@ -160,7 +159,7 @@ test('lead dialog adds contact history, follow-up actions and qualification',()=
   assert.doesNotMatch(html,/localStorage\.setItem\(/);
 });
 
-test('offer follow-ups appear on dashboard only while sent, in due order',()=>{
+test('offer follow-up selection remains limited to sent due offers',()=>{
   const inline=inlineScripts.find(s=>s.includes('function dueOfferFollowUps('));
   const source=inline.slice(inline.indexOf('function dueOfferFollowUps('),inline.indexOf('function offerRecipient('));
   const dueOfferFollowUps=vm.runInNewContext(source+'\ndueOfferFollowUps');
@@ -172,8 +171,7 @@ test('offer follow-ups appear on dashboard only while sent, in due order',()=>{
     {id:'won',status:'Angenommen',followUpDate:'2026-10-19'}
   ];
   assert.deepEqual(Array.from(dueOfferFollowUps(offers,'2026-10-23'),o=>o.id),['early','due']);
-  assert.match(html,/dashboardPanel\('Offerten-Nachverfolgung'/);
-  assert.match(html,/navigateTo\('offerten',offer\)/);
+  assert.match(html,/Das Nachfassdatum steht in der Offertenübersicht/);
   assert.match(html,/\['followUpDate','Nachfassen'\]/);
 });
 test('offer UI documents manual delivery without automatically sending mail',()=>{

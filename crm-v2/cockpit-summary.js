@@ -54,7 +54,8 @@ function openProcesses(data,today){
     rows.push({table,id:r.id,title:r.title||r.company||r.name||r.description||r.number||'Eintrag ohne Bezeichnung',
       number:r.number||'',company:customer?.company||lead?.company||r.company||'',
       status:table==='offerten'?offerDisplayStatus(r):r.status||'Status fehlt',action,
-      date:validDay(date)?date:'',priority,pending,createdAt:r.createdAt||''});
+      date:validDay(date)?date:'',priority,pending,createdAt:r.createdAt||'',
+      ...(table==='rechnungen'?{invoiceDispatchState:r.invoiceDispatchState||'',invoiceSentAt:r.invoiceSentAt||''}:{})});
   };
   const duePriority=date=>validDay(date)&&date<=today?(date<today?1:2):4;
   for(const r of data.leads||[]){

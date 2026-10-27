@@ -1,3 +1,5 @@
+> Aktuelle Bedienung seit 27.10.2026: Die [vereinfachte Projektansicht](LSZH_PROJECT_VIEW.md) zeigt einen nächsten Schritt und die Aufgaben. Startdatum und Verantwortlichkeit liegen unter «Vorbereitung und Zugänge»; Beschreibung, Offerte, Startnachweis und Rechnungen unter «Weitere Details». Die unten beschriebenen Fachregeln gelten weiterhin.
+
 # Projektstart und Umsetzung
 
 Unter **Projekte → Projekt öffnen** Startdatum und verantwortliche Person eintragen. Die bestehenden Umsetzungsschritte bearbeiten oder mit **Umsetzungsschritte ergänzen** eine anpassbare Liste für Abstimmung, Einrichtung, Test und Übergabe hinzufügen. Vorhandene Aufgaben werden erhalten; identische Vorlagentitel werden nicht doppelt ergänzt. Anschliessend **Speichern**.

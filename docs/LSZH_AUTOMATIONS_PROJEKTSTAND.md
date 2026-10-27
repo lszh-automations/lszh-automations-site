@@ -1,3 +1,15 @@
+# Aktiver Live-Stand - Vereinfachte Projektansicht, 27.10.2026
+
+CRM **`lszh-crm-v2-00109-hiz`** erhält 100 % Verkehr. Der Projektkopf zeigt nur Kunde, Projektname, Zieltermin und Status. Darunter stehen ein nächster Schritt und die einzige Aufgabenliste. Nach dem dokumentierten Start rücken die Aufgaben nach oben und die Vorbereitung klappt zu. Beschreibung, Offerte, Startnachweis und Rechnungen sind bei Bedarf unter «Weitere Details» erreichbar; Rechnungen werden erst beim Öffnen geladen. Die Projektliste verwendet ebenfalls eine einzige Spalte für den nächsten Schritt.
+
+Alle bisherigen Felder, Aufgaben, Notizen, Verknüpfungen, Startnachweise und serverseitigen Prüfungen bleiben erhalten. Auch zugeklappte Angaben werden beim bewussten Speichern berücksichtigt. Ausschliesslich die Oberfläche geändert; kein neues Datenmodell, keine Migration, keine Bearbeitung vorhandener Kundendaten und kein Versand.
+
+488 CRM-Tests, beide GitHub-Prüfungen einschliesslich Firestore-Emulatortests sowie Desktop-/Mobilprüfung mit synthetischen Daten erfolgreich. Alle 80 Laufzeitdateien bestätigt; nur public/index.html geändert. Konfiguration und Dienstkonto unverändert. Oberfläche HTTP 200, anonyme Projektabfragen und Startaufträge HTTP 401; keine Fehler im kontrollierten Zeitfenster. Website, Portal und Make unverändert.
+
+[Bedienung](LSZH_PROJECT_VIEW.md) - [Live-Manifest](../releases/simple-projects-live-20261027.json) - [PR 30](https://github.com/lszh-automations/lszh-automations-site/pull/30).
+
+---
+
 # Aktiver Live-Stand - Dokumentierter Projektstart, 27.10.2026
 
 CRM **`lszh-crm-v2-00107-wif`** erhält 100 % Verkehr. Nach dem vorhandenen Onboarding werden jetzt Startdatum, verantwortliche Person und Umsetzungsschritte erfasst. «Projekt starten» ist ein bewusster Schritt nach Speichern und erfüllten Voraussetzungen; der Server prüft erneut, dokumentiert Zeitpunkt und Bediener und setzt das Projekt auf In Arbeit. Die Projektliste zeigt Startstand und Verantwortlichkeit.

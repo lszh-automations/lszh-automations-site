@@ -15,3 +15,7 @@ Daten werden weiterhin über die bestehenden serverseitigen Kunden-ID-Abfragen m
 Öffnen lädt unverändert den konkreten Datensatz und prüft dessen Kunden-ID. Neu-Schaltflächen übernehmen wie bisher den Kunden. Keine automatische Zuordnung, Änderung, Buchung, Annahme, Übernahme oder Nachricht durch Öffnen. Offerte 1003 bleibt unzugeordnet.
 
 Validierung: 494 CRM-Tests, Desktop/Mobilgerät mit künstlichen Daten und blockiertem Netzwerk. Geprüft: aktive/abgeschlossene Einträge, Restbetrag, Ampel/bezahlt neutral, beide Online-Annahmeschritte, weitere Seiten mit älterem offenem Eintrag, Dubletten, erhaltener Historienzustand, Öffnen per ID, Kundenvorbelegung, Ladefehler/Wiederholen, veraltete Antwort nach Kundenwechsel und sichtbare Fussaktionen. Keine schreibenden API-Aufrufe.
+
+## Live-Nachweis
+
+CRM-Version `lszh-crm-v2-00125-tuh`, 100 % Verkehr. Rückkehrversion `lszh-crm-v2-00123-kev`. Beide GitHub-Prüfungen erfolgreich; alle 80 Laufzeitdateien bestätigt, nur public/index.html geändert. Konfiguration und Dienstkonto unverändert. Live-HTML bytegleich, alle drei Kundenlisten anonym HTTP 401. Keine Kundendaten-/Zuordnungsänderung, Nachricht, Zahlung oder Dokumentänderung. [Nachweis](../releases/simple-customers-live-20261027.json), [PR 35](https://github.com/lszh-automations/lszh-automations-site/pull/35).

@@ -1,0 +1,50 @@
+{
+  "runtimeFilesVerified": 80,
+  "changedRuntimeFiles": [
+    {
+      "path": "public/index.html",
+      "sha256": "6c83681038f009c0b2fa8a370a8a43c426bd7c3c7e75d76d226f9c10d52f9344"
+    }
+  ],
+  "configurationUnchanged": true,
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "candidate": "lszh-crm-v2-00125-tuh",
+  "candidateUrl": "https://simple-customers---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "htmlExactMatch": true,
+  "anonymousCustomerRelatedApis": 401,
+  "sourceArchive": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793120471.924539-f93a463cb31d4dd4a00e05f994849bb0.zip#1793120474093807",
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "6091d35daa2f74541ea89a2a0f111cb67af90d88",
+  "parentRelease": "simple-dashboard-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00125-tuh",
+  "rollback": "lszh-crm-v2-00123-kev",
+  "trafficPercent": 100,
+  "crmTests": 494,
+  "browserDesktopMobile": "passed; synthetic data only, external network blocked",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40546561692,
+    40546561219
+  ],
+  "liveHtmlExactMatch": true,
+  "liveUrl": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+  "recentErrorLogCount": 0,
+  "customerDataChanged": false,
+  "customerLinksChanged": false,
+  "emailSent": false,
+  "paymentBooked": false,
+  "documentsChanged": false,
+  "backendAndWorkflowRulesChanged": false,
+  "activeRecordsFirst": true,
+  "completedRecordsCollapsed": true,
+  "paginationAndOlderOpenRecordsPreserved": true,
+  "exactIdAndCustomerPrefillPreserved": true,
+  "pendingAcceptanceStaysVisible": true,
+  "customerSwitchStaleResponseGuardVerified": true,
+  "offer1003AssignmentUnchanged": true,
+  "dashboardAndInvoiceDueColoursPreserved": true,
+  "websitePortalAndMakeUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/35"
+}

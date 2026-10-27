@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "37412d38ba5ecb35bf0c69c5000e5a30c6fc26a8",
+  "parentRelease": "simple-offers-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00115-moq",
+  "rollback": "lszh-crm-v2-00113-gac",
+  "trafficPercent": 100,
+  "runtimeFilesVerified": 80,
+  "onlyRuntimeChange": "public/index.html",
+  "htmlSha256": "f7425e5f3c65f9e9ca56bf8db899e9f420460447f7703fc90ccdc427829c443d",
+  "configurationUnchanged": true,
+  "crmTests": 493,
+  "browserDesktopMobile": "passed, synthetic data only",
+  "githubChecks": "success",
+  "workflowRuns": [
+    40539779391,
+    40539779188
+  ],
+  "liveHtmlExactMatch": true,
+  "anonymousContractStatus": 401,
+  "customerDataChanged": false,
+  "emailSent": false,
+  "documentsChanged": false,
+  "amountsPreservedInEditorAndPdf": true,
+  "offer1003AssignmentUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/32"
+}

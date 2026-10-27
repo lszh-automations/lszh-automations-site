@@ -1,0 +1,15 @@
+# Vereinfachte Rechnungsansicht
+
+Stand: 27.10.2026
+
+Die Registerliste zeigt Nummer, Rechnung, Firma mit kleiner Kundennummer, Betrag, Fälligkeit und Status. Bei Teilzahlung erscheint der Restbetrag unter dem Gesamtbetrag. Aktion: Öffnen. Such- und Status-/Fälligkeitsfilter bleiben erhalten.
+
+Beim Öffnen stehen Kunde, Beschreibung, Fälligkeit und Status im Vordergrund. Bei gespeicherten Rechnungen ausser Entwürfen folgen Gesamtbetrag, Zahlungseingänge und offener Restbetrag sowie der bestehende nächste Schritt. Neue Rechnungen und Entwürfe zeigen ihre Positionen aufgeklappt.
+
+Aufklappbar sind Positionen und Gesamtbetrag, Projekt/Rechnungsdatum/weitere Angaben, Versanddetails, Buchungshistorie mit Korrekturen, Zahlung erfassen und Zahlungserinnerungen mit Verlauf. Druckansicht liegt unter weiteren Angaben. Swiss-QR-PDF, Schliessen und bei bearbeitbaren Rechnungen Speichern bleiben unten erreichbar, auch auf Mobilgeräten. Beim erneuten Öffnen beginnt der Inhalt oben.
+
+Rechnung senden steht beim nächsten Schritt. Vor dem Versand sind weiterhin gespeicherte Daten, serverseitige Freigabe, geöffnetes PDF, die bewusste Prüfbestätigung und die Versandbestätigung erforderlich. Bei bestätigtem oder unklarem Versand und bei abgeschlossenen Rechnungen wird keine weitere Senden-Schaltfläche gezeigt. Klärung eines unklaren Versands bleibt direkt im nächsten Schritt erreichbar. Eine Änderung setzt PDF- und Versandfreigabe zurück; verspätete Prüfantworten können sie nicht wiederherstellen.
+
+Die Einträge von Projekt und Rechnungsdatum bleiben im selben Formular und werden trotz eingeklappter Darstellung unverändert gespeichert. Preise, Buchungs-, Mahn- und Versandregeln, Daten, Dokumente sowie Endpunkte bleiben unverändert. Öffnen erzeugt keine Buchung oder Nachricht.
+
+Validierung: 493 CRM-Tests; Desktop/Mobilgerät mit künstlichen Daten und gesperrtem externem Netzwerk. Geprüft: neue Rechnung, Speichern eingeklappter Felder und Positionen, PDF-/Empfängerfreigabe, expliziter simulierter Versand, Teilzahlung, Bezahlt/Storniert, unklarer Versand, fehlgeschlagene Prüfung, verspätete Prüfantwort nach Änderung, zugängliche Buchungs-/Mahnaktionen und sichtbare Fussbuttons.

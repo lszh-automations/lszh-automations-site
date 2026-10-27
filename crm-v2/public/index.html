@@ -64,7 +64,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .field textarea{resize:vertical;min-height:92px}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
 
-/* Invoice V1: a short form, a few positions, one amount */
+
+/* Invoice form and payment controls */
 .invoice-dialog{width:min(940px,calc(100vw - 28px));max-height:92vh}
 #invoiceForm{overflow:auto;max-height:calc(92vh - 80px)}
 .invoice-fields{padding:20px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
@@ -134,6 +135,30 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .invoice-dialog.is-locked input:disabled,.invoice-dialog.is-locked select:disabled,.invoice-dialog.is-locked textarea:disabled{opacity:1;background:#152231;color:#aebfd0}
 @media(max-width:740px){.invoice-line{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.invoice-line-total{align-self:center}}
 @media(max-width:600px){.invoice-fields{grid-template-columns:1fr;padding:16px}.invoice-fields .wide{grid-column:1}.invoice-line{grid-template-columns:1fr 1fr}.invoice-line label:first-child{grid-column:1/-1}.invoice-lines,.invoice-lines-head,.invoice-actions{padding-left:16px;padding-right:16px}.invoice-total{margin:16px}.invoice-caption,.invoice-error{padding:0 16px}.invoice-actions .btn{flex:1}}
+
+
+/* Compact invoice view: preserve fields and actions, reveal detail on demand. */
+.invoice-dialog[open]{display:flex;flex-direction:column;overflow:hidden;max-height:92dvh}
+.invoice-dialog>.modal-head{flex:0 0 auto}
+#invoiceForm{min-height:0;max-height:none;overflow:auto}
+#invoiceFields textarea{min-height:66px;height:66px}
+.invoice-details{margin:14px 24px;border:1px solid #35485d;border-radius:11px;background:#121e2c}
+.invoice-details>summary,.invoice-inline-details>summary{cursor:pointer;padding:12px 15px;font-size:13px;font-weight:650;color:#c9deef}
+.invoice-details .invoice-fields{padding:12px 16px}
+.invoice-details .invoice-lines-head{border-top:0;padding:12px 16px}
+.invoice-details .invoice-lines{padding:0 16px 12px}
+.invoice-details .invoice-total{margin:4px 16px 16px;padding:14px}
+.invoice-secondary-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.invoice-details>.invoice-secondary-actions{margin:12px 16px}
+.invoice-inline-details{border-top:1px solid #35485d;margin-top:10px}
+.invoice-inline-details>summary{padding:12px 0}
+.invoice-footer{position:sticky;bottom:0;background:#111b29;z-index:3}
+.invoice-footer .btn{flex:0 1 auto}
+.invoice-list{min-width:760px;table-layout:fixed}
+.invoice-list th,.invoice-list td{padding:13px 14px;vertical-align:middle}
+.invoice-list th:first-child{width:75px}.invoice-list th:nth-child(2){width:27%}.invoice-list th:nth-child(3){width:23%}.invoice-list th:nth-child(4){width:135px}.invoice-list th:nth-child(5){width:115px}.invoice-list th:nth-child(6){width:110px}.invoice-list th:last-child{width:80px}
+.invoice-list td:nth-child(2){overflow-wrap:anywhere}.invoice-list-amount,.invoice-list .badge{white-space:nowrap}
+@media(max-width:600px){.invoice-details{margin:12px 16px}.invoice-footer{padding:12px;gap:7px}.invoice-footer .btn{padding:10px 12px;font-size:13px}.invoice-payments-history div{flex-wrap:wrap}.invoice-dialog .project-onboarding{margin:12px 16px}}
 
 
 /* Simple project execution - one project, a status, a date and a checklist */
@@ -473,24 +498,27 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 <dialog id="invoiceEditor" class="invoice-dialog" aria-labelledby="invoiceEditorTitle">
   <div class="modal-head"><div><span class="eyebrow">LSZH / RECHNUNGEN</span><h2 id="invoiceEditorTitle">Rechnung</h2></div><button class="btn" type="button" id="invoiceClose" aria-label="Schliessen">✕</button></div>
   <form id="invoiceForm">
-    <div class="invoice-lock" id="invoiceLocked" role="status" hidden>Diese Rechnung ist abgeschlossen und schreibgeschützt. Die gespeicherte Druckansicht bleibt verfügbar.</div>
+    <div class="invoice-lock" id="invoiceLocked" role="status" hidden>Rechnungsinhalt schreibgeschützt. Versand und Zahlungen bleiben nachvollziehbar.</div>
     <div class="invoice-fields" id="invoiceFields"></div>
-    <div class="invoice-lines-head"><strong>Rechnungspositionen</strong><button class="btn" type="button" id="invoiceAddLine">+ Position</button></div>
+    <details id="invoicePositions" class="invoice-details"><summary>Positionen und Gesamtbetrag</summary><div class="invoice-lines-head"><strong>Rechnungspositionen</strong><button class="btn" type="button" id="invoiceAddLine">+ Position</button></div>
     <div class="invoice-lines" id="invoiceLines"></div>
     <div class="invoice-total"><span>Gesamtbetrag</span><strong id="invoiceTotal">CHF 0.00</strong></div>
-    <p class="invoice-caption">Rechnungsbeträge ohne MWST-Ausweis. Zahlungseingänge werden ausschliesslich nach tatsächlichem Nachweis manuell verbucht.</p>
+    </details><details id="invoiceDetails" class="invoice-details"><summary>Projekt, Rechnungsdatum und weitere Angaben</summary><div id="invoiceExtraFields" class="invoice-fields"></div><p class="invoice-caption">Rechnungsbeträge ohne MWST-Ausweis. Zahlungseingänge werden ausschliesslich nach tatsächlichem Nachweis manuell verbucht.</p>
+    <div class="invoice-secondary-actions"><button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button></div></details>
     <p class="invoice-error" id="invoiceError" role="alert" hidden></p>
-    <section class="project-onboarding" aria-labelledby="invoiceReadinessTitle">
-      <h3 id="invoiceReadinessTitle">Rechnung prüfen</h3>
+    <section id="invoiceNextStep" class="project-onboarding" aria-labelledby="invoiceReadinessTitle">
+      <h3 id="invoiceReadinessTitle">Nächster Schritt</h3>
       <p><span id="invoiceReadinessStatus" class="badge">Prüfung wird geladen</span></p>
       <p id="invoiceReadinessNext" aria-live="polite"></p>
       <ul id="invoiceReadinessMissing"></ul>
       <button type="button" class="btn" id="invoiceCustomerOpen" hidden>Kundendaten ergänzen</button>
       <label class="onboarding-check"><input id="invoiceReviewAcknowledgement" type="checkbox" disabled>Ich habe das gespeicherte Swiss-QR-PDF und den Empfänger kontrolliert.</label>
       <p class="onboarding-hint" id="invoiceReadinessHint">Zuerst speichern und das Swiss-QR-PDF öffnen. Jede Änderung setzt die Prüfung zurück.</p>
+      <div class="invoice-secondary-actions"><button class="btn primary" type="button" id="invoiceSend" disabled>Rechnung senden</button></div>
+      <div id="invoiceDispatchReview" class="invoice-secondary-actions" hidden></div>
     </section>
-    <div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
-    <div id="invoiceDispatchReview" class="invoice-actions" hidden></div>
+    <details id="invoiceDispatchDetails" class="invoice-details"><summary>Versanddetails</summary><div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
+    </details>
     <section id="invoicePaymentsPanel" class="invoice-payments" hidden aria-label="Zahlungseingänge">
       <div class="invoice-payments-head"><strong>Zahlungseingänge</strong><span class="badge" id="invoicePaymentStatus">Offen</span></div>
       <div class="invoice-payment-kpis" aria-label="Rechnungsbeträge">
@@ -510,16 +538,16 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <div class="invoice-payment-progress-head"><span>Zahlungsfortschritt</span><strong id="invoicePaymentPercent">0 % bezahlt</strong></div>
       <progress id="invoicePaymentProgress" class="invoice-payment-progress" value="0" max="100" aria-label="Zahlungsfortschritt in Prozent"></progress>
       <p class="invoice-payments-summary" id="invoicePaymentSummary"></p>
-      <div id="invoicePaymentHistory" class="invoice-payments-history"></div>
-      <div class="invoice-payments-entry" id="invoicePaymentEntry">
+      <details id="invoicePaymentHistoryDetails" class="invoice-inline-details"><summary>Buchungshistorie und Korrekturen</summary><div id="invoicePaymentHistory" class="invoice-payments-history"></div></details>
+      <details id="invoicePaymentDetails" class="invoice-inline-details"><summary>Zahlung erfassen</summary><div class="invoice-payments-entry" id="invoicePaymentEntry">
         <label>Betrag CHF<input id="invoicePaymentAmount" type="number" min="0.01" max="100000000" step="0.01"></label>
         <label>Valutadatum<input id="invoicePaymentDate" type="date"></label>
         <label>Zahlungsart<select id="invoicePaymentMethod"><option>Banküberweisung</option><option>TWINT</option><option>Bar</option><option>Karte</option><option>Andere</option></select></label>
         <label>Referenz / Buchungsvermerk<input id="invoicePaymentReference" maxlength="120" placeholder="z. B. Bank-Transaktions-ID"></label>
         <button class="btn primary" type="button" id="invoiceRecordPayment">Geprüfte Zahlung verbuchen</button>
-      </div>
+      </div></details>
     </section>
-    <section id="invoiceReminderPanel" class="invoice-reminders" hidden aria-label="Zahlungserinnerungen">
+    <details id="invoiceRemindersDetails" class="invoice-details"><summary>Zahlungserinnerungen und Verlauf</summary><section id="invoiceReminderPanel" class="invoice-reminders" hidden aria-label="Zahlungserinnerungen">
       <h3>Fälligkeitskontrolle und Mahnwesen</h3>
       <p id="invoiceReminderStatus" class="invoice-reminder-status" role="status"></p>
       <p id="invoiceReminderNotice"></p>
@@ -533,10 +561,8 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
         </div>
       </div>
     </section>
-    <div class="invoice-actions">
-      <button class="btn" type="button" id="invoicePrint" disabled>Druckansicht</button>
+    </details><div class="invoice-actions invoice-footer">
       <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
-      <button class="btn" type="button" id="invoiceSend" disabled>Rechnung senden</button>
       <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
       <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
     </div>
@@ -618,9 +644,9 @@ const definitions={
   offerten:{title:'Offerten',description:'Angebote mit automatisch vergebener fortlaufender Nummer.',fields:[
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['title','Offerte'],['offerContact','Kunde / Interessent'],['followUpDate','Nachfassen'],['status','Status']]},
-  rechnungen:{title:'Rechnungen',description:'Rechnungen mit nummerierter PDF und Swiss-QR-Zahlteil (nach Zahlungsfreigabe).',fields:[
+  rechnungen:{title:'Rechnungen',description:'Rechnungen, offene Beträge und Zahlungseingänge im Blick.',fields:[
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
+  ],columns:[['number','Nr.'],['description','Rechnung'],['invoiceContact','Kunde'],['amountCHF','Betrag'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['startDate','Startdatum','date'],['owner','Verantwortliche Person','text'],['dueDate','Zieltermin','date'],['status','Status','status']
   ],columns:[['title','Projekt'],['customerId','Kunde'],['nextStep','Nächster Schritt'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
@@ -1221,7 +1247,7 @@ function render(){
     );
     area.append(empty);renderPageMore(area);return;
   }
-  const wrap=el('div','scroll'),table=el('table',state.tab==='offerten'?'offer-list':''),thead=el('thead'),tr=el('tr');
+  const wrap=el('div','scroll'),table=el('table',state.tab==='offerten'?'offer-list':state.tab==='rechnungen'?'invoice-list':''),thead=el('thead'),tr=el('tr');
   for(const col of d.columns)tr.append(el('th','',col[1]));
   tr.append(el('th','','Aktion'));thead.append(tr);table.append(thead);
   const tbody=el('tbody');
@@ -1229,7 +1255,17 @@ function render(){
     const row=el('tr');
     for(const [key] of d.columns) {
       const td=el('td');
-      if(key==='offerContact'){
+      if(key==='invoiceContact'){
+        const customer=(state.records.kunden||[]).find(x=>x.id===rec.customerId);
+        td.append(el('div','offer-list-contact',rec.customerCompany||customer?.company||customer?.contactName||(rec.customerId?'Kunde zugeordnet':'Noch nicht zugeordnet')));
+        const number=rec.customerNumber||customer?.customerNumber;
+        if(number)td.append(el('small','offer-list-secondary',number));
+      }
+      else if(key==='amountCHF'&&state.tab==='rechnungen'){
+        td.append(el('div','invoice-list-amount',invoiceCHF(rec.amountCHF)));
+        if(rec.status==='Teilbezahlt')td.append(el('small','offer-list-secondary','Offen '+invoiceCHF(invoiceDueInfo(rec).remaining/100)));
+      }
+      else if(key==='offerContact'){
         const customer=(state.records.kunden||[]).find(x=>x.id===rec.customerId);
         const lead=(state.records.leads||[]).find(x=>x.id===rec.leadId);
         const name=rec.customerCompany||customer?.company||lead?.company||lead?.name||customer?.contactName;
@@ -1298,7 +1334,7 @@ function render(){
       edit.textContent='Öffnen';
       edit.addEventListener('click',()=>openProjectEditor(rec));
     }else if(state.tab==='kunden'){edit.textContent='Öffnen';edit.addEventListener('click',()=>openCustomerDetail(rec));}
-    else {if(state.tab==='offerten')edit.textContent='Öffnen';edit.addEventListener('click',()=>openEditor(rec));}
+    else {if(['offerten','rechnungen'].includes(state.tab))edit.textContent='Öffnen';edit.addEventListener('click',()=>openEditor(rec));}
     td.append(edit);
     if(state.tab==='leads'&&rec.status==='Neu'){
       const remove=el('button','lead-delete','×');
@@ -2368,6 +2404,7 @@ function updateInvoiceSendAvailability(){
   const i=state.invoiceEditing,r=state.invoiceReadiness,c=(state.records.kunden||[]).find(x=>x.id===i?.customerId);
   const synthetic=String(i?.description||'').startsWith('TEST_ONLY')||/^TEST_ONLY\b/i.test(String(c?.company||''))||String(c?.company||'').trim().toLowerCase()==='lszh invest gmbh';
   const allowed=state.invoiceMailMode!=='test_only'||(synthetic&&String(c?.email||'').toLowerCase()===state.invoiceMailTestTo);
+  $('invoiceSend').hidden=Boolean(i&&(i.invoiceDispatchState==='confirmed'||['sending','manual_review'].includes(i.invoiceDispatchState)||['Bezahlt','Storniert'].includes(i.status)));
   $('invoiceSend').disabled=!state.invoiceMailEnabled||!i||!r?.canSend||state.invoiceDirty||!state.invoicePdfPreviewed||!$('invoiceReviewAcknowledgement').checked||!allowed||state.invoiceSendPending===true;
 }
 async function renderInvoiceReadiness(invoice){
@@ -2787,6 +2824,9 @@ function renderInvoiceDispatch(invoice){
   review.replaceChildren();review.hidden=true;
   renderInvoicePayments(invoice);
   renderInvoiceReminders(invoice);
+  $('invoicePaymentDetails').hidden=$('invoicePaymentEntry').hidden;
+  $('invoiceRemindersDetails').hidden=!invoice;
+  $('invoiceDispatchDetails').hidden=!invoice;
   const customer=(state.records.kunden||[]).find(c=>c.id===invoice?.customerId);
   const to=String(customer?.email||'').trim();
   const isSynthetic=String(invoice?.description||'').startsWith('TEST_ONLY')||
@@ -2849,7 +2889,9 @@ function openInvoiceEditor(record=null,draft=null){
   $('invoiceEditor').classList.toggle('is-locked',state.invoiceLocked);
   $('invoiceLocked').hidden=!state.invoiceLocked;
   $('invoiceEditorTitle').textContent=record?'Rechnung '+(record.number||'–'):'Neue Rechnung';
-  $('invoiceFields').replaceChildren();
+  $('invoiceFields').replaceChildren();$('invoiceExtraFields').replaceChildren();
+  for(const id of ['invoiceDetails','invoiceDispatchDetails','invoicePaymentHistoryDetails','invoicePaymentDetails','invoiceRemindersDetails'])$(id).open=false;
+  $('invoicePositions').open=!record||record.status==='Entwurf';
   $('invoiceLines').replaceChildren();
   $('invoiceError').hidden=true;
   const data=record||draft||{};
@@ -2861,12 +2903,13 @@ function openInvoiceEditor(record=null,draft=null){
     const iso=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
     const initial=data[key]??(key==='invoiceDate'?iso:undefined);
     const element=makeField(key,label,type,initial);
+    if(key==='description')element.classList.remove('wide');
     element.addEventListener('input',markInvoiceUnsaved);
     element.addEventListener('change',markInvoiceUnsaved);
     const control=element.querySelector('input,select,textarea');
     controls[key]=control;
     if(control&&(state.invoiceLocked||record?.source==='offer_acceptance'&&['customerId','projectId'].includes(key)))control.disabled=true;
-    $('invoiceFields').append(element);
+    $(key==='projectId'||key==='invoiceDate'?'invoiceExtraFields':'invoiceFields').append(element);
   }
   if(controls.projectId&&!state.invoiceLocked){
     controls.projectId.addEventListener('change',()=>{
@@ -2884,8 +2927,12 @@ function openInvoiceEditor(record=null,draft=null){
   state.invoiceDirty=false;
   $('invoicePrint').disabled=!record;
   $('invoicePdf').disabled=!record||record.status!=='Offen';
+  if(record&&record.status!=='Entwurf')$('invoiceFields').after($('invoicePaymentsPanel'),$('invoiceNextStep'));
+  else {$('invoiceDispatchDetails').after($('invoicePaymentsPanel'));$('invoiceDetails').after($('invoiceNextStep'));}
   renderInvoiceDispatch(record);
+  updateInvoiceSendAvailability();
   $('invoiceEditor').showModal();
+  $('invoiceForm').scrollTop=0;
 }
 
 function openEditor(record=null,draft=null) {

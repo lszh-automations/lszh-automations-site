@@ -1,3 +1,11 @@
+# Aktuell: Kundenabnahme und Übergabe dokumentieren - 27.10.2026
+
+Live-Revision lszh-crm-v2-00151-yam (100 %). Im Projekt neuer Abschnitt Abnahme und Übergabe: Kundenfreigabedatum des Ergebnisses, Freigabenotiz/offene Punkte, Anleitung/Ablageort, Zuständigkeit für Fehlermeldungen und Übergabedatum. Gültige tatsächliche Daten ohne Zukunftseinträge; Übergabe benötigt Anleitung und Zuständigkeit. Serverseitige letzte Nachweisbearbeitung mit Zeitpunkt und Bediener, unabhängig von späteren anderen Projektänderungen. Aufgaben bleiben manuell abhakbar; keine automatische Status-, Monatsabrechnungs- oder Versandänderung.
+
+550 CRM-Tests, Desktop/Mobil und beide GitHub-Prüfungen erfolgreich. Alle 83 Laufzeitdateien bytegleich verglichen; drei gezielte Änderungen, Konfiguration unverändert. Keine Produktionsprojekte oder Freigaben für Tests angelegt, keine bestehenden Projekte nachträglich befüllt. [Bedienung](LSZH_PROJECT_HANDOVER_EVIDENCE.md) - [Live-Nachweis](../releases/project-handover-evidence-live-20261027.json) - [PR 48](https://github.com/lszh-automations/lszh-automations-site/pull/48).
+
+---
+
 # Aktuell: Vier Standardaufgaben für neue Projekte - 27.10.2026
 
 Live-Revision lszh-crm-v2-00149-def (100 %). Neue Projekte aus Auftragsannahme oder manueller Erfassung erhalten vier offene Aufgaben: Automation einrichten; Gesamten Ablauf testen; Kundenabnahme einholen; Übergeben und Betrieb klären. Aufgaben bleiben bearbeitbar/entfernbar. Bestehende und ausdrücklich eigene/leere Listen unverändert; wiederholte Auftragsübernahme setzt nichts zurück. Vorlage ergänzen verwendet dieselben vier Titel ohne identische Doppeleinträge. Umfangsklärung entfällt, da vor Offerte erledigt. Vorbereitung, Make, Rechnungen und Monatsabrechnung unverändert.

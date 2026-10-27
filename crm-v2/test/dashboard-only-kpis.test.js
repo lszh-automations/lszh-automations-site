@@ -30,6 +30,7 @@ function createHarness(){
     state,
     reportContext:()=>{statsCalls++;return {report:{current:{customers:1}},selected:{customers:0,paidCents:0,offers:0,projects:0},previous:null};},
     reportComparison:()=>'Gesamter Zeitraum',
+    reportAggregate:()=>({offerStatuses:{},outstandingCents:0}),
     $:name=>{
       return name==='kpis'?kpis:{scrollIntoView:()=>navigation.push(name)};
     },
@@ -58,7 +59,7 @@ test('Overview KPI cards exist only on dashboard, not in the five working tabs',
   const first=h.kpis.children[0];
   assert.equal(first.tag,'button');
   first.onclick();
-  assert.deepEqual(h.navigation,['reportCustomers']);
+  assert.deepEqual(h.navigation,['reportOverviewOffers']);
 
   for(const tab of ['leads','kunden','offerten','rechnungen','projekte']){
     h.state.tab=tab;

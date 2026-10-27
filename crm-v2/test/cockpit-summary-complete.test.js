@@ -61,3 +61,28 @@ test('no Firestore mutation or outside API calls in summary service',()=>{
   assert.doesNotMatch(src,/\.(create|update|delete|set|add|patch)\s*\(/);
   assert.match(src,/for await\(const r of store\.scan\(table\)\)/);
 });
+
+test('online customer acceptance leaves open and followup totals and exposes confirmation/adoption separately',async()=>{
+  const d=base();
+  d.offerten=[
+    {id:'waiting',status:'Versendet',oneTimeCHF:100,followUpDate:'2026-10-20'},
+    ...['customer_response_recorded','awaiting_lszh_confirmation','confirmed'].map((state,i)=>({
+      id:state,status:'Versendet',oneTimeCHF:200,monthlyCHF:10+i,followUpDate:'2026-10-20',onlineAcceptance:{state}
+    })),
+    {id:'adopted',status:'Angenommen',monthlyCHF:20,onlineAcceptance:{state:'confirmed'}},
+    {id:'declined',status:'Abgelehnt',oneTimeCHF:500,onlineAcceptance:{state:'confirmed'}}
+  ];
+  const s=await cockpitSummary(storeFor(d),{today:'2026-10-27'});
+  assert.equal(s.openOffers,1);assert.equal(s.openOfferCents,10000);
+  assert.equal(s.dueOfferCount,1);assert.deepEqual(s.dueOffers.map(x=>x.id),['waiting']);
+  assert.equal(s.pendingConfirmationCount,2);assert.equal(s.pendingAdoptionCount,1);
+  assert.deepEqual(s.pendingConfirmations.map(x=>x.id).sort(),['awaiting_lszh_confirmation','customer_response_recorded']);
+  assert.deepEqual(s.pendingAdoptions.map(x=>x.id),['confirmed']);
+  assert.equal(s.acceptedMonthlyCents,3200);
+  assert.equal(d.offerten[1].status,'Versendet','Read-only projection preserves stored commercial status');
+  const many=base();many.offerten=Array.from({length:25},(_,i)=>({id:'pending-'+i,status:'Versendet',onlineAcceptance:{state:'customer_response_recorded'}}));
+  const bounded=await cockpitSummary(storeFor(many),{today:'2026-10-27'});
+  assert.equal(bounded.pendingConfirmationCount,25,'All accepted offers counted beyond bounded preview');
+  assert.equal(bounded.pendingConfirmations.length,8,'Preview remains bounded');
+
+});

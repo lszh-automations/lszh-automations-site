@@ -178,6 +178,17 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
 .project-actions{position:sticky;bottom:0;background:var(--panel);z-index:2}
 @media(max-width:650px){.project-next,.project-disclosure{margin-left:16px;margin-right:16px}.project-template{margin-left:16px}.project-tasks-head{flex-wrap:wrap}}
 
+.customer-dialog{width:min(1000px,calc(100vw - 30px));max-height:92vh;padding:0}
+.customer-body{padding:0 24px 24px;max-height:calc(92vh - 180px);overflow:auto}
+.customer-group{margin-top:20px;border:1px solid var(--border);border-radius:10px;padding:16px}
+.customer-group-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.customer-group-head h3{margin:0;font-size:16px}
+.customer-related-row{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding:14px 0}
+.customer-related-row>div{min-width:0;overflow-wrap:anywhere}
+.customer-related-row p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+#customerDetailError{color:#ffb6ad}
+@media(max-width:650px){.customer-body{padding:0 16px 16px}.customer-related-row{align-items:flex-start;flex-direction:column}.customer-group{padding:12px}}
+
 /* Straightforward quote editor - local test version */
 .offer-dialog{width:min(1030px,calc(100vw - 30px));max-height:92vh}
 .offer-locked-notice{margin:20px 24px 0;padding:15px 17px;border:1px solid #536f90;border-radius:11px;background:#182d42;display:grid;gap:4px}
@@ -400,6 +411,11 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
     </section>
   </main>
 </div>
+<dialog id="customerDetail" class="customer-dialog" aria-labelledby="customerDetailTitle">
+  <div class="modal-head"><div><span class="eyebrow">LSZH / KUNDEN</span><h2 id="customerDetailTitle">Kunde</h2></div><button class="btn" type="button" id="customerDetailClose" aria-label="Schliessen">✕</button></div>
+  <div class="customer-body"><div id="customerSummary"></div><div id="customerRelations"></div><p id="customerDetailError" role="alert" hidden></p></div>
+  <div class="project-actions"><button class="btn" type="button" id="customerEdit">Stammdaten bearbeiten</button><button class="btn" type="button" id="customerDetailCancel">Schliessen</button></div>
+</dialog>
 <dialog id="editor">
   <div class="modal-head"><h2 id="editorTitle">Eintrag</h2><button class="btn" id="close" type="button" aria-label="Schliessen">✕</button></div>
   <form id="editorForm"><div class="form-actions"><button class="btn" id="cancel" type="button">Abbrechen</button><button class="btn primary" id="save" type="submit">Speichern</button></div></form>
@@ -818,7 +834,8 @@ function navigateTo(tab,record,invoiceDueFilter='all'){
   render();
   if(tab==='rechnungen'&&state.invoiceDueFilter!=='all')loadFilteredRows();
   if(record){
-    if(tab==='leads')openLeadDetail(record);
+    if(tab==='kunden')openCustomerDetail(record);
+    else if(tab==='leads')openLeadDetail(record);
     else openEditor(record);
   }
 }
@@ -1244,7 +1261,8 @@ function render(){
     }else if(state.tab==='projekte'){
       edit.textContent='Öffnen';
       edit.addEventListener('click',()=>openProjectEditor(rec));
-    }else edit.addEventListener('click',()=>openEditor(rec));
+    }else if(state.tab==='kunden'){edit.textContent='Öffnen';edit.addEventListener('click',()=>openCustomerDetail(rec));}
+    else edit.addEventListener('click',()=>openEditor(rec));
     td.append(edit);
     if(state.tab==='leads'&&rec.status==='Neu'){
       const remove=el('button','lead-delete','×');
@@ -1259,6 +1277,77 @@ function render(){
   table.append(tbody);wrap.append(table);area.append(wrap);
   renderPageMore(area);
 }
+
+function rememberRelatedRecord(table,record){
+  const rows=state.records[table]||(state.records[table]=[]),index=rows.findIndex(x=>x.id===record.id);
+  if(index<0)rows.push(record);else rows[index]=record;
+}
+async function openCustomerRecord(table,id,button){
+  const customerId=state.customerViewing?.id,nonce=state.customerViewNonce;
+  button.disabled=true;$('customerDetailError').hidden=true;
+  try{
+    const {record}=await api('/api/records/'+table+'/'+encodeURIComponent(id));
+    if(record.customerId!==customerId)throw Error('Kundenzuordnung hat sich geändert – Übersicht neu öffnen.');
+    for(const [key,target] of Object.entries({customerId:'kunden',leadId:'leads',offerId:'offerten',projectId:'projekte'})){
+      if(record[key]&&!(state.records[target]||[]).some(x=>x.id===record[key])){
+        const linked=await api('/api/records/'+target+'/'+encodeURIComponent(record[key]));rememberRelatedRecord(target,linked.record);
+      }
+    }
+    if(nonce!==state.customerViewNonce||!$('customerDetail').open)return;
+    rememberRelatedRecord(table,record);$('customerDetail').close();navigateTo(table,record);
+  }catch(error){if(nonce===state.customerViewNonce){$('customerDetailError').textContent=error.message;$('customerDetailError').hidden=false;}}
+  finally{button.disabled=false;}
+}
+async function loadCustomerRelated(table,group,more=false){
+  const customer=state.customerViewing,nonce=state.customerViewNonce;
+  if(!customer||group._loading)return;
+  group._loading=true;
+  const list=group.querySelector('.customer-related-list'),foot=group.querySelector('.customer-related-foot');
+  if(!more){list.replaceChildren();group._cursor='';group._seen=new Set();}
+  foot.replaceChildren(el('p','','Wird geladen …'));
+  try{
+    const result=await api('/api/records/kunden/'+encodeURIComponent(customer.id)+'/related?table='+table+(more?'&cursor='+encodeURIComponent(group._cursor):''));
+    if(nonce!==state.customerViewNonce||!$('customerDetail').open)return;
+    rememberRelatedRecord('kunden',result.customer);
+    for(const record of result.records){
+      if(group._seen.has(record.id))continue;group._seen.add(record.id);
+      const row=el('div','customer-related-row'),info=el('div');
+      info.append(el('strong','',(record.number?record.number+' · ':'')+(record.title||record.description||'Eintrag')));
+      const status=table==='offerten'?offerDisplayStatus(record):record.status;
+      const amount=table==='offerten'?quoteCHF(record.oneTimeCHF||0)+' einmalig · '+quoteCHF(record.monthlyCHF||0)+'/Monat':table==='rechnungen'?invoiceCHF(record.amountCHF):projectNextStep(record);
+      info.append(el('p','',(status||'–')+' · '+amount));
+      if(table==='rechnungen')info.append(el('p','',record.invoiceDispatchState==='confirmed'?'Versand bestätigt':record.invoiceDispatchState==='manual_review'?'Versand prüfen':'Versand nicht bestätigt'));
+      const open=el('button','btn','Öffnen');open.type='button';open.setAttribute('aria-label',(record.number||record.title||'Eintrag')+' öffnen');open.onclick=()=>openCustomerRecord(table,record.id,open);
+      row.append(info,open);list.append(row);
+    }
+    foot.replaceChildren();
+    if(!group._seen.size)list.append(el('p','','Noch keine zugeordneten Einträge.'));
+    group._cursor=result.nextCursor;
+    foot.append(el('p','',group._seen.size+' Einträge'+(result.hasMore?' geladen':'')));
+    if(result.hasMore){const next=el('button','btn','Weitere laden');next.type='button';next.onclick=()=>loadCustomerRelated(table,group,true);foot.append(next);}
+  }catch(error){
+    if(nonce!==state.customerViewNonce)return;
+    foot.replaceChildren(el('p','','Nicht verfügbar: '+error.message));const retry=el('button','btn','Erneut laden');retry.type='button';retry.onclick=()=>loadCustomerRelated(table,group,more);foot.append(retry);
+  }finally{group._loading=false;}
+}
+function openCustomerDetail(customer){
+  state.customerViewing=customer;state.customerViewNonce=(state.customerViewNonce||0)+1;
+  rememberRelatedRecord('kunden',customer);
+  $('customerDetailTitle').textContent=(customer.customerNumber?customer.customerNumber+' · ':'')+(customer.company||'Kunde');
+  $('customerSummary').replaceChildren();$('customerRelations').replaceChildren();$('customerDetailError').hidden=true;
+  detailGroup($('customerSummary'),'Kontakt',[['Ansprechpartner',customer.contactName],['E-Mail',customer.email],['Adresse',[customer.street,[customer.postalCode,customer.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')]]);
+  const groups=[];
+  for(const [table,title,label] of [['offerten','Offerten','+ Offerte'],['rechnungen','Rechnungen','+ Rechnung'],['projekte','Projekte','+ Projekt']]){
+    const group=el('section','customer-group');group.dataset.table=table;
+    const head=el('div','customer-group-head'),create=el('button','btn',label);create.type='button';
+    create.onclick=()=>{$('customerDetail').close();navigateTo(table);openEditor(null,{customerId:customer.id});};
+    head.append(el('h3','',title),create);group.append(head,el('div','customer-related-list'),el('div','customer-related-foot'));$('customerRelations').append(group);groups.push([table,group]);
+  }
+  $('customerDetail').showModal();for(const [table,group]of groups)loadCustomerRelated(table,group);
+}
+$('customerDetailClose').addEventListener('click',()=>$('customerDetail').close());
+$('customerDetailCancel').addEventListener('click',()=>$('customerDetail').close());
+$('customerEdit').addEventListener('click',()=>{const customer=state.customerViewing;$('customerDetail').close();navigateTo('kunden');openEditor(customer);});
 
 function leadOffers(leadId){
   return (state.records.offerten||[]).filter(x=>x.leadId===leadId)
@@ -1598,6 +1687,7 @@ function makeField(key,label,type,value) {
           &&(type!=='offerten'||state.tab!=='projekte'||r.status==='Angenommen'||r.id===value))
         .map(r=>({value:r.id,label:titleOf(type,r)}))
     ];
+    if(type!=='status'&&value&&!items.some(opt=>opt.value===String(value)))items.push({value:String(value),label:'Bestehende Zuordnung'});
     for(const opt of items) {const option=el('option','',opt.label);option.value=opt.value;control.append(option);}
   } else {control=el('input');control.type=type==='date'?'date':type==='number'?'number':type==='email'?'email':'text';
     if(type==='number'){control.step='0.01';control.min='0';}
@@ -3105,8 +3195,9 @@ $('editorForm').addEventListener('submit',async event=>{
   for(const [key,,type] of definitions[state.tab].fields)if(type==='number')data[key]=data[key]===''?null:Number(data[key]);
   const save=form.querySelector('button[type="submit"]');save.disabled=true;save.textContent='Speichere …';
   try{
-    await api('/api/records/'+state.tab+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{method:state.editing?'PATCH':'POST',body:JSON.stringify(data)});
-    $('editor').close();await loadAll();
+    const table=state.tab;
+    const result=await api('/api/records/'+table+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{method:state.editing?'PATCH':'POST',body:JSON.stringify(data)});
+    $('editor').close();await loadAll();if(table==='kunden')openCustomerDetail(result.record);
   }catch(err){window.alert('Speichern fehlgeschlagen: '+err.message);}
   finally{save.disabled=false;save.textContent='Speichern';}
 });

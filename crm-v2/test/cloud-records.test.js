@@ -983,3 +983,61 @@ test('legacy active project remains editable without inventing a historic projec
  assert.equal(saved.startedAt,undefined);assert.equal(saved.owner,undefined);assert.equal(saved.startDate,undefined);
  await assert.rejects(()=>store.startProject('legacy_start',admin),e=>e.status===409);
 });
+
+
+
+test('customer overview pages exact relations beyond every register page, including legacy dates, and never writes',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const c=await store.create('kunden',{company:'TEST_ONLY one'},admin),other=await store.create('kunden',{company:'TEST_ONLY other'},admin);
+ for(const table of ['offerten','rechnungen','projekte']){
+  for(let n=0;n<125;n++)db.storage.set('lszh_crm_v2_staging_'+table+'/rel_'+String(n).padStart(3,'0'),{title:'TEST_ONLY',customerId:c.id});
+  db.storage.set('lszh_crm_v2_staging_'+table+'/foreign',{customerId:other.id});
+  const before=JSON.stringify([...db.storage]),ids=[];let cursor='';
+  do{const page=await store.customerRelated(c.id,table,cursor);assert.equal(page.customer.id,c.id);assert.ok(page.records.length<=50);ids.push(...page.records.map(r=>r.id));cursor=page.nextCursor;}while(cursor);
+  assert.equal(ids.length,125);assert.equal(new Set(ids).size,125);assert.ok(!ids.includes('foreign'));assert.equal(JSON.stringify([...db.storage]),before);
+  await assert.rejects(()=>store.customerRelated(c.id,table,'foreign'),e=>e.status===409);
+ }
+ await assert.rejects(()=>store.customerRelated(c.id,'kunden'),e=>e.status===400);
+ await assert.rejects(()=>store.customerRelated(c.id,'offerten','../bad'),e=>e.status===400);
+ await assert.rejects(()=>store.customerRelated('missing','offerten'),e=>e.status===404);
+});
+test('new qualified leads, projects and invoices inherit only authoritative customer links',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const c=await store.create('kunden',{company:'TEST_ONLY Exact Company',email:'exact@example.invalid'},admin),other=await store.create('kunden',{company:'TEST_ONLY other'},admin);
+ const lead=await store.create('leads',{...newLead(),company:c.company,email:c.email,status:'Qualifiziert'},admin);
+ const offer=(await store.list('offerten')).find(o=>o.leadId===lead.id);assert.equal(offer.customerId,c.id);
+ db.storage.set('lszh_crm_v2_staging_offerten/accepted_relation',{title:'TEST_ONLY',number:'TEST-100',status:'Angenommen',customerId:c.id});
+ const project=await store.create('projekte',{title:'TEST_ONLY project',offerId:'accepted_relation'},admin);assert.equal(project.customerId,c.id);
+ const invoice=await store.create('rechnungen',{projectId:project.id,description:'TEST_ONLY',items:[{title:'Setup',qty:1,unitPriceCHF:100}],status:'Entwurf'},admin);assert.equal(invoice.customerId,c.id);
+ await assert.rejects(()=>store.create('rechnungen',{projectId:project.id,customerId:other.id,description:'TEST_ONLY',items:[]},admin),/denselben Kunden/);
+ db.storage.set('lszh_crm_v2_staging_offerten/accepted_other',{title:'TEST_ONLY',status:'Angenommen',customerId:c.id});
+ await assert.rejects(()=>store.create('projekte',{title:'TEST_ONLY wrong',offerId:'accepted_other',customerId:other.id},admin),/denselben Kunden/);
+});
+test('historical sent-offer assignment is conservative, idempotent and preserves all commercial fields',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const c=await store.create('kunden',{company:'TEST_ONLY Same Company',email:'same@example.invalid'},admin);
+ db.storage.set('lszh_crm_v2_staging_leads/match',{email:c.email,company:' test_only SAME company ',status:'Qualifiziert'});
+ const path='lszh_crm_v2_staging_offerten/old_relation',original={number:'TEST-101',status:'Versendet',leadId:'match',customerId:'',items:[{title:'Setup',qty:1,unitPriceCHF:100}],contractPackageId:'TEST_ONLY_IMMUTABLE',offerSnapshotSha256:'unchanged'};db.storage.set(path,original);
+ const otherBefore=JSON.stringify([...db.storage].filter(([k])=>k!==path));await store.linkCustomer('offerten','old_relation',admin);
+ const saved=db.storage.get(path);assert.equal(saved.customerId,c.id);for(const [key,value]of Object.entries(original))if(key!=='customerId')assert.deepEqual(saved[key],value);
+ assert.equal(JSON.stringify([...db.storage].filter(([k])=>k!==path)),otherBefore);
+ const after=JSON.stringify([...db.storage]);await store.linkCustomer('offerten','old_relation',admin);assert.equal(JSON.stringify([...db.storage]),after);
+ db.storage.set('lszh_crm_v2_staging_leads/different',{email:c.email,company:'TEST_ONLY Different Company'});db.storage.set('lszh_crm_v2_staging_offerten/different',{...original,leadId:'different'});
+ const before=JSON.stringify([...db.storage]);await assert.rejects(()=>store.linkCustomer('offerten','different',admin),e=>e.status===409);assert.equal(JSON.stringify([...db.storage]),before);
+ db.storage.set('lszh_crm_v2_staging_offerten/stale_assignment',original);
+ await assert.rejects(()=>store.linkCustomer('offerten','stale_assignment',admin,'wrong_expected_id'),e=>e.status===409);
+ assert.equal(db.storage.get('lszh_crm_v2_staging_offerten/stale_assignment').customerId,'');
+ db.storage.set('lszh_crm_v2_staging_offerten/running_assignment',{...original,offerDispatchState:'sending'});
+ await assert.rejects(()=>store.linkCustomer('offerten','running_assignment',admin),e=>e.status===409);
+ await store.create('kunden',{company:c.company,email:c.email},admin);db.storage.set('lszh_crm_v2_staging_offerten/ambiguous',original);
+ await assert.rejects(()=>store.linkCustomer('offerten','ambiguous',admin),e=>e.status===409);
+});
+test('acceptance never guesses between duplicate mailboxes or reuses a different company',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const c=await store.create('kunden',{company:'TEST_ONLY Old Company',email:'same@example.invalid'},admin);
+ const lead=await store.create('leads',{...newLead(),company:'TEST_ONLY New Company',email:c.email,status:'Qualifiziert'},admin);
+ let offer=(await store.list('offerten')).find(o=>o.leadId===lead.id);assert.equal(offer.customerId,'');
+ await store.update('offerten',offer.id,{status:'Angenommen'},admin);offer=await store.get('offerten',offer.id);assert.notEqual(offer.customerId,c.id);
+ const ambiguous=await store.create('leads',{...newLead(),company:'TEST_ONLY Company',email:c.email,status:'Qualifiziert'},admin),q=(await store.list('offerten')).find(o=>o.leadId===ambiguous.id),before=JSON.stringify([...db.storage]);
+ await assert.rejects(()=>store.update('offerten',q.id,{status:'Angenommen'},admin),e=>e.status===409);assert.equal(JSON.stringify([...db.storage]),before);
+});

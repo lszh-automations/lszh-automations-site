@@ -13,3 +13,7 @@ Rechnung senden steht beim nächsten Schritt. Vor dem Versand sind weiterhin ges
 Die Einträge von Projekt und Rechnungsdatum bleiben im selben Formular und werden trotz eingeklappter Darstellung unverändert gespeichert. Preise, Buchungs-, Mahn- und Versandregeln, Daten, Dokumente sowie Endpunkte bleiben unverändert. Öffnen erzeugt keine Buchung oder Nachricht.
 
 Validierung: 493 CRM-Tests; Desktop/Mobilgerät mit künstlichen Daten und gesperrtem externem Netzwerk. Geprüft: neue Rechnung, Speichern eingeklappter Felder und Positionen, PDF-/Empfängerfreigabe, expliziter simulierter Versand, Teilzahlung, Bezahlt/Storniert, unklarer Versand, fehlgeschlagene Prüfung, verspätete Prüfantwort nach Änderung, zugängliche Buchungs-/Mahnaktionen und sichtbare Fussbuttons.
+
+## Live-Nachweis
+
+CRM-Version `lszh-crm-v2-00119-niz`, 100 % Verkehr. Rückkehrversion: `lszh-crm-v2-00117-bof`. Beide GitHub-Prüfungen erfolgreich; alle 80 Laufzeitdateien bestätigt, ausschliesslich public/index.html geändert. Konfiguration und Dienstkonto unverändert; Live-HTML bytegleich, anonyme Rechnungs-/Prüfabfragen HTTP 401. Keine Kundendatenänderung, Zahlung, Mail oder Dokumentänderung. [Nachweis](../releases/simple-invoices-live-20261027.json), [PR 33](https://github.com/lszh-automations/lszh-automations-site/pull/33).

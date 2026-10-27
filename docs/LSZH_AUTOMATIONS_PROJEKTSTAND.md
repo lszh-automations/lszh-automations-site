@@ -1,3 +1,13 @@
+# Aktiver Live-Stand - Rechnungsversand separat sichtbar, 27.10.2026
+
+CRM **`lszh-crm-v2-00131-gus`** erhält 100 % Verkehr. Zahlungs- und Versandstatus getrennt in Rechnungsliste, Kundenansicht, Dashboard und Rechnungsdialog. Eine versendete unbezahlte Rechnung bleibt Offen und zeigt zusätzlich Versendet. Fehlende Nachweise, laufender oder unklarer Versand bleiben ausdrücklich erkennbar. Fälligkeitsampel unverändert am Datum. Swiss-QR-PDF prüfen steht direkt bei der Kontrollcheckbox und dem Sendebutton; ein gesperrter Versand nennt den fehlenden Schritt. Bestehende Prüfungen bleiben erhalten.
+
+RE-1005 rein lesend geprüft: Daten vollständig und PDF im Arbeitsspeicher erfolgreich erzeugt, kein Versandbeleg zur Prüfzeit. Benutzer bestätigte Ursache: PDF noch nicht geöffnet, deshalb Checkbox gesperrt. Keine Datenkorrektur, kein Versand und keine Buchung durch diese Arbeit. 512 CRM-Tests, Desktop-/Mobilprüfung mit synthetischer 1-Rappen-Rechnung und beide GitHub-Prüfungen erfolgreich. 81 Laufzeitdateien bytegleich; nur Anzeige und rein lesende Auswertung geändert. Konfiguration unverändert, Live-HTML bytegleich, Gesamtauswertung und Rechnungsprüfung anonym HTTP 401, keine jüngsten Revisionsfehler. Make, Website und Portal unverändert.
+
+[Bedienung und Versandstatus](LSZH_INVOICE_DELIVERY_VIEW.md) - [Live-Nachweis](../releases/invoice-delivery-view-live-20261027.json) - [PR 38](https://github.com/lszh-automations/lszh-automations-site/pull/38).
+
+---
+
 # Aktiver Live-Stand - Alle offenen Vorgänge im Dashboard, 27.10.2026
 
 CRM **`lszh-crm-v2-00129-buq`** erhält 100 % Verkehr. Die zentrale Arbeitsliste zeigt jeden noch offenen Lead, jede Offerte, Rechnung und jedes Projekt aus den vollständigen CRM-Registern. Auch ohne Termin, mit künftigem Termin oder beim Warten auf Kunden/Zahlungen bleibt der Vorgang sichtbar. Status, nächster Schritt, vorhandener Termin und direktes Öffnen anhand der aktuellen ID. Keine Vorschaugrenze; Suche und Bereichsfilter lassen sich mit Alle anzeigen zurücksetzen. Ungeklärte Zustellung und fehlende Auftragsübernahme bleiben sichtbar. Ergänzende bisherige Annahme-/Wiedervorlagenlisten liegen unter Auswertungen. Keine neuen Checklisten oder automatischen Aktionen.

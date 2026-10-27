@@ -556,11 +556,13 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <h3 id="invoiceReadinessTitle">Nächster Schritt</h3>
       <p><span id="invoiceReadinessStatus" class="badge">Prüfung wird geladen</span></p>
       <p id="invoiceReadinessNext" aria-live="polite"></p>
+      <p id="invoiceDeliverySummary" class="invoice-caption" role="status"></p>
       <ul id="invoiceReadinessMissing"></ul>
       <button type="button" class="btn" id="invoiceCustomerOpen" hidden>Kundendaten ergänzen</button>
       <label class="onboarding-check"><input id="invoiceReviewAcknowledgement" type="checkbox" disabled>Ich habe das gespeicherte Swiss-QR-PDF und den Empfänger kontrolliert.</label>
       <p class="onboarding-hint" id="invoiceReadinessHint">Zuerst speichern und das Swiss-QR-PDF öffnen. Jede Änderung setzt die Prüfung zurück.</p>
-      <div class="invoice-secondary-actions"><button class="btn primary" type="button" id="invoiceSend" disabled>Rechnung senden</button></div>
+      <div class="invoice-secondary-actions"><button class="btn" type="button" id="invoicePdf" disabled>1. Swiss-QR-PDF prüfen</button><button class="btn primary" type="button" id="invoiceSend" disabled>Rechnung senden</button></div>
+      <p id="invoiceSendBlocker" class="onboarding-hint" role="status"></p>
       <div id="invoiceDispatchReview" class="invoice-secondary-actions" hidden></div>
     </section>
     <details id="invoiceDispatchDetails" class="invoice-details"><summary>Versanddetails</summary><div id="invoiceDispatchNotice" class="invoice-caption" role="status"></div>
@@ -609,7 +611,6 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       </div></details>
     </section>
     </details><div class="invoice-actions invoice-footer">
-      <button class="btn" type="button" id="invoicePdf" disabled>Swiss-QR-PDF</button>
       <button class="btn" type="button" id="invoiceCancel">Schliessen</button>
       <button class="btn primary" type="submit" id="invoiceSave">Speichern</button>
     </div>
@@ -692,8 +693,8 @@ const definitions={
     ['leadId','Website Lead','leads'],['customerId','Kunde','kunden'],['title','Offertentitel','text'],['description','Leistungsbeschreibung','textarea'],['oneTimeCHF','Einmalig CHF','number'],['monthlyCHF','Monatlich CHF','number'],['validUntil','Gültig bis','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['title','Offerte'],['offerContact','Kunde / Interessent'],['followUpDate','Nachfassen'],['status','Status']]},
   rechnungen:{title:'Rechnungen',description:'Rechnungen, offene Beträge und Zahlungseingänge im Blick.',fields:[
-    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
-  ],columns:[['number','Nr.'],['description','Rechnung'],['invoiceContact','Kunde'],['amountCHF','Betrag'],['dueDate','Fällig am'],['status','Status']]},
+    ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Zahlungsstatus','status']
+  ],columns:[['number','Nr.'],['description','Rechnung'],['invoiceContact','Kunde'],['amountCHF','Betrag'],['dueDate','Fällig am'],['status','Zahlung / Versand']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
     ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['startDate','Startdatum','date'],['owner','Verantwortliche Person','text'],['dueDate','Zieltermin','date'],['status','Status','status']
   ],columns:[['title','Projekt'],['customerId','Kunde'],['nextStep','Nächster Schritt'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
@@ -1040,6 +1041,7 @@ function renderOpenProcesses(area){
       const label=({leads:'Lead',offerten:'Offerte',projekte:'Projekt',rechnungen:'Rechnung'})[item.table]||item.table;
       const title=el('strong','',label+(item.number?' '+item.number:'')+(item.title!==item.number?' · '+item.title:''));
       title.append(el('span','badge'+(item.table==='offerten'&&item.pending?' pending':['Angenommen','Bezahlt'].includes(item.status)?' success':''),item.status));
+      if(item.table==='rechnungen')appendInvoiceDelivery(title,item);
       copy.append(title,el('p',item.priority<=1?'open-process-priority':item.pending?'open-process-pending':'',item.action));
       const when=item.date?' · '+(item.table==='rechnungen'?'Fällig':item.table==='projekte'?'Zieltermin':'Wiedervorlage')+': '+item.date.split('-').reverse().join('.') : ' · Kein Termin hinterlegt';
       copy.append(el('small','',(item.company||'Ohne Firmenangabe')+when));
@@ -1476,10 +1478,11 @@ function render(){
         const overdue=state.tab==='rechnungen'&&['Offen','Teilbezahlt'].includes(rec.status)&&rec.dueDate&&rec.dueDate<localDateKey();
         const shownStatus=state.tab==='offerten'?offerDisplayStatus(rec):rec.status;
         const pendingAcceptance=state.tab==='offerten'&&offerAcceptancePending(rec);
-        const tag=el('span','badge'+(pendingAcceptance?' pending':['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue?'Überfällig':(shownStatus||'–'));
+        const tag=el('span','badge'+(pendingAcceptance?' pending':['Angenommen','Bezahlt','Aktiv','Abgeschlossen','Qualifiziert','Gewonnen'].includes(shownStatus)?' success':''),overdue&&state.tab!=='rechnungen'?'Überfällig':(shownStatus||'–'));
         if(state.tab==='offerten'&&shownStatus==='Angenommen')tag.title=pendingAcceptance?'Vom Kunden angenommen – deine Bestätigung steht aus.':'Beidseitig bestätigt';
         if(overdue)tag.title='Buchungsstatus: '+rec.status+'; Fälligkeit überschritten';
         td.append(tag);
+        if(state.tab==='rechnungen')appendInvoiceDelivery(td,rec);
         if(state.tab==='offerten'&&offerDisplayStatus(rec)==='Angenommen'&&rec.status!=='Angenommen'){const note=el('div','',pendingAcceptance?'Deine Bestätigung fehlt':'Abwicklung offen');note.style.cssText='font-size:12px;color:var(--muted);margin-top:6px';td.append(note);}
       }
       else if(key==='nextStep'){
@@ -2593,6 +2596,22 @@ async function renderProjectBilling(record){
     const retry=el('button','btn','Erneut laden');retry.type='button';retry.onclick=()=>renderProjectBilling(record);area.append(retry);
   }
 }
+
+function invoiceDeliveryInfo(invoice){
+  const state=invoice?.invoiceDispatchState;
+  if(state==='sending')return {label:'Versand läuft',tone:' pending',detail:'Versandauftrag läuft. Nicht erneut senden.'};
+  if(state==='manual_review')return {label:'Versand unklar',tone:' pending',detail:'Keine eindeutige Versandbestätigung. Gmail Gesendet prüfen; nicht erneut senden.'};
+  if(state==='confirmed'||invoice?.invoiceSentAt){
+    const at=new Date(invoice.invoiceSentAt),stamp=Number.isFinite(at.getTime())?at.toLocaleString('de-CH'):'';
+    return {label:'Versendet',tone:' success',detail:'Versand nachgewiesen'+(stamp?' am '+stamp:'')+(invoice.invoiceSentTo?' an '+invoice.invoiceSentTo:'')+'.'};
+  }
+  if(['not_sent','preparation_failed'].includes(state))return {label:'Nicht versendet',tone:'',detail:'Letzter Versuch wurde als nicht versendet abgeschlossen.'};
+  return {label:'Kein Versandnachweis',tone:'',detail:'Im CRM ist kein Versand dokumentiert. Der Zahlungsstatus „Offen“ bestätigt keinen Versand.'};
+}
+function appendInvoiceDelivery(container,invoice){
+  const d=invoiceDeliveryInfo(invoice),line=el('div','invoice-list-delivery'),badge=el('span','badge'+d.tone,d.label);badge.title=d.detail;line.style.cssText='margin-top:7px;max-width:190px;white-space:normal';line.append(badge);container.append(line);
+}
+
 function resetInvoiceReview(message){
   state.invoiceReviewNonce=(state.invoiceReviewNonce||0)+1;
   state.invoiceReadiness=null;state.invoicePdfPreviewed=false;
@@ -2601,13 +2620,17 @@ function resetInvoiceReview(message){
   $('invoiceReadinessStatus').textContent=message||'Prüfung wird geladen';
   $('invoiceReadinessNext').textContent='';$('invoiceReadinessMissing').replaceChildren();
   $('invoiceCustomerOpen').hidden=true;$('invoiceSend').disabled=true;
+  $('invoiceSendBlocker').textContent=message||'Rechnungsprüfung wird geladen.';
 }
 function updateInvoiceSendAvailability(){
   const i=state.invoiceEditing,r=state.invoiceReadiness,c=(state.records.kunden||[]).find(x=>x.id===i?.customerId);
   const synthetic=String(i?.description||'').startsWith('TEST_ONLY')||/^TEST_ONLY\b/i.test(String(c?.company||''))||String(c?.company||'').trim().toLowerCase()==='lszh invest gmbh';
   const allowed=state.invoiceMailMode!=='test_only'||(synthetic&&String(c?.email||'').toLowerCase()===state.invoiceMailTestTo);
   $('invoiceSend').hidden=Boolean(i&&(i.invoiceDispatchState==='confirmed'||['sending','manual_review'].includes(i.invoiceDispatchState)||['Bezahlt','Storniert'].includes(i.status)));
-  $('invoiceSend').disabled=!state.invoiceMailEnabled||!i||!r?.canSend||state.invoiceDirty||!state.invoicePdfPreviewed||!$('invoiceReviewAcknowledgement').checked||!allowed||state.invoiceSendPending===true;
+  const reason=state.invoiceSendPending?'Versand läuft – bitte warten.':!i?'Rechnung zuerst speichern.':!state.invoiceMailEnabled?'Rechnungsversand ist derzeit nicht aktiviert.':state.invoiceDirty?'Änderungen zuerst speichern. Danach PDF erneut prüfen.':!r?'Rechnungsprüfung noch nicht verfügbar. Bitte Rechnung erneut öffnen.':!r.canSend?r.nextAction:!allowed?'Testmodus: Empfänger nicht freigegeben.':!state.invoicePdfPreviewed?'Schritt 1: Swiss-QR-PDF über den Button hier öffnen und prüfen.':!$('invoiceReviewAcknowledgement').checked?'Schritt 2: PDF und Empfänger prüfen und die Kontrollcheckbox bestätigen.':'';
+  $('invoiceSend').disabled=Boolean(reason);$('invoiceSend').title=reason||'Geprüfte Rechnung bewusst senden';
+  $('invoiceSendBlocker').textContent=$('invoiceSend').hidden?'':reason;
+  $('invoiceDeliverySummary').textContent=i?'Versand: '+invoiceDeliveryInfo(i).label+' · '+invoiceDeliveryInfo(i).detail:'Versand: Noch keine gespeicherte Rechnung.';
 }
 async function renderInvoiceReadiness(invoice){
   resetInvoiceReview(invoice?'Prüfung wird geladen':'Zuerst speichern');
@@ -2627,6 +2650,7 @@ async function renderInvoiceReadiness(invoice){
     $('invoiceReadinessStatus').textContent=r.stage;$('invoiceReadinessNext').textContent=r.nextAction;
     if(!['Bezahlt','Storniert'].includes(invoice.status)&&r.delivery==='Nicht versendet')for(const missing of r.missing)$('invoiceReadinessMissing').append(el('li','','Fehlt / prüfen: '+missing));
     $('invoiceCustomerOpen').hidden=!result.customer||r.delivery!=='Nicht versendet';
+    $('invoiceCustomerOpen').textContent=r.missing.some(x=>/Kunde|Anschrift/.test(x))?'Kundendaten ergänzen':'Kunde öffnen';
     $('invoiceCustomerOpen').onclick=()=>{$('invoiceEditor').close();navigateTo('kunden',result.customer);};
     if(!state.invoiceMailEnabled){$('invoiceReadinessHint').hidden=false;$('invoiceReadinessHint').textContent='Der Mailversand ist derzeit nicht aktiviert. Rechnung und PDF können weiterhin geprüft werden.';}
     updateInvoiceSendAvailability();
@@ -2636,7 +2660,7 @@ function invoicePdfWasOpened(id,nonce){
   if(state.invoiceEditing?.id!==id||state.invoiceReviewNonce!==nonce||state.invoiceDirty)return;
   state.invoicePdfPreviewed=true;
   $('invoiceReviewAcknowledgement').disabled=!state.invoiceReadiness?.canSend;
-  $('invoiceReadinessHint').textContent='PDF ist bereit. Bitte PDF und Empfänger kontrollieren und die Prüfung bestätigen. Das CRM kann das Lesen des PDFs nicht automatisch erkennen.';
+  $('invoiceReadinessHint').textContent='PDF wurde heruntergeladen. Bitte öffnen, PDF und Empfänger kontrollieren und die Checkbox bestätigen.';
   updateInvoiceSendAvailability();
 }
 function validProjectStartDay(value){
@@ -3326,20 +3350,21 @@ $('invoicePrint').addEventListener('click',()=>{
 });
 $('invoicePdf').addEventListener('click',async()=>{
   if(!state.invoiceEditing||$('invoicePdf').disabled)return;
-  const button=$('invoicePdf'),reviewId=state.invoiceEditing.id,reviewNonce=state.invoiceReviewNonce;button.disabled=true;
+  const invoice=state.invoiceEditing,button=$('invoicePdf'),reviewId=invoice.id,reviewNonce=state.invoiceReviewNonce;button.disabled=true;
   try{
-    const r=await fetch('/api/pdf/rechnung/'+encodeURIComponent(state.invoiceEditing.id),{
+    const r=await fetch('/api/pdf/rechnung/'+encodeURIComponent(reviewId),{
       headers:{'Authorization':'Bearer '+state.token}
     });
     if(!r.ok){const error=await r.json().catch(()=>({}));throw new Error(error.error||'HTTP '+r.status);}
-    const blob=await r.blob(),url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;
-    a.download='LSZH_Rechnung_'+state.invoiceEditing.number+'.pdf';
+    const blob=await r.blob();
+    if(state.invoiceEditing?.id!==reviewId||state.invoiceReviewNonce!==reviewNonce||!$('invoiceEditor').open||state.invoiceDirty)return;
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+    a.download='LSZH_Rechnung_'+invoice.number+'.pdf';
     document.body.append(a);a.click();a.remove();
     invoicePdfWasOpened(reviewId,reviewNonce);
     setTimeout(()=>URL.revokeObjectURL(url),300000);
   }catch(error){window.alert('Swiss-QR-PDF nicht verfügbar: '+error.message);}
-  finally{if(state.invoiceEditing?.id===reviewId)button.disabled=state.invoiceDirty||state.invoiceEditing.status!=='Offen';}
+  finally{if(state.invoiceEditing?.id===reviewId&&state.invoiceReviewNonce===reviewNonce)button.disabled=state.invoiceDirty||state.invoiceEditing.status!=='Offen';}
 });
 $('invoiceSend').addEventListener('click',async()=>{
   const invoice=state.invoiceEditing,button=$('invoiceSend');

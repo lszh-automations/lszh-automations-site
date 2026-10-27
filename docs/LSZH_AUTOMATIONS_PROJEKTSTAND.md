@@ -1,3 +1,11 @@
+# Aktuell: Dashboard nur mit persönlichen Aufgaben - 27.10.2026
+
+Live-Revision lszh-crm-v2-00143-yeh, 100 % Verkehr. Das Dashboard zeigt nur konkrete Aktionen für Lars: Kunde/Referenz, Aktion, Öffnen. Keine Kennzahlen, Diagramme, Ansichtswechsel oder Wartevorgänge. Erledigte Aufgaben verschwinden nach Aktualisierung aus den Fachdaten. Vollständiger serverseitiger Scan; zukünftige Wiedervorlagen, frischer Versand und siebentägige Mahnwartezeit werden berücksichtigt. Projektstatus allein erzeugt keine pauschale Aufgabe. Leere Liste und Ladefehler werden unterschieden.
+
+537 CRM-Tests sowie Desktop-/Mobil- und beide GitHub-Prüfungen erfolgreich. Rein lesender Abgleich: 9 konkrete Aufgaben und 6 ausgeblendete wartende Schritte zur Prüfzeit. 82 Laufzeitdateien verglichen, zwei gezielte Änderungen; Konfiguration unverändert. Keine Änderungen an Kundendaten, Nachrichten, Zahlungen, Make-Szenarien, Website oder Portal. [Auswahlregeln](LSZH_DASHBOARD_PERSONAL_TASKS.md) - [Live-Nachweis](../releases/dashboard-personal-tasks-live-20261027.json) - [PR 44](https://github.com/lszh-automations/lszh-automations-site/pull/44).
+
+---
+
 # Aktuell: Drei Dashboard-Ansichten - 27.10.2026
 
 Live-Revision lszh-crm-v2-00141-tim (100 %): Geschäftsüberblick, Finanzen und Monatsrückblick mit getrennten Zeitraumfiltern. Nur Oberfläche geändert, 82 Laufzeitdateien verglichen, Konfiguration unverändert; 529 Tests und Desktop-/Mobilprüfung erfolgreich. Keine Kundendaten-, Nachrichten-, Make- oder Prozessänderung. [Bedienung](LSZH_DASHBOARD_THREE_VIEWS.md) und [Live-Nachweis](../releases/dashboard-three-views-live-20261027.json).

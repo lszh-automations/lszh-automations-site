@@ -1,3 +1,9 @@
+# Historischer Stand - ersetzt durch persönliche Aufgaben
+
+Das Live-Dashboard zeigt ausschliesslich konkrete Aktionen für Lars, keine Kennzahlen oder Auswertungen. [Aktuelle Bedienung und Auswahlregeln](LSZH_DASHBOARD_PERSONAL_TASKS.md). Die folgenden Angaben beschreiben den früheren Stand.
+
+---
+
 # Dashboard: Kennzahlen und filterbare Auswertungen
 
 Stand: 27.10.2026

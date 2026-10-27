@@ -502,13 +502,22 @@ dialog::backdrop{background:#020810c9}.modal-head{padding:22px 24px;border-botto
       <textarea id="projectOnboardingNotes" maxlength="2000" rows="3" placeholder="Was fehlt noch? Keine Passwörter oder Zugangsschlüssel eintragen."></textarea>
       <p class="onboarding-hint">Bestätigungen werden erst mit «Speichern» übernommen. Der Projektstatus bleibt separat. Das CRM prüft keine Make-Einladung automatisch.</p>
     </section>
+    <section class="project-onboarding" aria-labelledby="projectStartTitle">
+      <h3 id="projectStartTitle">Projektstart</h3>
+      <p><span id="projectStartStatus" class="badge"></span></p>
+      <div id="projectStartMissing" aria-live="polite"></div>
+      <p id="projectStartAudit" class="onboarding-hint"></p>
+      <button class="btn primary" type="button" id="projectStart" disabled>Projekt starten</button>
+      <p class="onboarding-hint">Zuerst Änderungen speichern. «Projekt starten» dokumentiert Start und Bearbeiter und setzt den Status auf «In Arbeit». Rechnungs- und Abrechnungsbeginn bleiben separat.</p>
+    </section>
     <section class="project-onboarding" aria-labelledby="projectBillingTitle">
       <h3 id="projectBillingTitle">Rechnungen zu diesem Projekt</h3>
       <div id="projectBilling" aria-live="polite"></div>
       <p class="onboarding-hint">Versand und Zahlung werden getrennt angezeigt. Monatliche Leistungen benötigen einen eigenen festgelegten Abrechnungsbeginn.</p>
     </section>
     <div class="project-tasks-head">
-      <div><strong>Aufgaben</strong><p id="projectProgress">0 von 0 erledigt</p></div>
+      <div><strong>Umsetzungsschritte</strong><p id="projectProgress">0 von 0 erledigt</p></div>
+      <button class="btn" type="button" id="projectTaskTemplate">Umsetzungsschritte ergänzen</button>
       <button class="btn" type="button" id="projectAddTask">+ Aufgabe</button>
     </div>
     <div id="projectTasks" class="project-tasks"></div>
@@ -548,8 +557,8 @@ const definitions={
     ['customerId','Kunde','kunden'],['projectId','Projekt','projekte'],['description','Beschreibung','textarea'],['invoiceDate','Rechnungsdatum','date'],['dueDate','Fällig am','date'],['status','Status','status']
   ],columns:[['number','Nr.'],['description','Beschreibung'],['customerId','Kunde'],['amountCHF','Betrag CHF'],['dueDate','Fällig am'],['status','Status']]},
   projekte:{title:'Projekte',description:'Projekte, Umsetzung und Kundenbetreuung.',fields:[
-    ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['dueDate','Zieltermin','date'],['status','Status','status']
-  ],columns:[['title','Projekt'],['customerId','Kunde'],['onboarding','Onboarding / nächste Aufgabe'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
+    ['customerId','Kunde','kunden'],['offerId','Offerte','offerten'],['title','Projektname','text'],['description','Beschreibung','textarea'],['startDate','Startdatum','date'],['owner','Verantwortliche Person','text'],['dueDate','Zieltermin','date'],['status','Status','status']
+  ],columns:[['title','Projekt'],['customerId','Kunde'],['onboarding','Onboarding / nächste Aufgabe'],['execution','Projektstart / Verantwortlich'],['dueDate','Zieltermin'],['progress','Aufgaben'],['status','Status']]}
 };
 const statuses={leads:['Neu','Kontaktiert','Qualifiziert','Gewonnen','Verloren'],kunden:['Aktiv','Inaktiv'],offerten:['Entwurf','Bereit','Versendet','Angenommen','Abgelehnt'],rechnungen:['Entwurf','Offen','Teilbezahlt','Bezahlt','Storniert'],projekte:['Geplant','In Arbeit','Wartet auf Kunde','Abgeschlossen']};
 const order=['leads','kunden','offerten','rechnungen','projekte'];
@@ -1194,6 +1203,12 @@ function render(){
         const stage=projectOnboardingState(rec);
         td.append(el('span','badge'+(stage.status==='Bereit zur Einrichtung'?' success':''),stage.status));
         const next=el('div','',stage.next);next.style.cssText='max-width:290px;margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted)';td.append(next);
+      }
+      else if(key==='execution'){
+        const stage=projectStartReadiness(rec,localDateKey());
+        td.append(el('span','badge'+(stage.started?' success':''),stage.status));
+        td.append(el('div','',rec.owner||'Verantwortlichkeit offen'));
+        if(rec.startDate)td.append(el('div','',new Intl.DateTimeFormat('de-CH').format(new Date(rec.startDate+'T12:00:00'))+(stage.started?' · gestartet':' · vorgesehen')));
       }
       else if(key==='progress'){const p=projectDoneCount(rec);td.textContent=p.total?(p.done+' / '+p.total+' erledigt'):'Keine Aufgaben';}
       else if(key==='dueDate' && (state.tab==='projekte'||state.tab==='rechnungen')){
@@ -2174,6 +2189,48 @@ function invoicePdfWasOpened(id,nonce){
   $('invoiceReadinessHint').textContent='PDF ist bereit. Bitte PDF und Empfänger kontrollieren und die Prüfung bestätigen. Das CRM kann das Lesen des PDFs nicht automatisch erkennen.';
   updateInvoiceSendAvailability();
 }
+function validProjectStartDay(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const date=new Date(value+'T12:00:00Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
+}
+function projectStartReadiness(project,today){
+  const missing=[],o=project?.onboarding;
+  if(!project?.customerId)missing.push('Kunden zuordnen');
+  if(typeof o?.makeRequired!=='boolean')missing.push('Make-Bedarf klären');
+  if(o?.makeRequired===true&&o?.invitationConfirmed!==true)missing.push('Make-Einladung prüfen');
+  if(o?.accessConfirmed!==true)missing.push('Zugänge und Berechtigungen prüfen');
+  if(!validProjectStartDay(project?.startDate))missing.push('Gültiges Startdatum festlegen');
+  else if(project.startDate>today)missing.push('Startdatum liegt noch in der Zukunft');
+  if(typeof project?.owner!=='string'||!project.owner.trim())missing.push('Verantwortliche Person eintragen');
+  if(!Array.isArray(project?.tasks)||!project.tasks.length)missing.push('Mindestens einen Umsetzungsschritt festlegen');
+  const started=Boolean(project?.startedAt),closed=project?.status==='Abgeschlossen';
+  return {canStart:!started&&!closed&&!missing.length,started,missing,
+    status:started?'Projektstart dokumentiert':closed?'Projekt abgeschlossen':project?.status==='In Arbeit'?'In Arbeit – Start noch nicht dokumentiert':missing.length?'Projektstart vorbereiten':'Bereit zum Projektstart'};
+}
+function projectFormPayload(){
+  const data={},form=$('projectForm');
+  for(const key of ['customerId','offerId','title','description','startDate','owner','dueDate','status'])data[key]=form.elements.namedItem(key)?.value??'';
+  if(state.projectEditing?.offerId){data.offerId=state.projectEditing.offerId;data.customerId=state.projectEditing.customerId||'';}
+  data.tasks=projectTasksFromForm();data.onboarding=projectOnboardingFromForm();
+  return data;
+}
+function renderProjectStart(){
+  const current=state.projectEditing,form=$('projectForm');
+  const dirty=JSON.stringify(projectFormPayload())!==state.projectSavedPayload;
+  const stage=projectStartReadiness({...projectFormPayload(),startedAt:current?.startedAt},localDateKey());
+  $('projectStartStatus').textContent=stage.status;
+  $('projectStartStatus').className='badge'+(stage.started?' success':'');
+  const missing=$('projectStartMissing');missing.replaceChildren();
+  if(!stage.started){
+    const list=el('ul');for(const item of stage.missing)list.append(el('li','',item));missing.append(list);
+  }
+  $('projectStartAudit').textContent=current?.startedAt?'Startdatum: '+(current.startDate||'–')+' · dokumentiert am '+new Date(current.startedAt).toLocaleString('de-CH')+' durch '+(current.startedBy||'–'):
+    !current?'Projekt zuerst speichern.':dirty?'Ungespeicherte Änderungen – zuerst speichern.':'Der Projektstart wurde noch nicht dokumentiert.';
+  $('projectStart').hidden=stage.started;
+  $('projectStart').disabled=!current||dirty||!stage.canStart||state.projectStarting===true;
+  const start=form.elements.namedItem('startDate');if(start)start.disabled=stage.started;
+}
 function projectOnboardingState(project){
   const o=project?.onboarding;
   if(typeof o?.makeRequired!=='boolean')return {status:'Make-Bedarf klären',next:'Klären, ob für diesen Auftrag eine eigene Make-Organisation benötigt wird.'};
@@ -2193,12 +2250,14 @@ function renderProjectOnboarding(){
   $('projectOnboardingStatus').textContent=stage.status;
   $('projectOnboardingStatus').className='badge'+(stage.status==='Bereit zur Einrichtung'?' success':'');
   $('projectOnboardingNext').textContent=stage.next;
+  renderProjectStart();
 }
 function renderProjectProgress(){
   const rows=$('projectTasks').children;
   let completed=0;
   for(const row of rows)if(row._taskFields?.done.checked)completed++;
   $('projectProgress').textContent=completed+' von '+rows.length+' erledigt';
+  renderProjectStart();
 }
 function addProjectTask(task={},focusInput=true){
   if($('projectTasks').children.length>=30){
@@ -2256,7 +2315,7 @@ function openProjectEditor(record=null,draft=null){
   $('projectAccessConfirmed').checked=onboarding.accessConfirmed===true;
   $('projectOnboardingNotes').value=onboarding.notes||'';
   renderProjectOnboarding();
-  const fields=['customerId','offerId','title','description','dueDate','status'];
+  const fields=['customerId','offerId','title','description','startDate','owner','dueDate','status'];
   for(const [key,label,type] of definitions.projekte.fields){
     if(!fields.includes(key))continue;
     const value=record?.[key]??draft?.[key];
@@ -2264,6 +2323,10 @@ function openProjectEditor(record=null,draft=null){
     if(record?.offerId && (key==='offerId'||key==='customerId')){
       const input=field.querySelector('input,select,textarea');
       if(input)input.disabled=true;
+    }
+    if(key==='owner'){const input=field.querySelector('input');input.maxLength=180;input.placeholder='Name oder E-Mail';}
+    if(key==='status'&&!record?.startedAt&&record?.status!=='In Arbeit'){
+      const option=[...field.querySelector('select').options].find(o=>o.value==='In Arbeit');if(option)option.disabled=true;
     }
     $('projectFields').append(field);
   }
@@ -2285,6 +2348,8 @@ function openProjectEditor(record=null,draft=null){
   };
   $('projectCustomerOpen').onclick=()=>{ $('projectEditor').close();navigateTo('kunden',customer); };
   $('projectOfferOpen').onclick=()=>{ $('projectEditor').close();navigateTo('offerten',offer); };
+  state.projectSavedPayload=JSON.stringify(projectFormPayload());
+  renderProjectStart();
   $('projectEditor').showModal();
   renderProjectBilling(record);
 }
@@ -2891,21 +2956,30 @@ $('projectInvitationConfirmed').addEventListener('change',()=>{
   renderProjectOnboarding();
 });
 $('projectAccessConfirmed').addEventListener('change',renderProjectOnboarding);
+$('projectForm').addEventListener('input',renderProjectStart);
+$('projectForm').addEventListener('change',renderProjectStart);
+$('projectTaskTemplate').addEventListener('click',()=>{
+  const titles=['Vereinbarten Ablauf und Umfang abstimmen','Automation einrichten','Mit Testdaten prüfen und Ergebnis dokumentieren','Mit Kunde abnehmen und übergeben'];
+  const existing=projectTasksFromForm().map(t=>t.title.toLocaleLowerCase('de-CH'));
+  const additions=titles.filter(t=>!existing.includes(t.toLocaleLowerCase('de-CH')));
+  if(projectTasksFromForm().length+additions.length>30){$('projectError').textContent='Für diese Schritte reichen die verbleibenden Aufgabenplätze nicht aus (maximal 30).';$('projectError').hidden=false;return;}
+  for(const title of additions)addProjectTask({title,done:false},false);
+});
+$('projectStart').addEventListener('click',async()=>{
+  if($('projectStart').disabled)return;
+  const current=state.projectEditing;
+  state.projectStarting=true;renderProjectStart();$('projectError').hidden=true;
+  try{
+    const result=await api('/api/records/projekte/'+encodeURIComponent(current.id)+'/start',{method:'POST',body:'{}'});
+    $('projectEditor').close();
+    await loadAll();
+    openProjectEditor(result.record);
+  }catch(error){$('projectError').textContent='Projektstart nicht bestätigt: '+error.message+' Bei unklarer Antwort Projekt erneut öffnen und Stand prüfen.';$('projectError').hidden=false;}
+  finally{state.projectStarting=false;renderProjectStart();}
+});
 $('projectForm').addEventListener('submit',async event=>{
   event.preventDefault();
-  const form=$('projectForm');
-  const data={};
-  for(const key of ['customerId','offerId','title','description','dueDate','status']){
-    const field=form.elements.namedItem(key);
-    data[key]=field?.value??'';
-  }
-  if(state.projectEditing?.offerId){
-    // Preserves the accepted-offer/customer linkage on the existing project.
-    data.offerId=state.projectEditing.offerId;
-    data.customerId=state.projectEditing.customerId||'';
-  }
-  data.tasks=projectTasksFromForm();
-  data.onboarding=projectOnboardingFromForm();
+  const data=projectFormPayload();
   const error=$('projectError');
   error.hidden=true;
   if(!data.title.trim()||data.tasks.some(x=>!x.title)){

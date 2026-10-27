@@ -140,8 +140,8 @@ test('project tasks save without breaking won links',async()=>{
   await store.update('leads',lead.id,{status:'Qualifiziert'},admin);
   await store.update('leads',lead.id,{status:'Gewonnen'},admin);
   const project=(await store.list('projekte'))[0];
-  const changed=await store.update('projekte',project.id,{status:'In Arbeit',dueDate:'2026-12-01',tasks:[{title:'Testen',done:true}]},admin);
-  assert.equal(changed.status,'In Arbeit');
+  const changed=await store.update('projekte',project.id,{status:'Geplant',dueDate:'2026-12-01',tasks:[{title:'Testen',done:true}]},admin);
+  assert.equal(changed.status,'Geplant');
   assert.deepEqual(changed.tasks,[{title:'Testen',done:true}]);
   await assert.rejects(store.update('projekte',project.id,{customerId:'other'},admin),/darf nicht geändert werden/);
 });
@@ -935,4 +935,51 @@ test('legacy freeze uses available historical evidence and later edits do not mo
  const fixed=freezeLeadUrgency(legacy,'Qualifiziert','2026-10-26T08:00:00Z');assert.equal(fixed.urgencyFrozenAt,'2026-10-20T10:00:00.000Z');
  assert.equal(leadColourTime({...legacy,...fixed,updatedAt:'2026-11-20T08:00:00Z'}),Date.parse(fixed.urgencyFrozenAt));
  assert.deepEqual(freezeLeadUrgency({...legacy,...fixed},'Verloren','2026-11-20T08:00:00Z'),{});
+});
+
+
+test('project start requires saved prerequisites and writes only the project with server-owned audit',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const customer=await store.create('kunden',{company:'TEST_ONLY start'},admin);
+ const project=await store.create('projekte',{title:'TEST_ONLY start',customerId:customer.id},admin);
+ const before=JSON.stringify([...db.storage]);
+ await assert.rejects(()=>store.startProject(project.id,admin),e=>e.status===409&&e.message.includes('Make-Bedarf'));
+ assert.equal(JSON.stringify([...db.storage]),before);
+ await assert.rejects(()=>store.update('projekte',project.id,{status:'In Arbeit'},admin),e=>e.status===409);
+ await assert.rejects(()=>store.create('projekte',{title:'TEST_ONLY bypass',status:'In Arbeit'},admin),e=>e.status===409);
+ const ready=await store.update('projekte',project.id,{startDate:'2020-01-02',owner:' Verantwortlich ',tasks:[{title:'Einrichten',done:false}],onboarding:{makeRequired:true,invitationConfirmed:true,accessConfirmed:true,notes:''},startedAt:'FORGED',startedBy:'FORGED'},admin);
+ assert.equal(ready.owner,'Verantwortlich');assert.equal(ready.startedAt,undefined);
+ const otherRecords=JSON.stringify([...db.storage].filter(([k])=>!k.includes('_projekte/')));
+ const started=await store.startProject(project.id,admin);
+ assert.equal(started.status,'In Arbeit');assert.equal(started.startDate,'2020-01-02');assert.equal(started.startedBy,admin.email);assert.ok(Number.isFinite(Date.parse(started.startedAt)));
+ assert.equal(JSON.stringify([...db.storage].filter(([k])=>!k.includes('_projekte/'))),otherRecords);
+ assert.equal((await store.startProject(project.id,{email:'other@example.invalid'})).startedAt,started.startedAt);
+ assert.equal((await store.get('projekte',project.id)).startedBy,admin.email);
+ await store.update('projekte',project.id,{status:'Wartet auf Kunde',owner:'Neue Verantwortung'},admin);
+ const paused=JSON.stringify(await store.get('projekte',project.id));
+ await store.startProject(project.id,admin);
+ assert.equal(JSON.stringify(await store.get('projekte',project.id)),paused);
+ await assert.rejects(()=>store.update('projekte',project.id,{startDate:'2020-01-03'},admin),e=>e.status===409);
+ await store.update('projekte',project.id,{status:'In Arbeit'},admin);
+ assert.equal((await store.get('projekte',project.id)).startedAt,started.startedAt);
+});
+test('project start validates dates, owner, closed state, missing customer and actual saved checks',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ const customer=await store.create('kunden',{company:'TEST_ONLY dates'},admin);
+ const ready={title:'TEST_ONLY ready',customerId:customer.id,startDate:'2020-01-02',owner:'TEST_ONLY',tasks:[{title:'Setup',done:false}],onboarding:{makeRequired:false,invitationConfirmed:false,accessConfirmed:true,notes:''}};
+ await assert.rejects(()=>store.create('projekte',{...ready,startDate:'2026-02-30'},admin),/Startdatum/);
+ await assert.rejects(()=>store.create('projekte',{...ready,owner:'x'.repeat(181)},admin),/180/);
+ for(const patch of [{startDate:'2999-01-01'},{owner:''},{tasks:[]},{customerId:''},{onboarding:{...ready.onboarding,accessConfirmed:false}},{status:'Abgeschlossen'}]){
+  const p=await store.create('projekte',{...ready,...patch},admin),before=JSON.stringify([...db.storage]);
+  await assert.rejects(()=>store.startProject(p.id,admin),e=>e.status===409);assert.equal(JSON.stringify([...db.storage]),before);
+ }
+ await assert.rejects(()=>store.startProject('missing',admin),e=>e.status===404);
+});
+test('legacy active project remains editable without inventing a historic project start',async()=>{
+ const db=fakeFirestore(),store=buildStore(db,'lszh_crm_v2_staging_');
+ db.storage.set('lszh_crm_v2_staging_projekte/legacy_start',{title:'Bestand',status:'In Arbeit',tasks:[]});
+ const before=JSON.stringify([...db.storage]);await store.get('projekte','legacy_start');assert.equal(JSON.stringify([...db.storage]),before);
+ const saved=await store.update('projekte','legacy_start',{status:'In Arbeit',tasks:[{title:'Weiterarbeiten',done:false}]},admin);
+ assert.equal(saved.startedAt,undefined);assert.equal(saved.owner,undefined);assert.equal(saved.startDate,undefined);
+ await assert.rejects(()=>store.startProject('legacy_start',admin),e=>e.status===409);
 });

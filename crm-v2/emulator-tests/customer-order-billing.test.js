@@ -60,3 +60,18 @@ test('project invoice review reads the actual accepted-order draft without chang
  assert.equal((await a.store.invoiceReview(invoice.id)).readiness.canSend,true);
  assert.deepEqual(await a.store.get('offerten',offer.id),accepted);
 });
+
+
+test('concurrent project starts persist one audit and leave linked commercial records unchanged',async()=>{
+ const a=setup(),b=setup(),customer=await a.store.create('kunden',{company:'TEST_ONLY start '+randomUUID()},user);
+ const offer=await a.store.create('offerten',{customerId:customer.id,title:'TEST_ONLY start',items:[{title:'Setup',qty:1,unitPriceCHF:100,mode:'einmalig'}]},user);
+ await a.store.update('offerten',offer.id,{status:'Angenommen'},user);
+ const accepted=await a.store.get('offerten',offer.id),invoice=await a.store.get('rechnungen',accepted.initialInvoiceId),id=invoice.projectId;
+ await assert.rejects(()=>a.store.startProject(id,user),e=>e.status===409);
+ await a.store.update('projekte',id,{startDate:'2020-01-02',owner:'TEST_ONLY responsible',tasks:[{title:'Umsetzen',done:false}],onboarding:{makeRequired:true,invitationConfirmed:true,accessConfirmed:true,notes:''}},user);
+ const result=await Promise.all([a.store.startProject(id,user),b.store.startProject(id,{email:'other@example.invalid'})]);
+ assert.equal(result[0].startedAt,result[1].startedAt);assert.equal(result[0].startedBy,result[1].startedBy);assert.equal(result[0].status,'In Arbeit');
+ await a.store.update('projekte',id,{status:'Wartet auf Kunde'},user);const paused=await a.store.get('projekte',id);
+ assert.deepEqual(await b.store.startProject(id,user),paused);
+ assert.deepEqual(await a.store.get('offerten',offer.id),accepted);assert.deepEqual(await a.store.get('rechnungen',invoice.id),invoice);
+});

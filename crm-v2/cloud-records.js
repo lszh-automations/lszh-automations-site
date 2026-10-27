@@ -6,7 +6,7 @@
 const {quoteTotals,existingLines}=require('./offer-pricing');
 const {invoiceTotals,isInvoiceLocked,invoiceReadiness}=require('./invoice-pricing');
 const {normalizePayment,paidCents,outstandingCents,localSwissDate}=require('./invoice-accounting');
-const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding}=require('./project-tasks');
+const {cleanProjectTasks,cleanProjectOnboarding,defaultOnboarding,validProjectStartDay,projectStartReadiness}=require('./project-tasks');
 const {LEAD_STATES}=require('./lead-lifecycle');
 const {randomUUID,createHash}=require('node:crypto');
 const {MAX_CONTACTS,validateContact,shouldMarkContacted,followUpFields,freezeLeadUrgency}=require('./lead-contact');
@@ -25,7 +25,7 @@ const FIELDS={
   kunden:['company','contactName','email','street','postalCode','city','country','notes','status'],
   offerten:['leadId','customerId','title','description','items','oneTimeCHF','monthlyCHF','validUntil','status'],
   rechnungen:['customerId','projectId','description','invoiceDate','items','amountCHF','dueDate','status'],
-  projekte:['customerId','offerId','title','description','dueDate','tasks','onboarding','status']
+  projekte:['customerId','offerId','title','description','dueDate','startDate','owner','tasks','onboarding','status']
 };
 const REQUIRED={
   leads:['name','company','email','street','postalCode','city','country'],
@@ -60,6 +60,8 @@ function clean(table,input){
     }
     if(typeof value!=='string'||value.length>5000)throw err('Ungültiges Feld: '+field);
     const text=value.trim();
+    if(field==='owner'&&text.length>180)throw err('Verantwortliche Person maximal 180 Zeichen');
+    if(field==='startDate'&&text&&!validProjectStartDay(text))throw err('Ungültiges Startdatum');
     if(field==='nextAction'&&text.length>180)throw err('Nächste Aktion maximal 180 Zeichen');
     if(field==='qualificationNotes'&&text.length>2000)throw err('Qualifizierungsnotizen maximal 2000 Zeichen');
     if(field==='budgetRange'&&text.length>100)throw err('Budgetrahmen maximal 100 Zeichen');
@@ -396,6 +398,27 @@ function buildStore(db,prefix){
     const [customer,project]=await Promise.all([record.customerId?get('kunden',record.customerId):null,record.projectId?get('projekte',record.projectId):null]);
     return {record,customer,readiness:invoiceReadiness(record,customer,project)};
   }
+  // Explicit saved-project start; a repeated request never restarts a paused project.
+  async function startProject(id,user){
+    const ref=col('projekte').doc(id),date=now();
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw err('Projekt nicht gefunden',404);
+      const project=snap.data();
+      if(project.startedAt)return;
+      if(project.status==='Abgeschlossen')throw err('Abgeschlossenes Projekt kann nicht gestartet werden',409);
+      const readiness=projectStartReadiness(project,localSwissDate(new Date(date)));
+      if(!readiness.canStart)throw err('Projektstart noch nicht möglich: '+readiness.missing.join('; '),409);
+      verify('projekte',project);
+      cleanProjectTasks(project.tasks);
+      cleanProjectOnboarding(project.onboarding);
+      await assertCustomer(tx,project.customerId);
+      await acceptedOffer(tx,project.offerId);
+      tx.update(ref,audit({status:'In Arbeit',startedAt:date,startedBy:user.email},user,date));
+    });
+    return toObject(await ref.get());
+  }
+
   async function projectBilling(id){
     const project=await get('projekte',id);
     if(!project)throw err('Projekt nicht gefunden',404);
@@ -462,6 +485,7 @@ function buildStore(db,prefix){
         tx.create(ref,newRecord({...input,number:String(counter.next)},user,date));
       }
       if(table==='projekte'){
+        if(input.status==='In Arbeit')throw err('Projekt zuerst vorbereiten und über «Projekt starten» beginnen',409);
         await assertCustomer(tx,input.customerId);
         await acceptedOffer(tx,input.offerId);
         if(input.offerId&&await queryOne(tx,'projekte','offerId',input.offerId))
@@ -584,6 +608,10 @@ function buildStore(db,prefix){
         return;
       }
       if(table==='projekte'){
+        if(input.status==='In Arbeit'&&before.status!=='In Arbeit'&&!before.startedAt)
+          throw err('Projekt über «Projekt starten» beginnen; zuerst Voraussetzungen prüfen',409);
+        if(before.startedAt&&input.startDate!==undefined&&input.startDate!==before.startDate)
+          throw err('Dokumentiertes Startdatum darf nicht geändert werden',409);
         if(before.offerId&&input.offerId!==undefined&&input.offerId!==before.offerId)
           throw err('Angenommene Offerte eines Projekts darf nicht geändert werden');
         if(before.offerId&&input.customerId!==undefined&&input.customerId!==before.customerId)
@@ -1008,6 +1036,6 @@ function buildStore(db,prefix){
     });
     return {id,deleted:true};
   }
-  return {invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
+  return {startProject,invoiceReview,projectBilling,ensureInitialInvoice,ensureCustomerNumber,TABLES,list,listPage,searchPage,scan,get,create,update,remove,addContact,recordOfferDispatch,recordOfferFollowUp,claimOfferSend,recordOfferDispatchSnapshot,finishOfferSend,resolveOfferSend,claimInvoiceSend,finishInvoiceSend,resolveInvoiceSend,recordInvoicePayment,reverseInvoicePayment,recordInvoiceReminder,reminders,clean};
 }
 module.exports={buildStore,clean,TABLES,STATUS};

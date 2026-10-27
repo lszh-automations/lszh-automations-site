@@ -1,3 +1,5 @@
+> Aktuelle Bedienung seit 27.10.2026: [Vereinfachte Offertenansicht](LSZH_OFFER_VIEW.md). Der folgende Abschnitt dokumentiert den historischen Funktionsnachweis und Integrationsstand seiner Einführung.
+
 # Auftragsbestätigung und Annahmebenachrichtigung
 
 Stand: 26.10.2026. **Live aktiviert:** CRM `lszh-crm-v2-00085-tep` und Kundenportal `lszh-customer-acceptance-pilot-00009-rob`, jeweils 100 % regul�rer Verkehr. Umsetzung auf Basis des bereits produktiven Make-Hinweises. Die vollständige Kundenannahme und C3.7.2 waren bereits funktionsfähig.

@@ -28,3 +28,10 @@ Diese Änderung betrifft die Oberfläche. Endpunkte, Statusregeln, Kundenzuordnu
 493 CRM-Tests erfolgreich. Die vorhandenen Tests für Paketversand, bewusste Prüfungen, Annahmefreigabe, Auftragsbestätigung und Schutz gegen doppelte Aktionen bleiben vollständig erhalten; lediglich die Extraktionsgrenze des UI-Testprogramms wurde an die asynchrone Darstellungsfunktion angepasst.
 
 Desktop und Mobil mit blockiertem externem Netzwerk geprüft: eine aktive Ansicht, Versand erst nach ausdrücklichen Prüfungen, Nachfassen ohne parallele manuelle Annahme, sofort sichtbare Online-Annahme, ausstehender Archivnachweis, Auftragsbestätigung, unklare Versände, Lesefehler/Wiederholung, ungespeicherte Änderungen, veraltete Antworten beim erneuten Öffnen, Erhalt zugeklappter Felder, bestehender CRM-Ablauf ohne Online-Annahme sowie vollständig sichtbare Fusszeilenknöpfe. Alle Versandklicks waren simuliert; keine Kundenmail.
+
+
+## Live-Nachweis
+
+Aktiv seit 27.10.2026: **`lszh-crm-v2-00113-gac`**, 100 % Verkehr. Alle 80 gebauten Laufzeitdateien exakt bestätigt; gegenüber der vorherigen Revision nur `public/index.html` geändert. Konfiguration und Dienstkonto unverändert. Beide GitHub-Prüfungen einschliesslich Firestore-Emulatortests erfolgreich. Live-Oberfläche HTTP 200; der Vertragsstatus ist anonym HTTP 401. Keine Fehlerlogs der neuen Revision im abschliessend kontrollierten Zeitfenster. Keine Kundendatensätze, Zuordnungen, Preise oder Dokumente verändert; keine Mail, Rechnung oder Auftragsübernahme ausgelöst. Offerte 1003 bleibt wie gewünscht unzugeordnet. Website, Portal und Make unverändert.
+
+[PR 32](https://github.com/lszh-automations/lszh-automations-site/pull/32) · [Live-Nachweis](../releases/simple-offers-live-20261027.json). Rückfallrevision: `lszh-crm-v2-00111-yaf`.

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-10-27",
+  "status": "live",
+  "featureCommit": "b5a020614d5348cc3a968a49aa1253c77cdef8a5",
+  "parentRelease": "customer-overview-live-20261027.json",
+  "service": "lszh-crm-v2",
+  "revision": "lszh-crm-v2-00113-gac",
+  "rollback": "lszh-crm-v2-00111-yaf",
+  "image": "europe-west6-docker.pkg.dev/lszh-automations/cloud-run-source-deploy/lszh-crm-v2@sha256:7ef7f6f007dc6a0b88f23592124ceda68d0cc410081b604be4a2797ff3de11b0",
+  "buildId": {
+    "lszh-crm-v2-1": "477c522b-0d5e-4b7b-a091-6bbd4f155ebd"
+  },
+  "configurationSha256": "bdc8b6dd59342205d63610e3e68ea5fa9477fc6589c8026f661f6965496e03c3",
+  "serviceAccount": "lszh-crm-v2@lszh-automations.iam.gserviceaccount.com",
+  "sourceArchive": {
+    "lszh-crm-v2-1": "gs://run-sources-lszh-automations-europe-west6/services/lszh-crm-v2/1793117427.378785-8b95fac2e2ba45c7a86d050e0385aa56.zip#1793117429524563"
+  },
+  "configurationUnchanged": true,
+  "runtimeFilesVerified": 80,
+  "changedRuntimeFiles": [
+    {
+      "path": "public/index.html",
+      "sha256": "7114abd6aa6639cf59f700a624027c1a116abf2c09c7f659cb670d00a66e509a",
+      "bytes": 216436
+    }
+  ],
+  "trafficPercent": 100,
+  "recentErrorLogCount": 0,
+  "crmTests": 493,
+  "sourceCommitGithubChecks": "success",
+  "firestoreEmulatorChecks": "success",
+  "portalRegressionChecks": "success",
+  "githubWorkflowRuns": [
+    {
+      "id": 40538218462,
+      "name": "CRM V2 Cloud Staging Tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 40538217917,
+      "name": "Production baseline verification",
+      "conclusion": "success"
+    }
+  ],
+  "browserVariantsChecked": [
+    "desktop",
+    "mobile"
+  ],
+  "browserTestsUseOnlySyntheticData": true,
+  "canary": {
+    "url": "https://simple-offers-v1---lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+    "indexStatus": 200,
+    "unifiedOfferUi": true,
+    "anonymousContractStatus": 401
+  },
+  "live": {
+    "url": "https://lszh-crm-v2-ozx7mp2bka-oa.a.run.app",
+    "indexStatus": 200,
+    "unifiedOfferUi": true,
+    "anonymousContractStatus": 401
+  },
+  "viewChanges": [
+    "One current offer workflow",
+    "Customer/title/validity/status and positions in foreground",
+    "Description and lead linkage collapsed",
+    "Make notes and followup/history collapsed",
+    "Only appropriate active action path",
+    "Footer actions remain visible on mobile"
+  ],
+  "dirtyAndStaleResponseGuardsVerified": true,
+  "uncertainSendsDoNotOfferResending": true,
+  "collapsedFieldsPreservedOnSave": true,
+  "backendAndBusinessRulesUnchanged": true,
+  "customerDataChanged": false,
+  "migrationPerformed": false,
+  "emailSent": false,
+  "invoiceCreated": false,
+  "documentsChanged": false,
+  "customerLinksChanged": false,
+  "offer1003AssignmentUnchanged": true,
+  "websitePortalAndMakeUnchanged": true,
+  "pullRequest": "https://github.com/lszh-automations/lszh-automations-site/pull/32"
+}

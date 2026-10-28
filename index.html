@@ -436,6 +436,7 @@ select option{color:#111;background:#fff}
       <a href="#beispiel">Beispiel</a>
       <a href="#kmu">KMU-Fokus</a>
       <a href="#ablauf">Ablauf</a>
+      <a href="https://portal.lszh-automations.ch/">Kundenlogin</a>
     </nav>
     <a class="nav-cta" href="#kontakt">Projekt besprechen</a>
     <button class="menu" aria-label="Menü öffnen" aria-expanded="false">☰</button>
@@ -446,6 +447,7 @@ select option{color:#111;background:#fff}
     <a href="#kmu">KMU-Fokus</a>
     <a href="#ablauf">Ablauf</a>
     <a href="#kontakt">Projekt besprechen</a>
+      <a href="https://portal.lszh-automations.ch/">Kundenlogin</a>
   </nav>
 </header>
 
@@ -1008,7 +1010,7 @@ const legalTexts={
   `,
   datenschutz:`
     <h2>Datenschutzerklärung</h2>
-    <p><strong>Stand: 23. Oktober 2026</strong></p>
+    <p><strong>Stand: 28. Oktober 2026</strong></p>
 
     <h3>1. Verantwortlicher</h3>
     <p>
@@ -1029,7 +1031,7 @@ const legalTexts={
     <p>Für den Betrieb dieser Website und unserer weiteren Leistungen setzen wir insbesondere folgende Dienstleister ein:</p>
     <ul>
       <li><strong>Render</strong> für das Hosting der öffentlichen Website und die serverseitigen Website-Schnittstellen,</li>
-      <li><strong>Google Cloud (Cloud Run und Firestore)</strong> für die Verarbeitung und Speicherung der eingehenden Kontaktanfragen und internen CRM-Daten,</li>
+      <li><strong>Google Cloud (Firebase Hosting, Cloud Run und Firestore)</strong> für die Verarbeitung und Speicherung der eingehenden Kontaktanfragen und internen CRM-Daten,</li>
       <li><strong>Google / Gmail</strong> für geschäftliche Kommunikation und gegebenenfalls interne Benachrichtigungen,</li>
       <li><strong>Make</strong> für separat eingerichtete Automationsabläufe und, soweit genutzt, die technische Verarbeitung beim sicheren Zugangsdaten-Transfer. Dabei können spezialisierte externe Datenspeicherdienste für die verschlüsselte Ablage eingesetzt werden.</li>
     </ul>
@@ -1060,7 +1062,12 @@ const legalTexts={
     <h3>11. Kundenprojekte und Auftragsbearbeitung</h3>
     <p>Wenn LSZH Automations im Rahmen eines Kundenprojekts Personendaten im Auftrag eines Kunden bearbeitet, werden die projektbezogenen Datenschutzpflichten und eingesetzten Unterauftragsbearbeiter bei Bedarf zusätzlich vertraglich geregelt.</p>
 
-    <h3>12. Änderungen</h3>
+    <h3>12. Kundenportal</h3>
+    <p>Das Kundenportal wird auf Firebase Hosting und Google Cloud Run betrieben. Den Zugang geben wir für einen bestehenden CRM-Kunden und die dort gespeicherte Kontaktadresse manuell frei. Auf Ihre ausdrückliche Anforderung versenden wir einen achtstelligen Einmalcode über eine getrennte Make- und Gmail-Versandstrecke. Hierfür bearbeiten diese Dienste die Empfängeradresse, den Code, die Nachricht und technische Versandkennungen. Die Nachrichten enthalten keine Vertrags- oder Rechnungsanhänge.</p>
+    <p>Ein Code ist zehn Minuten gültig und einmal verwendbar. Für die Anmeldung setzen wir ein technisch notwendiges, sicheres Sitzungscookie mit einer regulären maximalen Laufzeit von 30 Minuten ein. Im Portal werden Sitzungstokens nur als Hash und noch benötigte Codes verschlüsselt gespeichert. Die Schweizer Portal-Sicherheitsdatenbank ist von den CRM-Geschäftsdaten getrennt. Projektinformationen und bereitgestellte Dokumente werden anhand Ihrer tatsächlichen Berechtigung aus dem CRM bzw. dem privaten Archiv gelesen. Aktuelle Rechnungskopien sind als solche gekennzeichnet.</p>
+    <p>Zum Schutz vor Missbrauch und zur Nachvollziehbarkeit erfassen wir insbesondere Freigaben, Codeanforderungen, bestätigte Zustellungen, Anmeldungen und Dokumentzugriffe. Kurzlebige technische Zustände sind grundsätzlich 24 Stunden nach ihrem Ablauf zur automatischen Löschung vorgesehen; Portal-Auditdaten nach 30 Tagen. Die automatische Löschung erfolgt zeitversetzt. Zugangsfreigaben werden bis zur Sperrung oder Beendigung des Zugangs verwaltet. Für geschäftliche E-Mails, CRM-Daten und Originalunterlagen gilt die oben beschriebene Aufbewahrung. Im Kundenportal verwenden wir keine zusätzlichen Analyse- oder Werbetracker und keine extern geladenen Webfonts.</p>
+
+    <h3>13. Änderungen</h3>
     <p>Wir können diese Datenschutzerklärung anpassen, wenn sich unsere Datenbearbeitungen, eingesetzten Dienste oder rechtlichen Anforderungen ändern. Es gilt die jeweils auf dieser Website veröffentlichte Fassung.</p>
   `
 };

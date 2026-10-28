@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "LOCAL_PREVIEW_TESTED_NOT_DEPLOYED",
+  "baseCommit": "4bc05f381af9b4627ed019985c214ff55b94d6f5",
+  "baseBranch": "fix/project-task-start-readiness",
+  "runtimeChanges": [
+    {
+      "path": "crm-v2/acceptance-public/contract-acceptance.html",
+      "sha256": "426b5d161d3953390e9e74716fe14dda6ea9238943706b79df466282da251f32"
+    },
+    {
+      "path": "crm-v2/acceptance-public/contract-acceptance.css",
+      "sha256": "958eb68ef0276a682206aed44d46a5faf5b97a97d19f655932b5ffa518c79363"
+    },
+    {
+      "path": "crm-v2/acceptance-public/contract-acceptance.js",
+      "sha256": "700b50d438ef0aed12c35ee3959c6be6f1137ef27cd42f9ea5b154d2edb3f961"
+    },
+    {
+      "path": "crm-v2/customer-portal/acceptance-public/contract-acceptance.html",
+      "sha256": "426b5d161d3953390e9e74716fe14dda6ea9238943706b79df466282da251f32"
+    },
+    {
+      "path": "crm-v2/customer-portal/acceptance-public/contract-acceptance.css",
+      "sha256": "958eb68ef0276a682206aed44d46a5faf5b97a97d19f655932b5ffa518c79363"
+    },
+    {
+      "path": "crm-v2/customer-portal/acceptance-public/contract-acceptance.js",
+      "sha256": "700b50d438ef0aed12c35ee3959c6be6f1137ef27cd42f9ea5b154d2edb3f961"
+    }
+  ],
+  "tests": {
+    "crm": {
+      "passed": 553,
+      "failed": 0
+    },
+    "portal": {
+      "passed": 32,
+      "failed": 0
+    },
+    "historicalProductionFiles": 101,
+    "browser": [
+      {
+        "scenario": "desktop",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "mobile",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "narrow",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "test-only",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "reduced-motion",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "error",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "malformed",
+        "result": "PASS",
+        "posts": 1
+      },
+      {
+        "scenario": "lost-ack",
+        "result": "PASS",
+        "posts": 1
+      }
+    ]
+  },
+  "liveReadOnly": {
+    "checkedAt": "2026-10-28T10:35:48.512Z",
+    "origin": "https://lszh-customer-acceptance-pilot-470613067122.europe-west6.run.app",
+    "results": [
+      {
+        "route": "/acceptance.js",
+        "status": 200,
+        "matchesRepositoryBaseline": true,
+        "sha256": "f9ae3cca8862df2d7a6a3a2cfc4b7cbae4f94cca1c9accdc25ed149759db1da7"
+      },
+      {
+        "route": "/acceptance.css",
+        "status": 200,
+        "matchesRepositoryBaseline": true,
+        "sha256": "d14a4e23f39ff3037be73ae94adaaea0aa0542b51addf6367134378fac23262b"
+      },
+      {
+        "route": "/health",
+        "status": 404
+      },
+      {
+        "route": "/api/acceptance",
+        "status": 404
+      },
+      {
+        "route": "/api/health",
+        "status": 200,
+        "body": {
+          "ok": true,
+          "mode": "customer"
+        }
+      }
+    ]
+  },
+  "deployment": {
+    "performed": false,
+    "reason": "Cloud CLI reauthentication required; current revision and traffic not independently refreshed. Existing release gates retained."
+  }
+}

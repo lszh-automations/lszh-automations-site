@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id);
-  let token=location.hash.slice(1),pkg=null,busy=false,challengeId=null;
+  let token=location.hash.slice(1),pkg=null,busy=false,completed=false,challengeId=null;
   history.replaceState(null,'',location.pathname);
   const labels={offer:'Offerte',terms:'Projektbedingungen',avv:'AVV und zugehörige Anlagen'};
   const errors={LOGIN_CODE_INVALID:'Der Code ist ungültig oder abgelaufen. Bitte prüfen Sie den Code.',LOGIN_RATE_LIMITED:'Bitte warten Sie, bevor Sie einen neuen Code anfordern.',LOGIN_DELIVERY_FAILED:'Der Code konnte nicht versendet werden. Bitte wenden Sie sich an LSZH.',LINK_EXPIRED:'Dieser Link ist abgelaufen. Bitte wenden Sie sich an LSZH.',
@@ -20,7 +20,7 @@
     return response;
   }
   function updateButton(){
-    $('submit').disabled=busy||!pkg||!$('terms').checked||!$('representative').checked||(pkg.avvRequired&&!$('avv').checked);
+    $('submit').disabled=busy||completed||!pkg||!$('terms').checked||!$('representative').checked||(pkg.avvRequired&&!$('avv').checked);
   }
   async function load(){
     try{
@@ -57,7 +57,7 @@
         });row.append(icon,info,download);$('documents').append(row);
       }
       $('login').hidden=true;$('error').hidden=true;
-      if(!pkg.testOnly){document.querySelector('.badge').textContent='KUNDENPORTAL';const notice=document.querySelector('.notice');if(notice)notice.hidden=true;$('submit').textContent='Annahme protokollieren →';$('success').querySelector('h2').textContent='Vielen Dank. Ihre Annahme ist erfasst.';$('success').querySelector('.fine').textContent='Die schriftliche Auftragsbestätigung durch LSZH folgt gesondert.';}
+      if(!pkg.testOnly){document.querySelector('.badge').textContent='KUNDENPORTAL';const notice=document.querySelector('.notice');if(notice)notice.hidden=true;$('submit').textContent='Annahme protokollieren →';$('success').querySelector('h2').textContent='Vertrag erfolgreich angenommen!';$('success').querySelector('.fine').textContent='Die schriftliche Auftragsbestätigung durch LSZH folgt gesondert.';}
       $('package').hidden=false;updateButton();
     }catch(e){if(e.message==='IDENTITY_REQUIRED'){$('login').hidden=false;}else showError(e.message);}finally{$('loading').hidden=true;}
   }
@@ -65,16 +65,26 @@
   $('accept-form').addEventListener('submit',async event=>{
     event.preventDefault();if(busy||!pkg||$('submit').disabled)return;
     busy=true;updateButton();$('error').hidden=true;
+    const submitLabel=$('submit').textContent;
+    $('submit').textContent='Wird gespeichert …';$('accept-form').setAttribute('aria-busy','true');
+    $('acceptance-status').textContent='Ihre Annahme wird gespeichert …';
     try{
       const receipt=await (await api('/api/acceptance',{method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-Token':pkg.csrf},
         body:JSON.stringify({packageSha256:pkg.packageSha256,revision:pkg.revision,
           termsConsent:$('terms').checked,avvConsent:pkg.avvRequired&&$('avv').checked,
           representativeDeclaration:$('representative').checked})})).json();
+      // Only the persisted server receipt may unlock the success presentation.
+      if(receipt?.state!=='customer_response_recorded'||typeof receipt.responseId!=='string'||!receipt.responseId.trim()||
+        typeof receipt.acceptedAt!=='string'||!Number.isFinite(Date.parse(receipt.acceptedAt)))throw Error('INVALID_RECEIPT');
+      completed=true;
       $('response-id').textContent=receipt.responseId;$('accepted-at').textContent=date(receipt.acceptedAt);
-      $('package').hidden=true;$('success').hidden=false;token='';window.scrollTo({top:0,behavior:'smooth'});
-    }catch(e){showError(e.message);}
-    finally{busy=false;updateButton();}
+      $('package').hidden=true;$('intro').hidden=true;$('success').hidden=false;token='';
+      $('acceptance-status').textContent='Annahme erfolgreich gespeichert.';
+      $('success-title').focus({preventScroll:true});
+      window.scrollTo({top:0,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    }catch(e){$('acceptance-status').textContent='';showError(e.message);}
+    finally{busy=false;$('accept-form').setAttribute('aria-busy','false');$('submit').textContent=submitLabel;updateButton();}
   });
   $('request-code').addEventListener('click',async()=>{
     $('request-code').disabled=true;

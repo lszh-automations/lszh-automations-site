@@ -1,6 +1,6 @@
 # Signature-Success nach gespeicherter Kundenannahme
 
-Stand: 28.10.2026. **Implementiert und lokal geprüft; nicht live bereitgestellt.**
+Stand: 28.10.2026. **Live aktiviert und erfolgreich nachgeprüft.**
 
 ## Ausgangslage und Umfang
 
@@ -47,7 +47,7 @@ Für den letzten Befehl muss Playwright verfügbar sein; standardmässig wird in
 
 Lokale Ergebnisse und Screenshots: `output/signature-success-20261028/`. Browserergebnisse und der lesende Live-Abgleich sind zusätzlich im [Prüfmanifest](../releases/signature-success-preview-20261028.json) festgehalten.
 
-## Lesender Produktionsabgleich und Release-Grenze
+## Vorbereitungsstand vor Live-Freigabe (historisch)
 
 Die produktiv ausgelieferten Dateien `/acceptance.js` und `/acceptance.css` wurden am 28.10. mit HTTP 200 geladen und stimmen mit der unveränderten Repositorybasis überein (Zeilenenden normalisiert). `/api/health`: HTTP 200, `ok=true`, `mode=customer`; `/api/acceptance` ohne Token: HTTP 404. Die zunächst angefragte Route `/health` existiert nicht; dies ist kein Funktionsfehler.
 
@@ -58,3 +58,10 @@ Der Benutzer hat am 28.10.2026 die Veröffentlichung dieser Änderungen samt Dok
 Ein Portal-Quellpaket wurde mit dem bestehenden `prepare-make-requirements-source.cjs` lokal vorbereitet. Es enthält die bisherigen Laufzeitdateien und diese drei UI-Dateien; keine neue Laufzeitlogik. Vor einem späteren Release zunächst Cloud-Anmeldung und aktuelle Portalrevision/Quellarchiv erneut lesend prüfen, dann exakt drei UI-Dateien über den aktuellen Portalstand legen und die übrigen Laufzeitdateien bytegleich erhalten. Aktuelle Secrets, Dienstkonto, IAM, Ursprungsschutz, Scheduler und Verkehr erhalten. Den bestehenden festen Hostschutz nicht für eine Vorschau lockern. Erst nach dem bestehenden getrennten Release-Verfahren und ausdrücklicher Live-Freigabe umschalten. Kein pauschaler CRM-Neudeploy für diese Portalergänzung.
 
 Rollback betrifft nur die drei Portal-UI-Dateien bzw. die unmittelbar vorher verifizierte kompatible Portalrevision. Niemals Claims, Nachweise, Einladungen oder Versanddaten zurücksetzen. Keine Mails oder alten Ausführungen wiederholen.
+
+
+## Live-Status am 28.10.2026
+
+Nach ausdrücklichem Benutzerauftrag «schalte es live» wurde die geprüfte Erfolgsansicht zunächst ohne regulären Kundenverkehr bereitgestellt und anschliessend live aktiviert. Alle 27 Quelldateien wurden mit dem getesteten Paket bytegleich abgeglichen; ausschliesslich die drei UI-Dateien unterscheiden sich vom vorherigen Portalstand. Alle 46 Prüfungen gegen das konkrete Releasepaket bestanden.
+
+Die produktiv ausgelieferten HTML-, CSS- und JavaScript-Dateien entsprechen exakt dem geprüften Paket. Portalgesundheit und Zugriffsschutz wurden nach der Umschaltung erfolgreich geprüft. Geschäftslogik, Konfiguration, Zugriffsrechte und Archivplanung bleiben unverändert. Keine neue Kundenannahme und keine E-Mail durch die Releaseprüfungen ausgelöst. Die historischen Hinweise auf fehlende Anmeldung oder ausstehende Liveschaltung sind durch diesen Live-Nachtrag überholt. Der detaillierte technische Release-Nachweis bleibt lokal gespeichert.

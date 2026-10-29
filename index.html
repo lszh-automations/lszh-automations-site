@@ -590,8 +590,8 @@ select option{color:#111;background:#fff}
       <h2>Was könnte bei Ihnen einfacher laufen?</h2>
       <p>Beschreiben Sie eine Routineaufgabe. Sie erhalten eine erste KI-Einschätzung mit einem möglichen Ablauf. Die technische Machbarkeit prüfen wir anschliessend gemeinsam.</p>
       <div class="ai-livebar">
-        <span><i></i> Live-Analyse</span>
-        <span>Keine vorbereiteten Antworten</span>
+        <span><i></i> Erste Einschätzung</span>
+        <span>Machbarkeit gemeinsam prüfen</span>
         <span>Ihr Beispiel → konkreter Prozess</span>
       </div>
     </div>
@@ -952,7 +952,7 @@ function aiCta(){
 }
 function renderAiResult(el,r){
   if(!el)return;
-  let out='<div class="ai-result-status">Live-Analyse abgeschlossen</div><h4>'+esc(r.title||'Analyse')+'</h4>';
+  let out='<div class="ai-result-status">Erste Einschätzung abgeschlossen</div><h4>'+esc(r.title||'Analyse')+'</h4>';
   if(r.summary)out+='<p>'+esc(r.summary)+'</p>';
 
   if(r.complexity){
@@ -973,7 +973,7 @@ function renderAiResult(el,r){
   if(r.reply)out+='<div class="ai-subhead">Vorgeschlagene Antwort</div><div class="ai-kv"><div><span>E-Mail</span><strong>'+esc(r.reply)+'</strong></div></div>';
   if(r.benefit)out+='<div class="ai-subhead">Nutzen</div><p>'+esc(r.benefit)+'</p>';
   if(r.warning)out+='<p class="ai-note">'+esc(r.warning)+'</p>';
-  if(r.note)out+='<p class="ai-note">'+esc(r.note)+'</p>';
+  if(r.note)out+='<p class="ai-note">'+esc(r.note.includes('Demo-Modus')?'Beispielauswertung ohne Live-KI. Für eine individuelle Prüfung nehmen Sie bitte Kontakt mit uns auf.':r.note)+'</p>';
   out+='<div class="ai-subhead">Vor der Umsetzung klären</div><p>Welche Schnittstellen sind verfügbar? Welche Daten dürfen verarbeitet werden? Welche Schritte benötigen Ihre Freigabe?</p><p class="ai-note">KI-Vorschlag zur Orientierung; Machbarkeit und Nutzen sind noch nicht geprüft.</p>';out+=aiCta();
   el.innerHTML=out;el.classList.add('show');
   el.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -984,7 +984,7 @@ async function runAi(mode){
   const input=document.getElementById(inputId),result=document.getElementById(resultId);
   const text=input?.value.trim()||'';
   if(text.length<8){result.innerHTML='<p>Bitte beschreiben Sie den Ablauf etwas genauer.</p>';result.classList.add('show');return;}
-  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='KI arbeitet …';
+  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='Wird geprüft …';
   result.innerHTML=aiLoading(mode==='email'?'E-Mail wird verstanden':mode==='workflow'?'Prozess wird aufgebaut':'Aufgabe wird analysiert');result.classList.add('show');
   try{
     const resp=await fetch('/api/ai-demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,text})});

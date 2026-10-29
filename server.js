@@ -751,8 +751,9 @@ const server=http.createServer(async (req,res)=>{
 
   if (req.method==='POST' && pathname==='/api/lead') return handleWebsiteLead(req,res);
   if (req.method==='POST' && pathname==='/api/onboarding') return handleCustomerOnboarding(req,res);
-  if (req.method==='POST' && pathname==='/api/ai-demo') return handleAiDemo(req,res);
-  if (req.method==='POST' && pathname==='/api/ai-document') return handleAiDocument(req,res);
+  // Public AI demos retired: old clients cannot trigger providers or uploads.
+  if (pathname==='/api/ai-demo' || pathname==='/api/ai-document')
+    return send(res,410,JSON.stringify({error:'demo_removed'}));
   if (req.method==='POST' && pathname==='/api/secure/status') return handleSecureStatus(req,res);
   if (req.method==='POST' && pathname==='/api/secure/submit') return handleSecureSubmit(req,res);
   if (req.method==='POST' && pathname==='/api/secure/admin/request-login') return handleSecureAdminLogin(req,res);

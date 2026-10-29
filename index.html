@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="LSZH Automations entwickelt hochwertige Automationen für Schweizer KMU – weniger Administration, klarere Abläufe, mehr Zeit fürs Kerngeschäft.">
+<meta name="description" content="Individuelle Automationen für Schweizer KMU: Systeme verbinden, Dokumente verarbeiten, Abläufe koordinieren und KI gezielt einsetzen. Entdecken Sie die Möglichkeiten mit LSZH Automations.">
 <title>LSZH Automations | Automationen für Schweizer KMU</title>
 <link rel="canonical" href="https://lszh-automations.ch/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="LSZH Automations | Automationen für Schweizer KMU">
-<meta property="og:description" content="Hochwertige Automationen für Schweizer KMU – weniger Administration, klarere Abläufe, mehr Zeit fürs Kerngeschäft.">
+<meta property="og:description" content="Ihre Abläufe. Intelligent verbunden. Individuelle Automationen für Systeme, Daten, Dokumente und Teams – von der einzelnen Routine bis zum vernetzten Prozess.">
 <meta property="og:url" content="https://lszh-automations.ch/">
 <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -447,6 +447,22 @@ section[id],main[id]{scroll-margin-top:100px}
 }
 @media(max-width:360px){.header-logo{width:120px}.nav{gap:8px}.nav-cta{padding:0 10px}}
 @media(min-width:981px){.mobile.open{display:none}}
+.service:nth-child(3n+1){border-top:3px solid #73a1ff}
+.service:nth-child(3n+2){border-top:3px solid #9a84ff}
+.service:nth-child(3n){border-top:3px solid #58d9a6}
+.possibilities-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.possibility{padding:30px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#fff,#f5f8fd)}
+.possibility .kicker{font-size:10px;letter-spacing:.08em}
+.possibility h3{font-size:24px;line-height:1.25;letter-spacing:-.025em;margin:14px 0}
+.possibility p{font-size:15px;color:var(--muted);max-width:48ch}
+.possibility ol{list-style:none;counter-reset:step;padding:0;margin:24px 0 0;display:grid;gap:12px}
+.possibility li{counter-increment:step;display:flex;gap:12px;align-items:flex-start;font-size:13px;color:#43536a}
+.possibility li:before{content:counter(step,decimal-leading-zero);display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:8px;background:#e8effe;color:#4166b0;font-size:10px;font-weight:800}
+.possibilities-invite{margin-top:32px;padding:30px;border-radius:22px;background:var(--navy);color:white;display:flex;align-items:center;justify-content:space-between;gap:28px}
+.possibilities-invite h3{font-size:24px;margin-bottom:8px}
+.possibilities-invite p{margin:0;max-width:58ch;color:#bfccdd;font-size:15px}
+.possibilities-invite .btn{flex:none;gap:12px}
+@media(max-width:700px){.possibilities-grid{grid-template-columns:1fr;gap:18px}.possibility{padding:24px}.possibilities-invite{padding:24px;flex-direction:column;align-items:stretch}.possibilities-invite .btn{font-size:14px}.service-top{margin-bottom:26px}}
 </style>
 </head>
 <body>
@@ -458,7 +474,7 @@ section[id],main[id]{scroll-margin-top:100px}
     </a>
     <nav class="desktop-nav">
       <a href="#leistungen">Leistungen</a>
-      <a href="#beispiel">Beispiel</a>
+      <a href="#beispiel">Beispiele</a>
 
       <a href="#ablauf">Ablauf</a>
       <a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin</a>
@@ -469,7 +485,7 @@ section[id],main[id]{scroll-margin-top:100px}
   <nav class="mobile" id="mobile-navigation" aria-label="Mobile Navigation">
     <a href="#leistungen">Leistungen</a>
 
-    <a href="#beispiel">Beispiel</a>
+    <a href="#beispiel">Beispiele</a>
 
     <a href="#ablauf">Ablauf</a>
     <a href="#kontakt">Prozess prüfen lassen</a>
@@ -482,11 +498,11 @@ section[id],main[id]{scroll-margin-top:100px}
   <div class="container hero-grid">
     <div>
       <div class="eyebrow"><i></i> Automationen für Schweizer KMU</div>
-      <h1>Weniger Administration.<span>Mehr Zeit fürs Geschäft.</span></h1>
-      <p class="hero-lead">Wir verbinden Ihre bestehenden Programme und automatisieren wiederkehrende Aufgaben. Damit Anfragen, Offerten und Dokumente zuverlässig weiterlaufen.</p>
+      <h1>Ihre Abläufe.<span>Intelligent verbunden.</span></h1>
+      <p class="hero-lead">Mehr ist automatisierbar, als Sie denken. Wir verbinden Systeme, Daten und Aufgaben zu Lösungen, die zu Ihrem Unternehmen passen – von der einzelnen Routine bis zum vernetzten Geschäftsprozess.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#kontakt">Meinen Prozess besprechen <span aria-hidden="true">↗</span></a>
-        <a class="btn btn-secondary" href="#beispiel">So funktioniert es <span aria-hidden="true">↓</span></a>
+        <a class="btn btn-secondary" href="#beispiel">Möglichkeiten entdecken <span aria-hidden="true">↓</span></a>
       </div>
       <div class="trust">
         <span>Für Schweizer KMU</span><span>Mit Ihren bestehenden Systemen</span>
@@ -496,25 +512,25 @@ section[id],main[id]{scroll-margin-top:100px}
     <div class="hero-board">
       <div class="board">
         <div class="board-top">
-          <div class="board-label"><small>LSZH SYSTEM</small><strong>Anfrage-Automation</strong></div>
+          <div class="board-label"><small>VON DER IDEE ZUM ABLAUF</small><strong>Ihre Systeme im Zusammenspiel</strong></div>
           <div class="live">Beispielablauf</div>
         </div>
         <div class="flow">
           <div class="flow-row">
             <div class="node n1">01</div>
-            <div class="flow-copy"><small>EINGANG</small><strong>Neue Anfrage</strong><span>Formular, E-Mail oder Datenbank</span></div>
+            <div class="flow-copy"><small>AUSLÖSER</small><strong>Etwas kommt in Bewegung</strong><span>Bestellung, Dokument oder Ereignis</span></div>
             <span class="badge b1">Neu</span>
           </div>
           <div class="connector"></div>
           <div class="flow-row">
             <div class="node n2">02</div>
-            <div class="flow-copy"><small>VERARBEITUNG</small><strong>Prüfen & zuordnen</strong><span>Daten strukturiert verarbeiten</span></div>
+            <div class="flow-copy"><small>VERBINDUNG</small><strong>Systeme arbeiten zusammen</strong><span>Daten prüfen, ergänzen und übertragen</span></div>
             <span class="badge b2">Auto</span>
           </div>
           <div class="connector"></div>
           <div class="flow-row">
             <div class="node n3">03</div>
-            <div class="flow-copy"><small>AKTION</small><strong>Follow-up auslösen</strong><span>Zum richtigen Zeitpunkt</span></div>
+            <div class="flow-copy"><small>AKTION</small><strong>Der nächste Schritt läuft an</strong><span>Aufgabe, Auswertung oder Freigabe</span></div>
             <span class="badge b3">Erledigt</span>
           </div>
         </div>
@@ -537,27 +553,45 @@ section[id],main[id]{scroll-margin-top:100px}
 <section id="leistungen" class="section section-light">
   <div class="container">
     <div class="section-title split">
-      <div><span class="kicker">LEISTUNGEN</span><h2>Automation soll nicht beeindrucken. Sie soll Arbeit abnehmen.</h2></div>
-      <p>Wir starten bei einem konkreten Engpass und bauen genau den Prozess, der Ihr Unternehmen im Alltag spürbar entlastet.</p>
+      <div><span class="kicker">WAS MÖGLICH WIRD</span><h2>So vielfältig wie Ihr Unternehmen.</h2></div>
+      <p>Überall, wo Informationen fliessen und Aufgaben aufeinander aufbauen, kann Automation ansetzen. Wir entwickeln den passenden Ablauf für Ihre Systeme, Regeln und Ziele.</p>
     </div>
     <div class="services">
       <article class="service">
-        <div class="service-top"><span>01</span><span class="pill">Kundenprozesse</span></div>
-        <h3>Kundenanfragen geordnet bearbeiten</h3>
-        <p>Neue Kundenanfragen werden aufgenommen, strukturiert und in den richtigen Prozess weitergeleitet.</p>
-        <div class="service-list"><span>Formulare & E-Mail</span><span>Lead-Erfassung</span><span>Datenprüfung</span></div>
+        <div class="service-top"><span>01</span><span class="pill">Systeme & Daten</span></div>
+        <h3>Programme miteinander verbinden</h3>
+        <p>Daten zwischen Ihren Anwendungen übertragen, abgleichen und dort bereitstellen, wo sie gebraucht werden.</p>
+        <div class="service-list"><span>CRM, ERP & Onlineshop</span><span>Datenabgleich & Schnittstellen</span><span>Weniger doppelte Eingaben</span></div>
       </article>
       <article class="service">
-        <div class="service-top"><span>02</span><span class="pill">Follow-ups</span></div>
-        <h3>Offerten und Fristen im Blick behalten</h3>
-        <p>Offene Kontakte und Angebote werden zum richtigen Zeitpunkt erinnert und wieder aufgenommen.</p>
-        <div class="service-list"><span>Offerten-Follow-up</span><span>Terminerinnerungen</span><span>Status-Logik</span></div>
+        <div class="service-top"><span>02</span><span class="pill">Dokumente</span></div>
+        <h3>Informationen nutzbar machen</h3>
+        <p>Dokumente erfassen, Inhalte strukturiert übernehmen und Unterlagen nach Ihren Vorgaben erstellen oder ablegen.</p>
+        <div class="service-list"><span>Belege & Formulare</span><span>Dokumentenerstellung</span><span>Zuordnung & Ablage</span></div>
       </article>
       <article class="service">
-        <div class="service-top"><span>03</span><span class="pill">Administration</span></div>
-        <h3>Dokumente und Daten verbinden</h3>
-        <p>Informationen werden erfasst, verarbeitet und automatisch dort bereitgestellt, wo sie gebraucht werden.</p>
-        <div class="service-list"><span>Dokumentenerfassung</span><span>Interne Meldungen</span><span>Auswertungen</span></div>
+        <div class="service-top"><span>03</span><span class="pill">Teams & Abläufe</span></div>
+        <h3>Arbeitsschritte koordinieren</h3>
+        <p>Aufgaben, Zuständigkeiten und Freigaben verbinden – auch über Abteilungen und mehrere Programme hinweg.</p>
+        <div class="service-list"><span>Mitarbeiter-Onboarding</span><span>Bestellungen & Übergaben</span><span>Freigaben & Benachrichtigungen</span></div>
+      </article>
+      <article class="service">
+        <div class="service-top"><span>04</span><span class="pill">Kunden & Service</span></div>
+        <h3>Kontakte gezielt weiterführen</h3>
+        <p>Anfragen zuordnen, Kunden über nächste Schritte informieren und wiederkehrende Serviceaufgaben vorbereiten.</p>
+        <div class="service-list"><span>Anfragen & Terminabläufe</span><span>Offerten & Follow-ups</span><span>Kundenkommunikation</span></div>
+      </article>
+      <article class="service">
+        <div class="service-top"><span>05</span><span class="pill">Berichte & Überblick</span></div>
+        <h3>Aus Daten Entscheidungen machen</h3>
+        <p>Informationen aus mehreren Quellen zusammenführen und regelmässig als verständliche Auswertung bereitstellen.</p>
+        <div class="service-list"><span>Regelmässige Berichte</span><span>Kennzahlen & Übersichten</span><span>Hinweise bei Abweichungen</span></div>
+      </article>
+      <article class="service">
+        <div class="service-top"><span>06</span><span class="pill">KI im Prozess</span></div>
+        <h3>Inhalte intelligent verarbeiten</h3>
+        <p>KI kann Texte einordnen, Informationen extrahieren oder Antworten vorbereiten – eingebettet in einen kontrollierten Ablauf.</p>
+        <div class="service-list"><span>Zusammenfassen & Klassifizieren</span><span>Wissen zugänglich machen</span><span>Menschliche Prüfung nach Bedarf</span></div>
       </article>
     </div>
   </div>
@@ -567,23 +601,35 @@ section[id],main[id]{scroll-margin-top:100px}
 
 
 <section id="beispiel" class="section case">
-  <div class="container case-grid">
-    <div class="case-copy">
-      <span class="kicker">SO KANN EIN ABLAUF AUSSEHEN</span>
-      <h2>Aus einer offenen Offerte wird ein sauberer Follow-up-Prozess.</h2>
-      <p>Der Betrieb muss nicht mehr täglich Listen prüfen oder daran denken, wann ein Kunde erneut kontaktiert werden sollte. Der nächste Schritt wird automatisch vorbereitet oder ausgelöst.</p>
+  <div class="container">
+    <div class="section-title">
+      <span class="kicker">VIER IDEEN. VIELE WEITERE MÖGLICHKEITEN.</span>
+      <h2>Was könnte bei Ihnen von selbst weiterlaufen?</h2>
+      <p>Diese Beispielabläufe zeigen mögliche Ansätze. Die konkrete Umsetzung hängt von Ihren Systemen, Schnittstellen und Freigaben ab.</p>
     </div>
-    <div class="case-card">
-      <div class="case-head"><div><small>BEISPIEL-WORKFLOW</small><strong>Offerten-Follow-up</strong></div><span>Automatisiert</span></div>
-      <div class="case-flow">
-        <div class="case-step"><span>01</span><strong>Offerte offen</strong><p>Status und Datum werden geprüft.</p></div>
-        <div class="arrow">→</div>
-        <div class="case-step"><span>02</span><strong>Frist erreicht</strong><p>System erkennt den nächsten Schritt.</p></div>
-        <div class="arrow">→</div>
-        <div class="case-step"><span>03</span><strong>Follow-up</strong><p>Nachricht oder Aufgabe wird ausgelöst.</p></div>
-      </div>
-      <div class="case-result"><strong>Keine offenen Chancen im Alltag übersehen.</strong><span>ohne tägliche manuelle Kontrolle</span></div>
+    <div class="possibilities-grid">
+      <article class="possibility">
+        <span class="kicker">BESTELLUNGEN & BETRIEB</span><h3>Vom Shop ins Tagesgeschäft.</h3>
+        <p>Eine Bestellung soll den nächsten Schritt auslösen, ohne dass jemand Daten von Hand überträgt.</p>
+        <ol><li>Bestellung geht ein</li><li>Daten werden im ERP angelegt</li><li>Das zuständige Team erhält seine Aufgabe</li></ol>
+      </article>
+      <article class="possibility">
+        <span class="kicker">PERSONAL & ZUSAMMENARBEIT</span><h3>Ein guter Start fürs neue Teammitglied.</h3>
+        <p>Ein bestätigter Eintritt startet die Vorbereitung und macht Zuständigkeiten sichtbar.</p>
+        <ol><li>Eintritt wird erfasst</li><li>Checklisten und Unterlagen werden vorbereitet</li><li>Verantwortliche erhalten ihre Aufgaben</li></ol>
+      </article>
+      <article class="possibility">
+        <span class="kicker">DATEN & UNTERNEHMENSFÜHRUNG</span><h3>Der Wochenbericht stellt sich zusammen.</h3>
+        <p>Die wichtigen Zahlen kommen aus Ihren Quellen in eine gemeinsame Übersicht.</p>
+        <ol><li>Daten werden regelmässig abgerufen</li><li>Kennzahlen werden geprüft und aufbereitet</li><li>Der Bericht steht dem Team bereit</li></ol>
+      </article>
+      <article class="possibility">
+        <span class="kicker">VERTRIEB & KUNDENBETREUUNG</span><h3>Eine offene Offerte bleibt im Blick.</h3>
+        <p>Aus einem Status und einer Frist entsteht ein verlässlicher nächster Schritt.</p>
+        <ol><li>Offertenstatus wird geprüft</li><li>Eine festgelegte Frist wird erreicht</li><li>Follow-up oder persönliche Aufgabe wird vorbereitet</li></ol>
+      </article>
     </div>
+    <div class="possibilities-invite"><div><h3>Ihr Prozess steht hier nicht?</h3><p>Genau dort beginnt unsere Arbeit. Erzählen Sie uns, was heute umständlich ist oder künftig möglich sein soll.</p></div><a class="btn btn-primary" href="#kontakt">Eigene Idee besprechen <span aria-hidden="true">↗</span></a></div>
   </div>
 </section>
 
@@ -598,12 +644,12 @@ section[id],main[id]{scroll-margin-top:100px}
 
 
 <section id="ablauf" class="section process"><div class="container">
-<div class="section-title center"><span class="kicker">ZUSAMMENARBEIT</span><h2>Von der ersten Frage bis zum Projektüberblick.</h2><p>Ein klarer Einstieg. Eine persönliche Offerte. Ihre Unterlagen an einem Ort.</p></div>
+<div class="section-title center"><span class="kicker">ZUSAMMENARBEIT</span><h2>Ihre Idee wird zu einem funktionierenden Ablauf.</h2><p>Wir starten bei Ihrem Ziel und entwickeln eine Lösung, die sich in Ihren Betrieb einfügt.</p></div>
 <div class="process-grid">
-<article><span class="process-num">01</span><h3>Prozess besprechen</h3><p>Wir klären Ihren Engpass, bestehende Systeme und den sinnvollen ersten Schritt.</p></article>
-<article><span class="process-num">02</span><h3>Offerte erhalten</h3><p>Sie erhalten einen konkreten Vorschlag mit Leistungsumfang und Kosten.</p></article>
-<article><span class="process-num">03</span><h3>Online annehmen</h3><p>Sie prüfen die Offerte und nehmen sie über Ihren persönlichen Vertragslink an.</p></article>
-<article><span class="process-num">04</span><h3>Überblick behalten</h3><p>Nach Freigabe finden Sie den gespeicherten Projektverlauf und Ihre freigegebenen Dokumente im Kundenportal.</p></article>
+<article><span class="process-num">01</span><h3>Verstehen</h3><p>Wir besprechen Ihr Ziel, die beteiligten Menschen und Systeme sowie die heutigen Arbeitsschritte.</p></article>
+<article><span class="process-num">02</span><h3>Lösung entwerfen</h3><p>Wir prüfen die Machbarkeit und definieren Ablauf, Freigaben, Leistungsumfang und Kosten.</p></article>
+<article><span class="process-num">03</span><h3>Umsetzen & testen</h3><p>Wir verbinden die nötigen Systeme und prüfen gemeinsam, ob der Ablauf auch Ausnahmen richtig behandelt.</p></article>
+<article><span class="process-num">04</span><h3>Übergeben & weiterdenken</h3><p>Sie erhalten eine verständlich dokumentierte Lösung. Weitere Schritte können darauf aufbauen.</p></article>
 </div><div class="portal-story"><div><span class="kicker">IHR KUNDENPORTAL</span><h3>Projektverlauf und Unterlagen. Jederzeit griffbereit.</h3><p>Offerten, angenommene Verträge und Rechnungen sind Ihrem Unternehmen zugeordnet. Der Zugang erfolgt nach persönlicher Freigabe mit E-Mail und Einmalcode.</p><a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin öffnen →</a></div><div class="portal-illustration" aria-label="Schematische Portalansicht mit Beispieldaten"><small>SCHEMATISCHE ANSICHT · BEISPIELDATEN</small><h3>Ihr Projekt im Überblick</h3><p>● Offerte angenommen</p><p>○ Nächster Schritt: Abstimmung</p><hr><p>Offerte.pdf <span>↗</span></p><p>Vertrag.pdf <span>↗</span></p><small>Im echten Portal erscheinen nur gespeicherte Ereignisse und freigegebene Unterlagen.</small></div></div>
 </div></section>
 
@@ -620,6 +666,10 @@ section[id],main[id]{scroll-margin-top:100px}
     </div>
 
     <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" type="button"><span>Lässt sich auch unser besonderer Ablauf automatisieren?</span><span>+</span></button>
+        <div class="faq-answer">Oft gibt es auch für individuelle Abläufe einen passenden Ansatz. Wir prüfen, welche Daten zugänglich sind, welche Schnittstellen Ihre Programme bieten und wo Entscheidungen oder Freigaben durch Menschen nötig bleiben. Daraus entsteht eine konkrete Einschätzung der Möglichkeiten.</div>
+      </div>
       <div class="faq-item">
         <button class="faq-question" type="button"><span>Müssen wir unsere bestehenden Programme ersetzen?</span><span>+</span></button>
         <div class="faq-answer">In vielen Fällen nicht. Unser Ansatz ist zuerst zu prüfen, welche bestehenden Systeme sinnvoll miteinander verbunden und welche Abläufe darauf aufgebaut werden können.</div>
@@ -652,8 +702,8 @@ section[id],main[id]{scroll-margin-top:100px}
   <div class="container contact-card">
     <div class="contact-copy">
       <span class="kicker">PROJEKT BESPRECHEN</span>
-      <h2>Welchen Prozess möchten Sie vereinfachen?</h2>
-      <p>Beginnen Sie mit vier kurzen Angaben. Im zweiten Schritt ergänzen Sie die Details für eine gezielte Beurteilung.</p>
+      <h2>Was möchten Sie möglich machen?</h2>
+      <p>Eine wiederkehrende Aufgabe, getrennte Systeme oder eine neue Idee: Beschreiben Sie uns Ihren Ansatz. Beginnen Sie mit vier kurzen Angaben und ergänzen Sie danach die Details.</p>
       <div class="contact-points"><span>Unverbindlich</span><span>Auf Ihr Problem fokussiert</span><span>Für Schweizer KMU</span></div>
     </div>
     <form id="contactForm" class="contact-form">
@@ -664,8 +714,8 @@ section[id],main[id]{scroll-margin-top:100px}
         <label>Firma<input type="text" name="company" placeholder="Muster AG" required></label>
       </div>
       <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required autocomplete="email"></label>
-      <label>Was kostet Sie im Alltag unnötig Zeit?
-        <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
+      <label>Welche Aufgabe oder Idee möchten Sie angehen?
+        <textarea name="message" rows="4" placeholder="Zum Beispiel: Wir übertragen Bestellungen von Hand, suchen Dokumente oder stellen Berichte aus mehreren Listen zusammen." required></textarea>
       </label><button class="btn btn-primary full" type="button" id="contactNext">Weiter zu den Details →</button><p id="contactStepHint" class="form-note">Schritt 1 von 2 · Noch wird nichts gesendet.</p></div><fieldset id="contactDetails" hidden disabled><legend>Schritt 2 · Angaben für Ihre Anfrage</legend><p>Damit wir Ihre Anfrage zuordnen und beurteilen können, benötigen wir noch Ihre Geschäftsadresse und einige Prozessdetails.</p><button type="button" id="contactBack">← Zurück</button>      <p class="form-subsection-label">Geschäftsadresse</p>
       <div class="field-grid">
         <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180" required></label>
@@ -676,7 +726,7 @@ section[id],main[id]{scroll-margin-top:100px}
         <label>Land<input type="text" name="country" value="Schweiz" autocomplete="country-name" maxlength="80" required></label>
       </div>
       <label>Wie läuft dieser Prozess heute ab?
-        <textarea name="current_process" rows="4" placeholder="Zum Beispiel: Anfrage per E-Mail → Daten in Excel eintragen → Offerte erstellen → später manuell nachfassen." required></textarea>
+        <textarea name="current_process" rows="4" placeholder="Zum Beispiel: Daten exportieren → in Excel zusammenführen → prüfen → Bericht per E-Mail verteilen." required></textarea>
       </label>
       <label>Welche Programme oder Systeme sind beteiligt?
         <textarea name="systems" rows="3" placeholder="Zum Beispiel: Outlook, Excel, Bexio, Abacus, Microsoft 365 ..." required></textarea>
@@ -708,7 +758,7 @@ section[id],main[id]{scroll-margin-top:100px}
         </label>
       </div>
       <label>Was wäre für Sie die ideale Lösung? <span class="optional">Optional</span>
-        <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Neue Kundenanfragen geordnet bearbeiten, bestätigen und dem richtigen Mitarbeiter zuweisen."></textarea>
+        <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Informationen nur einmal erfassen und in allen beteiligten Systemen aktuell halten."></textarea>
       </label>
       </fieldset>
       <button class="btn btn-primary full" id="contactSend" hidden type="submit">Anfrage senden</button>
@@ -727,7 +777,7 @@ section[id],main[id]{scroll-margin-top:100px}
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>
-    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#beispiel">Beispiel</a><a href="#kontakt">Kontakt</a></div>
+    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#beispiel">Beispiele</a><a href="#kontakt">Kontakt</a></div>
     <div class="footer-meta"><span>© <span id="year"></span> LSZH Automations</span><span>ein Geschäftsbereich der LSZH Invest GmbH</span><span><a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></span><span>Schweiz</span></div>
     <div class="legal-row">
       <button type="button" data-legal="impressum">Impressum</button>

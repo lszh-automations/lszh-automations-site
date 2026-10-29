@@ -386,44 +386,7 @@ select option{color:#111;background:#fff}
 }
 
 
-.ai-lab{position:relative;overflow:hidden;background:radial-gradient(circle at 80% 5%,rgba(79,128,255,.16),transparent 32%),linear-gradient(180deg,#07111f,#0a1830);color:#fff}
-.ai-lab:before{content:"";position:absolute;width:560px;height:560px;border-radius:50%;left:-280px;bottom:-300px;background:rgba(49,104,255,.08);filter:blur(20px);pointer-events:none}
-.ai-lab .section-title p{color:rgba(255,255,255,.6);max-width:720px;margin-left:auto;margin-right:auto}
-.ai-lab .kicker{color:#9fc8ff}.ai-head h2{font-size:clamp(38px,5vw,64px);letter-spacing:-.045em}
-.ai-livebar{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:20px}
-.ai-livebar span{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.58);font-size:11px;font-weight:750}
-.ai-livebar i{display:block;width:7px;height:7px;border-radius:50%;background:#71e29a;box-shadow:0 0 0 5px rgba(113,226,154,.08);animation:aiPulse 1.8s infinite}
-.ai-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-.ai-card{position:relative;padding:28px;border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.09);box-shadow:0 22px 54px rgba(0,0,0,.18);transition:transform .25s ease,border-color .25s ease,background .25s ease}
-.ai-card:hover{transform:translateY(-3px);border-color:rgba(132,173,255,.24);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04))}
-.ai-cardtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.ai-num{font-size:11px;font-weight:900;color:rgba(255,255,255,.28);letter-spacing:.12em}.ai-tag{font-size:9px;letter-spacing:.14em;font-weight:900;color:#a9caff;padding:6px 8px;border-radius:999px;background:rgba(94,142,255,.1);border:1px solid rgba(94,142,255,.14)}
-.ai-card h3{font-size:23px;line-height:1.14;margin-bottom:9px;letter-spacing:-.02em}.ai-card>p{color:rgba(255,255,255,.56);font-size:13px;min-height:44px}
-.ai-card textarea,.ai-card input[type="text"]{background:rgba(2,8,18,.34);border-color:rgba(255,255,255,.11);color:#fff;transition:border-color .2s,box-shadow .2s}
-.ai-card textarea:focus,.ai-card input[type="text"]:focus{border-color:rgba(115,160,255,.55);box-shadow:0 0 0 4px rgba(91,140,255,.08);outline:none}
-.ai-card textarea{min-height:136px;resize:vertical}
-.ai-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}.ai-actions .btn{transition:transform .2s,opacity .2s}.ai-actions .btn:hover{transform:translateY(-1px)}.ai-actions .btn:disabled{opacity:.58;cursor:wait}
-.ai-example{border:0;background:transparent;color:#9fc8ff;font-size:12px;font-weight:750;cursor:pointer;padding:8px 0}.ai-example:hover{text-decoration:underline}
-.ai-result{display:none;margin-top:18px;padding:20px;border-radius:18px;background:linear-gradient(180deg,rgba(7,24,50,.92),rgba(6,19,39,.92));border:1px solid rgba(114,157,255,.18);box-shadow:inset 0 1px rgba(255,255,255,.025)}
-.ai-result.show{display:block;animation:aiReveal .36s ease both}.ai-result h4{margin:0 0 8px;font-size:17px;letter-spacing:-.015em}.ai-result p{color:rgba(255,255,255,.62);font-size:13px;margin-bottom:12px}
-.ai-result-status{display:flex;align-items:center;gap:8px;margin-bottom:13px;color:#92e4ae;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.ai-result-status:before{content:"✓";display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:rgba(113,226,154,.1);border:1px solid rgba(113,226,154,.18)}
-.ai-subhead{margin:16px 0 7px;color:rgba(255,255,255,.36);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
-.ai-kv{display:grid;gap:0}.ai-kv div{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-.ai-kv div:last-child{border-bottom:0}.ai-kv span{color:rgba(255,255,255,.4);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.ai-kv strong{font-size:13px;line-height:1.45}
-.ai-steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ai-step{position:relative;padding:9px 11px;border-radius:10px;background:rgba(91,140,255,.11);border:1px solid rgba(91,140,255,.17);color:#dce9ff;font-size:11px;font-weight:720;line-height:1.35}
-.ai-score{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:14px;margin:13px 0}.ai-score b{font-size:36px;letter-spacing:-.055em}.ai-score span{display:block;color:rgba(255,255,255,.46);font-size:10px;font-weight:750}.ai-scorebar{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;margin-top:7px}.ai-scorebar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#80aaff,#8ce5b0);transform-origin:left;animation:aiBar .7s ease both}
-.ai-note{margin-top:13px;color:rgba(255,255,255,.4)!important;font-size:10px!important}
-.ai-file{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center;padding:18px;border:1px dashed rgba(255,255,255,.19);border-radius:15px;background:rgba(255,255,255,.025);cursor:pointer;transition:border-color .2s,background .2s}.ai-file:hover{border-color:rgba(129,171,255,.45);background:rgba(91,140,255,.05)}.ai-fileicon{grid-row:1/3;font-size:23px;color:#9fc8ff}.ai-file strong{font-size:13px}.ai-file>span:last-of-type{color:rgba(255,255,255,.4);font-size:10px;margin-top:3px}.ai-file input{display:none}
-.ai-privacy{margin-top:9px;color:rgba(255,255,255,.38);font-size:10px;line-height:1.45}
-.ai-flow{display:grid;gap:0;margin-top:8px}.ai-flow .ai-step{display:flex;align-items:center;min-height:39px;background:rgba(91,140,255,.08)}.ai-flow .ai-step:after{content:"↓";position:absolute;left:50%;bottom:-15px;z-index:2;color:rgba(166,195,255,.38)}.ai-flow .ai-step:not(:last-child){margin-bottom:13px}.ai-flow .ai-step:last-child:after{display:none}
-.ai-cta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:17px;padding-top:15px;border-top:1px solid rgba(255,255,255,.07)}.ai-cta span{font-size:11px;color:rgba(255,255,255,.44)}.ai-cta a{font-size:11px;font-weight:850;color:#b9d3ff;text-decoration:none}.ai-cta a:hover{text-decoration:underline}
-.ai-loading{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.58);font-size:12px}.ai-dots{display:flex;gap:4px}.ai-dots i{width:5px;height:5px;border-radius:50%;background:#9fc8ff;animation:aiDot 1s infinite}.ai-dots i:nth-child(2){animation-delay:.14s}.ai-dots i:nth-child(3){animation-delay:.28s}
-.ai-bottom{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:22px;padding:21px 23px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.075);color:rgba(255,255,255,.55);font-size:12px;line-height:1.55}.ai-bottom strong{color:#fff}.ai-bottom .btn{white-space:nowrap}
-@keyframes aiPulse{0%,100%{box-shadow:0 0 0 4px rgba(113,226,154,.08)}50%{box-shadow:0 0 0 8px rgba(113,226,154,.02)}}@keyframes aiReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes aiBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes aiDot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
-@media(max-width:820px){.ai-grid{grid-template-columns:1fr}.ai-kv div{grid-template-columns:1fr;gap:3px}.ai-card>p{min-height:0}.ai-bottom{align-items:flex-start;flex-direction:column}.ai-bottom .btn{width:100%;text-align:center}.ai-head h2{font-size:42px}}
-
-
-
-[hidden]{display:none!important}.ai-grid{grid-template-columns:1fr;max-width:820px;margin:auto}.portal-story{margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}.portal-illustration{background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}.portal-illustration small{font-size:11px;color:var(--muted)}.portal-illustration span{float:right}fieldset{border:0;padding:0;margin:0;min-width:0}legend{font-weight:700;margin:20px 0}#contactBack{margin-bottom:18px;background:none;border:0;color:inherit;cursor:pointer}dialog{width:min(520px,calc(100% - 32px));padding:40px;border:1px solid var(--line);border-radius:24px;color:var(--ink);box-shadow:var(--shadow)}dialog::backdrop{background:rgba(6,16,29,.72);backdrop-filter:blur(5px)}dialog h2{font-size:32px;margin:14px 0}dialog p{color:var(--muted)}dialog .form-note{color:#526175;margin-top:20px}.login-close{position:absolute;right:14px;top:8px;border:0;background:none;font-size:30px;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #74d8ff;outline-offset:4px}.desktop-nav{gap:20px}.contact-form select{max-width:100%}@media(max-width:760px){.portal-story{grid-template-columns:1fr;gap:24px}dialog{padding:32px 24px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
+[hidden]{display:none!important}.portal-story{margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}.portal-illustration{background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}.portal-illustration small{font-size:11px;color:var(--muted)}.portal-illustration span{float:right}fieldset{border:0;padding:0;margin:0;min-width:0}legend{font-weight:700;margin:20px 0}#contactBack{margin-bottom:18px;background:none;border:0;color:inherit;cursor:pointer}dialog{width:min(520px,calc(100% - 32px));padding:40px;border:1px solid var(--line);border-radius:24px;color:var(--ink);box-shadow:var(--shadow)}dialog::backdrop{background:rgba(6,16,29,.72);backdrop-filter:blur(5px)}dialog h2{font-size:32px;margin:14px 0}dialog p{color:var(--muted)}dialog .form-note{color:#526175;margin-top:20px}.login-close{position:absolute;right:14px;top:8px;border:0;background:none;font-size:30px;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #74d8ff;outline-offset:4px}.desktop-nav{gap:20px}.contact-form select{max-width:100%}@media(max-width:760px){.portal-story{grid-template-columns:1fr;gap:24px}dialog{padding:32px 24px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -434,7 +397,7 @@ select option{color:#111;background:#fff}
       <span class="brand-copy"><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small class="brand-tagline">AUTOMATION FÜR SCHWEIZER KMU</small></span>
     </a>
     <nav class="desktop-nav">
-      <a href="#leistungen">Leistungen</a><a href="#ki-live">Prozess-Check</a>
+      <a href="#leistungen">Leistungen</a>
       <a href="#beispiel">Beispiel</a>
 
       <a href="#ablauf">Ablauf</a>
@@ -445,7 +408,7 @@ select option{color:#111;background:#fff}
   </div>
   <nav class="mobile">
     <a href="#leistungen">Leistungen</a>
-    <a href="#ki-live">Prozess-Check</a>
+
     <a href="#beispiel">Beispiel</a>
 
     <a href="#ablauf">Ablauf</a>
@@ -583,36 +546,7 @@ select option{color:#111;background:#fff}
 <article><span class="process-num">04</span><h3>Überblick behalten</h3><p>Nach Freigabe finden Sie den gespeicherten Projektverlauf und Ihre freigegebenen Dokumente im Kundenportal.</p></article>
 </div><div class="portal-story"><div><span class="kicker">IHR KUNDENPORTAL</span><h3>Projektverlauf und Unterlagen. Jederzeit griffbereit.</h3><p>Offerten, angenommene Verträge und Rechnungen sind Ihrem Unternehmen zugeordnet. Der Zugang erfolgt nach persönlicher Freigabe mit E-Mail und Einmalcode.</p><a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin öffnen →</a></div><div class="portal-illustration" aria-label="Schematische Portalansicht mit Beispieldaten"><small>SCHEMATISCHE ANSICHT · BEISPIELDATEN</small><h3>Ihr Projekt im Überblick</h3><p>● Offerte angenommen</p><p>○ Nächster Schritt: Abstimmung</p><hr><p>Offerte.pdf <span>↗</span></p><p>Vertrag.pdf <span>↗</span></p><small>Im echten Portal erscheinen nur gespeicherte Ereignisse und freigegebene Unterlagen.</small></div></div>
 </div></section>
-<section id="ki-live" class="section ai-lab">
-  <div class="container">
-    <div class="section-title center ai-head">
-      <span class="kicker">IHR PROZESS-CHECK</span>
-      <h2>Was könnte bei Ihnen einfacher laufen?</h2>
-      <p>Beschreiben Sie eine Routineaufgabe. Sie erhalten eine erste KI-Einschätzung mit einem möglichen Ablauf. Die technische Machbarkeit prüfen wir anschliessend gemeinsam.</p>
-      <div class="ai-livebar">
-        <span><i></i> Erste Einschätzung</span>
-        <span>Machbarkeit gemeinsam prüfen</span>
-        <span>Ihr Beispiel → konkreter Prozess</span>
-      </div>
-    </div>
 
-    <div class="ai-grid">
-      <article class="ai-card">
-        <div class="ai-cardtop"><span class="ai-num">01</span><span class="ai-tag">AUFGABE</span></div>
-        <h3>Was würden Sie gerne nie wieder selbst machen?</h3>
-        <p>Bitte verwenden Sie nur unvertrauliche Beispiele ohne Personen- oder Kundendaten. Ihre Eingabe wird zur Analyse an einen KI-Dienst übermittelt.</p>
-        <label for="aiTaskInput">Ihre wiederkehrende Aufgabe</label><textarea maxlength="4000" id="aiTaskInput" placeholder="Zum Beispiel: Jeden Morgen übertrage ich Bestellungen aus E-Mails in Excel und schicke danach eine Bestätigung."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="task">Mit KI analysieren</button><button class="ai-example" type="button" data-ai-example="task">Beispiel einsetzen</button></div>
-        <div class="ai-result" id="aiTaskResult" aria-live="polite"></div>
-      </article>
-    </div>
-
-    <div class="ai-bottom">
-      <div><strong>Das Spannende:</strong> Die Demo zeigt nur einen kleinen Ausschnitt. In einem echten Projekt können daraus Aktionen in E-Mail, CRM, Kalender, Buchhaltung oder Ihren bestehenden Systemen werden.</div>
-      <a class="btn btn-light" href="#kontakt">Eigenen Prozess prüfen lassen</a>
-    </div>
-  </div>
-</section>
 
 
 
@@ -733,7 +667,7 @@ select option{color:#111;background:#fff}
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>
-    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#ki-live">Prozess-Check</a><a href="#beispiel">Beispiel</a><a href="#kontakt">Kontakt</a></div>
+    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#beispiel">Beispiel</a><a href="#kontakt">Kontakt</a></div>
     <div class="footer-meta"><span>© <span id="year"></span> LSZH Automations</span><span>ein Geschäftsbereich der LSZH Invest GmbH</span><span><a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></span><span>Schweiz</span></div>
     <div class="legal-row">
       <button type="button" data-legal="impressum">Impressum</button>
@@ -853,7 +787,7 @@ const legalTexts={
   `,
   datenschutz:`
     <h2>Datenschutzerklärung</h2>
-    <p><strong>Stand: 28. Oktober 2026</strong></p>
+    <p><strong>Stand: 29. Oktober 2026</strong></p>
 
     <h3>1. Verantwortlicher</h3>
     <p>
@@ -889,28 +823,27 @@ const legalTexts={
     <h3>6. Datensicherheit</h3>
     <p>Wir treffen angemessene technische und organisatorische Massnahmen, um Personendaten vor Verlust, unbefugtem Zugriff, Veränderung oder unzulässiger Weitergabe zu schützen. Zugriffe auf eingesetzte Systeme werden soweit möglich auf die für den jeweiligen Zweck erforderlichen Berechtigungen beschränkt.</p>
 
-    <h3>7. KI-Live-Demos</h3>
-    <p>Für die freiwillig nutzbaren KI-Live-Demos können die von Ihnen eingegebenen Texte bzw. hochgeladenen Testdokumente je nach technischer Konfiguration direkt über unseren Website-Server oder über Make an einen KI-Dienst von OpenAI übermittelt werden, um die gewünschte Analyse zu erstellen. LSZH Automations legt diese Inhalte nicht zusätzlich als eigene Website-Datenbank ab; bei den beteiligten Anbietern können jedoch technische Protokolle entstehen, die nach deren jeweiligen Bedingungen aufbewahrt werden. Verwenden Sie in den öffentlichen Demos deshalb keine vertraulichen Informationen, Geschäftsgeheimnisse oder besonders schützenswerten Personendaten.</p>
 
-    <h3>8. Sichere Übermittlung technischer Zugangsdaten</h3>
+
+    <h3>7. Sichere Übermittlung technischer Zugangsdaten</h3>
     <p>Für Kundenprojekte kann LSZH Automations einen zeitlich begrenzten Secure-Transfer-Link bereitstellen, über den beispielsweise ein dedizierter API-Schlüssel oder ein anderes technisches Secret übermittelt werden kann. Das eingegebene Secret wird auf dem LSZH-Webserver vor der Speicherung mit einem serverseitig verwahrten Schlüssel verschlüsselt. Zur technischen Abwicklung können Make und ein externer Datenspeicherdienst die verschlüsselte Nutzlast sowie notwendige Metadaten wie Unternehmen, System, Status und Ablaufzeitpunkt erhalten. Der verwendete Kunden-Link wird nicht im Klartext gespeichert, sondern nur in Form eines kryptografischen Hashwerts.</p>
     <p>Nach dem einmaligen Abruf durch LSZH Automations wird die verschlüsselte Nutzlast aus der Transfer-Ablage gelöscht; zurück bleiben nur administrative Nachweisdaten zum Transfer. Die Funktion ist nicht für normale Benutzerpasswörter, Recovery-Codes oder MFA-Codes vorgesehen.</p>
 
-    <h3>9. Cookies und Tracking</h3>
-    <p>Diese Version der Website verwendet keine zusätzlichen Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Die Hosting- und Cloud-Anbieter können technisch notwendige Zugriffs- und Sicherheitsprotokolle (beispielsweise IP-Adresse, Zugriffszeit und technische Browserdaten) verarbeiten. Das Kontaktformular und die KI-Demos übermitteln die jeweils eingegebenen Inhalte erst, wenn Sie die entsprechende Funktion aktiv nutzen.</p>
+    <h3>8. Cookies und Tracking</h3>
+    <p>Diese Version der Website verwendet keine zusätzlichen Analyse-, Werbe- oder Profiling-Tools und lädt keine externen Webfonts. Die Hosting- und Cloud-Anbieter können technisch notwendige Zugriffs- und Sicherheitsprotokolle (beispielsweise IP-Adresse, Zugriffszeit und technische Browserdaten) verarbeiten. Das Kontaktformular übermittelt Ihre Angaben erst, wenn Sie es absenden.</p>
 
-    <h3>10. Ihre Rechte</h3>
+    <h3>9. Ihre Rechte</h3>
     <p>Im Rahmen des anwendbaren Schweizer Datenschutzrechts können Sie insbesondere Auskunft über die Bearbeitung Ihrer Personendaten verlangen und, soweit die gesetzlichen Voraussetzungen erfüllt sind, die Berichtigung, Herausgabe oder Löschung Ihrer Daten verlangen bzw. einer bestimmten Bearbeitung widersprechen.</p>
 
-    <h3>11. Kundenprojekte und Auftragsbearbeitung</h3>
+    <h3>10. Kundenprojekte und Auftragsbearbeitung</h3>
     <p>Wenn LSZH Automations im Rahmen eines Kundenprojekts Personendaten im Auftrag eines Kunden bearbeitet, werden die projektbezogenen Datenschutzpflichten und eingesetzten Unterauftragsbearbeiter bei Bedarf zusätzlich vertraglich geregelt.</p>
 
-    <h3>12. Kundenportal</h3>
+    <h3>11. Kundenportal</h3>
     <p>Das Kundenportal wird auf Firebase Hosting und Google Cloud Run betrieben. Den Zugang geben wir für einen bestehenden CRM-Kunden und die dort gespeicherte Kontaktadresse manuell frei. Auf Ihre ausdrückliche Anforderung versenden wir einen achtstelligen Einmalcode über eine getrennte Make- und Gmail-Versandstrecke. Hierfür bearbeiten diese Dienste die Empfängeradresse, den Code, die Nachricht und technische Versandkennungen. Die Nachrichten enthalten keine Vertrags- oder Rechnungsanhänge.</p>
     <p>Ein Code ist zehn Minuten gültig und einmal verwendbar. Für die Anmeldung setzen wir ein technisch notwendiges, sicheres Sitzungscookie mit einer regulären maximalen Laufzeit von 30 Minuten ein. Im Portal werden Sitzungstokens nur als Hash und noch benötigte Codes verschlüsselt gespeichert. Die Schweizer Portal-Sicherheitsdatenbank ist von den CRM-Geschäftsdaten getrennt. Projektinformationen und bereitgestellte Dokumente werden anhand Ihrer tatsächlichen Berechtigung aus dem CRM bzw. dem privaten Archiv gelesen. Aktuelle Rechnungskopien sind als solche gekennzeichnet.</p>
     <p>Zum Schutz vor Missbrauch und zur Nachvollziehbarkeit erfassen wir insbesondere Freigaben, Codeanforderungen, bestätigte Zustellungen, Anmeldungen und Dokumentzugriffe. Kurzlebige technische Zustände sind grundsätzlich 24 Stunden nach ihrem Ablauf zur automatischen Löschung vorgesehen; Portal-Auditdaten nach 30 Tagen. Die automatische Löschung erfolgt zeitversetzt. Zugangsfreigaben werden bis zur Sperrung oder Beendigung des Zugangs verwaltet. Für geschäftliche E-Mails, CRM-Daten und Originalunterlagen gilt die oben beschriebene Aufbewahrung. Im Kundenportal verwenden wir keine zusätzlichen Analyse- oder Werbetracker und keine extern geladenen Webfonts.</p>
 
-    <h3>13. Änderungen</h3>
+    <h3>12. Änderungen</h3>
     <p>Wir können diese Datenschutzerklärung anpassen, wenn sich unsere Datenbearbeitungen, eingesetzten Dienste oder rechtlichen Anforderungen ändern. Es gilt die jeweils auf dieser Website veröffentlichte Fassung.</p>
   `
 };
@@ -938,86 +871,6 @@ document.addEventListener('keydown',e=>{
 });
 
 
-const aiExamples={
-  task:'Jeden Morgen kommen Bestellungen per E-Mail. Ich kopiere Name, Artikel und Menge in Excel, prüfe den Lagerbestand und schicke dem Kunden eine Bestätigung.',
-  email:'Guten Tag, könnten Sie uns bitte eine Offerte für den Austausch von drei Lavabos erstellen? Wenn möglich nächste Woche. Freundliche Grüsse, Max Muster',
-  workflow:'Wenn ein Interessent unser Website-Formular ausfüllt, soll geprüft werden, ob die Firma bereits im CRM existiert. Danach soll ein Lead erstellt, ein Termin vorbereitet, eine Bestätigung gesendet und drei Tage später ein Follow-up ausgelöst werden.'
-};
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function aiLoading(text){
-  return '<div class="ai-loading"><span>'+esc(text)+'</span><span class="ai-dots"><i></i><i></i><i></i></span></div>';
-}
-function aiCta(){
-  return '<div class="ai-cta"><span>Das könnte direkt mit Ihren Systemen verbunden werden.</span><a href="#kontakt">Für meinen Betrieb prüfen →</a></div>';
-}
-function renderAiResult(el,r){
-  if(!el)return;
-  let out='<div class="ai-result-status">Erste Einschätzung abgeschlossen</div><h4>'+esc(r.title||'Analyse')+'</h4>';
-  if(r.summary)out+='<p>'+esc(r.summary)+'</p>';
-
-  if(r.complexity){
-    out+='<div class="ai-subhead">Einschätzung</div><div class="ai-kv">';
-    if(r.complexity)out+='<div><span>Komplexität</span><strong>'+esc(r.complexity)+'</strong></div>';
-    out+='</div>';
-  }
-  if(Array.isArray(r.fields)&&r.fields.length){
-    out+='<div class="ai-subhead">Von der KI erkannt</div><div class="ai-kv">'+r.fields.slice(0,8).map(x=>'<div><span>'+esc(x.label)+'</span><strong>'+esc(x.value)+'</strong></div>').join('')+'</div>';
-  }
-
-  const steps=Array.isArray(r.steps)?r.steps:(Array.isArray(r.actions)?r.actions:[]);
-  if(steps.length){
-    const cls=r.type==='workflow'?'ai-flow':'ai-steps';
-    const heading=r.type==='document'?'Was jetzt automatisch passieren könnte':(r.type==='workflow'?'Möglicher automatisierter Ablauf':'So könnte die Automation arbeiten');
-    out+='<div class="ai-subhead">'+heading+'</div><div class="'+cls+'">'+steps.slice(0,7).map((x,i)=>'<span class="ai-step">'+(r.type==='workflow'?'<b style="opacity:.42;margin-right:7px">'+String(i+1).padStart(2,'0')+'</b>':'')+esc(x)+'</span>').join('')+'</div>';
-  }
-  if(r.reply)out+='<div class="ai-subhead">Vorgeschlagene Antwort</div><div class="ai-kv"><div><span>E-Mail</span><strong>'+esc(r.reply)+'</strong></div></div>';
-  if(r.benefit)out+='<div class="ai-subhead">Nutzen</div><p>'+esc(r.benefit)+'</p>';
-  if(r.warning)out+='<p class="ai-note">'+esc(r.warning)+'</p>';
-  if(r.note)out+='<p class="ai-note">'+esc(r.note.includes('Demo-Modus')?'Beispielauswertung ohne Live-KI. Für eine individuelle Prüfung nehmen Sie bitte Kontakt mit uns auf.':r.note)+'</p>';
-  out+='<div class="ai-subhead">Vor der Umsetzung klären</div><p>Welche Schnittstellen sind verfügbar? Welche Daten dürfen verarbeitet werden? Welche Schritte benötigen Ihre Freigabe?</p><p class="ai-note">KI-Vorschlag zur Orientierung; Machbarkeit und Nutzen sind noch nicht geprüft.</p>';out+=aiCta();
-  el.innerHTML=out;el.classList.add('show');
-  el.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-async function runAi(mode){
-  const map={task:['aiTaskInput','aiTaskResult'],email:['aiEmailInput','aiEmailResult'],workflow:['aiWorkflowInput','aiWorkflowResult']};
-  const [inputId,resultId]=map[mode]||[];
-  const input=document.getElementById(inputId),result=document.getElementById(resultId);
-  const text=input?.value.trim()||'';
-  if(text.length<8){result.innerHTML='<p>Bitte beschreiben Sie den Ablauf etwas genauer.</p>';result.classList.add('show');return;}
-  const btn=document.querySelector('[data-ai-run="'+mode+'"]'),old=btn.textContent;btn.disabled=true;btn.textContent='Wird geprüft …';
-  result.innerHTML=aiLoading(mode==='email'?'E-Mail wird verstanden':mode==='workflow'?'Prozess wird aufgebaut':'Aufgabe wird analysiert');result.classList.add('show');
-  try{
-    const resp=await fetch('/api/ai-demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,text})});
-    if(!resp.ok)throw new Error();
-    const data=await resp.json();renderAiResult(result,data.result||{});
-  }catch{result.innerHTML='<p>Die Live-Demo ist gerade nicht verfügbar. Bitte versuchen Sie es später erneut.</p>';}
-  finally{btn.disabled=false;btn.textContent=old;}
-}
-document.querySelectorAll('[data-ai-run]').forEach(b=>b.addEventListener('click',()=>runAi(b.dataset.aiRun)));
-document.querySelectorAll('[data-ai-example]').forEach(b=>b.addEventListener('click',()=>{
-  const mode=b.dataset.aiExample,id={task:'aiTaskInput',email:'aiEmailInput',workflow:'aiWorkflowInput'}[mode];
-  const el=document.getElementById(id);if(el){el.value=aiExamples[mode]||'';el.focus();}
-}));
-function fileToDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
-document.getElementById('aiDocumentInput')?.addEventListener('change',e=>{
-  const file=e.target.files?.[0],label=document.getElementById('aiFileName');
-  if(label)label.textContent=file?file.name:'Noch keine Datei ausgewählt';
-});
-document.getElementById('aiDocumentRun')?.addEventListener('click',async()=>{
-  const input=document.getElementById('aiDocumentInput'),result=document.getElementById('aiDocumentResult'),btn=document.getElementById('aiDocumentRun');
-  const file=input?.files?.[0];
-  if(!file){result.innerHTML='<p>Bitte wählen Sie zuerst ein Testdokument aus.</p>';result.classList.add('show');return;}
-  if(file.size>4*1024*1024){result.innerHTML='<p>Die Demo unterstützt Dateien bis 4 MB.</p>';result.classList.add('show');return;}
-  const old=btn.textContent;btn.disabled=true;btn.textContent='KI liest …';
-  result.innerHTML=aiLoading('Dokument wird gelesen und strukturiert');result.classList.add('show');
-  try{
-    const dataUrl=await fileToDataUrl(file);
-    const resp=await fetch('/api/ai-document',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,type:file.type,data:dataUrl})});
-    if(!resp.ok)throw new Error();
-    const data=await resp.json();renderAiResult(result,data.result||{});
-  }catch{result.innerHTML='<p>Das Dokument konnte gerade nicht analysiert werden.</p>';}
-  finally{btn.disabled=false;btn.textContent=old;}
-});
 </script>
 </body>
 </html>

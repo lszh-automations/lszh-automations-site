@@ -436,7 +436,7 @@ select option{color:#111;background:#fff}
     <nav class="desktop-nav">
       <a href="#leistungen">Leistungen</a><a href="#ki-live">Prozess-Check</a>
       <a href="#beispiel">Beispiel</a>
-      
+
       <a href="#ablauf">Ablauf</a>
       <a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin</a>
     </nav>
@@ -445,8 +445,9 @@ select option{color:#111;background:#fff}
   </div>
   <nav class="mobile">
     <a href="#leistungen">Leistungen</a>
+    <a href="#ki-live">Prozess-Check</a>
     <a href="#beispiel">Beispiel</a>
-    
+
     <a href="#ablauf">Ablauf</a>
     <a href="#kontakt">Prozess prüfen lassen</a>
       <a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin</a>
@@ -671,7 +672,7 @@ select option{color:#111;background:#fff}
       <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required autocomplete="email"></label>
       <label>Was kostet Sie im Alltag unnötig Zeit?
         <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
-      </label><button class="btn btn-primary full" type="button" id="contactNext">Weiter zu den Details →</button><p class="form-note">Schritt 1 von 2 · Noch wird nichts gesendet.</p></div><fieldset id="contactDetails" hidden disabled><legend>Schritt 2 · Angaben für Ihre Anfrage</legend><p>Damit wir Ihre Anfrage zuordnen und beurteilen können, benötigen wir noch Ihre Geschäftsadresse und einige Prozessdetails.</p><button type="button" id="contactBack">← Zurück</button>      <p class="form-subsection-label">Geschäftsadresse</p>
+      </label><button class="btn btn-primary full" type="button" id="contactNext">Weiter zu den Details →</button><p id="contactStepHint" class="form-note">Schritt 1 von 2 · Noch wird nichts gesendet.</p></div><fieldset id="contactDetails" hidden disabled><legend>Schritt 2 · Angaben für Ihre Anfrage</legend><p>Damit wir Ihre Anfrage zuordnen und beurteilen können, benötigen wir noch Ihre Geschäftsadresse und einige Prozessdetails.</p><button type="button" id="contactBack">← Zurück</button>      <p class="form-subsection-label">Geschäftsadresse</p>
       <div class="field-grid">
         <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180" required></label>
         <label>PLZ<input type="text" name="postal_code" placeholder="5610" autocomplete="postal-code" maxlength="16" required></label>
@@ -766,7 +767,7 @@ loginDialog.querySelector('.login-close').addEventListener('click',()=>loginDial
 loginDialog.addEventListener('click',e=>{if(e.target===loginDialog){const r=loginDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)loginDialog.close();}});
 loginDialog.addEventListener('close',()=>loginOpener?.focus());
 const details=document.getElementById('contactDetails'),next=document.getElementById('contactNext'),sendButton=document.getElementById('contactSend');
-function contactStage(open){details.hidden=!open;details.disabled=!open;sendButton.hidden=!open;next.hidden=open;if(open)details.querySelector('input').focus();else next.focus();}
+function contactStage(open){document.getElementById('contactStepHint').hidden=open;details.hidden=!open;details.disabled=!open;sendButton.hidden=!open;next.hidden=open;if(open)details.querySelector('input').focus();else next.focus();}
 next.addEventListener('click',()=>{const fields=[...form.querySelectorAll('input,textarea')].filter(el=>!details.contains(el));for(const field of fields){if(!field.reportValidity())return;}contactStage(true);});
 document.getElementById('contactBack').addEventListener('click',()=>contactStage(false));
 form.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&details.disabled){e.preventDefault();next.click();}});

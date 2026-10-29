@@ -422,6 +422,8 @@ select option{color:#111;background:#fff}
 @media(max-width:820px){.ai-grid{grid-template-columns:1fr}.ai-kv div{grid-template-columns:1fr;gap:3px}.ai-card>p{min-height:0}.ai-bottom{align-items:flex-start;flex-direction:column}.ai-bottom .btn{width:100%;text-align:center}.ai-head h2{font-size:42px}}
 
 
+
+[hidden]{display:none!important}.ai-grid{grid-template-columns:1fr;max-width:820px;margin:auto}.portal-story{margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}.portal-illustration{background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}.portal-illustration small{font-size:11px;color:var(--muted)}.portal-illustration span{float:right}fieldset{border:0;padding:0;margin:0;min-width:0}legend{font-weight:700;margin:20px 0}#contactBack{margin-bottom:18px;background:none;border:0;color:inherit;cursor:pointer}dialog{width:min(520px,calc(100% - 32px));padding:40px;border:1px solid var(--line);border-radius:24px;color:var(--ink);box-shadow:var(--shadow)}dialog::backdrop{background:rgba(6,16,29,.72);backdrop-filter:blur(5px)}dialog h2{font-size:32px;margin:14px 0}dialog p{color:var(--muted)}.login-close{position:absolute;right:14px;top:8px;border:0;background:none;font-size:30px;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #74d8ff;outline-offset:4px}.desktop-nav{gap:20px}.contact-form select{max-width:100%}@media(max-width:760px){.portal-story{grid-template-columns:1fr;gap:24px}dialog{padding:32px 24px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -432,22 +434,22 @@ select option{color:#111;background:#fff}
       <span class="brand-copy"><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small class="brand-tagline">AUTOMATION FÜR SCHWEIZER KMU</small></span>
     </a>
     <nav class="desktop-nav">
-      <a href="#leistungen">Leistungen</a><a href="#ki-live">KI live</a>
+      <a href="#leistungen">Leistungen</a><a href="#ki-live">Prozess-Check</a>
       <a href="#beispiel">Beispiel</a>
-      <a href="#kmu">KMU-Fokus</a>
+      
       <a href="#ablauf">Ablauf</a>
-      <a href="https://portal.lszh-automations.ch/">Kundenlogin</a>
+      <a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin</a>
     </nav>
-    <a class="nav-cta" href="#kontakt">Projekt besprechen</a>
+    <a class="nav-cta" href="#kontakt">Prozess prüfen lassen</a>
     <button class="menu" aria-label="Menü öffnen" aria-expanded="false">☰</button>
   </div>
   <nav class="mobile">
     <a href="#leistungen">Leistungen</a>
     <a href="#beispiel">Beispiel</a>
-    <a href="#kmu">KMU-Fokus</a>
+    
     <a href="#ablauf">Ablauf</a>
-    <a href="#kontakt">Projekt besprechen</a>
-      <a href="https://portal.lszh-automations.ch/">Kundenlogin</a>
+    <a href="#kontakt">Prozess prüfen lassen</a>
+      <a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin</a>
   </nav>
 </header>
 
@@ -459,7 +461,7 @@ select option{color:#111;background:#fff}
       <h1>Weniger Administration.<span>Mehr Zeit fürs Geschäft.</span></h1>
       <p class="hero-lead">LSZH Automations verbindet Ihre bestehenden Systeme und automatisiert wiederkehrende Abläufe – damit Ihr Betrieb schneller reagiert, sauberer arbeitet und mehr Zeit fürs Kerngeschäft gewinnt.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#kontakt">Kostenloses Erstgespräch</a>
+        <a class="btn btn-primary" href="#kontakt">Prozess prüfen lassen</a>
         <a class="btn btn-secondary" href="#beispiel">Beispiel ansehen</a>
       </div>
       <div class="trust">
@@ -471,7 +473,7 @@ select option{color:#111;background:#fff}
       <div class="board">
         <div class="board-top">
           <div class="board-label"><small>LSZH SYSTEM</small><strong>Anfrage-Automation</strong></div>
-          <div class="live"><i></i> aktiv</div>
+          <div class="live">Beispielablauf</div>
         </div>
         <div class="flow">
           <div class="flow-row">
@@ -517,19 +519,19 @@ select option{color:#111;background:#fff}
     <div class="services">
       <article class="service">
         <div class="service-top"><span>01</span><span class="pill">Kundenprozesse</span></div>
-        <h3>Anfragen automatisch erfassen</h3>
+        <h3>Kundenanfragen geordnet bearbeiten</h3>
         <p>Neue Kundenanfragen werden aufgenommen, strukturiert und in den richtigen Prozess weitergeleitet.</p>
         <div class="service-list"><span>Formulare & E-Mail</span><span>Lead-Erfassung</span><span>Datenprüfung</span></div>
       </article>
       <article class="service">
         <div class="service-top"><span>02</span><span class="pill">Follow-ups</span></div>
-        <h3>Offerten konsequent nachfassen</h3>
+        <h3>Offerten und Fristen im Blick behalten</h3>
         <p>Offene Kontakte und Angebote werden zum richtigen Zeitpunkt erinnert und wieder aufgenommen.</p>
         <div class="service-list"><span>Offerten-Follow-up</span><span>Terminerinnerungen</span><span>Status-Logik</span></div>
       </article>
       <article class="service">
         <div class="service-top"><span>03</span><span class="pill">Administration</span></div>
-        <h3>Dokumente und interne Abläufe vereinfachen</h3>
+        <h3>Dokumente und Daten verbinden</h3>
         <p>Informationen werden erfasst, verarbeitet und automatisch dort bereitgestellt, wo sie gebraucht werden.</p>
         <div class="service-list"><span>Dokumentenerfassung</span><span>Interne Meldungen</span><span>Auswertungen</span></div>
       </article>
@@ -537,67 +539,13 @@ select option{color:#111;background:#fff}
   </div>
 </section>
 
-<section class="section usecases-section">
-  <div class="container">
-    <div class="section-title">
-      <span class="kicker">TYPISCHE AUTOMATIONEN</span>
-      <h2>Überall dort, wo sich Arbeit wiederholt, kann Automation ansetzen.</h2>
-      <p>Die Möglichkeiten sind nicht auf eine Branche beschränkt. Entscheidend ist, ob ein Ablauf heute regelmässig Zeit kostet, Informationen mehrfach erfasst werden oder Aufgaben leicht vergessen gehen.</p>
-    </div>
 
-    <div class="usecases-grid">
-      <article class="usecase-card">
-        <div class="usecase-icon uc1">01</div>
-        <h3>Anfragen & Leads</h3>
-        <p>Anfragen automatisch erfassen, kategorisieren, zustellen und den nächsten Schritt auslösen.</p>
-      </article>
-
-      <article class="usecase-card">
-        <div class="usecase-icon uc2">02</div>
-        <h3>Offerten & Follow-ups</h3>
-        <p>Offene Angebote überwachen, Nachfasszeitpunkte erkennen und Follow-ups zuverlässig vorbereiten.</p>
-      </article>
-
-      <article class="usecase-card">
-        <div class="usecase-icon uc3">03</div>
-        <h3>Termine & Erinnerungen</h3>
-        <p>Termine koordinieren, Erinnerungen versenden und interne Aufgaben automatisch anstossen.</p>
-      </article>
-
-      <article class="usecase-card">
-        <div class="usecase-icon uc4">04</div>
-        <h3>Dokumente & Belege</h3>
-        <p>Dokumente erfassen, Informationen auslesen, richtig ablegen und an zuständige Personen weitergeben.</p>
-      </article>
-
-      <article class="usecase-card">
-        <div class="usecase-icon uc5">05</div>
-        <h3>Daten & Auswertungen</h3>
-        <p>Daten aus verschiedenen Quellen zusammenführen und Berichte oder Übersichten automatisch aktualisieren.</p>
-      </article>
-
-      <article class="usecase-card">
-        <div class="usecase-icon uc6">06</div>
-        <h3>Interne Abläufe</h3>
-        <p>Freigaben, Übergaben, Statusänderungen und wiederkehrende Aufgaben sauber miteinander verbinden.</p>
-      </article>
-    </div>
-
-    <div class="micro-cta">
-      <div>
-        <strong>Sie haben einen anderen wiederkehrenden Ablauf?</strong>
-        <p>Sehr wahrscheinlich lässt sich auch dieser prüfen und sinnvoll vereinfachen.</p>
-      </div>
-      <a href="#kontakt" class="btn btn-primary">Ablauf prüfen lassen</a>
-    </div>
-  </div>
-</section>
 
 
 <section id="beispiel" class="section case">
   <div class="container case-grid">
     <div class="case-copy">
-      <span class="kicker">PRAXISBEISPIEL</span>
+      <span class="kicker">SO KANN EIN ABLAUF AUSSEHEN</span>
       <h2>Aus einer offenen Offerte wird ein sauberer Follow-up-Prozess.</h2>
       <p>Der Betrieb muss nicht mehr täglich Listen prüfen oder daran denken, wann ein Kunde erneut kontaktiert werden sollte. Der nächste Schritt wird automatisch vorbereitet oder ausgelöst.</p>
     </div>
@@ -616,102 +564,30 @@ select option{color:#111;background:#fff}
 </section>
 
 
-<section id="kmu" class="section industry">
-  <div class="container">
-    <div class="section-title">
-      <span class="kicker">FÜR SCHWEIZER KMU</span>
-      <h2>Gebaut für Unternehmen, in denen täglich viel koordiniert werden muss.</h2>
-      <p>LSZH Automations richtet sich nicht nur an einzelne Branchen, sondern an Schweizer KMU allgemein – überall dort, wo Anfragen, Termine, Dokumente, Aufgaben oder Follow-ups Zeit kosten.</p>
-    </div>
-
-    <div class="industry-list">
-      <article class="industry-card">
-        <div class="industry-num">01</div>
-        <div>
-          <span>DIENSTLEISTUNG & BERATUNG</span>
-          <h3>Anfragen, Kundendaten und Kommunikation strukturieren</h3>
-          <p>Ideal für Unternehmen, die viele Anfragen erhalten und ihre Kommunikation, Follow-ups und internen Abläufe professioneller organisieren möchten.</p>
-        </div>
-      </article>
-
-      <article class="industry-card">
-        <div class="industry-num">02</div>
-        <div>
-          <span>HANDWERK, SERVICE & BETRIEB</span>
-          <h3>Offerten, Aufträge und interne Übergaben besser steuern</h3>
-          <p>Wenn Offerten, Rückmeldungen, Termine oder Zuständigkeiten im Alltag schnell unübersichtlich werden, schafft Automation klare Abläufe.</p>
-        </div>
-      </article>
-
-      <article class="industry-card">
-        <div class="industry-num">03</div>
-        <div>
-          <span>HANDEL, BÜRO & VERWALTUNG</span>
-          <h3>Dokumente, Informationen und Routineaufgaben reduzieren</h3>
-          <p>Für KMU, die Zeit bei Administration, Datenerfassung, Dokumentenverarbeitung und wiederkehrenden Aufgaben sparen möchten.</p>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
 
 
-<section class="section benefit">
-  <div class="container benefit-grid">
-    <div class="benefit-copy">
-      <span class="kicker">WARUM LSZH</span>
-      <h2>Technik im Hintergrund. Klarheit im Vordergrund.</h2>
-      <p>Gute Automation fühlt sich nicht kompliziert an. Sie funktioniert zuverlässig, spart Zeit und fügt sich sauber in den Arbeitsalltag eines KMU ein.</p>
-    </div>
-    <div class="benefit-list">
-      <div class="benefit-item"><span>01</span><div><strong>Bestehende Systeme sinnvoll nutzen</strong><p>Wir verbinden, was bereits funktioniert, statt unnötig alles zu ersetzen.</p></div></div>
-      <div class="benefit-item"><span>02</span><div><strong>Klein starten, professionell erweitern</strong><p>Erst ein klarer Prozess, danach weitere Automationen auf einer stabilen Basis.</p></div></div>
-      <div class="benefit-item"><span>03</span><div><strong>Verständlich statt unnötig technisch</strong><p>Sie wissen, was Ihr System macht und welchen konkreten Nutzen es bringt.</p></div></div>
-    </div>
-  </div>
-</section>
 
 
-<section class="section potential-section">
-  <div class="container potential-grid">
-    <div class="potential-copy">
-      <span class="kicker">WO LOHNT SICH AUTOMATION?</span>
-      <h2>Oft erkennt man gute Automationspotenziale an denselben Mustern.</h2>
-      <p>Wenn einer oder mehrere dieser Punkte im Alltag regelmässig vorkommen, lohnt sich eine genauere Analyse.</p>
-    </div>
-
-    <div class="signal-list">
-      <div class="signal-item">
-        <span>01</span>
-        <div><strong>Informationen werden mehrfach übertragen</strong><p>Daten werden aus E-Mails, Formularen oder Dokumenten immer wieder manuell kopiert.</p></div>
-      </div>
-      <div class="signal-item">
-        <span>02</span>
-        <div><strong>Aufgaben hängen vom Erinnern einzelner Personen ab</strong><p>Follow-ups, Rückmeldungen oder Fristen funktionieren nur, wenn jemand aktiv daran denkt.</p></div>
-      </div>
-      <div class="signal-item">
-        <span>03</span>
-        <div><strong>Der gleiche Ablauf wiederholt sich ständig</strong><p>Mehrere Schritte laufen bei jeder Anfrage, jedem Auftrag oder jedem Dokument nahezu identisch ab.</p></div>
-      </div>
-      <div class="signal-item">
-        <span>04</span>
-        <div><strong>Informationen liegen in verschiedenen Systemen</strong><p>Mitarbeitende müssen zwischen E-Mail, Tabellen, Kalendern und anderen Tools hin- und herwechseln.</p></div>
-      </div>
-      <div class="signal-item">
-        <span>05</span>
-        <div><strong>Der Überblick kostet mehr Zeit als die eigentliche Arbeit</strong><p>Statuslisten, Kontrollen oder manuelle Zusammenfassungen müssen laufend gepflegt werden.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 
+
+
+
+<section id="ablauf" class="section process"><div class="container">
+<div class="section-title center"><span class="kicker">ZUSAMMENARBEIT</span><h2>Von der ersten Frage bis zum Projektüberblick.</h2><p>Ein klarer Einstieg. Eine persönliche Offerte. Ihre Unterlagen an einem Ort.</p></div>
+<div class="process-grid">
+<article><span class="process-num">01</span><h3>Prozess besprechen</h3><p>Wir klären Ihren Engpass, bestehende Systeme und den sinnvollen ersten Schritt.</p></article>
+<article><span class="process-num">02</span><h3>Offerte erhalten</h3><p>Sie erhalten einen konkreten Vorschlag mit Leistungsumfang und Kosten.</p></article>
+<article><span class="process-num">03</span><h3>Online annehmen</h3><p>Sie prüfen die Offerte und nehmen sie über Ihren persönlichen Vertragslink an.</p></article>
+<article><span class="process-num">04</span><h3>Überblick behalten</h3><p>Nach Freigabe finden Sie den gespeicherten Projektverlauf und Ihre freigegebenen Dokumente im Kundenportal.</p></article>
+</div><div class="portal-story"><div><span class="kicker">IHR KUNDENPORTAL</span><h3>Projektverlauf und Unterlagen. Jederzeit griffbereit.</h3><p>Offerten, angenommene Verträge und Rechnungen sind Ihrem Unternehmen zugeordnet. Der Zugang erfolgt nach persönlicher Freigabe mit E-Mail und Einmalcode.</p><a href="https://portal.lszh-automations.ch/" data-customer-login>Kundenlogin öffnen →</a></div><div class="portal-illustration" aria-label="Schematische Portalansicht mit Beispieldaten"><small>SCHEMATISCHE ANSICHT · BEISPIELDATEN</small><h3>Ihr Projekt im Überblick</h3><p>● Offerte angenommen</p><p>○ Nächster Schritt: Abstimmung</p><hr><p>Offerte.pdf <span>↗</span></p><p>Vertrag.pdf <span>↗</span></p><small>Im echten Portal erscheinen nur gespeicherte Ereignisse und freigegebene Unterlagen.</small></div></div>
+</div></section>
 <section id="ki-live" class="section ai-lab">
   <div class="container">
     <div class="section-title center ai-head">
-      <span class="kicker">KI LIVE TESTEN</span>
-      <h2>Nicht erklären. Zeigen.</h2>
-      <p>Testen Sie mit Ihrem eigenen Beispiel, was KI in einem KMU-Prozess bereits heute verstehen und vorbereiten kann.</p>
+      <span class="kicker">IHR PROZESS-CHECK</span>
+      <h2>Was könnte bei Ihnen einfacher laufen?</h2>
+      <p>Beschreiben Sie eine Routineaufgabe. Sie erhalten eine erste KI-Einschätzung mit einem möglichen Ablauf. Die technische Machbarkeit prüfen wir anschliessend gemeinsam.</p>
       <div class="ai-livebar">
         <span><i></i> Live-Analyse</span>
         <span>Keine vorbereiteten Antworten</span>
@@ -723,43 +599,10 @@ select option{color:#111;background:#fff}
       <article class="ai-card">
         <div class="ai-cardtop"><span class="ai-num">01</span><span class="ai-tag">AUFGABE</span></div>
         <h3>Was würden Sie gerne nie wieder selbst machen?</h3>
-        <p>Beschreiben Sie eine wiederkehrende Aufgabe. Die KI bewertet das Automationspotenzial und skizziert einen möglichen Ablauf.</p>
-        <textarea id="aiTaskInput" placeholder="Zum Beispiel: Jeden Morgen übertrage ich Bestellungen aus E-Mails in Excel und schicke danach eine Bestätigung."></textarea>
+        <p>Bitte verwenden Sie nur unvertrauliche Beispiele ohne Personen- oder Kundendaten. Ihre Eingabe wird zur Analyse an einen KI-Dienst übermittelt.</p>
+        <label for="aiTaskInput">Ihre wiederkehrende Aufgabe</label><textarea maxlength="4000" id="aiTaskInput" placeholder="Zum Beispiel: Jeden Morgen übertrage ich Bestellungen aus E-Mails in Excel und schicke danach eine Bestätigung."></textarea>
         <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="task">Mit KI analysieren</button><button class="ai-example" type="button" data-ai-example="task">Beispiel einsetzen</button></div>
         <div class="ai-result" id="aiTaskResult" aria-live="polite"></div>
-      </article>
-
-      <article class="ai-card">
-        <div class="ai-cardtop"><span class="ai-num">02</span><span class="ai-tag">E-MAIL</span></div>
-        <h3>Was versteht KI aus dieser E-Mail?</h3>
-        <p>Aus einer Nachricht werden strukturierte Informationen, nächste Schritte und ein passender Antwortentwurf.</p>
-        <textarea id="aiEmailInput" placeholder="Fügen Sie hier eine unvertrauliche Beispiel-E-Mail ein."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="email">E-Mail verstehen</button><button class="ai-example" type="button" data-ai-example="email">Beispiel einsetzen</button></div>
-        <div class="ai-result" id="aiEmailResult" aria-live="polite"></div>
-      </article>
-
-      <article class="ai-card">
-        <div class="ai-cardtop"><span class="ai-num">03</span><span class="ai-tag">DOKUMENT</span></div>
-        <h3>Ein Dokument. Strukturierte Daten.</h3>
-        <p>Laden Sie ein Test-PDF oder Bild hoch. Die KI liest erkennbare Geschäftsdaten aus und zeigt, was danach automatisch passieren könnte.</p>
-        <label class="ai-file" for="aiDocumentInput">
-          <span class="ai-fileicon">↥</span>
-          <strong>PDF, JPG oder PNG auswählen</strong>
-          <span id="aiFileName">Noch keine Datei ausgewählt</span>
-          <input id="aiDocumentInput" type="file" accept=".pdf,image/png,image/jpeg">
-        </label>
-        <div class="ai-privacy">Bitte nur Testdokumente ohne vertrauliche oder besonders schützenswerte Personendaten verwenden.</div>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" id="aiDocumentRun">Dokument mit KI lesen</button></div>
-        <div class="ai-result" id="aiDocumentResult" aria-live="polite"></div>
-      </article>
-
-      <article class="ai-card">
-        <div class="ai-cardtop"><span class="ai-num">04</span><span class="ai-tag">WORKFLOW</span></div>
-        <h3>Aus einem Satz wird ein Prozess.</h3>
-        <p>Beschreiben Sie, was passieren soll. Die KI übersetzt Ihre Idee in einen verständlichen Automationsablauf.</p>
-        <textarea id="aiWorkflowInput" placeholder="Zum Beispiel: Wenn ein Kunde das Formular ausfüllt, soll geprüft werden, ob er schon im CRM ist. Danach Termin erstellen, Bestätigung senden und Follow-up vormerken."></textarea>
-        <div class="ai-actions"><button class="btn btn-primary" type="button" data-ai-run="workflow">Workflow erzeugen</button><button class="ai-example" type="button" data-ai-example="workflow">Beispiel einsetzen</button></div>
-        <div class="ai-result" id="aiWorkflowResult" aria-live="polite"></div>
       </article>
     </div>
 
@@ -770,17 +613,7 @@ select option{color:#111;background:#fff}
   </div>
 </section>
 
-<section id="ablauf" class="section process">
-  <div class="container">
-    <div class="section-title center"><span class="kicker">ABLAUF</span><h2>Von der Idee zur laufenden Automation.</h2><p>Ein klarer Prozess, ohne unnötige Umwege.</p></div>
-    <div class="process-grid">
-      <article><span class="process-num">01</span><h3>Verstehen</h3><p>Wir analysieren den heutigen Ablauf und identifizieren die grössten Zeitfresser.</p></article>
-      <article><span class="process-num">02</span><h3>Konzipieren</h3><p>Wir definieren eine schlanke Lösung, die genau zum Betrieb passt.</p></article>
-      <article><span class="process-num">03</span><h3>Umsetzen</h3><p>Die Automation wird gebaut, getestet und mit echten Fällen abgestimmt.</p></article>
-      <article><span class="process-num">04</span><h3>Erweitern</h3><p>Wenn die Basis funktioniert, werden weitere Prozesse gezielt ergänzt.</p></article>
-    </div>
-  </div>
-</section>
+
 
 
 <section class="section faq-section">
@@ -825,7 +658,7 @@ select option{color:#111;background:#fff}
     <div class="contact-copy">
       <span class="kicker">PROJEKT BESPRECHEN</span>
       <h2>Welchen Prozess möchten Sie vereinfachen?</h2>
-      <p>Beschreiben Sie Ihr konkretes Problem und wie der Ablauf heute funktioniert. So können wir Ihre Anfrage bereits vor dem Gespräch gezielt beurteilen.</p>
+      <p>Beginnen Sie mit vier kurzen Angaben. Im zweiten Schritt ergänzen Sie die Details für eine gezielte Beurteilung.</p>
       <div class="contact-points"><span>Unverbindlich</span><span>Auf Ihr Problem fokussiert</span><span>Für Schweizer KMU</span></div>
     </div>
     <form id="contactForm" class="contact-form">
@@ -836,7 +669,9 @@ select option{color:#111;background:#fff}
         <label>Firma<input type="text" name="company" placeholder="Muster AG" required></label>
       </div>
       <label>E-Mail<input type="email" name="email" placeholder="name@firma.ch" required autocomplete="email"></label>
-      <p class="form-subsection-label">Geschäftsadresse</p>
+      <label>Was kostet Sie im Alltag unnötig Zeit?
+        <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
+      </label><button class="btn btn-primary full" type="button" id="contactNext">Weiter zu den Details →</button><p class="form-note">Schritt 1 von 2 · Noch wird nichts gesendet.</p></div><fieldset id="contactDetails" hidden disabled><legend>Schritt 2 · Angaben für Ihre Anfrage</legend><p>Damit wir Ihre Anfrage zuordnen und beurteilen können, benötigen wir noch Ihre Geschäftsadresse und einige Prozessdetails.</p><button type="button" id="contactBack">← Zurück</button>      <p class="form-subsection-label">Geschäftsadresse</p>
       <div class="field-grid">
         <label>Strasse / Hausnummer<input type="text" name="street" placeholder="Musterstrasse 12" autocomplete="street-address" maxlength="180" required></label>
         <label>PLZ<input type="text" name="postal_code" placeholder="5610" autocomplete="postal-code" maxlength="16" required></label>
@@ -845,12 +680,6 @@ select option{color:#111;background:#fff}
         <label>Ort<input type="text" name="city" placeholder="Wohlen" autocomplete="address-level2" maxlength="120" required></label>
         <label>Land<input type="text" name="country" value="Schweiz" autocomplete="country-name" maxlength="80" required></label>
       </div>
-      </div>
-      <div class="form-section" aria-labelledby="contactRequestTitle">
-        <h3 class="form-section-title" id="contactRequestTitle">Anliegen</h3>
-      <label>Was möchten Sie automatisieren oder verbessern?
-        <textarea name="message" rows="4" placeholder="Zum Beispiel: Offerten werden manuell nachgefasst und gehen teilweise vergessen." required></textarea>
-      </label>
       <label>Wie läuft dieser Prozess heute ab?
         <textarea name="current_process" rows="4" placeholder="Zum Beispiel: Anfrage per E-Mail → Daten in Excel eintragen → Offerte erstellen → später manuell nachfassen." required></textarea>
       </label>
@@ -884,11 +713,11 @@ select option{color:#111;background:#fff}
         </label>
       </div>
       <label>Was wäre für Sie die ideale Lösung? <span class="optional">Optional</span>
-        <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Neue Anfragen automatisch erfassen, bestätigen und dem richtigen Mitarbeiter zuweisen."></textarea>
+        <textarea name="desired_result" rows="3" placeholder="Zum Beispiel: Neue Kundenanfragen geordnet bearbeiten, bestätigen und dem richtigen Mitarbeiter zuweisen."></textarea>
       </label>
-      </div>
-      <button class="btn btn-primary full" type="submit">Anfrage senden</button>
-      <p id="formNote" class="form-note">Ihre Angaben werden sicher an LSZH Automations übermittelt.</p>
+      </fieldset>
+      <button class="btn btn-primary full" id="contactSend" hidden type="submit">Anfrage senden</button>
+      <p id="formNote" role="status" class="form-note">Ihre Angaben werden sicher an LSZH Automations übermittelt.</p>
 
 </form>
   </div>
@@ -903,7 +732,7 @@ select option{color:#111;background:#fff}
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>
-    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#ki-live">KI live</a><a href="#beispiel">Beispiel</a><a href="#kmu">KMU-Fokus</a><a href="#kontakt">Kontakt</a></div>
+    <div class="footer-links"><a href="#leistungen">Leistungen</a><a href="#ki-live">Prozess-Check</a><a href="#beispiel">Beispiel</a><a href="#kontakt">Kontakt</a></div>
     <div class="footer-meta"><span>© <span id="year"></span> LSZH Automations</span><span>ein Geschäftsbereich der LSZH Invest GmbH</span><span><a href="mailto:info@lszh-automations.ch">info@lszh-automations.ch</a></span><span>Schweiz</span></div>
     <div class="legal-row">
       <button type="button" data-legal="impressum">Impressum</button>
@@ -922,6 +751,7 @@ select option{color:#111;background:#fff}
   </div>
 </div>
 
+<dialog id="customerLogin" aria-labelledby="loginTitle"><button type="button" class="login-close" aria-label="Fenster schliessen">×</button><span class="kicker">FÜR BESTANDSKUNDEN</span><h2 id="loginTitle">Willkommen zurück.</h2><p>Öffnen Sie Ihren persönlichen Projektbereich. Auf der Anmeldeseite geben Sie Ihre freigegebene geschäftliche E-Mail ein und fordern Ihren Einmalcode an.</p><a class="btn btn-primary" href="https://portal.lszh-automations.ch/">Mit E-Mail anmelden →</a><p class="form-note">Noch keinen Zugang? Die Freigabe erhalten Sie persönlich von LSZH Automations.</p></dialog>
 <script>
 const menuButton=document.querySelector('.menu');
 const mobile=document.querySelector('.mobile');
@@ -930,9 +760,21 @@ mobile?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.
 document.getElementById('year').textContent=new Date().getFullYear();
 const form=document.getElementById('contactForm'),note=document.getElementById('formNote');
 let pendingSubmissionId=null;
+const loginDialog=document.getElementById('customerLogin');let loginOpener;
+document.querySelectorAll('[data-customer-login]').forEach(link=>link.addEventListener('click',e=>{if(!loginDialog.showModal)return;e.preventDefault();loginOpener=link;loginDialog.showModal();}));
+loginDialog.querySelector('.login-close').addEventListener('click',()=>loginDialog.close());
+loginDialog.addEventListener('click',e=>{if(e.target===loginDialog){const r=loginDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)loginDialog.close();}});
+loginDialog.addEventListener('close',()=>loginOpener?.focus());
+const details=document.getElementById('contactDetails'),next=document.getElementById('contactNext'),sendButton=document.getElementById('contactSend');
+function contactStage(open){details.hidden=!open;details.disabled=!open;sendButton.hidden=!open;next.hidden=open;if(open)details.querySelector('input').focus();else next.focus();}
+next.addEventListener('click',()=>{const fields=[...form.querySelectorAll('input,textarea')].filter(el=>!details.contains(el));for(const field of fields){if(!field.reportValidity())return;}contactStage(true);});
+document.getElementById('contactBack').addEventListener('click',()=>contactStage(false));
+form.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&details.disabled){e.preventDefault();next.click();}});
+
 
 form?.addEventListener('submit',async e=>{
   e.preventDefault();
+  if(details.disabled){next.click();return;}
   const button=form.querySelector('button[type="submit"]');
   const original=button.textContent;
   button.disabled=true;
@@ -955,7 +797,7 @@ form?.addEventListener('submit',async e=>{
     if(receipt.confirmed!==true || !/^web_[0-9a-f]{32}$/.test(receipt.recordId||''))
       throw new Error('CRM storage unconfirmed');
 
-    form.reset();
+    form.reset();contactStage(false);
     pendingSubmissionId=null;
     note.textContent='Vielen Dank. Ihre Anfrage wurde erfolgreich übermittelt.';
     note.style.color='#9becce';
@@ -1112,14 +954,9 @@ function renderAiResult(el,r){
   let out='<div class="ai-result-status">Live-Analyse abgeschlossen</div><h4>'+esc(r.title||'Analyse')+'</h4>';
   if(r.summary)out+='<p>'+esc(r.summary)+'</p>';
 
-  if(Number.isFinite(Number(r.score))){
-    const score=Math.max(0,Math.min(100,Number(r.score)));
-    out+='<div class="ai-score"><b>'+esc(score)+'%</b><div><span>geschätzte Automatisierbarkeit</span><div class="ai-scorebar"><i style="width:'+score+'%"></i></div></div></div>';
-  }
-  if(r.complexity||r.savings){
+  if(r.complexity){
     out+='<div class="ai-subhead">Einschätzung</div><div class="ai-kv">';
     if(r.complexity)out+='<div><span>Komplexität</span><strong>'+esc(r.complexity)+'</strong></div>';
-    if(r.savings)out+='<div><span>Potenzial</span><strong>'+esc(r.savings)+'</strong></div>';
     out+='</div>';
   }
   if(Array.isArray(r.fields)&&r.fields.length){
@@ -1136,7 +973,7 @@ function renderAiResult(el,r){
   if(r.benefit)out+='<div class="ai-subhead">Nutzen</div><p>'+esc(r.benefit)+'</p>';
   if(r.warning)out+='<p class="ai-note">'+esc(r.warning)+'</p>';
   if(r.note)out+='<p class="ai-note">'+esc(r.note)+'</p>';
-  out+=aiCta();
+  out+='<div class="ai-subhead">Vor der Umsetzung klären</div><p>Welche Schnittstellen sind verfügbar? Welche Daten dürfen verarbeitet werden? Welche Schritte benötigen Ihre Freigabe?</p><p class="ai-note">KI-Vorschlag zur Orientierung; Machbarkeit und Nutzen sind noch nicht geprüft.</p>';out+=aiCta();
   el.innerHTML=out;el.classList.add('show');
   el.scrollIntoView({behavior:'smooth',block:'nearest'});
 }

@@ -35,7 +35,7 @@ header{
   position:sticky;top:0;z-index:1000;background:rgba(6,16,29,.84);
   backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06)
 }
-.nav{height:82px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
+.nav{height:104px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
 .brand{display:inline-flex;align-items:center;gap:12px;width:max-content}
 
 .brand-copy{display:grid;line-height:1.05}
@@ -392,33 +392,34 @@ select option{color:#111;background:#fff}
 
 [hidden]{display:none!important}.portal-story{margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}.portal-illustration{background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}.portal-illustration small{font-size:11px;color:var(--muted)}.portal-illustration span{float:right}fieldset{border:0;padding:0;margin:0;min-width:0}legend{font-weight:700;margin:20px 0}#contactBack{margin-bottom:18px;background:none;border:0;color:inherit;cursor:pointer}dialog{width:min(520px,calc(100% - 32px));padding:40px;border:1px solid var(--line);border-radius:24px;color:var(--ink);box-shadow:var(--shadow)}dialog::backdrop{background:rgba(6,16,29,.72);backdrop-filter:blur(5px)}dialog h2{font-size:32px;margin:14px 0}dialog p{color:var(--muted)}dialog .form-note{color:#526175;margin-top:20px}.login-close{position:absolute;right:14px;top:8px;border:0;background:none;font-size:30px;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #74d8ff;outline-offset:4px}.desktop-nav{gap:20px}.contact-form select{max-width:100%}@media(max-width:760px){.portal-story{grid-template-columns:1fr;gap:24px}dialog{padding:32px 24px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 /* A compact mobile entry with the same contact and customer-login routes. */
-.header-logo{display:block;width:156px;height:auto}
+.header-logo{display:block;width:320px;height:auto}.header-slogan{display:none}.footer-logo{display:block;width:320px;max-width:100%;height:auto}.footer-grid .brand{display:block;width:100%;max-width:320px}
 .nav-cta{gap:12px}
 .nav-cta-small{display:none}
 .hero h1{line-height:1.04;letter-spacing:-.055em;text-wrap:balance}
 .hero-lead{max-width:540px;color:rgba(255,255,255,.78);line-height:1.65}
 .hero-actions .btn{gap:16px}
 .trust{color:rgba(255,255,255,.68)}
-section[id],main[id]{scroll-margin-top:100px}
+section[id],main[id]{scroll-margin-top:128px}
 @media(max-width:980px){
- .nav{height:78px;grid-template-columns:1fr auto auto;gap:12px}
+ header .brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.header-logo{width:156px}.header-slogan{display:block;color:#d4e6f3;font-size:10.5px;line-height:1.4;letter-spacing:.01em}.header-slogan span{display:block}
+ .nav{height:112px;grid-template-columns:1fr auto auto;gap:12px}
  .nav-cta{display:inline-flex;min-height:44px;padding:0 16px}
  .menu{display:flex;width:44px;height:44px;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.18);border-radius:12px;cursor:pointer}
  .menu span{display:block;width:18px;height:2px;background:currentColor;transition:transform .18s ease}
  .menu[aria-expanded="true"] span:first-child{transform:translateY(4px) rotate(45deg)}
  .menu[aria-expanded="true"] span:last-child{transform:translateY(-4px) rotate(-45deg)}
- .mobile{position:absolute;top:100%;left:0;right:0;max-height:calc(100dvh - 78px);overflow:auto;gap:0;padding:12px max(20px,calc((100vw - 1180px)/2)) 20px;background:#0a1728;border-bottom:1px solid rgba(255,255,255,.14);box-shadow:0 24px 40px rgba(0,0,0,.22)}
+ .mobile{position:absolute;top:100%;left:0;right:0;max-height:calc(100dvh - 112px);overflow:auto;gap:0;padding:12px max(20px,calc((100vw - 1180px)/2)) 20px;background:#0a1728;border-bottom:1px solid rgba(255,255,255,.14);box-shadow:0 24px 40px rgba(0,0,0,.22)}
  .mobile a{display:flex;align-items:center;min-height:52px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
  .mobile a:last-child{border-bottom:0;color:var(--cyan)}
  .hero-board{margin-inline:auto}
 }
 @media(max-width:700px){
  .container{width:calc(100% - 40px)}
- .nav{height:74px;gap:10px}
+ .nav{height:112px;gap:10px}
  .header-logo{width:142px}
  .nav-cta{padding:0 12px;font-size:12px;gap:7px}
  .nav-cta-wide{display:none}.nav-cta-small{display:inline}
- .mobile{max-height:calc(100dvh - 74px)}
+ .mobile{max-height:calc(100dvh - 112px)}
  .hero{padding:42px 0 48px}
  .hero-grid{gap:34px;min-width:0}
  .hero .eyebrow{font-size:11px;margin-bottom:22px;gap:9px}
@@ -443,7 +444,7 @@ section[id],main[id]{scroll-margin-top:100px}
  .hero .result{margin:0 14px 14px;padding:14px;display:block}
  .hero .result strong{font-size:13px}.hero .result>span{display:block;margin-top:6px}
  .hero-scroll-hint{display:none}
- section[id],main[id]{scroll-margin-top:90px}
+ section[id],main[id]{scroll-margin-top:132px}
 }
 @media(max-width:360px){.header-logo{width:120px}.nav{gap:8px}.nav-cta{padding:0 10px}}
 @media(min-width:981px){.mobile.open{display:none}}
@@ -476,7 +477,7 @@ section[id],main[id]{scroll-margin-top:100px}
 <header>
   <div class="container nav">
     <a class="brand" href="#top" aria-label="LSZH Automations – Startseite">
-      <img class="header-logo" src="/lszh-header-logo.png" width="800" height="300" alt="LSZH Automations">
+      <picture><source media="(max-width:980px)" srcset="/lszh-header-logo.png" width="800" height="304"><img class="header-logo" src="/lszh-logo-slogan.svg" width="1380" height="350" alt="LSZH Automations"></picture><span class="header-slogan"><span>Prozesse. Automatisiert.</span><span>Für echte Ergebnisse.</span></span>
     </a>
     <nav class="desktop-nav">
       <a href="#leistungen">Leistungen</a>
@@ -779,7 +780,7 @@ section[id],main[id]{scroll-margin-top:100px}
   <div class="container footer-grid">
     <div>
       <a class="brand" href="#top">
-        <span class="brand-copy"><span class="lszh-wordmark" style="display:inline-block;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;line-height:1.1;letter-spacing:0;color:#ffffff;"><span style="font-size:24px;font-weight:800;letter-spacing:0;">LSZH</span><span style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:4px;color:#74d8ff;">AUTOMATIONS</span></span><small class="brand-tagline">AUTOMATION FÜR SCHWEIZER KMU</small></span>
+        <img class="footer-logo" src="/lszh-logo-slogan.svg" width="1380" height="350" alt="LSZH Automations – Prozesse. Automatisiert. Für echte Ergebnisse.">
       </a>
       <p>Hochwertige Automationen für Schweizer KMU.</p><div class="footer-note">Von einzelnen Abläufen bis zu vernetzten Automationssystemen – schrittweise aufgebaut und verständlich dokumentiert.</div>
     </div>
@@ -992,3 +993,4 @@ document.addEventListener('keydown',e=>{
 </script>
 </body>
 </html>
+

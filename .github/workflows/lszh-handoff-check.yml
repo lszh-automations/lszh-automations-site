@@ -1,0 +1,33 @@
+name: LSZH chat handoff check
+on:
+  push:
+    branches:
+      - feature/chat-handoff-20261018
+  pull_request:
+    paths:
+      - AGENTS.md
+      - docs/LSZH_HANDOFF_AKTUELL.md
+      - docs/LSZH_CHATGPT_PROJEKTANWEISUNG.md
+      - scripts/check-handoff.mjs
+      - .github/workflows/lszh-handoff-check.yml
+  workflow_dispatch:
+  schedule:
+    - cron: '19 7 * * *'
+permissions:
+  contents: read
+jobs:
+  handoff-check:
+    name: Validate handoff and branch heads (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate local structure
+        run: node scripts/check-handoff.mjs
+      - name: Check latest source branches without changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-handoff.mjs --remote
